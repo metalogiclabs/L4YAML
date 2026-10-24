@@ -531,12 +531,15 @@ corrBlock=0 corrScan=1 via="]
 -- 2026-10-23 (item 348): `scanNextToken_preprocess holders` 223 → 224 — `preprocess_col0_dead` reads the preprocess equation; edge/chain stand.
 -- 2026-10-23 (item 349): `scanNextToken_dispatchBlockIndicators` holders=110 edge=0 chain=0 → holders=112 edge=0 chain=0 —
 -- `not_blockEntryCandidate_of_dispatch_none` / `indicatorAt_false_of_dispatch_none` hold the dispatch equation.
+-- 2026-10-24 (B3 [66] col-0 threading): holders 110/146/224 → 114/157/240 (gate / NextIsSep / JSON-key /
+-- reservation lemmas); the block-indicator and content dispatchers each gain one `sp_gram` edge;
+-- preprocess chain 6 → 3 — three carriers read the edge directly (holders re-read on the item-354 base).
 def expectedLadder : List String :=
 -- 2026-10-24 (item 350): holders=112 → 113 — `dispatchBlock_colon_notQuestion` reads the `:`
 -- dispatch equation to hand every `:` producer `NotQuestionPark`.
-  ["scanNextToken_dispatchBlockIndicators holders=113 edge=0 chain=0",
-   "scanNextToken_dispatchContent holders=146 edge=2 chain=1",
-   "scanNextToken_preprocess holders=224 edge=17 chain=6"]
+  ["scanNextToken_dispatchBlockIndicators holders=117 edge=1 chain=0",
+   "scanNextToken_dispatchContent holders=157 edge=3 chain=1",
+   "scanNextToken_preprocess holders=240 edge=17 chain=3"]
 
 /-- **What §1's proofs spend.**  `drop=false` is the non-circularity check
     items 242 and 243 also carry: a measurement of what the escape costs may

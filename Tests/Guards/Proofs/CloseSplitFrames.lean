@@ -632,26 +632,21 @@ def doorOf (lem : Name) (parks : List Name) : MetaM (Array String) := do
 -- 2026-10-21 (item 319): two rows re-read — `accum_block_on_pendingBlockContent #6` and `accum_block_on_pendingBlock #10`:
 -- the `h_closeFV_old` outer-alternative bullets read `—` where they read `punt` (`rcases … | h_alt` hands the park's
 -- alternative on at the park's own state, `Or.inr h_alt`, instead of closing with `trivial`).
+-- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 def expectedSpends : List String :=
-  ["keyctx_of_preprocess #1 width feeds=tuple frames=[] cover=none floor=none above=[other(s_prep.simpleKey.possible = true ∧ s_pre…),other((∃ k, SIndent k sp_mid sp_ws) ∨ ∃ sa sb,…),other(h_disj:SSLComments sp sp_mid ∧ sp_mid.co…)] beside=[]",
-   "keyctx_of_preprocess #2 width feeds=tuple frames=[] cover=none floor=none above=[other(s_prep.simpleKey.possible = true ∧ s_pre…),other((∃ k, SIndent k sp_mid sp_ws) ∨ ∃ sa sb,…),other(h_disj:SSLComments sp sp_mid ∧ sp_mid.co…),col0(sp.col = 0)] beside=[]",
-   "flowKeyRoute_of_root #3 width feeds=rootMapRoute_or_refused.h_stream_land frames=[base:h_base,closeF(opt):h_mapF,closeF(opt,wb):h_res_land,closeFV(opt):h_mapFV,closeFV(opt,wb):h_resV_land,tail(opt):h_tail143] cover=none floor=none above=[other((∃ k, SIndent k sp_mid sp_ws) ∨ ∃ sa sb,…),other(h_disj:SSLComments sp_scan sp_mid ∧ sp_m…),opt(h_res_land,h_sfx,h_nodoc:((∃ ks', (∀ (fr…)] beside=[]",
-   "flowKeyRoute_of_root #4 width feeds=rootMapRouteF_or_refused.h_stream_land frames=[base:h_base,closeF(opt):h_mapF,closeF(opt,wb):h_res_land,closeFV(opt):h_mapFV,closeFV(opt,wb):h_resV_land,tail(opt):h_tail143] cover=none floor=none above=[other((∃ k, SIndent k sp_mid sp_ws) ∨ ∃ sa sb,…),other(h_disj:SSLComments sp_scan sp_mid ∧ sp_m…),opt(h_res_land,h_sfx,h_nodoc:((∃ ks', (∀ (fr…)] beside=[]",
-   -- Item 287: `h_vslot` is no longer a `_ ∨ True`, so its frame reads unmarked.
-   "accum_block_on_closeThenBlock #5 width feeds=tuple frames=[base:h_base,closeF(opt):h_mapF,closeF(opt,wb,cover@2,floor@2):h_valF,closeFV(opt):h_mapFV,closeFV(opt):h_valFV,kslotUp(opt):h_vpack,kslotUp:h_vslot,mono:h_mono,nic0:h_nic0,seqF(opt):h_seqF,tail(opt):h_tail139] cover=@2 floor=@2 above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…)] beside=[]",
-   "accum_block_on_pendingBlockContent #6 BOTH feeds=indicator_open_map.h_stream_land frames=[base:h_base,closeF(opt,wb,cover@2,floor@2):h_closeF_old,closeFV(opt,wb):h_closeFV_old,entry(SSL):h_entry_old,kslot(opt):h_kslot,kslotUp(opt):h_kslotUp,mono:h_mono,nic0:h_nic0,seqF(opt):h_seqF_old,tail:h_tail139] cover=@2 floor=@2 above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?')] beside=[opt(h_closeF_old:(∃ ks, (∀ (fr : Proofs.Inde…)→E:comments|punt,kmem(Proofs.IndentStackCover.FrameLevel.map k…)→E:comments|punt,col0(sp_scan.col = 0)→punt|paid,opt(h_closeFV_old:(∃ nv ks, (∀ (fr : Proofs.…)→E:comments|—,kmem(Proofs.IndentStackCover.FrameLevel.map k…)→—|punt]",
-   "accum_block_on_pendingBlockContent #7 BOTH feeds=colon_open_map_explicit.h_stream_mid frames=[base:h_base,closeF(opt,wb,cover@2,floor@2):h_closeF_old,closeFV(opt,wb):h_closeFV_old,entry(SSL):h_entry_old,kslot(opt):h_kslot,kslot:kslot,kslotUp(opt):h_kslotUp,mono:h_mono,nic0:h_nic0,seqF(opt):h_seqF_old,tail:h_tail139] cover=@2 floor=@2 above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':')] beside=[]",
-   "accum_block_on_pendingBlockContent #8 BOTH feeds=block_dispatch_deferred_stamp_offcol.h_stream frames=[base:h_base,closeF(opt,wb,cover@2,floor@2):h_closeF_old,closeFV(opt,wb):h_closeFV_old,entry(SSL):h_entry_old,kslot(opt):h_kslot,kslot:h_explicit,kslot:h✝,kslot:kslot,kslotUp(opt):h_kslotUp,kslotUp:h_upSpend,mono:h_mono,nic0:h_nic0,seqF(opt):h_seqF_old,tail:h_tail139] cover=@2 floor=@2 above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':'),other((if s_prep.allowDirectives = true then {…),opt(h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SSLCo…),knv(nv = k),k∃(h_upSpend:(∀ (sp_m : SurfPos), SSLCommen…)] beside=[other(s_prep.allowDirectives = true)→—|—]",
-   "accum_block_on_pendingBlockContent #9 BOTH feeds=block_dispatch_deferred_stamp_nopack.h_stream frames=[base:h_base,closeF(opt,wb,cover@2,floor@2):h_closeF_old,closeFV(opt,wb):h_closeFV_old,entry(SSL):h_entry_old,kslot(opt):h_kslot,kslot:h_explicit,kslotUp(opt):h_kslotUp,kslotUp:h_upSpend,mono:h_mono,nic0:h_nic0,seqF(opt):h_seqF_old,tail:h_tail139] cover=@2 floor=@2 above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':'),other((if s_prep.allowDirectives = true then {…),opt(h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SSLCo…)] beside=[other(s_prep.allowDirectives = true)→—|—]",
-   "accum_block_on_pendingBlock #10 BOTH feeds=indicator_open_map.h_stream_land frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslotUp(opt):h_kslotUp,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?')] beside=[col0(sp_scan.col = 0)→punt|paid,kn(n + 1 ≤ k)→E:pass×4|punt,opt(h_kslot,h_kslotUp:((∃ nv, ∀ (sp_m : Surf…)→paid,E:pass×2|paid,E:pass|paid,E:pass|—,opt(h_closeFV_old:(∃ nv ks, (∀ (fr : Proofs.…)→E:empty|—,kmem(Proofs.IndentStackCover.FrameLevel.map k…)→—|punt]",
-   "accum_block_on_pendingBlock #11 BOTH feeds=colon_open_map_explicit.h_stream_mid frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslot:kslot,kslotUp(opt):h_kslotUp,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':')] beside=[]",
-   "accum_block_on_pendingBlock #12 BOTH feeds=block_dispatch_deferred_stamp_offcol.h_stream frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslot:h_explicit,kslot:h✝,kslot:kslot,kslotUp(opt):h_kslotUp,kslotUp:h_upSpend,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':'),other((if s_prep.allowDirectives = true then {…),opt(h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SBloc…),knv(nv = k),k∃(h_upSpend:(∀ (sp_m : SurfPos), SBlockInd…)] beside=[other(s_prep.allowDirectives = true)→—|—]",
-   "accum_block_on_pendingBlock #13 BOTH feeds=block_dispatch_deferred_stamp_nopack.h_stream frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslot:h_explicit,kslotUp(opt):h_kslotUp,kslotUp:h_upSpend,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':'),other((if s_prep.allowDirectives = true then {…),opt(h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SBloc…)] beside=[other(s_prep.allowDirectives = true)→—|—]"]
+  ["keyctx_of_preprocess #1 width feeds=tuple frames=[] cover=none floor=none above=[other(s_prep.simpleKey.possible = true ∧ s_pre…),other((∃ k, SIndent k sp_mid sp_ws) ∨ ∃ sa sb,…),other(h_disj:SSLComments sp_g sp_mid ∧ sp_mid.…)] beside=[]",
+   "accum_block_on_closeThenBlock #2 width feeds=tuple frames=[base:h_base,closeF(opt):h_mapF,closeF(opt,wb,cover@2,floor@2):h_valF,closeFV(opt):h_mapFV,closeFV(opt):h_valFV,kslotUp(opt):h_vpack,kslotUp:h_vslot,mono:h_mono,nic0:h_nic0,seqF(opt):h_seqF,tail(opt):h_tail139] cover=@2 floor=@2 above=[other(h_land:SSLComments sp_gram sp_mid ∧ sp_m…)] beside=[]",
+   "accum_block_on_pendingBlock #3 BOTH feeds=indicator_open_map.h_stream_land frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslotUp(opt):h_kslotUp,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?')] beside=[col0(sp_scan.col = 0)→punt|paid,kn(n + 1 ≤ k)→E:pass×4|punt,opt(h_kslot,h_kslotUp:((∃ nv, ∀ (sp_m : Surf…)→paid,E:pass×2|paid,E:pass|paid,E:pass|—,opt(h_closeFV_old:(∃ nv ks, (∀ (fr : Proofs.…)→E:empty|—,kmem(Proofs.IndentStackCover.FrameLevel.map k…)→—|punt]",
+   "accum_block_on_pendingBlock #4 BOTH feeds=colon_open_map_explicit.h_stream_mid frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslot:kslot,kslotUp(opt):h_kslotUp,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':')] beside=[]",
+   "accum_block_on_pendingBlock #5 BOTH feeds=block_dispatch_deferred_stamp_offcol.h_stream frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslot:h_explicit,kslot:h✝,kslot:kslot,kslotUp(opt):h_kslotUp,kslotUp:h_upSpend,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':'),other((if s_prep.allowDirectives = true then {…),opt(h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SBloc…),knv(nv = k),k∃(h_upSpend:(∀ (sp_m : SurfPos), SBlockInd…)] beside=[other(s_prep.allowDirectives = true)→—|—]",
+   "accum_block_on_pendingBlock #6 BOTH feeds=block_dispatch_deferred_stamp_nopack.h_stream frames=[base:h_base,closeFV(opt,wb):h_closeFV_old,entry(SBI):h_close_entry_old,kslot(opt):h_kslot,kslot:h_explicit,kslotUp(opt):h_kslotUp,kslotUp:h_upSpend,mono:h_mono,seqF(opt):h_seqF_old,top:h_top_old] cover=none floor=none above=[other(h_land:SSLComments sp_scan sp_mid ∧ sp_m…),other((∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb,…),char(c = '-'),char(c = ':' ∨ c = '?'),char(c = ':'),other((if s_prep.allowDirectives = true then {…),opt(h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SBloc…)] beside=[other(s_prep.allowDirectives = true)→—|—]"]
 -- 2026-10-21 (item 319): four rows re-read for the paid block-lane arms — the `rcases … | h_alt` and `| Or.inr h_alt`
 -- vectors (`h_resSeqV`, `h_closeFV_old` ×2, `h_kslot`/`h_kslotUp`) read `—` where they read `punt`: the arm hands the park's
 -- alternative on at the park's own state instead of closing with `trivial`.
 -- 2026-10-23 (item 344): five `accum_block_on_pendingBlock` decisions write `E:node×6` (was ×5) — the caller's
 -- `h_valFV` now relays `h_closeFV_old`'s node-domained closure.
+-- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
+-- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 def expectedDecisions : List String :=
   -- Item 305: `closeThenBlock`'s landed-`-` arm decides the first entry's stack on the `?` slot (`h_slotV`, a third `dite kn [nv ≤ k]`), the bound-carrying `h_closeFV_old` prints its new first conjunct, and the nested arms' pushes read as carries.
   -- Item 307: the two block routes' dedent arms build `h_vpack` and `h_mapFV` from `h_closeFV_old`
@@ -672,52 +667,37 @@ def expectedDecisions : List String :=
    "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass×4|punt pos=—",
    "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
    "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
-   "accum_block_on_pendingBlockContent Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:comments×10,P:hand,E:carry×2,P:spend×4,E:pass|— pos=above#6,above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:comments×10,P:hand,E:carry×2,P:spend×4,E:pass|— pos=above#6,above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent dite char [c = '-'] → E:comments×8,P:hand,E:carry|P:spend×4,E:comments×2,E:carry,E:pass pos=above#6,above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent dite kn [k = n] → E:comments×5|P:hand,E:carry,E:comments×3 pos=—",
-   "accum_block_on_pendingBlockContent dite char [c = ':' ∨ c = '?'] → P:spend×4,E:comments×2,E:carry,E:pass|— pos=above#6,above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent Or.casesOn opt [h_closeF_old:(∃ ks, (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks → fr.width …] → E:comments|punt pos=beside#6",
-   "accum_block_on_pendingBlockContent dite kmem [Proofs.IndentStackCover.FrameLevel.map k ∈ ks] → E:comments|punt pos=beside#6",
-   "accum_block_on_pendingBlockContent dite col0 [sp_scan.col = 0] → punt|paid pos=beside#6",
-   "accum_block_on_pendingBlockContent Or.casesOn opt [h_closeFV_old:(∃ nv ks, (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks → fr.wid…] → E:comments|— pos=beside#6",
-   "accum_block_on_pendingBlockContent dite kmem [Proofs.IndentStackCover.FrameLevel.map k ∈ ks] → —|punt pos=beside#6",
-   "accum_block_on_pendingBlockContent dite char [c = ':'] → P:spend×3,E:carry,E:pass|— pos=above#7,above#8,above#9",
-   "accum_block_on_pendingBlockContent dite kmem [k ∈ nsU] → paid,E:carry,E:pass|— pos=—",
-   "accum_block_on_pendingBlockContent dite other [(if s_prep.allowDirectives = true then { input := s_prep.input, inputEnd…] → —|P:spend×2 pos=above#8,above#9",
-   "accum_block_on_pendingBlockContent dite knv [nv = k] → —|— pos=—",
-   "accum_block_on_pendingBlockContent Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SSLComments sp_scan sp_m → ∀ (sp_e : SurfPos), SCom…] → —|— pos=—",
-   "accum_block_on_pendingBlockContent Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SSLComments sp_scan sp_m → ∀ (sp_e : SurfPos), SCom…] → —|— pos=—",
-   "accum_block_on_pendingBlockContent Or.casesOn opt [h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SSLComments sp_scan sp_m → ∀ (sp_e : SurfPos)…] → P:spend|P:spend pos=above#8,above#9",
-   "accum_block_on_pendingBlockContent dite knv [nv = k] → —|P:spend pos=above#8",
-   "accum_block_on_pendingBlockContent Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SSLComments sp_scan sp_m → ∀ (sp_e : SurfPos), SCom…] → —|P:spend pos=above#8",
-   "accum_block_on_pendingBlockContent dite other [s_prep.allowDirectives = true] → —|— pos=beside#8",
-   "accum_block_on_pendingBlockContent dite other [s_prep.allowDirectives = true] → —|— pos=beside#9",
-   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|E:prem,E:node×6,E:pass pos=above#10,above#11,above#12,above#13",
-   "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|— pos=above#10,above#11,above#12,above#13",
-   "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×7,E:node×6,P:hand,E:carry|P:spend×4,E:pass×5,E:empty,E:carry pos=above#10,above#11,above#12,above#13",
    "accum_block_on_pendingBlock dite kn [k = n] → E:empty×4|E:node×6,P:hand,E:carry,E:empty×3 pos=—",
    "accum_block_on_pendingBlock Or.casesOn kn [n < k ∨ n ≥ k] → E:node×5|P:hand,E:carry,E:empty×3,E:node pos=—",
-   "accum_block_on_pendingBlock dite char [c = ':' ∨ c = '?'] → P:spend×4,E:pass×5,E:empty,E:carry|— pos=above#10,above#11,above#12,above#13",
-   "accum_block_on_pendingBlock dite col0 [sp_scan.col = 0] → punt|paid pos=beside#10",
-   "accum_block_on_pendingBlock dite kn [n + 1 ≤ k] → E:pass×4|punt pos=beside#10",
-   "accum_block_on_pendingBlock match opt [h_kslot,h_kslotUp:((∃ nv, ∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan…] → paid,E:pass×2|paid,E:pass|paid,E:pass|— pos=beside#10",
-   "accum_block_on_pendingBlock Or.casesOn opt [h_closeFV_old:(∃ nv ks, (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks → fr.wid…] → E:empty|— pos=beside#10",
-   "accum_block_on_pendingBlock dite kmem [Proofs.IndentStackCover.FrameLevel.map k ∈ ks] → —|punt pos=beside#10",
-   "accum_block_on_pendingBlock dite char [c = ':'] → P:spend×3,E:carry,E:pass|— pos=above#11,above#12,above#13",
    "accum_block_on_pendingBlock dite kmem [k ∈ nsU] → paid,E:carry,E:pass|— pos=—",
-   "accum_block_on_pendingBlock dite other [(if s_prep.allowDirectives = true then { input := s_prep.input, inputEnd…] → —|P:spend×2 pos=above#12,above#13",
    "accum_block_on_pendingBlock dite knv [nv = k] → —|— pos=—",
    "accum_block_on_pendingBlock Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp_m →…] → —|— pos=—",
    "accum_block_on_pendingBlock Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp_m →…] → —|— pos=—",
-   "accum_block_on_pendingBlock Or.casesOn opt [h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan …] → P:spend|P:spend pos=above#12,above#13",
-   "accum_block_on_pendingBlock dite knv [nv = k] → —|P:spend pos=above#12",
-   "accum_block_on_pendingBlock Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp_m →…] → —|P:spend pos=above#12",
-   "accum_block_on_pendingBlock dite other [s_prep.allowDirectives = true] → —|— pos=beside#12",
-   "accum_block_on_pendingBlock dite other [s_prep.allowDirectives = true] → —|— pos=beside#13"]
+   "flowKeyRoute_of_root dite kmem [Proofs.IndentStackCover.FrameLevel.map w ∈ ks] → E:other(lemma:SSLCommentsFrom_at_park(prem:ScannerSurfCorr,prem:GStar,prem:∀→Not,lemma:left(prem:And),lemma:left(lemma:right(lemma:right(…)))))|punt pos=—",
+   "flowKeyRoute_of_root dite kmem [Proofs.IndentStackCover.FrameLevel.map w ∈ ks] → E:other(lemma:SSLCommentsFrom_at_park(prem:ScannerSurfCorr,prem:GStar,prem:∀→Not,lemma:left(prem:And),lemma:left(lemma:right(lemma:right(…)))))|punt pos=—",
+   "flowKeyRoute_of_root match k∃ [h_res_land,h_sfx,h_nodoc:((∃ ks', (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks' → fr.wid…] → —|—|—|P:spend pos=—",
+   "flowKeyRoute_of_root match k∃ [h_resV_land:(∃ nv ks', (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks' → fr.w…] → paid|punt pos=—",
+   "flowKeyRoute_of_root match k∃ [h_res_land,h_sfx,h_nodoc:((∃ ks', (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks' → fr.wid…] → paid|paid|paid|paid,P:spend pos=—",
+   "flowKeyRoute_of_root match k∃ [h_resV_land:(∃ nv ks', (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks' → fr.w…] → paid|punt pos=—",
+   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|E:prem,E:node×6,E:pass pos=above#3,above#4,above#5,above#6",
+   "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|— pos=above#3,above#4,above#5,above#6",
+   "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×7,E:node×6,P:hand,E:carry|P:spend×4,E:pass×5,E:empty,E:carry pos=above#3,above#4,above#5,above#6",
+   "accum_block_on_pendingBlock dite char [c = ':' ∨ c = '?'] → P:spend×4,E:pass×5,E:empty,E:carry|— pos=above#3,above#4,above#5,above#6",
+   "accum_block_on_pendingBlock dite col0 [sp_scan.col = 0] → punt|paid pos=beside#3",
+   "accum_block_on_pendingBlock dite kn [n + 1 ≤ k] → E:pass×4|punt pos=beside#3",
+   "accum_block_on_pendingBlock match opt [h_kslot,h_kslotUp:((∃ nv, ∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan…] → paid,E:pass×2|paid,E:pass|paid,E:pass|— pos=beside#3",
+   "accum_block_on_pendingBlock Or.casesOn opt [h_closeFV_old:(∃ nv ks, (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks → fr.wid…] → E:empty|— pos=beside#3",
+   "accum_block_on_pendingBlock dite kmem [Proofs.IndentStackCover.FrameLevel.map k ∈ ks] → —|punt pos=beside#3",
+   "accum_block_on_pendingBlock dite char [c = ':'] → P:spend×3,E:carry,E:pass|— pos=above#4,above#5,above#6",
+   "accum_block_on_pendingBlock dite other [(if s_prep.allowDirectives = true then { input := s_prep.input, inputEnd…] → —|P:spend×2 pos=above#5,above#6",
+   "accum_block_on_pendingBlock Or.casesOn opt [h_kslot:(∃ nv, ∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan …] → P:spend|P:spend pos=above#5,above#6",
+   "accum_block_on_pendingBlock dite knv [nv = k] → —|P:spend pos=above#5",
+   "accum_block_on_pendingBlock Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp_m →…] → —|P:spend pos=above#5",
+   "accum_block_on_pendingBlock dite other [s_prep.allowDirectives = true] → —|— pos=beside#5",
+   "accum_block_on_pendingBlock dite other [s_prep.allowDirectives = true] → —|— pos=beside#6"]
+-- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 def expectedArgs : List String :=
-  ["accum_block_on_pendingBlockContent → indicator_open_map: h_sfx_land=punt h_nodoc_land=punt h_mk_land=punt h_res_land=cond[opt,kmem] h_ref_land=paid h_cov=cond[col0] h_pr_land=punt h_explUp_chain=punt h_resV_land=cond[opt,kmem]",
-   "accum_block_on_pendingBlock → indicator_open_map: h_sfx_land=punt h_nodoc_land=punt h_mk_land=punt h_res_land=punt h_ref_land=punt h_cov=cond[col0] h_pr_land=punt h_explUp_chain=cond[kn,opt] h_resV_land=cond[opt,kmem]"]
+  ["accum_block_on_pendingBlock → indicator_open_map: h_sfx_land=punt h_nodoc_land=punt h_mk_land=punt h_res_land=punt h_ref_land=punt h_cov=cond[col0] h_pr_land=punt h_explUp_chain=cond[kn,opt] h_resV_land=cond[opt,kmem]"]
 -- Item 284: `pendingBlock` gains a seventeenth field, `h_offer`, and this door
 -- DROPS it — the `-` dispatched off the park reads the offer of the `-` it pushes,
 -- never the park's own — so the row reads one more field, one more face and one
@@ -725,9 +705,10 @@ def expectedArgs : List String :=
 -- Item 293: `pendingBlockContent` gains a nineteenth field, `h_live`, and this
 -- door USES it — `accum_block_pending` hands it to the `:` consumer — so the row
 -- reads one more field, one more face and one more use, and drops what it did.
+-- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 def expectedDoor : List String :=
-  ["PendingNode.pendingBlock: fields=17 data=4 faces=13 equations=5 used=9 dropped=4 h_close(_h_close),h_closeF(h_closeF✝),h_nodir(h_nodir✝),h_offer(h_offer✝)",
-   "PendingNode.pendingBlockContent: fields=19 data=4 faces=15 equations=5 used=13 dropped=2 h_closable(_h_closable),h_nodir(h_nodir✝)"]
+  ["PendingNode.pendingBlock: fields=18 data=4 faces=14 equations=5 used=10 dropped=4 h_close(_h_close),h_closeF(h_closeF✝),h_nodir(h_nodir✝),h_offer(h_offer✝)",
+   "PendingNode.pendingBlockContent: fields=22 data=5 faces=17 equations=5 used=16 dropped=1 h_nodir(h_nodir✝)"]
 -- 2026-10-18 (item 284): `decisions` 126 → 127, `apps` 39 → 40 and `doorDropped`
 -- 3/2 → 4/2, and nothing else.  The door's extra drop is `pendingBlock.h_offer`
 -- (above).  The other two are ONE payment: the walk meets the `-` producer's
@@ -755,12 +736,13 @@ def expectedDoor : List String :=
 -- 2026-10-21 (item 320): `apps` 47 → 48 — `accum_block_on_closeThenBlock`'s `h_seqFramesV` relay is an application now
 -- (`.imp id (PackAlt.step_blockEntry h_preprocess h_dispatch)`); every other count stands.
 -- 2026-10-23 (item 344): decisions 138 → 139 — the relayed `h_valFV` adds a `match` on `h_closeFV_old`.
+-- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 def expectedLine : String :=
-  "asked=13 both=8 lemmas=2 walked=6 feedFunnel=2 feedExplicit=2 feedDeferred=4 feedTuple=0 \
-entry=8 entrySBI=4 kslot=8 kslotUp=8 closeF=4 closeFV=8 seqF=8 top=4 floor=0 cover=4 \
-cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=2 aboveKEx=2 hands=4 besideKN=1 \
-besideKMem=2 besideKNv=0 puntKN=1 puntKMem=2 besideNone=2 decisions=139 decOnK=25 \
-decKN=10 decKMem=10 decKNv=5 apps=50 funnelArgs=2 doorDropped=4/2 closeSites=8 params=7"
+  "asked=6 both=4 lemmas=1 walked=4 feedFunnel=1 feedExplicit=1 feedDeferred=2 feedTuple=0 \
+entry=4 entrySBI=4 kslot=4 kslotUp=4 closeF=0 closeFV=4 seqF=4 top=4 floor=0 cover=0 \
+cover2=0 floorB=0 aboveKN=0 aboveKMem=0 aboveKNv=1 aboveKEx=1 hands=1 besideKN=1 \
+besideKMem=1 besideKNv=0 puntKN=1 puntKMem=1 besideNone=1 decisions=108 decOnK=21 \
+decKN=9 decKMem=9 decKNv=3 apps=39 funnelArgs=1 doorDropped=4/1 closeSites=5 params=5"
 
 /-! ## §5 The reading -/
 
@@ -782,7 +764,8 @@ run_cmd Lean.Elab.Command.liftTermElabM do
   for site in closeSites do
     let (callee, pname) ← calleeOf site
     if !params.contains (callee, pname) then params := params.push (callee, pname)
-  unless closeSites.size == 8 && params.size == 7 do
+  -- (2026-10-24, B3 [66] col-0 threading: 8/7 → 5/5, as CloseLandingWidth pins)
+  unless closeSites.size == 5 && params.size == 5 do
     throwError "item 251's frame moved under this pass: closeSites={closeSites.size} params={params.size}"
   -- §2 the walk
   let st ← IO.mkRef ({} : S)
@@ -904,7 +887,8 @@ apps={w.apps.size} funnelArgs={argLines.size} doorDropped={String.intercalate "/
   logInfo s!"decisions:\n{String.intercalate "\n" decLines.toList}"
   logInfo s!"args:\n{String.intercalate "\n" argLines.toList}"
   logInfo s!"door:\n{String.intercalate "\n" doorLines.toList}"
-  unless asked.size == 13 && nBoth == 8 do
+  -- (2026-10-24, B3 [66] col-0 threading: 13/8 → 6/4 — the content parks' closes are asked from `sp_gram`)
+  unless asked.size == 6 && nBoth == 4 do
     throwError "item 251's reading moved under this pass: asked={asked.size} both={nBoth}"
   let check (name : String) (gotL : Array String) (exp : List String) : MetaM Unit := do
     let gotL := gotL.map (·.trimAscii.toString)

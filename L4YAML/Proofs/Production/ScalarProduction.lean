@@ -486,6 +486,7 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
     ∃ sp_body sp_close,
       SNbDoubleMultiLine 0 sp sp_body ∧
       GLit '"' sp_body sp_close ∧
+      s'.peekBack? = some '"' ∧
       ScannerSurfCorr s' sp_close := by
   -- protectedLen (default 0) generalised so the IH covers the fold shift (B2).
   suffices H : ∀ (p : Nat) (sc : ScannerState) (sp : SurfPos) (content : String),
@@ -495,6 +496,7 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
       (∃ sp_body sp_close,
         SNbDoubleMultiLine 0 sp sp_body ∧
         GLit '"' sp_body sp_close ∧
+        s'.peekBack? = some '"' ∧
         ScannerSurfCorr s' sp_close) by
     exact H 0 sc sp content hcorr hok
   clear hok hcorr
@@ -514,6 +516,7 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
       exact ⟨⟨'"' :: rest, sc.col⟩, ⟨rest, sc.col + 1⟩,
              SNbDoubleMultiLine.single 0 _ _ (GStar.nil _),
              GLit.mk rest sc.col,
+             advance_peekBack_eq_peek hcorr (peek_some_has_more hpeek) (by decide) (by decide),
              advance_non_newline_corr sc '"' rest hcorr
                (peek_some_has_more hpeek) (by decide) (by decide)⟩
     · -- peek? = some '\\': escape sequence
@@ -541,7 +544,7 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
             repeat' split at hok
             all_goals first
               | contradiction
-              | (obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+              | (obtain ⟨sp_body, sp_close, h_body, h_glit, h_pb, h_corr⟩ :=
                    ih _ _ sp_fold _ hcorr_fold hok
                  have h_escaped : SSDoubleEscaped 0 ⟨'\\' :: rest, sc.col⟩ sp_fold :=
                    SSDoubleEscaped.mk 0
@@ -556,7 +559,7 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
                           (GStar.nil _)
                           (SSDoubleBreak.escaped 0 _ _ h_escaped)
                           h_body,
-                        h_glit, h_corr⟩)
+                        h_glit, h_pb, h_corr⟩)
         · -- not line break: processEscape → SNbDoubleChar
           simp only [bind, Except.bind] at hok
           split at hok
@@ -564,11 +567,11 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
           · rename_i esc_result hproc
             obtain ⟨sp_esc, h_dq_char, hcorr_esc⟩ :=
               processEscape_prod sc.advance rest sc.col hcorr_adv hproc
-            obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+            obtain ⟨sp_body, sp_close, h_body, h_glit, h_pb, h_corr⟩ :=
               ih _ _ sp_esc _ hcorr_esc hok
             exact ⟨sp_body, sp_close,
                    SNbDoubleMultiLine_prepend _ _ _ h_dq_char h_body,
-                   h_glit, h_corr⟩
+                   h_glit, h_pb, h_corr⟩
       · exact absurd hok (by simp)  -- none → error
     · -- peek? = some c (regular char, c ≠ '"', c ≠ '\\')
       rename_i _opt c hne_dq hne_bs hpeek
@@ -592,7 +595,7 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
               -- recurse); close each via the IH, error branch (if any) via simp
               split at hok <;>
                 first
-                  | (obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+                  | (obtain ⟨sp_body, sp_close, h_body, h_glit, h_pb, h_corr⟩ :=
                        ih _ _ sp_fold _ hcorr_fold hok
                      exact ⟨sp_body, sp_close,
                             SNbDoubleMultiLine.multi 0
@@ -602,7 +605,7 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
                               (SSDoubleBreak.flowFold 0 _ sp_cn sp_loop _
                                 h_sbreak h_gstar_empty h_flp)
                               h_body,
-                            h_glit, h_corr⟩)
+                            h_glit, h_pb, h_corr⟩)
                   | simp at hok
       · -- not line break: control char check
         split at hok
@@ -613,14 +616,14 @@ lemma collectDoubleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
           have h_not_cr : c ≠ '\r' := not_isLineBreak_not_cr c hne_lb
           have hcorr_adv :=
             advance_non_newline_corr sc c rest hcorr hmore h_not_nl h_not_cr
-          obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+          obtain ⟨sp_body, sp_close, h_body, h_glit, h_pb, h_corr⟩ :=
             ih _ sc.advance ⟨rest, sc.col + 1⟩ _ hcorr_adv hok
           have h_dq_char : SNbDoubleChar ⟨c :: rest, sc.col⟩ ⟨rest, sc.col + 1⟩ :=
             SNbDoubleChar.plain c rest sc.col
               (not_lineBreak_bool_to_prop hne_lb) hne_bs hne_dq
           exact ⟨sp_body, sp_close,
                  SNbDoubleMultiLine_prepend _ _ _ h_dq_char h_body,
-                 h_glit, h_corr⟩
+                 h_glit, h_pb, h_corr⟩
 
 -- `scanDoubleQuoted` success produces a complete `SCDoubleQuoted 0 .blockIn`.
 -- Precondition: `sc.peek? = some '"'` (from scanner dispatch).
@@ -629,7 +632,7 @@ lemma scanDoubleQuoted_prod (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek_dq : sc.peek? = some '"')
     (hok : scanDoubleQuoted sc = .ok s') :
-    ∃ sp', SCDoubleQuoted 0 .blockIn sp sp' ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', SCDoubleQuoted 0 .blockIn sp sp' ∧ s'.peekBack? = some '"' ∧ ScannerSurfCorr s' sp' := by
   unfold scanDoubleQuoted at hok
   simp only [bind, Except.bind] at hok
   -- Extract opening quote position
@@ -644,7 +647,7 @@ lemma scanDoubleQuoted_prod (sc : ScannerState) (sp : SurfPos)
   · rename_i pair hloop
     obtain ⟨content, s_after_close⟩ := pair
     simp only [] at hloop hok
-    obtain ⟨sp_body, sp_close, h_body, h_glit_close, hcorr_close⟩ :=
+    obtain ⟨sp_body, sp_close, h_body, h_glit_close, h_pb_close, hcorr_close⟩ :=
       collectDoubleQuotedLoop_prod sc.advance ⟨rest, sc.col + 1⟩ "" _ _ _ _ _
         hcorr_adv hloop
     -- validateTrailingContent: do-notation bind on Except Unit
@@ -656,12 +659,14 @@ lemma scanDoubleQuoted_prod (sc : ScannerState) (sp : SurfPos)
         exact ⟨sp_close,
                SCDoubleQuoted.mk 0 .blockIn _ _ _ _
                  (GLit.mk rest sc.col) h_body h_glit_close,
-               corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
+               h_pb_close,
+             corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · -- !inFlow = false: no validate; `hok` is a direct `.ok` equality now
       have h := Except.ok.inj hok; subst h
       exact ⟨sp_close,
              SCDoubleQuoted.mk 0 .blockIn _ _ _ _
                (GLit.mk rest sc.col) h_body h_glit_close,
+             h_pb_close,
              corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 /-! ## §4 Single-Quoted Scalar -/
@@ -693,6 +698,7 @@ lemma collectSingleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
     ∃ sp_body sp_close,
       SNbSingleMultiLine 0 sp sp_body ∧
       GLit '\'' sp_body sp_close ∧
+      s'.peekBack? = some '\'' ∧
       ScannerSurfCorr s' sp_close := by
   induction fuel generalizing sc sp content with
   | zero => simp [collectSingleQuotedLoop] at hok
@@ -720,19 +726,20 @@ lemma collectSingleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
         have hcorr_adv2 :=
           advance_non_newline_corr sc.advance '\'' rest2 hcorr_adv hmore2 (by decide) (by decide)
         rw [show sc.advance.col + 1 = sc.col + 2 from by omega] at hcorr_adv2
-        obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+        obtain ⟨sp_body, sp_close, h_body, h_glit, h_pb, h_corr⟩ :=
           ih sc.advance.advance ⟨rest2, sc.col + 2⟩ _ hcorr_adv2 hok
         have h_esc : SNbSingleChar ⟨'\'' :: '\'' :: rest2, sc.col⟩ ⟨rest2, sc.col + 2⟩ :=
           SNbSingleChar.escapedQuote rest2 sc.col
         exact ⟨sp_body, sp_close,
                SNbSingleMultiLine_prepend _ _ _ h_esc h_body,
-               h_glit, h_corr⟩
+               h_glit, h_pb, h_corr⟩
       · -- closing quote (next peek ≠ '\'')
         simp only [Except.ok.injEq, Prod.mk.injEq] at hok
         obtain ⟨-, rfl⟩ := hok
         exact ⟨⟨'\'' :: rest, sc.col⟩, ⟨rest, sc.col + 1⟩,
                SNbSingleMultiLine.single 0 _ _ (GStar.nil _),
                GLit.mk rest sc.col,
+               advance_peekBack_eq_peek hcorr hmore (by decide) (by decide),
                advance_non_newline_corr sc '\'' rest hcorr hmore (by decide) (by decide)⟩
     · -- peek? = some c (not '\'')
       rename_i c hne_sq hpeek
@@ -753,7 +760,7 @@ lemma collectSingleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
           · split at hok  -- underIndented guard
             · simp at hok
             · -- 4.32.0: `hok` is directly the recursive call; recurse via IH
-              obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+              obtain ⟨sp_body, sp_close, h_body, h_glit, h_pb, h_corr⟩ :=
                 ih _ sp_fold _ hcorr_fold hok
               exact ⟨sp_body, sp_close,
                      SNbSingleMultiLine.multi 0
@@ -762,7 +769,7 @@ lemma collectSingleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
                        (GStar.nil _)
                        h_sbreak h_gstar_empty h_flp
                        h_body,
-                     h_glit, h_corr⟩
+                     h_glit, h_pb, h_corr⟩
       · split at hok
         · simp at hok  -- invalid control char → error
         · -- valid char: advance + recurse
@@ -771,14 +778,14 @@ lemma collectSingleQuotedLoop_prod (sc : ScannerState) (sp : SurfPos)
           have h_not_cr : c ≠ '\r' := not_isLineBreak_not_cr c hne_lb
           have hcorr_adv :=
             advance_non_newline_corr sc c rest hcorr hmore h_not_nl h_not_cr
-          obtain ⟨sp_body, sp_close, h_body, h_glit, h_corr⟩ :=
+          obtain ⟨sp_body, sp_close, h_body, h_glit, h_pb, h_corr⟩ :=
             ih sc.advance ⟨rest, sc.col + 1⟩ _ hcorr_adv hok
           have h_sq_char : SNbSingleChar ⟨c :: rest, sc.col⟩ ⟨rest, sc.col + 1⟩ :=
             SNbSingleChar.plain c rest sc.col
               (not_lineBreak_bool_to_prop hne_lb) hne_sq
           exact ⟨sp_body, sp_close,
                  SNbSingleMultiLine_prepend _ _ _ h_sq_char h_body,
-                 h_glit, h_corr⟩
+                 h_glit, h_pb, h_corr⟩
 
 -- `scanSingleQuoted` success produces a complete `SCSingleQuoted 0 .blockIn`.
 -- Precondition: `sc.peek? = some '\''` (from scanner dispatch).
@@ -787,7 +794,7 @@ lemma scanSingleQuoted_prod (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek_sq : sc.peek? = some '\'')
     (hok : scanSingleQuoted sc = .ok s') :
-    ∃ sp', SCSingleQuoted 0 .blockIn sp sp' ∧ ScannerSurfCorr s' sp' := by
+    ∃ sp', SCSingleQuoted 0 .blockIn sp sp' ∧ s'.peekBack? = some '\'' ∧ ScannerSurfCorr s' sp' := by
   unfold scanSingleQuoted at hok
   simp only [bind, Except.bind] at hok
   -- Extract opening quote position
@@ -802,7 +809,7 @@ lemma scanSingleQuoted_prod (sc : ScannerState) (sp : SurfPos)
   · rename_i pair hloop
     obtain ⟨content, s_after_close⟩ := pair
     simp only [] at hloop hok
-    obtain ⟨sp_body, sp_close, h_body, h_glit_close, hcorr_close⟩ :=
+    obtain ⟨sp_body, sp_close, h_body, h_glit_close, h_pb_close, hcorr_close⟩ :=
       collectSingleQuotedLoop_prod sc.advance ⟨rest, sc.col + 1⟩ "" _ _ _ _ _
         hcorr_adv hloop
     -- SNbSingleText 0 .blockIn = SNbSingleMultiLine 0
@@ -816,12 +823,14 @@ lemma scanSingleQuoted_prod (sc : ScannerState) (sp : SurfPos)
         exact ⟨sp_close,
                SCSingleQuoted.mk 0 .blockIn _ _ _ _
                  (GLit.mk rest sc.col) h_text h_glit_close,
-               corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
+               h_pb_close,
+             corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
     · -- !inFlow = false: no validate; `hok` is a direct `.ok` equality now
       have h := Except.ok.inj hok; subst h
       exact ⟨sp_close,
              SCSingleQuoted.mk 0 .blockIn _ _ _ _
                (GLit.mk rest sc.col) h_text h_glit_close,
+             h_pb_close,
              corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_close)⟩
 
 /-! ## §5 Plain-safe bridge (Layer 4a)
@@ -1943,6 +1952,178 @@ lemma ssNsPlainNextLine_of_gplus (n : Nat) (c : L4YAML.YamlContext) {sc : Scanne
 -- Parameterized over `inFlow` for both block and flow contexts.
 -- Item 15 adds the ONE-LINE conjunct: a walk that exits on its entry line
 -- appended no `s-ns-plain-next-line` — `sp_next = sp_entries`.
+/-- Every `some` arm of `collectPlainScalar_terminates?` is TERMINATED. -/
+lemma terminates?_terminated {c : Char} {s : ScannerState} {content spaces : String}
+    {inFlow : Bool} {r : PlainScalarResult}
+    (h : collectPlainScalar_terminates? c s content spaces inFlow = some r) :
+    r.terminated = true := by
+  unfold collectPlainScalar_terminates? at h
+  split at h
+  · injection h with h; subst h; rfl
+  · split at h
+    · simp only [] at h
+      split at h <;> split at h <;>
+        first
+          | (injection h with h; subst h; rfl)
+          | cases h
+    · split at h
+      · injection h with h; subst h; rfl
+      · split at h
+        · injection h with h; subst h; rfl
+        · cases h
+
+private lemma foldQuotedNewlines_progress {s s' : ScannerState} {folded : String} {c : Char}
+    (hpk : s.peek? = some c) (hbr : isLineBreakBool c = true)
+    (h : foldQuotedNewlines s = .ok (folded, s')) : s.offset < s'.offset := by
+  have hcn := (consumeNewline_offset_advance s c hpk hbr).1
+  have h1 := ScannerCorrectness.foldQuotedNewlinesLoop_offset_ge (consumeNewline s) 0
+    (s.inputEnd - (consumeNewline s).offset + 1)
+  have h2 := ScannerCorrectness.skipSpaces_offset_ge (foldQuotedNewlinesLoop (consumeNewline s) 0
+    (s.inputEnd - (consumeNewline s).offset + 1)).1
+  have h3 := ScannerCorrectness.skipWhitespace_offset_ge (skipSpaces (foldQuotedNewlinesLoop (consumeNewline s) 0
+    (s.inputEnd - (consumeNewline s).offset + 1)).1)
+  unfold foldQuotedNewlines at h
+  dsimp only at h
+  have hs' : s' = skipWhitespace (skipSpaces
+      (foldQuotedNewlinesLoop (consumeNewline s) 0
+        (s.inputEnd - (consumeNewline s).offset + 1)).1) → s.offset < s'.offset := by
+    intro he; rw [he]; omega
+  split at h
+  · split at h
+    · simp only [pure, Except.pure] at h
+      split at h <;> contradiction
+    · exact hs' (by
+        split at h <;>
+          (simp only [pure, Except.pure, Except.ok.injEq, Prod.mk.injEq] at h; exact h.2.symm))
+  · exact hs' (by
+      split at h <;>
+        (simp only [pure, Except.pure, Except.ok.injEq, Prod.mk.injEq] at h; exact h.2.symm))
+
+private lemma handleBlockLineBreak_progress' {s s' : ScannerState} {content content' : String}
+    {ci ie : Nat} {c : Char}
+    (hpk : s.peek? = some c) (hbr : isLineBreakBool c = true)
+    (h : collectPlainScalar_handleBlockLineBreak s content ci ie = some (content', s')) :
+    s.offset < s'.offset := by
+  have hcn := (consumeNewline_offset_advance s c hpk hbr).1
+  have h1 := ScannerCorrectness.skipBlankLinesLoop_offset_ge (consumeNewline s) 0
+    (ie - (consumeNewline s).offset + 1) ie
+  have h2 := ScannerCorrectness.skipSpaces_offset_ge (skipBlankLinesLoop (consumeNewline s) 0
+    (ie - (consumeNewline s).offset + 1) ie).2
+  have h3 := ScannerCorrectness.skipWhitespace_offset_ge (skipSpaces (skipBlankLinesLoop (consumeNewline s) 0
+    (ie - (consumeNewline s).offset + 1) ie).2)
+  unfold collectPlainScalar_handleBlockLineBreak at h
+  dsimp only at h
+  split at h
+  · cases h
+  · split at h
+    · cases h
+    · have hs' : s' = skipWhitespace (skipSpaces
+          (skipBlankLinesLoop (consumeNewline s) 0
+            (ie - (consumeNewline s).offset + 1) ie).2) := by
+        split at h <;>
+          (simp only [Option.some.injEq, Prod.mk.injEq] at h; exact h.2.symm)
+      rw [hs']; omega
+
+/-- With more fuel than remaining bytes the plain-scalar walk never exits on
+    fuel: its result is TERMINATED (`scanPlainScalar` supplies twice the input). -/
+lemma collectPlainScalarLoop_terminated_of_fuel (fuel : Nat) :
+    ∀ (s : ScannerState) (content spaces : String) (inFlow : Bool) (ci ie : Nat)
+      (r : PlainScalarResult),
+    collectPlainScalarLoop s content spaces fuel inFlow ci ie = .ok r →
+    s.inputEnd - s.offset < fuel →
+    r.terminated = true := by
+  induction fuel with
+  | zero => intro s _ _ _ _ _ r _ hb; omega
+  | succ fuel' ih =>
+    intro s content spaces inFlow ci ie r hok hb
+    unfold collectPlainScalarLoop at hok
+    split at hok
+    · injection hok with h_eq; subst h_eq; rfl
+    · rename_i c hpk
+      have hlt : s.offset < s.inputEnd := peek_some_has_more hpk
+      split at hok
+      · rename_i hterm
+        injection hok with h_eq; subst h_eq
+        exact terminates?_terminated hterm
+      · split at hok
+        · -- line break
+          rename_i hbr
+          split at hok
+          · -- flow context: fold
+            simp only [bind, Except.bind] at hok
+            split at hok <;> try contradiction
+            rename_i fold_result heq
+            cases fold_result with
+            | mk folded s_fold =>
+              split at hok
+              · injection hok with h_eq; subst h_eq; rfl
+              · split at hok
+                · cases hok
+                generalize h_loop : collectPlainScalarLoop s_fold _ "" fuel' inFlow ci ie
+                  = cont at hok
+                cases cont with
+                | ok inner =>
+                  dsimp only [] at hok
+                  split at hok
+                  · injection hok with h_eq; subst h_eq; rfl
+                  · have h_eq := Except.ok.inj hok; subst h_eq
+                    have hprog := foldQuotedNewlines_progress hpk hbr heq
+                    have hend := foldQuotedNewlines_inputEnd heq
+                    exact ih s_fold _ "" inFlow ci ie _ h_loop (by omega)
+                | error e => simp at hok
+          · -- block context
+            split at hok
+            · injection hok with h_eq; subst h_eq; rfl
+            · rename_i content' s2 hblk
+              have hprog := handleBlockLineBreak_progress' hpk hbr hblk
+              have hend := handleBlockLineBreak_inputEnd hblk
+              split at hok
+              · injection hok with h_eq; subst h_eq; rfl
+              · dsimp only [] at hok
+                generalize h_loop : collectPlainScalarLoop s2 content' "" fuel' inFlow ci ie
+                  = cont at hok
+                cases cont with
+                | ok inner =>
+                  dsimp only [] at hok
+                  split at hok
+                  · injection hok with h_eq; subst h_eq; rfl
+                  · have h_eq := Except.ok.inj hok; subst h_eq
+                    exact ih s2 content' "" inFlow ci ie _ h_loop (by omega)
+                | error e => simp at hok
+        · split at hok
+          · -- whitespace: advance
+            have hadv := advance_offset_lt s hlt
+            have hend2 := advance_inputEnd s
+            exact ih s.advance content _ inFlow ci ie r hok (by omega)
+          · split at hok
+            · injection hok with h_eq; subst h_eq; rfl
+            · -- plain-safe content: advance
+              simp only [] at hok
+              have hadv := advance_offset_lt s hlt
+              have hend2 := advance_inputEnd s
+              exact ih s.advance _ "" inFlow ci ie r hok (by omega)
+
+/-- `collectPlainScalar_terminates?` stops on `#` only with buffered whites
+    (its other arms need `:`, a flow indicator, or a document marker). -/
+lemma terminates_hash_spaces_pos (s : ScannerState) (content spaces : String)
+    (inFlow : Bool) (r : PlainScalarResult)
+    (h : collectPlainScalar_terminates? '#' s content spaces inFlow = some r)
+    (hcol0 : spaces.length = 0 → s.col > 0) : spaces.length > 0 := by
+  by_cases hpos : spaces.length > 0
+  · exact hpos
+  · exfalso
+    have hz : spaces.length = 0 := by omega
+    have hc := hcol0 hz
+    unfold collectPlainScalar_terminates? at h
+    simp [hz, isFlowIndicatorBool] at h
+    omega
+
+lemma gstar_sswhite_col_ge' (sp sp' : SurfPos) (h : GStar SSWhite sp sp') :
+    sp'.col ≥ sp.col := by
+  induction h with
+  | nil => exact Nat.le_refl _
+  | cons _ _ _ hw _ ih => cases hw <;> simp only at ih ⊢ <;> omega
+
 lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
     (content spaces : String) (fuel : Nat)
     (contentIndent inputEnd : Nat)
@@ -1950,6 +2131,8 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (h_ws : GStar SSWhite sp_ent sp)
     (h_sp : spaces.length = 0 → sp_ent = sp)
+    (h_hash_col : sc.peek? = some '#' → spaces.length = 0 → sc.col > 0)
+    (h_sp_len : spaces.length > 0 → sp_ent ≠ sp)
     (h_ie : sc.inputEnd ≤ inputEnd)
     -- Item 100: in BLOCK context the continuation floor sits above the block
     -- indent (`minContentIndentOf`'s own arithmetic), which is what says a
@@ -1964,6 +2147,9 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
       GStar (SSNsPlainNextLine 0 (ctxOfInFlow inFlow)) sp_entries sp_next ∧
       GStar SSWhite sp_next sp_trail ∧
       ScannerSurfCorr result.state sp_trail ∧
+      -- N3: a `#` stop needs buffered whites, so an EMPTY trailing run never
+      -- parks the scanner on `#` (the whites of `a #b` are the run).
+      (result.terminated = true → sp_next = sp_trail → result.state.peek? ≠ some '#') ∧
       (result.state.line = sc.line → sp_next = sp_entries) ∧
       ((∀ ch, sc.peek? = some ch →
           isWhiteSpaceBool ch = false ∧ isLineBreakBool ch = false) →
@@ -1972,14 +2158,19 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
   induction fuel generalizing sc sp content spaces sp_ent with
   | zero =>
     simp [collectPlainScalarLoop] at hok; subst hok
-    exact ⟨sp_ent, sp_ent, sp, GStar.nil _, GStar.nil _, h_ws, hcorr, fun _ => rfl,
+    exact ⟨sp_ent, sp_ent, sp, GStar.nil _, GStar.nil _, h_ws, hcorr,
+      fun ht => absurd ht Bool.false_ne_true, fun _ => rfl,
       fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
   | succ fuel' ih =>
     unfold collectPlainScalarLoop at hok
     split at hok
     · -- peek? = none (EOF)
       have h := Except.ok.inj hok; subst h
-      exact ⟨sp_ent, sp_ent, sp, GStar.nil _, GStar.nil _, h_ws, hcorr, fun _ => rfl,
+      exact ⟨sp_ent, sp_ent, sp, GStar.nil _, GStar.nil _, h_ws, hcorr,
+      (fun _ _ hpk => by
+        have hnone : sc.peek? = none := by assumption
+        simp [hnone] at hpk),
+      fun _ => rfl,
       fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
     · -- peek? = some c
       rename_i c hpeek
@@ -1992,7 +2183,12 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
         have h := Except.ok.inj hok; subst h
         rw [terminates_state_eq c sc content spaces inFlow r_term h_term]
         exact ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _, GStar.nil _,
-               h_ws, hcorr, fun _ => rfl,
+               h_ws, hcorr,
+               (fun _ heq hpk => by
+                 simp only [hpeek, Option.some.injEq] at hpk; subst hpk
+                 exact h_sp_len (terminates_hash_spaces_pos sc content spaces inFlow r_term
+                   h_term (h_hash_col hpeek)) heq),
+               fun _ => rfl,
                fun _ hlen => absurd hlen (by
                  rw [terminates_content_eq c sc content spaces inFlow r_term h_term]
                  exact Nat.lt_irrefl _)⟩
@@ -2011,7 +2207,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
               · -- s_fold.peek? = some '#': terminate → state = sc
                 have h := Except.ok.inj hok; subst h
                 exact ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _, GStar.nil _,
-                       h_ws, hcorr, fun _ => rfl,
+                       h_ws, hcorr, (fun _ _ hpk => by
+                         simp only [hpeek, Option.some.injEq] at hpk; subst hpk
+                         first
+                         | (have hlb' : isLineBreakBool '#' = true := by assumption
+                            exact absurd hlb' (by decide))
+                         | (have hps : (!isPlainSafeBool '#' inFlow) = true := by assumption
+                            cases inFlow <;> exact absurd hps (by decide))),
+                       fun _ => rfl,
                        fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
               · -- s_fold.peek? ≠ '#': recurse with content-length check
                 rename_i hfoldpeek
@@ -2027,7 +2230,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                   · -- ≤ prevLen: no content grew → state = sc
                     have h := Except.ok.inj hok; subst h
                     exact ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _, GStar.nil _,
-                           h_ws, hcorr, fun _ => rfl,
+                           h_ws, hcorr, (fun _ _ hpk => by
+                             simp only [hpeek, Option.some.injEq] at hpk; subst hpk
+                             first
+                             | (have hlb' : isLineBreakBool '#' = true := by assumption
+                                exact absurd hlb' (by decide))
+                             | (have hps : (!isPlainSafeBool '#' inFlow) = true := by assumption
+                                cases inFlow <;> exact absurd hps (by decide))),
+                           fun _ => rfl,
                            fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
                   · -- > prevLen: content grew → flow multi-line production
                     rename_i h_grew
@@ -2041,9 +2251,11 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                     -- Get IH result for recursive call
                     have h_ctx : ctxOfInFlow inFlow = .flowIn := by simp [ctxOfInFlow, h_inf]
                     obtain ⟨sp_entries_ih, sp_next_ih, sp_trail_ih,
-                            h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih, -, h_plus_ih⟩ :=
+                            h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih, h_hash_ih, -, h_plus_ih⟩ :=
                       h_ctx ▸ ih s_fold sp_fold _ "" sp_fold hcorr_fold (GStar.nil _)
                         (fun _ => rfl)
+                        (fun hpk _ => absurd hpk hfoldpeek)
+                        (fun h => by simp at h)
                         (by rw [foldQuotedNewlines_inputEnd heq]; exact h_ie)
                         (fun hnf => absurd hnf (by simp [h_inf])) h_loop
                     -- Item 71: `[134]` demands an `ns-plain-char` on the continuation
@@ -2064,6 +2276,7 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                              h_next_ih,
                            h_ws_ih,
                            hcorr_ih,
+                           h_hash_ih,
                            fun h_same => False.elim (by
                              have h1 := foldQuotedNewlines_line_lt hpeek hlb heq
                              have h2 := collectPlainScalarLoop_line_le s_fold _ "" fuel'
@@ -2079,7 +2292,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
             · -- handleBlockLineBreak = none: terminate → state = sc
               have h := Except.ok.inj hok; subst h
               exact ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _, GStar.nil _,
-                     h_ws, hcorr, fun _ => rfl,
+                     h_ws, hcorr, (fun _ _ hpk => by
+                       simp only [hpeek, Option.some.injEq] at hpk; subst hpk
+                       first
+                       | (have hlb' : isLineBreakBool '#' = true := by assumption
+                          exact absurd hlb' (by decide))
+                       | (have hps : (!isPlainSafeBool '#' inFlow) = true := by assumption
+                          cases inFlow <;> exact absurd hps (by decide))),
+                     fun _ => rfl,
                      fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
             · -- handleBlockLineBreak = some (content', s')
               rename_i content' s' hblk
@@ -2087,7 +2307,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
               · -- s'.peek? = some '#': terminate → state = sc
                 have h := Except.ok.inj hok; subst h
                 exact ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _, GStar.nil _,
-                       h_ws, hcorr, fun _ => rfl,
+                       h_ws, hcorr, (fun _ _ hpk => by
+                         simp only [hpeek, Option.some.injEq] at hpk; subst hpk
+                         first
+                         | (have hlb' : isLineBreakBool '#' = true := by assumption
+                            exact absurd hlb' (by decide))
+                         | (have hps : (!isPlainSafeBool '#' inFlow) = true := by assumption
+                            cases inFlow <;> exact absurd hps (by decide))),
+                       fun _ => rfl,
                        fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
               · -- s'.peek? ≠ '#': recurse with content-length check
                 rename_i hblkpeek
@@ -2100,7 +2327,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                   · -- ≤ prevLen: no content grew → state = sc
                     have h := Except.ok.inj hok; subst h
                     exact ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _, GStar.nil _,
-                           h_ws, hcorr, fun _ => rfl,
+                           h_ws, hcorr, (fun _ _ hpk => by
+                             simp only [hpeek, Option.some.injEq] at hpk; subst hpk
+                             first
+                             | (have hlb' : isLineBreakBool '#' = true := by assumption
+                                exact absurd hlb' (by decide))
+                             | (have hps : (!isPlainSafeBool '#' inFlow) = true := by assumption
+                                cases inFlow <;> exact absurd hps (by decide))),
+                           fun _ => rfl,
                            fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
                   · -- > prevLen: content grew → block multi-line production
                     rename_i h_grew
@@ -2112,9 +2346,11 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                         contentIndent inputEnd hcorr hpeek hlb hblk
                     -- Get IH result for recursive call
                     obtain ⟨sp_entries_ih, sp_next_ih, sp_trail_ih,
-                            h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih, -, h_plus_ih⟩ :=
+                            h_entries_ih, h_next_ih, h_ws_ih, hcorr_ih, h_hash_ih, -, h_plus_ih⟩ :=
                       ih s' sp_fold content' "" sp_fold hcorr_fold (GStar.nil _)
                         (fun _ => rfl)
+                        (fun hpk _ => absurd hpk hblkpeek)
+                        (fun h => by simp at h)
                         (by rw [handleBlockLineBreak_inputEnd hblk]; exact h_ie)
                         (fun hnf => by
                           have hci : s'.currentIndent = sc.currentIndent := by
@@ -2142,6 +2378,7 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                              h_next_ih,
                            h_ws_ih,
                            hcorr_ih,
+                           h_hash_ih,
                            fun h_same => False.elim (by
                              have h1 := handleBlockLineBreak_line_lt hpeek hlb hblk
                              have h2 := collectPlainScalarLoop_line_le s' content' "" fuel'
@@ -2163,10 +2400,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
               · exact SSWhite.space rest sc.col
               · exact SSWhite.tab rest sc.col
             obtain ⟨sp_entries_r, sp_next_r, sp_trail_r, h_ent_r, h_next_r, h_ws_r,
-                    hcorr_r, h_one_r, -⟩ :=
+                    hcorr_r, h_hash_r, h_one_r, -⟩ :=
               ih sc.advance ⟨rest, sc.col + 1⟩ content (spaces.push c) sp_ent
                 hcorr_adv (gstar_sswhite_append h_ws (GStar.cons _ _ _ hw (GStar.nil _)))
                 (fun hlen => by simp [String.length_push] at hlen)
+                (fun _ hlen => by simp [String.length_push] at hlen)
+                (fun _ heq => by
+                  have hle := gstar_sswhite_col_ge' sp_ent ⟨c :: rest, sc.col⟩ h_ws
+                  rw [heq] at hle; dsimp only at hle; omega)
                 (by rw [advance_inputEnd]; exact h_ie)
                 (fun hnf => by
                   simp only [ScannerState.currentIndent,
@@ -2174,6 +2415,7 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                   exact hcin hnf)
                 hok
             exact ⟨sp_entries_r, sp_next_r, sp_trail_r, h_ent_r, h_next_r, h_ws_r, hcorr_r,
+                   h_hash_r,
                    fun h_same => h_one_r (by
                      rw [advance_preserves_line_of_ne_break sc c hpeek hnl hcr]
                      exact h_same),
@@ -2183,7 +2425,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
             · -- not plain safe: terminate
               have h := Except.ok.inj hok; subst h
               exact ⟨sp_ent, sp_ent, ⟨c :: rest, sc.col⟩, GStar.nil _, GStar.nil _,
-                     h_ws, hcorr, fun _ => rfl,
+                     h_ws, hcorr, (fun _ _ hpk => by
+                       simp only [hpeek, Option.some.injEq] at hpk; subst hpk
+                       first
+                       | (have hlb' : isLineBreakBool '#' = true := by assumption
+                          exact absurd hlb' (by decide))
+                       | (have hps : (!isPlainSafeBool '#' inFlow) = true := by assumption
+                          cases inFlow <;> exact absurd hps (by decide))),
+                     fun _ => rfl,
                      fun _ hlen => absurd hlen (Nat.lt_irrefl _)⟩
             · -- content char: form grammar entry and recurse
               have h_safe : isPlainSafeBool c inFlow = true := by
@@ -2239,10 +2488,14 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                           (isPlainSafe_to_nsPlainSafe h_safe) hcolon hhash)
               -- Recursive call with empty WS accumulator
               obtain ⟨sp_entries, sp_next, sp_trail, h_ent_rest, h_next_rest,
-                      h_ws_rest, hcorr_rest, h_one_rest, -⟩ :=
+                      h_ws_rest, hcorr_rest, h_hash_rest, h_one_rest, -⟩ :=
                 ih sc.advance ⟨rest, sc.col + 1⟩ _ "" ⟨rest, sc.col + 1⟩
                   hcorr_adv (GStar.nil _)
                   (fun _ => rfl)
+                  (fun _ _ => by
+                    have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
+                    omega)
+                  (fun h => by simp at h)
                   (by rw [advance_inputEnd]; exact h_ie)
                   (fun hnf => by
                     simp only [ScannerState.currentIndent,
@@ -2251,7 +2504,7 @@ lemma collectPlainScalarLoop_prod (sc : ScannerState) (sp : SurfPos)
                   hok
               exact ⟨sp_entries, sp_next, sp_trail,
                 GStar.cons sp_ent ⟨rest, sc.col + 1⟩ sp_entries h_entry h_ent_rest,
-                h_next_rest, h_ws_rest, hcorr_rest,
+                h_next_rest, h_ws_rest, hcorr_rest, h_hash_rest,
                 fun h_same => h_one_rest (by
                   rw [advance_preserves_line_of_ne_break sc c hpeek hnl hcr]
                   exact h_same),
@@ -2571,6 +2824,7 @@ lemma scanPlainScalar_to_multiLine_native (sc : ScannerState) (sp : SurfPos)
     (hok : scanPlainScalar sc = .ok s') :
     ∃ sp_gram sp', SNsPlainMultiLine 0 (ctxOfInFlow sc.inFlow) sp sp_gram ∧
                    GStar SSWhite sp_gram sp' ∧
+                   (sp_gram = sp' → s'.peek? ≠ some '#') ∧
                    ScannerSurfCorr s' sp' := by
   obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
   have hrest_head : ∀ n, sc.peekAt? 1 = some n → ∃ rest', rest = n :: rest' := by
@@ -2611,10 +2865,14 @@ lemma scanPlainScalar_to_multiLine_native (sc : ScannerState) (sp : SurfPos)
     have hcorr_adv := advance_non_newline_corr sc c rest hcorr h_has_more
       (isPlainSafe_not_newline h_safe).1 (isPlainSafe_not_newline h_safe).2
     obtain ⟨sp_entries, sp_next, sp_trail, h_entries, _h_next_lines, h_trail, hcorr_result,
-            -, -⟩ :=
+            h_hash, -, -⟩ :=
       collectPlainScalarLoop_prod sc.advance ⟨rest, sc.col + 1⟩ _ "" _ _ _
         ⟨rest, sc.col + 1⟩ sc.inFlow hcorr_adv (GStar.nil _)
         (fun _ => rfl)
+        (fun _ _ => by
+          have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
+          omega)
+        (fun h => by simp at h)
         (by rw [advance_inputEnd]; exact Nat.le_refl _)
         (fun hnf => by
           have hci : sc.advance.currentIndent = sc.currentIndent := by
@@ -2630,6 +2888,10 @@ lemma scanPlainScalar_to_multiLine_native (sc : ScannerState) (sp : SurfPos)
           h_first h_entries)
         _h_next_lines,
       h_trail,
+      fun heq hpk => h_hash
+        (collectPlainScalarLoop_terminated_of_fuel _ sc "" "" sc.inFlow _ sc.inputEnd result hloop
+            (by omega))
+        heq hpk,
       corr_of_simpleKeyAllowed_needIndentCheck_update false false (corr_of_emitAt _ _ hcorr_result)⟩
 
 /-! ## §7' The BLOCK-KEY one-line reading (item 15)
@@ -2703,6 +2965,7 @@ lemma scanPlainScalar_to_blockKey_oneLine (sc : ScannerState) (sp : SurfPos)
     (hok : scanPlainScalar sc = .ok s') :
     ∃ sp_gram sp', SNsPlainOneLine .blockKey sp sp_gram ∧
                    GStar SSWhite sp_gram sp' ∧
+                   (sp_gram = sp' → s'.peek? ≠ some '#') ∧
                    ScannerSurfCorr s' sp' := by
   obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
   have hrest_head : ∀ n, sc.peekAt? 1 = some n → ∃ rest', rest = n :: rest' := by
@@ -2742,10 +3005,14 @@ lemma scanPlainScalar_to_blockKey_oneLine (sc : ScannerState) (sp : SurfPos)
     have hcorr_adv := advance_non_newline_corr sc c rest hcorr h_has_more
       (isPlainSafe_not_newline h_safe).1 (isPlainSafe_not_newline h_safe).2
     obtain ⟨sp_entries, sp_next, sp_trail, h_entries, _h_next_lines, h_trail, hcorr_result,
-            h_one, -⟩ :=
+            h_hash, h_one, -⟩ :=
       collectPlainScalarLoop_prod sc.advance ⟨rest, sc.col + 1⟩ _ "" _ _ _
         ⟨rest, sc.col + 1⟩ sc.inFlow hcorr_adv (GStar.nil _)
         (fun _ => rfl)
+        (fun _ _ => by
+          have h : sc.col + 1 = sc.advance.col := hcorr_adv.col_eq
+          omega)
+        (fun h => by simp at h)
         (by rw [advance_inputEnd]; exact Nat.le_refl _)
         (fun hnf => by
           have hci : sc.advance.currentIndent = sc.currentIndent := by
@@ -2773,6 +3040,13 @@ lemma scanPlainScalar_to_blockKey_oneLine (sc : ScannerState) (sp : SurfPos)
       SNsPlainOneLine_blockIn_to_blockKey
         (SNsPlainOneLine.mk .blockIn _ ⟨rest, sc.col + 1⟩ sp_entries h_first' h_entries'),
       h_trail,
+      fun heq hpk => h_hash
+        (collectPlainScalarLoop_terminated_of_fuel _ sc "" "" sc.inFlow _ sc.inputEnd result hloop
+            (by omega))
+        (h_pos_eq.trans heq) (by
+          have h := Except.ok.inj hok
+          rw [← h] at hpk
+          exact hpk),
       h_corr_final⟩
 
 /-! ## §7'' The BLOCK-KEY one-line reading of a QUOTED scalar (item 16)
@@ -3292,13 +3566,14 @@ lemma scanPlainScalar_to_flowNode (sc : ScannerState) (sp : SurfPos)
     (hok : scanPlainScalar sc = .ok s') :
     ∃ sp_gram sp', SFlowNode 0 .flowOut sp sp_gram ∧
                    GStar SSWhite sp_gram sp' ∧
+                   (sp_gram = sp' → s'.peek? ≠ some '#') ∧
                    ScannerSurfCorr s' sp' := by
-  obtain ⟨sp_gram, sp', h_ml, h_trail, hcorr'⟩ :=
+  obtain ⟨sp_gram, sp', h_ml, h_trail, h_hash, hcorr'⟩ :=
     scanPlainScalar_to_multiLine_native sc sp hcorr hpeek hstart h_not_doc hok
   exact ⟨sp_gram, sp',
     SFlowNode.content 0 .flowOut _ _
       (SFlowContent.plain 0 .flowOut _ _ (SNsPlainMultiLine_ctxOfInFlow_to_flowOut h_ml)),
-    h_trail, hcorr'⟩
+    h_trail, h_hash, hcorr'⟩
 
 -- Content-level `.flowOut` sibling of `scanPlainScalar_to_flowNode` (item 12):
 -- exposes the `SFlowContent` before the `SFlowNode.content` wrap, which is what
@@ -3313,12 +3588,13 @@ lemma scanPlainScalar_to_flowContent (sc : ScannerState) (sp : SurfPos)
     (hok : scanPlainScalar sc = .ok s') :
     ∃ sp_gram sp', SFlowContent 0 .flowOut sp sp_gram ∧
                    GStar SSWhite sp_gram sp' ∧
+                   (sp_gram = sp' → s'.peek? ≠ some '#') ∧
                    ScannerSurfCorr s' sp' := by
-  obtain ⟨sp_gram, sp', h_ml, h_trail, hcorr'⟩ :=
+  obtain ⟨sp_gram, sp', h_ml, h_trail, h_hash, hcorr'⟩ :=
     scanPlainScalar_to_multiLine_native sc sp hcorr hpeek hstart h_not_doc hok
   exact ⟨sp_gram, sp',
     SFlowContent.plain 0 .flowOut _ _ (SNsPlainMultiLine_ctxOfInFlow_to_flowOut h_ml),
-    h_trail, hcorr'⟩
+    h_trail, h_hash, hcorr'⟩
 
 -- Flow-interior production: scanPlainScalar → SFlowNode 0 .flowIn + trailing WS
 -- + corr, for a plain scalar scanned INSIDE a flow collection (`inFlow = true`).
@@ -3335,54 +3611,39 @@ lemma scanPlainScalar_to_flowNode_flowIn (sc : ScannerState) (sp : SurfPos)
     (hok : scanPlainScalar sc = .ok s') :
     ∃ sp_gram sp', SFlowNode 0 .flowIn sp sp_gram ∧
                    GStar SSWhite sp_gram sp' ∧
+                   (sp_gram = sp' → s'.peek? ≠ some '#') ∧
                    ScannerSurfCorr s' sp' := by
-  obtain ⟨sp_gram, sp', h_ml, h_trail, hcorr'⟩ :=
+  obtain ⟨sp_gram, sp', h_ml, h_trail, h_hash, hcorr'⟩ :=
     scanPlainScalar_to_multiLine_native sc sp hcorr hpeek hstart h_not_doc hok
   rw [hInFlow] at h_ml
   exact ⟨sp_gram, sp',
     SFlowNode.content 0 .flowIn _ _ (SFlowContent.plain 0 .flowIn _ _ h_ml),
-    h_trail, hcorr'⟩
+    h_trail, h_hash, hcorr'⟩
 
+/-- `scanPlainScalar` in block context reads `[131] ns-plain(0, block-in)` up to
+    its grammar endpoint `sp_gram`; the scanner parks at `sp'` past the
+    trailing `s-white*` it swallowed (`a #b`).  When nothing was swallowed the
+    walk did NOT stop on `#` (`collectPlainScalar_terminates?` needs buffered
+    whites for that), so a comment can only follow across the run. -/
 lemma scanPlainScalar_prod (sc : ScannerState) (sp : SurfPos)
     {s' : ScannerState} {c : Char}
     (hcorr : ScannerSurfCorr sc sp)
     (hpeek : sc.peek? = some c)
     (hstart : canStartPlainScalarBool c (sc.peekAt? 1) false = true)
+    (hflow : sc.inFlow = false)
+    (h_not_doc : sc.col = 0 → atDocumentBoundary sc = false)
     (hok : scanPlainScalar sc = .ok s') :
     ∃ sp_gram sp', SNsPlain 0 .blockIn sp sp_gram ∧
+                   GStar SSWhite sp_gram sp' ∧
+                   (sp_gram = sp' → s'.peek? ≠ some '#') ∧
                    ScannerSurfCorr s' sp' := by
-  -- Extract surface position structure from peek
-  obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr hpeek
-  -- Bridge: peekAt? 1 connects to rest list structure
-  have hrest_head : ∀ n, sc.peekAt? 1 = some n → ∃ rest', rest = n :: rest' := by
-    intro n hn
-    unfold ScannerState.peekAt? at hn
-    have hcorr' := hsp_eq ▸ hcorr
-    obtain ⟨pre, rest', hcs, hlen⟩ :=
-      peekAtLoop_some_chars hcorr'.end_eq hn (c :: rest) hcorr'.chars_from
-    have hp : ∃ a, pre = [a] := by
-      cases pre with
-      | nil => simp at hlen
-      | cons a as =>
-        cases as with
-        | nil => exact ⟨a, rfl⟩
-        | cons => simp at hlen
-    obtain ⟨a, rfl⟩ := hp
-    simp at hcs; obtain ⟨_, rfl⟩ := hcs
-    exact ⟨rest', rfl⟩
-  -- Get SNsPlainFirst for the first character
-  rw [hsp_eq]
-  have h_first : SNsPlainFirst .blockIn ⟨c :: rest, sc.col⟩ ⟨rest, sc.col + 1⟩ :=
-    canStartPlainScalar_to_SNsPlainFirst c rest sc.col (sc.peekAt? 1) false hstart hrest_head
-  -- Grammar: wrap first char in SNsPlainOneLine → SNsPlainMultiLine = SNsPlain 0 .blockIn
-  -- This is a valid (minimal) derivation covering at least the first character.
-  have h_gram : SNsPlainMultiLine 0 .blockIn ⟨c :: rest, sc.col⟩ ⟨rest, sc.col + 1⟩ :=
-    SNsPlainMultiLine.mk 0 .blockIn _ _ _
-      (SNsPlainOneLine.mk .blockIn _ _ _ h_first (GStar.nil _))
-      (GStar.nil _)
-  -- Scanner correspondence from scanPlainScalar_corr (sorry-free)
-  obtain ⟨sp', hcorr'⟩ := scanPlainScalar_corr sc sp hcorr hok
-  exact ⟨⟨rest, sc.col + 1⟩, sp', h_gram, hcorr'⟩
+  have hstart' : canStartPlainScalarBool c (sc.peekAt? 1) sc.inFlow = true := by
+    rw [hflow]; exact hstart
+  obtain ⟨sp_gram, sp', h_ml, h_trail, h_hash, hcorr'⟩ :=
+    scanPlainScalar_to_multiLine_native sc sp hcorr hpeek hstart' h_not_doc hok
+  have h_ctx : ctxOfInFlow sc.inFlow = .blockIn := by rw [hflow]; rfl
+  rw [h_ctx] at h_ml
+  exact ⟨sp_gram, sp', h_ml, h_trail, h_hash, hcorr'⟩
 
 /-! ## §8 Block Scalar Production (Layer 4b)
 

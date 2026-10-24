@@ -476,67 +476,56 @@ def emptiesOf (c : Name) : MetaM (Array Empty) := do
 
 /-! ## §4 The pins -/
 
+-- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 def expectedCloses : List String :=
   ["accum_block_pending→accum_block_on_closeThenBlock.h_close_pending [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=accum_block_on_closeThenBlock.h_close_pending",
    "accum_block_pending→accum_block_on_closeThenBlock.h_vslot [[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream | [col(_)=_+1] SBlockIndented(_,blockOut) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream | [col(_)=_+1] SBlockIndented(_,blockOut) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream] comps=(fact) viaClose=false param=accum_block_on_closeThenBlock.h_vslot",
    "accum_block_pending→accum_block_on_pendingBlock.h_close_pending [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=accum_block_on_pendingBlock.h_close_pending",
-   "accum_block_pending→accum_block_on_pendingBlockContent.h_close_pending [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=accum_block_on_pendingBlockContent.h_close_pending",
-   "accum_block_pending→accum_block_on_pendingContent.h_close_pending [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=accum_block_on_pendingContent.h_close_pending",
    "accum_content_on_noPending→keyctx_of_preprocess.h_close [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil] viaClose=false param=keyctx_of_preprocess.h_close",
-   "accum_content_pending→keyctx_of_preprocess.h_close [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=keyctx_of_preprocess.h_close",
    "accum_flow_open_depth0→flowKeyRoute_of_root.h_close [SSLComments ⇒ Stream] comps=absorb:absorb_stacksB ▹ SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=flowKeyRoute_of_root.h_close"]
 -- Item 305: `closeThenBlock`'s `h_vslot` is spent at two more nodes — the first entry's
 -- value-line stack at the landed-`-` arm (`h_slotV`) and at the compact arm, both the slot's
 -- inner pack under `KeyFrames.bottom`: `spends` 8 → 10.
+-- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 def expectedSites : List String :=
   ["accum_block_pending→accum_block_on_closeThenBlock.h_close_pending → accum_block_on_closeThenBlock.h_close_pending: spends=1 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
    "accum_block_pending→accum_block_on_closeThenBlock.h_vslot → accum_block_on_closeThenBlock.h_vslot: spends=10 (node 10) handoffs=3 carries=0 BOTH reach=2 reachJudged=3 reachBoth=true",
    "accum_block_pending→accum_block_on_pendingBlock.h_close_pending → accum_block_on_pendingBlock.h_close_pending: spends=4 (node 0) handoffs=1 carries=0 BOTH reach=2 reachJudged=6 reachBoth=false",
-   "accum_block_pending→accum_block_on_pendingBlockContent.h_close_pending → accum_block_on_pendingBlockContent.h_close_pending: spends=4 (node 0) handoffs=1 carries=0 BOTH reach=2 reachJudged=6 reachBoth=false",
-   "accum_block_pending→accum_block_on_pendingContent.h_close_pending → accum_block_on_pendingContent.h_close_pending: spends=0 (node 0) handoffs=2 carries=0 NEITHER reach=2 reachJudged=3 reachBoth=false",
-   "accum_content_on_noPending→keyctx_of_preprocess.h_close → keyctx_of_preprocess.h_close: spends=2 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=2 reachBoth=false",
-   "accum_content_pending→keyctx_of_preprocess.h_close → keyctx_of_preprocess.h_close: spends=2 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=2 reachBoth=false",
-   "accum_flow_open_depth0→flowKeyRoute_of_root.h_close → flowKeyRoute_of_root.h_close: spends=2 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=2 reachBoth=false"]
+   "accum_content_on_noPending→keyctx_of_preprocess.h_close → keyctx_of_preprocess.h_close: spends=2 (node 1) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
+   "accum_flow_open_depth0→flowKeyRoute_of_root.h_close → flowKeyRoute_of_root.h_close: spends=2 (node 2) handoffs=0 carries=0 NEITHER reach=1 reachJudged=0 reachBoth=false"]
+-- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 def expectedSpends : List String :=
   -- Item 305: two spends more at `closeThenBlock` — the slot's inner pack through `slotLandedSeq`
   -- for the first entry's stack (`h_slotV`, the landed arm) and through the compact fill for the
   -- compact entry's (`h_closeFV` at the compact arm), both under `KeyFrames.bottom`.
-  ["accum_block_on_closeThenBlock spend:comments @sp_mid arg=prem:SSLComments width=ws[ws:hws,col:hcol_mid] index=packed[cur:h_vslot,col:h_vslot,slot:h_vslot,slot:h_valF,slot:h_valFV] cmp=no",
-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
-   "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,col:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
-   "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,col:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
-   "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,col:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
-   "accum_block_on_closeThenBlock spend:node @sp_final arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,SCompactSeqTail.nil)) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
-   "accum_block_on_closeThenBlock spend:node @sp_end arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
+  ["accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=no",
    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv] cmp=no",
-   "accum_block_on_closeThenBlock spend:node @sp arg=prem:SBlockIndented width=none index=direct[cur:nv,col:nv,slot:nv] cmp=no",
    "accum_block_on_pendingBlock handoff→accum_block_on_closeThenBlock.h_close_pending @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=yes[hkn:¬k = n,_hge:n ≥ k]",
    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
-   "accum_block_on_pendingBlockContent handoff→accum_block_on_closeThenBlock.h_close_pending @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[tail:n] cmp=yes[hkn:¬k = n]",
-   "accum_block_on_pendingBlockContent spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[tail:n] cmp=no",
-   "accum_block_on_pendingBlockContent spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[tail:n] cmp=no",
-   "accum_block_on_pendingBlockContent spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[tail:n] cmp=no",
-   "accum_block_on_pendingBlockContent spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[tail:n] cmp=no",
-   "accum_block_on_pendingContent handoff→accum_block_on_closeThenBlock.h_close_pending @— arg=— width=none index=none cmp=no",
-   "accum_block_on_pendingContent handoff→accum_block_on_closeThenBlock.h_close_pending @— arg=— width=none index=none cmp=no",
    "keyctx_of_preprocess spend:comments @sp_mid arg=lemma:left(prem:And) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no",
-   "keyctx_of_preprocess spend:comments @sp arg=SSLComments.startOfLine(GStar.nil) width=ind[ws~:h_ws,ind~:h_ind,ind~:h_ind',col:hc0] index=none cmp=no",
-   "flowKeyRoute_of_root spend:comments @sp_mid arg=lemma:left(prem:And) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no",
-   "flowKeyRoute_of_root spend:comments @sp_mid arg=lemma:left(prem:And) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no",
-   "slotChainMap spend:node @sp_v arg=SBlockIndented.node(SBlockNode.blockMap(GOpt.none,prem:SSLComments,SBlockMapEntries.single(prem:SIndent,prem:SBlockMapEntry))) width=none index=direct[cur:nv] cmp=no"]
+   "slotChainMap spend:node @sp_v arg=SBlockIndented.node(SBlockNode.blockMap(GOpt.none,prem:SSLComments,SBlockMapEntries.single(prem:SIndent,prem:SBlockMapEntry))) width=none index=direct[cur:nv] cmp=no",
+   "accum_block_on_closeThenBlock spend:comments @sp_mid arg=prem:SSLComments width=ws[ws:hws,col:hcol_mid] index=packed[cur:h_vslot,slot:h_vslot,slot:h_valF,slot:h_valFV] cmp=no",
+   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+   "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+   "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+   "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+   "accum_block_on_closeThenBlock spend:node @sp_final arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,SCompactSeqTail.nil)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+   "accum_block_on_closeThenBlock spend:node @sp_end arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+   "accum_block_on_closeThenBlock spend:node @sp arg=prem:SBlockIndented width=none index=direct[cur:nv,slot:nv] cmp=no",
+   "keyctx_of_preprocess spend:node @sp arg=lemma:white_prepend_SSLComments(prem:GStar,SSLComments.startOfLine(GStar.nil)) width=ind[ws~:h_ws,ind~:h_ind,ind~:h_ind',col:hc0] index=none cmp=no",
+   "flowKeyRoute_of_root spend:node @sp_mid arg=lemma:SSLCommentsFrom_at_park(prem:ScannerSurfCorr,prem:GStar,prem:∀→Not,lemma:left(prem:And),lemma:left(lemma:right(lemma:right(prem:And)))) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no",
+   "flowKeyRoute_of_root spend:node @sp_mid arg=lemma:SSLCommentsFrom_at_park(prem:ScannerSurfCorr,prem:GStar,prem:∀→Not,lemma:left(prem:And),lemma:left(lemma:right(lemma:right(prem:And)))) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no"]
+-- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 def expectedEdges : List String :=
   ["accum_block_on_closeThenBlock → slotChainMap.up",
-   "accum_block_on_pendingBlock → accum_block_on_closeThenBlock.h_close_pending",
-   "accum_block_on_pendingBlockContent → accum_block_on_closeThenBlock.h_close_pending",
-   "accum_block_on_pendingContent → accum_block_on_closeThenBlock.h_close_pending"]
+   "accum_block_on_pendingBlock → accum_block_on_closeThenBlock.h_close_pending"]
 -- 2026-10-20 (item 306): 18 → 21 — the three key-pack calls in
 -- `accum_content_on_pendingBlock_indented` pay `h_dframesV` with the entry's level
 -- pushed over the EMPTY entry (`SBlockIndented.empty n … sp_m`), the value twin of
@@ -585,13 +574,14 @@ def expectedEmpties : List String :=
 -- 2026-10-20 (item 307): `empties` 21 → 23 (the two above).
 -- 2026-10-20 (item 307): corrected from the census — the dedent route's two new empties: `emptyInd` 10 → 11.
 -- 2026-10-23 (item 345): empties 23 → 24 — the EMPTY-entry twin relay in `accum_content_on_pendingBlock_indented`.
+-- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 def expectedLine : String :=
-  "closeSites=8 closePairs=6 closePairsD=8 viaClose=6 params=7 spends=24 spendsC=13 \
-spendsE=0 spendsN=11 handoffs=7 carries=0 untyped=0 edges=4 paramsWalked=8 widthInd=12 \
-widthWs=1 widthNone=0 idxDirect=8 idxPacked=1 idxNone=4 cmp=0 cmpSame=0 both=8 bothCmp=0 \
-handInd=5 handDirect=5 handCmp=5 sitesBoth=3 sitesWidth=4 sitesNeither=1 sitesBothAll=1 \
-empties=24 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=23 \
-pairs=21 pairs21=21 pairs18=18 nonANoDrop=8 reach=38"
+  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=20 spendsC=6 \
+spendsE=0 spendsN=14 handoffs=4 carries=0 untyped=0 edges=2 paramsWalked=6 widthInd=5 \
+widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 \
+handInd=4 handDirect=4 handCmp=4 sitesBoth=2 sitesWidth=2 sitesNeither=1 sitesBothAll=1 \
+empties=24 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=19 \
+pairs=19 pairs21=18 pairs18=16 nonANoDrop=8 reach=38"
 
 /-! ## §5 The reading -/
 
@@ -764,7 +754,8 @@ sites={sites.size} pairs={pairs.size} pairs21={shapeComps.size} pairs18={noDrop.
   logInfo s!"edges:\n{String.intercalate "\n" ((distinctS w.edges).map ("  " ++ ·)).toList}"
   logInfo s!"empties:\n{String.intercalate "\n" emptyLines.toList}"
   -- the cross-instrument checks: items 249's and 250's frames, re-derived here
-  unless sites.size == 23 && pairs.size == 21 && shapeComps.size == 21 && noDrop.size == 18 do
+  -- (2026-10-24, B3 [66] col-0 threading: 23/21/21/18 → 19/19/18/16, as StreamCompositions pins)
+  unless sites.size == 19 && pairs.size == 19 && shapeComps.size == 18 && noDrop.size == 16 do
     throwError "item 249's frame moved under this pass: sites={sites.size} pairs={pairs.size} shapeComps={shapeComps.size} noDrop={noDrop.size}"
   unless aPairs.size == 8 && nonANoDrop.size == 8 do
     throwError "item 250's frame moved under this pass: aPairs={aPairs.size} nonANoDrop={nonANoDrop.size}"

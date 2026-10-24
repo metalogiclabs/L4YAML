@@ -59,11 +59,11 @@ example {sp_start sp_before sp_br sp_open : SurfPos}
 example {sp_start : SurfPos} {D : Nat} {ks km : Array Bool} {tl : FrameTail}
     {sp_block sp_flow sp_prep sp_ne : SurfPos}
     (h_fos : FlowOpenStack sp_start 2 3 none D ks km tl sp_block sp_flow)
-    (h_tail : tl ≠ .value)
+    (h_tail : ∀ kj, tl ≠ .value kj)
     (h_lead : SSeparateLines 2 sp_flow sp_prep)
     (h_node : SFlowNode 2 .flowIn sp_prep sp_ne) :
-    FlowOpenStack sp_start 2 3 none D ks km .value sp_block sp_ne :=
-  h_fos.receiveNode h_tail h_lead sp_ne h_node
+    FlowOpenStack sp_start 2 3 none D ks km (.value false) sp_block sp_ne :=
+  h_fos.receiveNode h_tail (Or.inl h_lead) sp_ne false h_node (fun h => nomatch h)
 
 /-- The property-run receiver at `n = 2` (`  - &a [&b c]`'s interior shape):
     the run, its separator, and the content all read at the index item 24
@@ -71,13 +71,14 @@ example {sp_start : SurfPos} {D : Nat} {ks km : Array Bool} {tl : FrameTail}
 example {sp_start : SurfPos} {D : Nat} {ks km : Array Bool} {tl : FrameTail}
     {sp_block sp_flow sp_p sp_end sp_prep sp_ne : SurfPos} {ha ht : Bool}
     (h_fos : FlowOpenStack sp_start 2 3 none D ks km tl sp_block sp_flow)
-    (h_tail : tl ≠ .value)
+    (h_tail : ∀ kj, tl ≠ .value kj)
     (h_lead : SSeparateLines 2 sp_flow sp_p)
     (h_run : PropsRun 2 (inFlowCtx .flowOut) ha ht sp_p sp_end)
     (h_sep : SSeparate 2 (inFlowCtx .flowOut) sp_end sp_prep)
     (h_content : SFlowContent 2 (inFlowCtx .flowOut) sp_prep sp_ne) :
-    FlowOpenStack sp_start 2 3 none D ks km .value sp_block sp_ne :=
-  h_fos.receivePropsContent h_tail h_lead h_run h_sep h_content
+    FlowOpenStack sp_start 2 3 none D ks km (.value false) sp_block sp_ne :=
+  h_fos.receivePropsContent h_tail (Or.inl h_lead) h_run h_sep h_content (kj := false)
+    (fun h => nomatch h)
 
 /-! ## §3  The close hands the collection back at the index -/
 
@@ -116,8 +117,8 @@ here by building the nested frame from abstract closures at one `n`. -/
 
 example {sp_start : SurfPos} {ks km : Array Bool}
     {sp_before0 sp_par sp_open : SurfPos}
-    (inject : ∀ sp_ne, SFlowContent 2 .flowIn sp_par sp_ne →
-              FlowOpenStack sp_start 2 3 none 1 ks km .value sp_before0 sp_ne)
+    (inject : ∀ sp_ne, SCFlowJsonContent 2 .flowIn sp_par sp_ne →
+              FlowOpenStack sp_start 2 3 none 1 ks km (.value true) sp_before0 sp_ne)
     (h_open : GLit '[' sp_par sp_open) :
     FlowOpenStack sp_start 2 3 none 2 (ks.push true) (km.push true) .sep sp_before0 sp_open :=
   .seqNest 1 ks km true .sep sp_before0 sp_par sp_open sp_open sp_open

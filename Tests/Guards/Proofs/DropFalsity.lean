@@ -340,13 +340,14 @@ example : ∀ a b : SurfPos, StreamND a b → ∃ pre, Span a b pre := nd_spanLa
 lemma flowPark : PendingNode sc0 false ⟨['a'], 0⟩ ⟨['a'], 0⟩ ⟨['b','b','b'], 0⟩ :=
   PendingNode.pendingFlow ⟨['a'], 0⟩ ⟨['a'], 0⟩ ⟨['b','b','b'], 0⟩
     (stream_refl _) (Or.inl ⟨rfl, rfl⟩) rfl (fun _ => rfl) (Or.inl rfl)
+    ⟨_, GStar.nil _, fun _ h => (h (by decide)).elim⟩
 
 /-- What `close_with_ssl` delivers at that park TODAY, in the ambient
     environment: a stream to a target the source never reached.  This one DOES
     use the arm — it is the contrast §7 pins, and it is why the park above had
     to be checked. -/
 lemma close_with_ssl_reaches : SLYamlStream ⟨['a'], 0⟩ ⟨['b','b','b'], 0⟩ :=
-  PendingNode.close_with_ssl flowPark (stream_refl _) (by decide) (by decide)
+  PendingNode.close_with_ssl flowPark (stream_refl _) (by decide) (by decide) (by decide)
     (sslComments_refl _)
 
 /-- …and the target is not a suffix of the source, by computation. -/
@@ -385,7 +386,9 @@ example (s : String) : ([] : List Char) <:+ s.toList := List.nil_suffix
 /-! ## §7 The pins -/
 
 /-- The census line, pinned. -/
-def expectedTally : String := "bound=9 empty=10 free=4 negation=3 other=1 total=27"
+-- 2026-10-24 (B3 [66] col-0 threading): total 27 → 28, free 4 → 5 — `PendingNode.close_with_sslFrom`
+-- joins the transitive set (see `DropDependents.lean`); its conclusion is the same shape as `close_with_ssl`.
+def expectedTally : String := "bound=9 empty=10 free=5 negation=3 other=1 total=28"
 
 /-- The arm the model omits. -/
 def drop : Name := `L4YAML.Surface.SLYamlStream.scannerDrop

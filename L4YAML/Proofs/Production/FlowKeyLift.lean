@@ -608,17 +608,40 @@ lemma flowSeqEntry_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
       · exact Or.inl (SFlowSeqEntry.pairEmpty 0 tc _ _ _ _ hk2 hsep2 hcolon)
       · exact Or.inr (sepResidue_widen qk qcolon hres)
     · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qcolon.trans qsep) hres)
-  | .pairJsonAdjacentValue _ _ _ _ _ _ _ _ hk hsil hcolon hsep2 hv =>
+  | .pairJsonAdjacentValue _ _ _ _ _ _ _ _ hk hsep1 hcolon hsep2 hv =>
     have qk := scFlowJsonNode_suffix hk
-    have qsil := gopt_suffix (fun _ _ => sSeparateInLine_suffix) hsil
+    have qsep1 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep1
     have qcolon := glit_suffix hcolon
     have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
     have qv := sFlowNode_suffix hv
-    rcases sepOpt_toKey hp hsep2 with hsep2b | hres
-    · rcases flowNode_toKey hv hp with hv2 | hres
-      · exact Or.inl (SFlowSeqEntry.pairJsonAdjacentValue 0 tc _ _ _ _ _ _ hk hsil hcolon hsep2b hv2)
-      · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsil.trans qk))) (List.suffix_refl _) hres)
-    · exact Or.inr (sepResidue_widen (qcolon.trans (qsil.trans qk)) qv hres)
+    rcases scFlowJsonNode_toKey hk hp with hk2 | hres
+    · rcases sepOpt_toKey hp hsep1 with hsep1b | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · rcases flowNode_toKey hv hp with hv2 | hres
+          · exact Or.inl (SFlowSeqEntry.pairJsonAdjacentValue 0 tc _ _ _ _ _ _ hk2 hsep1b hcolon hsep2b hv2)
+          · exact Or.inr (sepResidue_widen (qsep2.trans (qcolon.trans (qsep1.trans qk))) (List.suffix_refl _) hres)
+        · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qk)) qv hres)
+      · exact Or.inr (sepResidue_widen qk (qv.trans (qsep2.trans qcolon)) hres)
+    · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qv.trans (qsep2.trans (qcolon.trans qsep1))) hres)
+  | .explicitPairJsonAdjacentValue _ _ _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon hsep3 hv =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qk := scFlowJsonNode_suffix hk
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qcolon := glit_suffix hcolon
+    have qsep3 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep3
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases scFlowJsonNode_toKey hk hp with hk2 | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · rcases sepOpt_toKey hp hsep3 with hsep3b | hres
+          · rcases flowNode_toKey hv hp with hv2 | hres
+            · exact Or.inl (SFlowSeqEntry.explicitPairJsonAdjacentValue 0 tc _ _ _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon hsep3b hv2)
+            · exact Or.inr (sepResidue_widen (qsep3.trans (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq))))) (List.suffix_refl _) hres)
+          · exact Or.inr (sepResidue_widen (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq)))) qv hres)
+        · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) (qv.trans (qsep3.trans qcolon)) hres)
+      · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qv.trans (qsep3.trans (qcolon.trans qsep2))) hres)
+    · exact Or.inr (sepResidue_widen qq (qv.trans (qsep3.trans (qcolon.trans (qsep2.trans qk)))) hres)
   | .explicitPairValue _ _ _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon hsep3 hv =>
     have qq := glit_suffix hq
     have qsep1 := sSeparate_suffix hsep1
@@ -848,6 +871,25 @@ lemma flowMapEntry_toKey {n : Nat} {c tc : L4YAML.YamlContext} {s s' : SurfPos}
         · exact Or.inr (sepResidue_widen (qcolon.trans (qsep1.trans qk)) qv hres)
       · exact Or.inr (sepResidue_widen qk (qv.trans (qsep2.trans qcolon)) hres)
     · exact Or.inr (sepResidue_widen (List.suffix_refl _) (qv.trans (qsep2.trans (qcolon.trans qsep1))) hres)
+  | .explicitJsonKeyAdjacentValue _ _ _ _ _ _ _ _ _ _ hq hsep1 hk hsep2 hcolon hsep3 hv =>
+    have qq := glit_suffix hq
+    have qsep1 := sSeparate_suffix hsep1
+    have qk := scFlowJsonNode_suffix hk
+    have qsep2 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep2
+    have qcolon := glit_suffix hcolon
+    have qsep3 := gopt_suffix (fun _ _ => sSeparate_suffix) hsep3
+    have qv := sFlowNode_suffix hv
+    rcases sep_toKey hp hsep1 with hsep1b | hres
+    · rcases scFlowJsonNode_toKey hk hp with hk2 | hres
+      · rcases sepOpt_toKey hp hsep2 with hsep2b | hres
+        · rcases sepOpt_toKey hp hsep3 with hsep3b | hres
+          · rcases flowNode_toKey hv hp with hv2 | hres
+            · exact Or.inl (SFlowMapEntry.explicitJsonKeyAdjacentValue 0 tc _ _ _ _ _ _ _ _ hq hsep1b hk2 hsep2b hcolon hsep3b hv2)
+            · exact Or.inr (sepResidue_widen (qsep3.trans (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq))))) (List.suffix_refl _) hres)
+          · exact Or.inr (sepResidue_widen (qcolon.trans (qsep2.trans (qk.trans (qsep1.trans qq)))) qv hres)
+        · exact Or.inr (sepResidue_widen (qk.trans (qsep1.trans qq)) (qv.trans (qsep3.trans qcolon)) hres)
+      · exact Or.inr (sepResidue_widen (qsep1.trans qq) (qv.trans (qsep3.trans (qcolon.trans qsep2))) hres)
+    · exact Or.inr (sepResidue_widen qq (qv.trans (qsep3.trans (qcolon.trans (qsep2.trans qk)))) hres)
   | .bareKey _ _ _ _ hk =>
     rcases flowNode_toKey hk hp with hk2 | hres
     · exact Or.inl (SFlowMapEntry.bareKey 0 tc _ _ hk2)

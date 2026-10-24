@@ -74,11 +74,12 @@ lemma readJsonKeyPair : SFlowSequence 0 .flowOut q0 q9 :=
   .nonempty 0 .flowOut q0 q1 q1 q8 q9 (GLit.mk _ 0) (GOpt.none _)
     (.single 0 .flowIn q1 q8 q8
       (.pairJsonAdjacentValue 0 .flowIn q1 q4 q4 q5 q5 q8
-        (.content 0 .flowKey q1 q4 (.doubleQ 0 .flowKey q1 q4
-          (SCDoubleQuoted.mk 0 .flowKey _ _ _ _ (GLit.mk _ 1)
-            (GStar.cons _ _ _
-              (SNbDoubleChar.plain 'a' _ 2 (by decide) (by decide) (by decide))
-              (GStar.nil _))
+        (.content 0 .flowIn q1 q4 (.doubleQ 0 .flowIn q1 q4
+          (SCDoubleQuoted.mk 0 .flowIn _ _ _ _ (GLit.mk _ 1)
+            (SNbDoubleMultiLine.single 0 _ _
+              (GStar.cons _ _ _
+                (SNbDoubleChar.plain 'a' _ 2 (by decide) (by decide) (by decide))
+                (GStar.nil _)))
             (GLit.mk _ 3))))
         (GOpt.none _) (GLit.mk _ 4) (GOpt.none _)
         (.content 0 .flowIn q5 q8 (.flowSeq 0 .flowIn q5 q8

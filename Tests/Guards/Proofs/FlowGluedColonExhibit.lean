@@ -72,4 +72,72 @@ def scalars (s : String) : List (String × ScalarStyle) :=
 -- In block context the same glued `:` after a JSON key is already refused (§8.2.2).
 #guard accepts "\"a\":[1]" = false
 
+
+/-! ## B3 ε-arm probes (2026-10-24): what parks glued to a flow `:` or `?`
+
+`SSeparateLines_at_interior`'s ε arm (`sp_prep = sp_scan`, col > 0) is routed per frame
+tail.  Before refuting the `.colon false` / `.question` arms we probed what the scanner
+does when the character after `:`/`?` is content and the key was NOT JSON-like: either
+the `:` is swallowed into the plain scalar (`ns-plain-safe(flow)` admits `" ' & ! *`),
+or the input is refused (`[`/`{` by `[147]`, `?` glued by `isKeyCandidate`).  No new
+scanner/grammar disagreement; the arms are scanner-unreachable. -/
+
+-- A space BEFORE the `:` does not change the reading: still one plain scalar.
+#guard scalars "{a :\"x\"}" = [("a :\"x\"", .plain)]
+#guard scalars "{a :'x'}" = [("a :'x'", .plain)]
+#guard scalars "{a :&x b}" = [("a :&x b", .plain)]
+#guard scalars "{a :*x}" = [("a :*x", .plain)]
+#guard scalars "{a :!t b}" = [("a :!t b", .plain)]
+#guard scalars "{a :b}" = [("a :b", .plain)]
+#guard scalars "[a :\"x\"]" = [("a :\"x\"", .plain)]
+#guard scalars "[:a]" = [(":a", .plain)]
+-- `?` glued to content is a plain scalar (`?&x a`, `?"a"`), or refused before `[`.
+#guard scalars "{?&x a: b}" = [("?&x a", .plain), ("b", .plain)]
+#guard scalars "{?\"a\": b}" = [("?\"a\"", .plain), ("b", .plain)]
+#guard accepts "[?[a]]" = false
+-- JSON key, white before the `:` (`[155] s-separate-in-line?`): adjacent value, accepted.
+#guard accepts "{\"a\" :\"x\"}" = true
+#guard scalars "{\"a\" :\"x\"}" = [("a", .doubleQuoted), ("x", .doubleQuoted)]
+
+/-! ### Recorded looseness (not fixed here): a BREAK between a JSON key and its `:`
+
+Spec `[148]`/`[155]` allow only `s-separate-in-line?` between `c-flow-json-node(0,flow-key)`
+and the `:`, so `{"a"⏎ :b}` is spec-invalid.  The scanner accepts it, and the Surface
+grammar derives it because `SFlowMapEntry.jsonKeyAdjacentValue` (#90) takes
+`GOpt (SSeparate n c)` there — scanner and grammar agree with each other and are both
+looser than `[155]`.  The sequence twin is refused ("invalid implicit key"). -/
+#guard accepts "{\"a\"\n :b}" = true
+#guard scalars "{\"a\"\n :b}" = [("a", .doubleQuoted), ("b", .plain)]
+#guard accepts "[\"a\"\n :b]" = false
+
+/-! ### B3 probe 2 — explicit (`?`) entries with a JSON key: the scanner refuses a glued
+    `:` value there (stricter than [149], conservative), accepts the separated form.  The
+    `.colon true` ε arm after `?`-key is therefore scanner-unreachable in both collections.
+    Sequence pairs with a JSON key accept the glued value ([153]/[155] via `[149]`). -/
+#guard accepts "{? \"a\":b}" = false
+#guard accepts "[? \"a\":b]" = false
+#guard accepts "{? \"a\" :b}" = false
+#guard accepts "[? \"a\" :b]" = false
+#guard accepts "[? [a]:b]" = false
+#guard accepts "[? \"a\"\n :b]" = false
+#guard scalars "{? \"a\" : b}" = [("a", .doubleQuoted), ("b", .plain)]
+#guard scalars "[? \"a\" : b]" = [("a", .doubleQuoted), ("b", .plain)]
+#guard scalars "{? a :b}" = [("a :b", .plain)]
+#guard scalars "[\"a\":b]" = [("a", .doubleQuoted), ("b", .plain)]
+#guard scalars "[\"a\" :b]" = [("a", .doubleQuoted), ("b", .plain)]
+
+/-! ### B3 probe 3 — multi-line quoted implicit keys in a flow SEQUENCE: the scanner accepts
+them, the grammar has no derivation: `[153]→[155] c-s-implicit-json-key(flow-key)` reads the
+key as `c-flow-json-node(0,flow-key)`, one line.  The map side (`[148]`, same restriction) is
+read by `SFlowMapEntry.jsonKeyAdjacentValue` at `SCFlowJsonNode n c` — a pre-existing leniency
+shared with `pairValue`.  Scanner ← gap, recorded here, not fixed in B3. -/
+#guard accepts "[\"a\nb\":c]" = true
+#guard accepts "['a\nb':c]" = true
+#guard accepts "[\"a\nb\": c]" = true
+#guard accepts "{\"a\nb\":c}" = true
+-- The other multi-line seq-key shapes ARE refused ("invalid implicit key").
+#guard accepts "[\"a\"\n:b]" = false
+#guard accepts "[[a\n]:b]" = false
+#guard accepts "[a\nb: c]" = false
+
 end L4YAML.Tests.Guards.FlowGluedColonExhibit

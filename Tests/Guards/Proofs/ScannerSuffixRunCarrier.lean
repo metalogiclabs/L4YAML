@@ -179,9 +179,10 @@ the decomposition's prefix leg absorbs them and the run stays open,
 
 example {sp_start sp sp_land : SurfPos}
     (h_sfx : SuffixRun sp_start sp)
-    (h_ssl : SSLComments sp sp_land) :
+    (h_ssl : SSLComments sp sp_land)
+    (h_col0 : sp.col = 0) :
     SuffixRun sp_start sp_land :=
-  ssl_comments_extend_suffixRun h_sfx h_ssl
+  ssl_comments_extend_suffixRun h_sfx h_col0 h_ssl
 
 /-! ## §5 The spend: `rootMapRoute`'s interfaces off the open arm
 

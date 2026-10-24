@@ -273,10 +273,12 @@ def isSurfRel (t : Expr) : MetaM Bool :=
     return a.isConstOf ``SurfPos && b.isConstOf ``SurfPos
 
 -- 2026-10-23 ([162]): +2 acyclic sccs — `SCIndentationIndicator` and `SCChompingIndicator`, both leaves.
+-- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
+-- `explicitPairJsonAdjacentValue`) add two flow arms.
 def expectedCycles : String :=
+  "types=81 sccs=64 cyclic=8 acyclic=56 cyclicTypes=25 cyclicArms=91 largest=10"
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 79 → 81, `cyclicTypes` 23 → 25, `cyclicArms` 81 → 89, `largest` 9 → 10 —
 -- the two JSON-node families join the flow SCC (`SCFlowJsonContent` ↔ `SFlowSequence`/`SFlowMapping`).
-  "types=81 sccs=64 cyclic=8 acyclic=56 cyclicTypes=25 cyclicArms=89 largest=10"
 
 /-! ## §4 What a walk costs
 
@@ -287,17 +289,21 @@ that, plus one re-citation of the first pass at every composition node, and a
 composition node is a link that is not the first of its arm. -/
 
 -- 2026-10-23 ([162]): +5 arms / +3 links — the `[163]`/`[164]` indicator leaves under `SCBBlockHeader`.
+-- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
+-- `explicitPairJsonAdjacentValue`) add two flow arms.
 def expectedPrice : String :=
+  "arms=182 links=356 oneWalk=356 twoWalks=886 defProds=9 defCitations=42"
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `arms` 172 → 180, `links`/`oneWalk` 324 → 342, `twoWalks` 800 → 846, `defCitations` 39 → 40.
-  "arms=180 links=342 oneWalk=342 twoWalks=846 defProds=9 defCitations=40"
 
 /-- The two cycles, priced the same way.  `flow` is the one the compiled
     experiment walked three times. -/
+-- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
+-- `explicitPairJsonAdjacentValue`) add two flow arms.
 def expectedCyclePrice : String :=
+  "flow arms=51 links=155 oneWalk=155 twoWalks=414 | block arms=26 links=63 \
+oneWalk=63 twoWalks=163"
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): flow `arms` 41 → 49, `links`/`oneWalk` 123 → 141,
 -- `twoWalks` 328 → 374 — the two JSON-node families enter the flow cycle; block unchanged.
-  "flow arms=49 links=141 oneWalk=141 twoWalks=374 | block arms=26 links=63 \
-oneWalk=63 twoWalks=163"
 
 
 /-! ## §5 What the walk can already cite, and what it cannot

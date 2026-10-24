@@ -165,9 +165,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
       GPlus SLDirective sp_block sp_mid)
     (h_stream : SLYamlStream sp_start sp_block)
     (h_dir_route : ∀ sp_end,
-      SLDirectiveDocument sp_block sp_end → SLYamlStream sp_start sp_end) :
+      SLDirectiveDocument sp_block sp_end → SLYamlStream sp_start sp_end)
+    (h_next : sc.inFlow = false → NextIsSep sc) :
     PendingNode sc true sp_start sp_block sp_scan :=
-  PendingNode.pendingDirective sp_start sp_block sp_scan h_dir_acc h_stream h_dir_route
+  PendingNode.pendingDirective sp_start sp_block sp_scan h_dir_acc h_stream h_dir_route h_next
 
 /-- The HEAD arm: `[211]`'s `single`, whose document slot the 1c tightening
     leaves untouched. -/
@@ -221,9 +222,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
 example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     (h_noflow : sc.inFlow = false)
-    (h_ssl : SSLComments sp sp) :
+    (h_ssl : SSLComments sp sp)
+    (h_col0 : sp.col = 0) :
     GStar SLDocumentPrefix sp_start sp :=
-  ssl_comments_extend_prefixes (h_nodoc h_noflow) h_ssl
+  ssl_comments_extend_prefixes (h_nodoc h_noflow) h_col0 h_ssl
 
 /-- The `...` park pays the suffix arm off its own marker — `[205]
     l-document-suffix` is the marker plus the landing's `[79] s-l-comments`,

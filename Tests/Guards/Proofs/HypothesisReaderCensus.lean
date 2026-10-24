@@ -296,6 +296,8 @@ is `colon_fires_implicit_key` alone.  Disjoint readers, from the term. -/
 -- 2026-10-21 (item 311): `flowKeyRoute_of_open`'s `h_park` is binder #15 and `flowKeyRoute_of_root`'s #10 — both lemmas
 -- take the flow frame's gate `{g : Option ScannerState}` before it (their conclusions carry the frame's named alternative
 -- `PackAltG g`); the rows are re-indexed, the verdicts stand (the index is fixed in the table below, the name is printed from it).
+-- 2026-10-24 (B3 [66] col-0 threading): `preprocess_flow_thread#9 (h_park)` READ → RELAY: the
+-- park is now handed on to the `sp_gram`-stated step frames instead of being destructured here.
 def expectedCalibration : List String :=
   [ "FIELD block_dispatch_deferred#5 (h_arm)",
     "RELAY block_dispatch_deferred_stamp_offcol#8 (h_arm)",
@@ -312,7 +314,7 @@ def expectedCalibration : List String :=
     "RELAY keyctx_of_preprocess#11 (h_park)",
     "READ landing_or_park_save#6 (h_park)",
     "READ landing_or_park_ska#6 (h_park)",
-    "READ preprocess_flow_thread#9 (h_park)" ]
+    "RELAY preprocess_flow_thread#9 (h_park)" ]
 
 run_cmd do
   let env ← getEnv
@@ -597,12 +599,14 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- auxiliary declaration and reads three more hypotheses.
 -- 2026-10-23 (item 349): constants 1420 → 1424, decls 1130 → 1132, READ 1168 → 1169, RELAY 2372 → 2383 —
 -- the two dispatch bridges and `h_sound`/`h_dead` relayed through the seven content-step lemmas.
+-- 2026-10-24 (B3 [66] col-0 threading): +160 decls (JSON-key carry, reservation transport, gate
+-- lemmas); UNUSED 26 → 27 (`gate_of_peek#3`, `park_gate_of_peek#2`; `question_open_map`'s `_h_noflow_disp` is now spent), see `expectedUnused`.
 def expectedModuleTally : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1169 → 1171,
   -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
-  "constants=1430 decls=1137 eta=408 FIELD=168 READ=1171 RELAY=2388 RETURN=48 \
-UNUSED=26"
+  "constants=1660 decls=1297 eta=441 FIELD=169 READ=1262 RELAY=2797 RETURN=54 \
+UNUSED=27"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
 -- (`PackAlt.ofRefused`, `PackAltG.ofPark`, `PackAlt.ofGateClose`) leave their `_h` unused until their lanes prove them.
@@ -622,10 +626,11 @@ def expectedUnused : List String :=
     "block_dispatch_deferred_stamp_offcol#12 (_h_indent)",
     "block_dispatch_deferred_stamp_offcol#13 (_h_ne)",
     "flowKeyPack_of_close#11 (_)",
+    "gate_of_peek#3 (_)",
     "ofGateClose#2 (_h)",
     "ofPark#2 (_h)",
     "ofRefused#1 (_h)",
-    "question_open_map#15 (_h_noflow_disp)",
+    "park_gate_of_peek#2 (_)",
     "step_blockEntry#3 (_h_preprocess)",
     "step_blockEntry#4 (_h_dispatch)",
     "step_blockEntry#5 (_h)",
@@ -776,15 +781,16 @@ the shape item 224 found at the arm's one reader, one workstream over.  (Its
 third terminal, `SPLIT@Eq.ndrec#9`, is the pipe: item 226 peels it and two
 remain.) -/
 
+-- 2026-10-24 (B3 [66] col-0 threading): binder indices shift with the new park fields.
 def expectedCoreTerminal : List String :=
   -- Item 287: the three `accum_block_on_*` rows read two binders earlier, past
   -- the retired `sp_block_ctx` and `h_stream_fallback`.
-  [ "accum_block_on_pendingBlock#27 (h_seqF_old)",
-    "accum_block_on_pendingBlockContent#32 (h_seqF_old)",
-    "accum_block_on_pendingContent#30 (h_seqF168)",
+  [ "accum_block_on_pendingBlock#28 (h_seqF_old)",
+    "accum_block_on_pendingBlockContent#33 (h_seqF_old)",
+    "accum_block_on_pendingContent#33 (h_seqF168)",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old)",
     "colon_open_map#24 (h_cov_in)",
-    "flowKeyRoute_of_root#21 (h_tail143)",  -- item 311: `{g}` precedes it
+    "flowKeyRoute_of_root#24 (h_tail143)",  -- item 311: `{g}` precedes it
     "indicator_open_map#26 (h_ref_land)",
     "question_open_map#23 (h_cov_in)",
     "question_open_map#24 (h_cov_nil)" ]

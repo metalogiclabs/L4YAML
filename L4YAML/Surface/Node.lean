@@ -445,14 +445,27 @@ mutual
         GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s' →
         SFlowSeqEntry n c s s'
-    /-- [153] c-ns-flow-pair-json-key-entry: `c-s-implicit-json-key(flow-key)` ([155]: JSON node
-        at n = 0 in FLOW-KEY context + `s-separate-in-line?`) then `[149]` (`["a":[1]]`). -/
+    /-- [153] c-ns-flow-pair-json-key-entry then `[149]` (`["a":[1]]`). The key slot reads
+        `c-flow-json-node(n,c)` + `s-separate?`, as lenient as `pairValue`'s yaml key; the
+        strict `[155] c-s-implicit-json-key(flow-key)` (n = 0, one line) is a follow-up. -/
     | pairJsonAdjacentValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
-        SCFlowJsonNode 0 .flowKey s s₁ →
-        GOpt SSeparateInLine s₁ s₂ →
+        SCFlowJsonNode n c s s₁ →
+        GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s₃ →
         GOpt (SSeparate n c) s₃ s₄ →
         SFlowNode n c s₄ s' →
+        SFlowSeqEntry n c s s'
+    /-- [150] ns-flow-pair, explicit case, around the JSON-key pair: `[? "a":b]` — the
+        explicit key is JSON-like, so `[149]` lets the value be glued to the `':'`. -/
+    | explicitPairJsonAdjacentValue (n : Nat) (c : YamlContext)
+        (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        SCFlowJsonNode n c s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        GLit ':' s₄ s₅ →
+        GOpt (SSeparate n c) s₅ s₆ →
+        SFlowNode n c s₆ s' →
         SFlowSeqEntry n c s s'
     /-- Explicit '?' flow pair with value: `? key : value`. Covers `[? a : b]`
         (ns-flow-pair explicit case [149], reusing `'?' s-separate` + key/value). -/
@@ -624,6 +637,18 @@ mutual
         GLit ':' s₂ s₃ →
         GOpt (SSeparate n c) s₃ s₄ →
         SFlowNode n c s₄ s' →
+        SFlowMapEntry n c s s'
+    /-- [142] c-ns-flow-map-explicit-entry around [148]/[149]: `{? "a":b}` — the explicit
+        key is a JSON-like node, so the value may be glued to the `':'`. -/
+    | explicitJsonKeyAdjacentValue (n : Nat) (c : YamlContext)
+        (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        SCFlowJsonNode n c s₂ s₃ →
+        GOpt (SSeparate n c) s₃ s₄ →
+        GLit ':' s₄ s₅ →
+        GOpt (SSeparate n c) s₅ s₆ →
+        SFlowNode n c s₆ s' →
         SFlowMapEntry n c s s'
     /-- Bare YAML key with no value indicator: `{a}` — the `e-node` (empty value,
         no `':'`) branch of `ns-flow-map-yaml-key-entry(n,c)` [145]. Trailing

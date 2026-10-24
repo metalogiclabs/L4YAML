@@ -125,9 +125,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_mid : SurfPos}
     (h_nd : danglingNodePos? sc = none)
     -- Item 275: §8.1's silence, carried beside it.
     (h_ui : underIndentedFlowValuePos? sc = none)
-    (h_ssl : SSLComments sp_scan sp_mid) :
+    (h_ssl : SSLComments sp_scan sp_mid)
+    (h_noflow : sc.inFlow = false) :
     SLYamlStream sp_start sp_mid :=
-  h_pending.close_with_ssl h_stream h_nd h_ui h_ssl
+  h_pending.close_with_ssl h_stream h_nd h_ui h_noflow h_ssl
 
 -- **Item 159 puts the same premise on the ENTRY park.**  A completed node
 -- inside a block entry parks as `pendingBlockContent`, not `pendingContent`

@@ -51,9 +51,11 @@ example {sp_start : SurfPos} {sc : ScannerState} {fl : Nat} {ks : Array Bool}
 example {n : Nat} {sc s_prep : ScannerState} {sp : SurfPos} {c : Char}
     (h_floor : IndentFloor sc n)
     (hcorr : ScannerSurfCorr sc sp)
-    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_gate : sc.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     ∃ sp_prep, ScannerSurfCorr s_prep sp_prep ∧
-      ((SSeparateLines n sp sp_prep ∧ n ≤ minContentIndentOf s_prep) ∨
+      (((SSeparateLines n sp sp_prep ∨ (sp_prep = sp ∧ sp = sp ∧ 0 < sp.col)) ∧
+          n ≤ minContentIndentOf s_prep) ∨
         ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
           WhiteRunUnderRun n sp_mid sp_prep ∧
           LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid ∧
@@ -61,7 +63,8 @@ example {n : Nat} {sc s_prep : ScannerState} {sp : SurfPos} {c : Char}
             (s_prep.currentIndent ≤ (s_prep.col : Int) ∨
               s_prep.indents.size ≤ 1)) ∧
           (sp.col ≠ 0 → s_prep.inFlow = false → s_prep.simpleKeyAllowed = true)) :=
-  preprocess_some_separate_at_floor n sc sp s_prep c h_floor hcorr hok
+  preprocess_some_separate_at_floor n sc sp s_prep c h_floor hcorr hok (GStar.nil _)
+    (fun _ => h_gate)
 
 /-! ## §2  The measurement: inside a flow, nothing writes the indent stack
 
@@ -114,15 +117,15 @@ The packaged case split's closure takes `SSeparateLines n` — the stack's own
 consumer derives the at-`n` reading off the floor.  Pinned by applying the
 promise at an abstract index. -/
 
-example {sp_start : SurfPos} {sc : ScannerState} {fl : Nat} {ks : Array Bool}
+example {sp_start : SurfPos} {sc : ScannerState} {fl : Nat} {ks : Array Bool} {kj : Bool}
     {sp_block sp_flow sp_prep sp_tok : SurfPos}
-    (h : FlowStackK sp_start sc fl ks .value sp_block sp_flow)
+    (h : FlowStackK sp_start sc fl ks (.value kj) sp_block sp_flow)
     (h_fl : 0 < fl) :
     ∃ n kc km g, KeyAfterValueLayout sc ∨
       (SSeparateLines n sp_flow sp_prep → GLit ':' sp_prep sp_tok →
-        FlowStackB sp_start n kc g fl ks km .colon sp_block sp_tok) := by
+        FlowStackB sp_start n kc g fl ks km (.colon kj) sp_block sp_tok) := by
   obtain ⟨n, kc, km, g, -, -, -, h_prom⟩ := h
-  exact ⟨n, kc, km, g, ((h_prom h_fl).2.2 rfl).imp id (fun f => f sp_prep sp_tok)⟩
+  exact ⟨n, kc, km, g, ((h_prom h_fl).2.2.1 kj rfl).imp id (fun f hs hc => f sp_prep sp_tok (Or.inl hs) hc)⟩
 
 end Tests.Guards.FlowStackFloorReal
 

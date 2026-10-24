@@ -160,7 +160,9 @@ example {n : Nat} {sc : ScannerState} {sp : SurfPos} {s' : ScannerState} {c : Ch
     (hn : n ≤ L4YAML.Proofs.PreprocessIndentStable.minContentIndentOf sc) :
     ∃ sp_gram sp'', SFlowContent n .flowOut sp sp_gram ∧
       GStar SSWhite sp_gram sp'' ∧ ScannerSurfCorr s' sp'' :=
-  scanPlainScalar_to_flowContent_at n sc sp hcorr hpeek hstart h_not_doc hok hinflow hn
+  let ⟨sp_gram, sp'', h1, h2, _, h4⟩ :=
+    scanPlainScalar_to_flowContent_at n sc sp hcorr hpeek hstart h_not_doc hok hinflow hn
+  ⟨sp_gram, sp'', h1, h2, h4⟩
 
 end L4YAML.Tests.Guards.ScannerPlainBlankFoldTab
 

@@ -349,10 +349,12 @@ declarations' own binders and not by a rescoring of an existing one.
 -- (The item 320 and 322 notes above are corrected: their scripts garbled the field names.)
 -- 2026-10-23 (item 344): constants/decls +1, READ 1200 → 1203 — the relayed `h_valFV`'s `match` and the relays' reads.
 -- 2026-10-23 (item 345): constants 1419 → 1420, decls 1129 → 1130, READ 1203 → 1206 — the `h_kslotUp` singleton relays' tactic block: one auxiliary declaration, three more reads (same as HypothesisReaderCensus).
+-- 2026-10-24 (B3 [66] col-0 threading): +160 decls (JSON-key carry, reservation transport, gate lemmas).
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (constants 1650 → 1660, decls 1290 → 1297).
 def expectedModuleTallyP : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
-  "constants=1430 decls=1137 eta=408 FIELD=189 READ=1209 RELAY=2237 RETURN=140 UNUSED=26"
+  "constants=1660 decls=1297 eta=441 FIELD=191 READ=1321 RELAY=2604 RETURN=166 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -457,13 +459,15 @@ also counted passes vacuously. -/
 -- Item 287: the three `accum_block_on_*` rows, and the `closeThenBlock` binder
 -- two of them land at, read two binders earlier — `sp_block_ctx` and
 -- `h_stream_fallback` retired from all four.
+-- 2026-10-24 (B3): binder indices shift with the new park fields (pendingBlock 27→28, pendingBlockContent 32→33,
+-- pendingContent 30→33, flowKeyRoute_of_root 21→24); the readers are unchanged.
 def expectedNineResolved : List String :=
-  [ "accum_block_on_pendingBlock#27 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#27>Or.casesOn#3",
-    "accum_block_on_pendingBlockContent#32 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#27>Or.casesOn#3",
-    "accum_block_on_pendingContent#30 (h_seqF168) => RETURN@L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent#30",
+  [ "accum_block_on_pendingBlock#28 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
+    "accum_block_on_pendingBlockContent#33 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
+    "accum_block_on_pendingContent#33 (h_seqF168) => RETURN@L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent#33",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old) => FIELD@L4YAML.Proofs.StreamAccum.PendingNode.pendingProps#19",
     "colon_open_map#24 (h_cov_in) => FIELD@And.intro#2",
-    "flowKeyRoute_of_root#21 (h_tail143) => RETURN@L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root#21",  -- item 311: `{g}` precedes it
+    "flowKeyRoute_of_root#24 (h_tail143) => RETURN@L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root#24",  -- item 311: `{g}` precedes it
     "indicator_open_map#26 (h_ref_land) => ELIM@L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused.match_1_1#4, ELIM@L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused.match_1_1#4",
     "question_open_map#23 (h_cov_in) => FIELD@And.intro#2",
     "question_open_map#24 (h_cov_nil) => FIELD@And.intro#2" ]
@@ -477,9 +481,9 @@ def expectedRefTerminalsP : List String :=
 run_cmd do
   let env ← getEnv
   let nine : List (Name × Nat) :=
-    [ (``accum_block_on_pendingBlock, 27), (``accum_block_on_pendingBlockContent, 32),
-      (``accum_block_on_pendingContent, 30), (``accum_content_on_pendingMapValue_indented, 14),
-      (``colon_open_map, 24), (``flowKeyRoute_of_root, 21), (``indicator_open_map, 26),
+    [ (``accum_block_on_pendingBlock, 28), (``accum_block_on_pendingBlockContent, 33),
+      (``accum_block_on_pendingContent, 33), (``accum_content_on_pendingMapValue_indented, 14),
+      (``colon_open_map, 24), (``flowKeyRoute_of_root, 24), (``indicator_open_map, 26),
       (``question_open_map, 23), (``question_open_map, 24) ]
   if nine.length != expectedCoreTerminal.length then
     throwError "item 225's shortlist is no longer nine rows"
@@ -628,38 +632,43 @@ def aliveSet (g : Graph) : Std.HashSet String := Id.run do
 -- wrappers (`deadReason` lists them); rows from the guard's own `got`.
 -- 2026-10-23 (item 349): PEELED constants 1420 → 1424, decls 1130 → 1132, READ 1206 → 1207, RELAY 2222 → 2233 (the two
 -- dispatch bridges; `h_sound`/`h_dead` relayed through the content step); DEAD set 32 → 31, see the reason table.
+-- 2026-10-24 (B3 [66] col-0 threading): 32 → 33 — `question_open_map#15` left (its `_h_noflow_disp` is
+-- spent); `gate_of_peek#3`, `park_gate_of_peek#2` enter; the
+-- promised-step binders shift with the new park fields.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base.
 def expectedDead : List String :=
-  [ "L4YAML.Proofs.StreamAccum.PackAlt.ofGateClose#2 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.ofRefused#1 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_blockEntry#3 (_h_preprocess) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_blockEntry#4 (_h_dispatch) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_blockEntry#5 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_content#4 (_h_preprocess) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_content#5 (_h_dispatch) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_content#6 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_dispatch#3 (_h_dispatch) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_dispatch#4 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_preprocess#3 (_h_preprocess) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_preprocess#4 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_value#3 (_h_preprocess) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_value#4 (_h_dispatch) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_value#5 (_h_noflow) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAlt.step_value#6 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#17 (h_alt) [family uniformity]",
-    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline#12 (_h_res) [class marker]",
-    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#10 (_h_src) [class marker]",
-    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#11 (_h_indent) [class marker]",
-    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#12 (_h_park) [class marker]",
-    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#11 (_h_src) [class marker]",
-    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#12 (_h_indent) [class marker]",
-    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#13 (_h_ne) [class marker]",
-    "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#27 (h_alt) [promised step]",
-    "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30 (h_alt) [promised step]",
-    "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#31 (h_dispatch) [promised step]",
-    "L4YAML.Proofs.StreamAccum.flowKeyPack_of_close#11 (_) [conclusion binder]",
-    "L4YAML.Proofs.StreamAccum.question_open_map#15 (_h_noflow_disp) [family uniformity]",
-    "L4YAML.Proofs.StructureCoupling.scanTagDirective_corr#2 (_hcorr) [family uniformity]" ]
+  ["L4YAML.Proofs.StreamAccum.PackAlt.ofGateClose#2 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.ofRefused#1 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_blockEntry#3 (_h_preprocess) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_blockEntry#4 (_h_dispatch) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_blockEntry#5 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_content#4 (_h_preprocess) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_content#5 (_h_dispatch) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_content#6 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_dispatch#3 (_h_dispatch) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_dispatch#4 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_preprocess#3 (_h_preprocess) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_preprocess#4 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_value#3 (_h_preprocess) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_value#4 (_h_dispatch) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_value#5 (_h_noflow) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAlt.step_value#6 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2 (_h) [lane stub]",
+   "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#18 (h_alt) [family uniformity]",
+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline#12 (_h_res) [class marker]",
+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#10 (_h_src) [class marker]",
+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#11 (_h_indent) [class marker]",
+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#12 (_h_park) [class marker]",
+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#11 (_h_src) [class marker]",
+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#12 (_h_indent) [class marker]",
+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#13 (_h_ne) [class marker]",
+   "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#28 (h_alt) [promised step]",
+   "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#31 (h_alt) [promised step]",
+   "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#32 (h_dispatch) [promised step]",
+   "L4YAML.Proofs.StreamAccum.flowKeyPack_of_close#11 (_) [conclusion binder]",
+   "L4YAML.Proofs.StreamAccum.gate_of_peek#3 (_) [family uniformity]",
+   "L4YAML.Proofs.StreamAccum.park_gate_of_peek#2 (_) [family uniformity]",
+   "L4YAML.Proofs.StructureCoupling.scanTagDirective_corr#2 (_hcorr) [family uniformity]"]
 
 /-- Why each dead binder is there.  The reading is a JUDGEMENT read off the
     source and it is written down so a later reader can disagree with it; what
@@ -678,10 +687,12 @@ def deadReason : String → String
   | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#31"
   -- Item 340: the flip's premise `h_alt : PackAlt _` on the four lemmas that relay it into their packs through
   -- `PackAlt.step_dispatch`/`step_content`/`step_preprocess` — the same chase, ending at the same unused step binder.
-  | "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#27"
   -- Item 349: `content_dispatch_routed#29` left the set (its `h_alt` is read at the `k = 0` payment's `dif`);
   -- `accum_content_on_noPending`'s `h_alt` moved to #17 behind `h_dead` and reads as family uniformity.
-  | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30" => "promised step"
+  | "L4YAML.Proofs.StreamAccum.content_dispatch_routed#29"
+  | "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#28"
+  | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#32"
+  | "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#17" => "promised step"
   | "L4YAML.Proofs.StreamAccum.PackAlt.ofRefused#1"
   | "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2"
   | "L4YAML.Proofs.StreamAccum.PackAlt.ofGateClose#2"
@@ -710,7 +721,8 @@ def deadReason : String → String
 -- 2026-10-22 (item 340): `dead` 28 → 32, `RELAY` 1 → 5 — the four `h_alt` premises above, relayed to the promised
 -- wrappers; `entryPropsKeyPack_of_dispatch`'s `h_dispatch` moved from #30 to #31 behind the new binder.
 -- 2026-10-23 (item 349): `dead` 32 → 31, `RELAY` 5 → 4 — `content_dispatch_routed#29 (h_alt)` is read at the `k = 0` payment.
-def expectedDeadTally : String := "dead=31 RELAY=4 UNUSED=27 RELAY=4"
+-- 2026-10-24 (B3 [66] col-0 threading): dead 33 → 32 — `content_dispatch_routed#29 (h_alt)` is read on the item-354 base.
+def expectedDeadTally : String := "dead=32 RELAY=4 UNUSED=28 RELAY=4"  -- 2026-10-24 (B3): see `expectedDead`
 
 run_cmd do
   let env ← getEnv

@@ -192,16 +192,22 @@ def isSurfRel (t : Expr) : MetaM Bool :=
     writes column 0 and eats a literal break; `carried` holds no literal
     position at all and transports its premises' law. -/
 -- 2026-10-23 ([162]): +2 types / +5 carried arms — `SCIndentationIndicator` (2) and `SCChompingIndicator` (3).
+-- 2026-10-23 ([66]): `SSeparateInLine.startOfLine` carried → advance — it now names
+-- column 0 at both ends (eats 0, col 0→0) instead of transporting a variable position.
+-- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
+-- `explicitPairJsonAdjacentValue`) add two flow arms.
 def expectedSplit : String :=
+  "types=81 arms=182 advance=25 pred=11 reset=3 carried=142 violations=1"
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 79 → 81, `arms` 172 → 180, `carried` 133 → 141 —
 -- `SCFlowJsonContent` (4 arms) + `SCFlowJsonNode` (2) + `jsonKeyAdjacentValue` + `pairJsonAdjacentValue`; all carry the column.
-  "types=81 arms=180 advance=24 pred=11 reset=3 carried=141 violations=1"
 
 /-- What the census actually compared.  A census that reports no violations
     must say how much of the population it could see: `blind` counts arms
     holding two positions it could not relate, `skippedTypes` the productions
     that are not two-position relations. -/
-def expectedCoverage : String := "lits=79 pairs=41 blind=0 skippedTypes=1"
+-- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
+-- `explicitPairJsonAdjacentValue`) add two flow arms.
+def expectedCoverage : String := "lits=81 pairs=42 blind=0 skippedTypes=1"
 
 /-- The arm, and it is the one §1 refutes the law with. -/
 def expectedViolation : String :=

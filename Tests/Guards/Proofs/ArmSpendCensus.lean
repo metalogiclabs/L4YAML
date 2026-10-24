@@ -189,30 +189,32 @@ def armEdges (anchor : Name) : CommandElabM (Array Edge × Nat) := do
 -- 2026-10-21 (item 311): `flowKeyRoute_of_open` #14 → #15 and `flowKeyRoute_of_root` #9 → #10 — both take the flow
 -- frame's gate `{g : Option ScannerState}` as an implicit binder now (their conclusions carry the frame's named
 -- alternative `PackAltG g`); `h_park` is the same binder one index later.
+-- 2026-10-24 (B3 [66] col-0 threading): nine binder indices shift, no row changes class — the
+-- parks gain `sp_gram`/`h_run`/`h_gate`/`h_next` and the step frames read from `sp_gram`.
 def expectedBinders : List String :=
-  [ "loose accum_block_on_noPending#13 (h_arm)",
+  [ "loose accum_block_on_noPending#14 (h_arm)",
     "loose block_dispatch_deferred#9 (h_live0)",
     "loose block_dispatch_deferred_stamp_nopack#14 (h_live0)",
     "loose block_dispatch_deferred_stamp_offcol#15 (h_live0)",
     "loose content_live0#4 (h_live0)",
     "loose flowKeyRoute_of_open#15 (h_park)",
-    "loose flowKeyRoute_of_root#10 (h_park)",
-    "loose keyctx_of_preprocess#12 (h_park)",
+    "loose flowKeyRoute_of_root#11 (h_park)",
+    "loose keyctx_of_preprocess#15 (h_park)",
     "loose landing_or_park_save#6 (h_park)",
     "loose landing_or_park_ska#6 (h_park)",
     "loose pendingFlow#8 (h_live0)",
-    "loose preprocess_flow_thread#9 (h_park)",
+    "loose preprocess_flow_thread#10 (h_park)",
     "loose preprocess_possible_of_live0#3 (h_live0)",
-    "tight accum_block_on_closeThenBlock#15 (h_park)",
-    "tight accum_block_on_pendingBlockContent#23 (h_park)",
-    "tight accum_block_on_pendingContent#21 (h_park)",
+    "tight accum_block_on_closeThenBlock#16 (h_park)",
+    "tight accum_block_on_pendingBlockContent#24 (h_park)",
+    "tight accum_block_on_pendingContent#24 (h_park)",
     "tight block_dispatch_deferred#5 (h_arm)",
     "tight block_dispatch_deferred_stamp_nopack#7 (h_arm)",
     "tight block_dispatch_deferred_stamp_offcol#8 (h_arm)",
     "tight colon_fires_implicit_key#11 (h_arm)",
     "tight noPending#4 (h_arm)",
-    "tight pendingBlockContent#10 (h_arm)",
-    "tight pendingContent#9 (h_arm)",
+    "tight pendingBlockContent#11 (h_arm)",
+    "tight pendingContent#10 (h_arm)",
     "tight pendingDocEnd#6 (h_arm)",
     "tight pendingFlow#5 (h_arm)" ]
 
@@ -267,8 +269,12 @@ def expectedBinders : List String :=
     (`Or.inl h_sk_old`, `Or.inl h_sk_mv`), so two `VIA` edges become `PAY`;
     and `slot_ride` and the props arm's fallback apply `flowKeyRoute_of_root`,
     each reading `h_park`, two `VIA` edges in their place. -/
+-- 2026-10-24 (B3 [66] col-0 threading): skipped 31 → 38 — eight new gate lemmas (`ParkFloor.stacked`,
+-- `gate_of_blockEntry`, `gate_of_key`, `gate_of_value`, `blockScalar_park_gate`, `noPending_gate_of_inFlow`,
+-- `PendingNode.nil_gate_of_allowDirectives`, `FlowBaseRoutes.value`) return functions, so their values
+-- have fewer leading lambdas than their types have binders; the census refuses to read them, by design.
 def expectedTally : String :=
-  "edges=104 skipped=31 DECLINE=21 FIELD=7 PAY=17 RELAY=27 VIA=32"
+  "edges=104 skipped=38 DECLINE=21 FIELD=7 PAY=17 RELAY=27 VIA=32"
 
 run_cmd do
   let env ← getEnv

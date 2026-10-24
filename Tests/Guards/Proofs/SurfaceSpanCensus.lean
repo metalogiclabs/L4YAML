@@ -66,7 +66,7 @@ a definition under-reports the thing it is pricing. -/
 -- 2026-10-23 ([162]): +3 ind / +7 ctors — `SCIndentationIndicator` (2), `SCChompingIndicator` (3) and `GAlt` (2),
 -- which `SCBBlockHeader` now brings into the block's closure; all three are leaves.
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 77 → 79, `ind` 64 → 66, `ctors` 150 → 158, `block` 18/69 → 20/77.
-def expectedClosure : String := "types=79 ind=66 def=13 ctors=158 block=20/77 leaf=59/81"
+def expectedClosure : String := "types=79 ind=66 def=13 ctors=160 block=20/79 leaf=59/81"
 
 /-- Every production type reachable from `SFlowNode`'s mutual block, with its
     constructor count (0 for a `def`) and whether it is in the block. -/
@@ -295,7 +295,7 @@ def flowExports : List String :=
    "flowMapEntries_toKey", "flowMapEntry_toKey"]
 
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `carried` 82 → 96, `payable` 48 → 55, `relay` 34 → 41 — 8 new arms + 2 suffix lemmas.
-def expectedLeafSplit : String := "exports=8 noop=0 carried=96 payable=55 blocked=0 relay=41"
+def expectedLeafSplit : String := "exports=8 noop=0 carried=108 payable=62 blocked=0 relay=46"
 
 /-- How many times a constant occurs in a term, WITHOUT deduplication: the
     compiler pays per occurrence, and item 228's DAG walk undercounted for
@@ -641,7 +641,7 @@ partial def termSize : Expr → Nat
 /-- What a payment costs against what it pays for.  `resolveRight` is the
     assertion: six payments, six `Or.resolve_right` applications, one each. -/
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `export` 55650 → 72045 — the flow mutual block grew by two types.
-def expectedPaymentShape : String := "payments=6 resolveRight=6 maxPayment=111 export=72045"
+def expectedPaymentShape : String := "payments=6 resolveRight=6 maxPayment=111 export=78011"
 
 run_cmd liftTermElabM do
   let env ← getEnv

@@ -282,11 +282,21 @@ mutual
         GLit ':' s₂ s' →
         TFlowSeqEntry n c s s' (ev1)
     | pairJsonAdjacentValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s' : SurfPos) (ev1 ev2 : List Event) :
-        TCFlowJsonNode 0 .flowKey s s₁ ev1 →
-        GOpt SSeparateInLine s₁ s₂ →
+        TCFlowJsonNode n c s s₁ ev1 →
+        GOpt (SSeparate n c) s₁ s₂ →
         GLit ':' s₂ s₃ →
         GOpt (SSeparate n c) s₃ s₄ →
         TFlowNode n c s₄ s' ev2 →
+        TFlowSeqEntry n c s s' (ev1 ++ ev2)
+    | explicitPairJsonAdjacentValue (n : Nat) (c : YamlContext)
+        (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) (ev1 ev2 : List Event) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        TCFlowJsonNode n c s₂ s₃ ev1 →
+        GOpt (SSeparate n c) s₃ s₄ →
+        GLit ':' s₄ s₅ →
+        GOpt (SSeparate n c) s₅ s₆ →
+        TFlowNode n c s₆ s' ev2 →
         TFlowSeqEntry n c s s' (ev1 ++ ev2)
     | explicitPairValue (n : Nat) (c : YamlContext) (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) (ev1 ev2 : List Event) :
         GLit '?' s s₁ →
@@ -409,6 +419,16 @@ mutual
         GLit ':' s₂ s₃ →
         GOpt (SSeparate n c) s₃ s₄ →
         TFlowNode n c s₄ s' ev2 →
+        TFlowMapEntry n c s s' (ev1 ++ ev2)
+    | explicitJsonKeyAdjacentValue (n : Nat) (c : YamlContext)
+        (s s₁ s₂ s₃ s₄ s₅ s₆ s' : SurfPos) (ev1 ev2 : List Event) :
+        GLit '?' s s₁ →
+        SSeparate n c s₁ s₂ →
+        TCFlowJsonNode n c s₂ s₃ ev1 →
+        GOpt (SSeparate n c) s₃ s₄ →
+        GLit ':' s₄ s₅ →
+        GOpt (SSeparate n c) s₅ s₆ →
+        TFlowNode n c s₆ s' ev2 →
         TFlowMapEntry n c s s' (ev1 ++ ev2)
     | bareKey (n : Nat) (c : YamlContext) (s s' : SurfPos) (ev1 : List Event) :
         TFlowNode n c s s' ev1 →

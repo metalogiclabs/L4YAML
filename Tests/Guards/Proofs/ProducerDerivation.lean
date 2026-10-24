@@ -259,7 +259,9 @@ def readDecl (n : Name) : MetaM Readings := do
 def expectedCensus : String :=
 -- 2026-10-23 ([147] glued value): corrHyp 545 → 546 — `flowGluedCollectionValue_false_of_corr_colon_blank` reads
 -- the `": "` surface through a `ScannerSurfCorr` hypothesis; the thread, held and pair rows are unchanged.
-  "corrHyp=546 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+-- 2026-10-24 (B3 [66] col-0 threading): corrHyp 546 → 583, streamConcl 90 → 91, both 40 → 41 — the
+-- gate/JSON-key/reservation lemmas read the surface through `ScannerSurfCorr`; `close_with_sslFrom` concludes a stream.
+  "corrHyp=583 streamConcl=91 both=41 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=
@@ -300,7 +302,10 @@ def expectedProdRing1 : List Name :=
 
 /-- **The producer's thread leaves β.5's bill and the supplier's does not.**
     Item 240 measured `thread \ T = []`; this is the other side. -/
-def expectedProdInT : String := "prodInT=12 prodOutsideT=9 union=29 unionOutsideT=9"
+-- 2026-10-24 (B3 [66] col-0 threading): union 29 → 24 — the supplier's thread lost `eof_pending` and
+-- `accum_structural_pending` (they close through `PendingNode.close_with_sslFrom` now, see RepairChoice); the
+-- producer's own rows are unchanged.
+def expectedProdInT : String := "prodInT=12 prodOutsideT=9 union=24 unionOutsideT=9"
 
 /-- **The ~~seven~~ nine, named.**  Three wrappers that partition the escape's
     own applications, four `accum_block_on_*` arms, and (DOCS item 287) the two

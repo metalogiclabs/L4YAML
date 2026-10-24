@@ -99,13 +99,14 @@ example : SCDoubleQuoted 2 .flowOut ⟨['"', 'a', '"'], 4⟩ ⟨[], 7⟩ :=
     caller knows a break was crossed. -/
 example (n : Nat) (sc : ScannerState) (sp : SurfPos) (s_prep : ScannerState)
     (c : Char) (hcorr : ScannerSurfCorr sc sp)
-    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_gate : sc.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     ∃ sp_prep, ScannerSurfCorr s_prep sp_prep ∧
-      (SSeparateLines n sp sp_prep ∨
+      ((SSeparateLines n sp sp_prep ∨ (sp_prep = sp ∧ sp = sp ∧ 0 < sp.col)) ∨
         ∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0 ∧
           WhiteRunUnderRun n sp_mid sp_prep ∧
           Proofs.LandingTab.LandingTabFacts sc.currentIndent sc.needIndentCheck s_prep.peek? sp sp_mid) :=
-  preprocess_some_separate_at_anyCol n sc sp s_prep c hcorr hok
+  preprocess_some_separate_at_anyCol n sc sp s_prep c hcorr hok (GStar.nil _) (fun _ => h_gate)
 
 end L4YAML.Tests.Guards.FlowIndexLeafEvidence
 

@@ -150,8 +150,9 @@ capstonesInTp={b.capstonesInTrans.size}"
 def expectedClosure : Nat := 271  -- +1: `Proofs.Production.Acceptance.BlockScalar` (Stream E)
 
 /-- The park's populations beside the arm's, from one pass. -/
+-- 2026-10-24 (B3 [66] col-0 threading): see the dated note on `expectedDirect` below.
 def expectedBill : String :=
-  "Dp=9 Sp=0 Tp=34 T=27 shared=20 extra=14 capstonesInTp=2"
+  "Dp=11 Sp=0 Tp=36 T=28 shared=21 extra=15 capstonesInTp=2"
 
 /-- Names the park in a PROOF TERM — builders and case splits together, which
     no syntactic reading separates (item 240).  **Seven of the nine break and
@@ -160,11 +161,16 @@ def expectedBill : String :=
     WITH the constructor, and `accum_structural_pending` splits on the
     `true`-indexed park where `pendingFlow` cannot occur.  So the bracket
     `walk 9 ⊇ truth 7` is not a margin of error — it is two declarations, named. -/
+-- 2026-10-24 (B3 [66] col-0 threading): Dp 9 → 11, Tp 34 → 36 — `PendingNode.close_with_sslFrom`
+-- (the `SSLCommentsFrom` twin of `close_with_ssl`) and `PendingNode.nil_gate_of_allowDirectives`
+-- (reads `pendingFlow`'s gate) name the park in their proof terms.
 def expectedDirect : List Name :=
   [`L4YAML.Proofs.StreamAccum.PendingNode.arm_tight_or_col,
    `L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl,
+   `L4YAML.Proofs.StreamAccum.PendingNode.close_with_sslFrom,
    `L4YAML.Proofs.StreamAccum.PendingNode.dirRoute,
    `L4YAML.Proofs.StreamAccum.PendingNode.nic0,
+   `L4YAML.Proofs.StreamAccum.PendingNode.nil_gate_of_allowDirectives,
    `L4YAML.Proofs.StreamAccum.accum_block_pending,
    `L4YAML.Proofs.StreamAccum.accum_content_pending,
    `L4YAML.Proofs.StreamAccum.accum_flow_open_depth0,

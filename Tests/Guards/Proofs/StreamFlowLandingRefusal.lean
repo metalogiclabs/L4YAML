@@ -263,11 +263,13 @@ example {sc s_prep : ScannerState} {sp_scan sp_prep : SurfPos} {c : Char}
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (h_noflow : s_prep.inFlow = false)
-    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col) :
+    (h_park : sc.simpleKeyAllowed = true ∨ 0 < sp_scan.col)
+    (h_gate : sc.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     (∃ sp_mid, SSLComments sp_scan sp_mid ∧ GStar SSWhite sp_mid sp_prep ∧
       s_prep.simpleKeyAllowed = true) ∨
     (sp_scan.col ≠ 0 ∧ GStar SSWhite sp_scan sp_prep) :=
-  preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_pre h_noflow h_park
+  preprocess_flow_thread sc sp_scan sp_prep s_prep c h_corr hcorr_prep h_pre h_noflow h_park (GStar.nil _)
+    (fun _ => h_gate)
 
 /-- …which is all `main` needs to assemble item 142's bundle. -/
 example {sc s_prep : ScannerState} {c : Char}

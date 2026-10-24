@@ -664,74 +664,79 @@ def walk (table : Std.HashMap Name (Array Closure)) (c : Name) :
 
 -- Item 305: the two sequence fields and the props E-stack carry the width bound
 -- `∀ k' ∈ ks, k' < n` — one more conjunct in the shape (`[LEE]` → `[LEE2]`, `[LEEE2]` → `[LEEE3]`).
+-- 2026-10-24 (B3 [66] col-0 threading): `pendingContent`/`pendingBlockContent` closures are stated from the
+-- park's grammar endpoint `sp_gram` (the swallowed white run is the `[66]` separator), not `sp_scan`.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (content parks from `sp_gram`).
 def expectedClosures : List String :=
-  [ "pendingContent.h_closable[] req+guard: sp_scan: SSLComments ⇒ Stream",
-    "pendingContent.h_key[λλLEEE1] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
-    "pendingContent.h_key[λλLEEE5LE] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingContent.h_key[λλLEEE6LE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
-    "pendingContent.h_key[λλLEEE7LEE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingContent.h_key[λλLEEE8LEE2] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
-    "pendingContent.h_vpack[LE] opt: sp_scan: SSLComments > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingContent.h_framesS[LE2] opt: sp_scan: SSLComments ⇒ Resume(_)▹Stream",
-    "pendingContent.h_framesV[LEE2] opt: sp_scan: SSLComments ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingContent.h_seqF[LEEE2] opt: sp_scan: SSLComments > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
-    "pendingProps.h_route[] req+guard: sp_node: SBlockNode(n,blockIn) ⇒ Stream",
-    "pendingProps.h_key[L1E1] req+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) ⇒ Stream",
-    "pendingProps.h_key[L1E3LE] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingProps.h_key[L1E4LE3] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
-    "pendingProps.h_key[L1E5LEE3] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingProps.h_kslot[LE] opt: sp_node: SBlockNode(n,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingProps.h_routeE[LE2] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Stream",
-    "pendingProps.h_kslotE[LEE2] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingProps.h_closeFE[LEE4] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Resume(_)▹Stream",
-    "pendingProps.h_closeF[LE2] opt: sp_node: SBlockNode(n,blockIn) ⇒ Resume(_)▹Stream",
-    "pendingProps.h_closeFV[LEE2] opt: sp_node: SBlockNode(n,blockIn) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingProps.h_closeFEV[LEEE3] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingDocStart.h_doc_route[] req: sp_scan: GAlt(SLBareDocument,GSeq(SENode,SSLComments)) ⇒ Stream",
-    "pendingDirective.h_dir_route[] req: sp_block: SLDirectiveDocument ⇒ Stream",
-    "pendingBlockContent.h_closable[] req+guard: sp_scan: SSLComments ⇒ Stream",
-    "pendingBlockContent.h_closable_entry[] req: sp_scan: SSLComments > SCompactSeqTail(n) ⇒ Stream",
-    "pendingBlockContent.h_key[λλLEEE1] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
-    "pendingBlockContent.h_key[λλLEEE5LE] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingBlockContent.h_key[λλLEEE6LE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
-    "pendingBlockContent.h_key[λλLEEE7LEE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingBlockContent.h_key[λλLEEE8LEE2] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
-    "pendingBlockContent.h_kslot[LE] opt: sp_scan: SSLComments > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingBlockContent.h_closeF[LE3] opt: sp_scan: SSLComments > SCompactSeqTail(n) ⇒ Resume(_)▹Stream",
-    "pendingBlockContent.h_seqF[LE] opt: sp_scan: SSLComments > SCompactSeqTail(n) ⇒ SeqEntryTail(_)",
-    "pendingBlockContent.h_kslotUp[LE] opt: sp_scan: SSLComments > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingBlockContent.h_closeFV[LEE2] opt: sp_scan: SSLComments > SCompactSeqTail(n) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingBlock.h_close[] req: sp_scan: SBlockIndented(n,blockIn) ⇒ Stream",
-    "pendingBlock.h_close_entry[] req: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Stream",
-    "pendingBlock.h_kslot[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingBlock.h_closeF[LE3] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Resume(_)▹Stream",
-    "pendingBlock.h_seqF[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ SeqEntryTail(_)",
-    "pendingBlock.h_kslotUp[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingBlock.h_closeFV[LEE2] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingMapValue.h_close[] req: sp_scan: SBlockNode(n+1,blockIn) ⇒ Stream",
-    "pendingMapValue.h_ivl[R2] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
    -- 2026-10-24 (item 350): `h_expl`/`h_explUp` read `req`, no longer `opt` — their alternative is
    -- `NotQuestionPark sc` (a scanner fact the `:` producers pay), not a `PackAlt`/`True` escape.
-    "pendingMapValue.h_expl[LE2] req: _: SBlockMapEntry(n) ⇒ Stream",
-    "pendingMapValue.h_vslot[L3] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
-    "pendingMapValue.h_kslot[LE] opt: sp_scan: SBlockNode(n+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "pendingMapValue.h_closeF[LE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Resume(map(n)::_)▹Stream",
-    "pendingMapValue.h_frames[LE2] opt: sp_scan: SSLComments ⇒ Resume(_)▹Stream",
-    "pendingMapValue.h_closeFV[LEE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingMapValue.h_framesV[LEE2] opt: sp_scan: SSLComments ⇒ Key(_)▹ExplValueLine(_)",
-    "pendingMapValue.h_seqF[LEE2] opt: sp_scan: SBlockNode(n+1,blockIn) > SCompactMapTail(n) ⇒ Resume(_)▹SeqEntryTail(_)",
-    "pendingMapValue.h_explUp[LEE2] req: _: SBlockMapEntry(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "mk.value[] req+guard: sp_br: SFlowContent(n,flowOut) > SSLComments ⇒ Stream",
-    "mk.key[LEE1] opt: [kc=_] _: SBlockMapEntry(_) ⇒ Stream",
-    "mk.key[LEE4LE] opt: [kc=_] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
-    "mk.key[LEE5LE2] opt: [kc=_] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
-    "mk.key[LEE6LEE2] opt: [kc=_] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
-    "mk.vslot[LE] opt: sp_br: SFlowContent(n,flowOut) > SSLComments > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream" ]
+  ["pendingContent.h_closable[] req+guard: sp_gram: SSLComments ⇒ Stream",
+   "pendingContent.h_key[λλLEEE1] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
+   "pendingContent.h_key[λλLEEE5LE] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingContent.h_key[λλLEEE6LE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
+   "pendingContent.h_key[λλLEEE7LEE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingContent.h_key[λλLEEE8LEE2] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
+   "pendingContent.h_vpack[LE] opt: sp_gram: SSLComments > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingContent.h_framesS[LE2] opt: sp_gram: SSLComments ⇒ Resume(_)▹Stream",
+   "pendingContent.h_framesV[LEE2] opt: sp_gram: SSLComments ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingContent.h_seqF[LEEE2] opt: sp_gram: SSLComments > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
+   "pendingProps.h_route[] req+guard: sp_node: SBlockNode(n,blockIn) ⇒ Stream",
+   "pendingProps.h_key[L1E1] req+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) ⇒ Stream",
+   "pendingProps.h_key[L1E3LE] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingProps.h_key[L1E4LE3] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
+   "pendingProps.h_key[L1E5LEE3] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingProps.h_kslot[LE] opt: sp_node: SBlockNode(n,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingProps.h_routeE[LE2] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Stream",
+   "pendingProps.h_kslotE[LEE2] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingProps.h_closeFE[LEE4] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Resume(_)▹Stream",
+   "pendingProps.h_closeF[LE2] opt: sp_node: SBlockNode(n,blockIn) ⇒ Resume(_)▹Stream",
+   "pendingProps.h_closeFV[LEE2] opt: sp_node: SBlockNode(n,blockIn) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingProps.h_closeFEV[LEEE3] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingDocStart.h_doc_route[] req: sp_scan: GAlt(SLBareDocument,GSeq(SENode,SSLComments)) ⇒ Stream",
+   "pendingDirective.h_dir_route[] req: sp_block: SLDirectiveDocument ⇒ Stream",
+   "pendingBlockContent.h_closable[] req+guard: sp_gram: SSLComments ⇒ Stream",
+   "pendingBlockContent.h_closable_entry[] req: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ Stream",
+   "pendingBlockContent.h_key[λλLEEE1] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
+   "pendingBlockContent.h_key[λλLEEE5LE] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingBlockContent.h_key[λλLEEE6LE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
+   "pendingBlockContent.h_key[λλLEEE7LEE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingBlockContent.h_key[λλLEEE8LEE2] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
+   "pendingBlockContent.h_kslot[LE] opt: sp_gram: SSLComments > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingBlockContent.h_closeF[LE3] opt: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ Resume(_)▹Stream",
+   "pendingBlockContent.h_seqF[LE] opt: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ SeqEntryTail(_)",
+   "pendingBlockContent.h_kslotUp[LE] opt: sp_gram: SSLComments > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingBlockContent.h_closeFV[LEE2] opt: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingBlock.h_close[] req: sp_scan: SBlockIndented(n,blockIn) ⇒ Stream",
+   "pendingBlock.h_close_entry[] req: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Stream",
+   "pendingBlock.h_kslot[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingBlock.h_closeF[LE3] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Resume(_)▹Stream",
+   "pendingBlock.h_seqF[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ SeqEntryTail(_)",
+   "pendingBlock.h_kslotUp[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingBlock.h_closeFV[LEE2] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingMapValue.h_close[] req: sp_scan: SBlockNode(n+1,blockIn) ⇒ Stream",
+   "pendingMapValue.h_ivl[R2] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
+   "pendingMapValue.h_expl[LE2] req: _: SBlockMapEntry(n) ⇒ Stream",
+   "pendingMapValue.h_vslot[L3] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
+   "pendingMapValue.h_kslot[LE] opt: sp_scan: SBlockNode(n+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingMapValue.h_closeF[LE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Resume(map(n)::_)▹Stream",
+   "pendingMapValue.h_frames[LE2] opt: sp_scan: SSLComments ⇒ Resume(_)▹Stream",
+   "pendingMapValue.h_closeFV[LEE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingMapValue.h_framesV[LEE2] opt: sp_scan: SSLComments ⇒ Key(_)▹ExplValueLine(_)",
+   "pendingMapValue.h_seqF[LEE2] opt: sp_scan: SBlockNode(n+1,blockIn) > SCompactMapTail(n) ⇒ Resume(_)▹SeqEntryTail(_)",
+   "pendingMapValue.h_explUp[LEE2] req: _: SBlockMapEntry(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "mk.value[] req+guard: sp_br: SFlowContent(n,flowOut) > SSLComments ⇒ Stream",
+   "mk.key[LEE1] opt: [kc=_] _: SBlockMapEntry(_) ⇒ Stream",
+   "mk.key[LEE4LE] opt: [kc=_] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "mk.key[LEE5LE2] opt: [kc=_] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
+   "mk.key[LEE6LEE2] opt: [kc=_] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
+   "mk.vslot[LE] opt: sp_br: SFlowContent(n,flowOut) > SSLComments > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream"]
 -- 2026-10-21 (item 313): the props park's four spines (`h_kslot`, `h_routeE`, `h_kslotE`, `h_closeFEV`) read `carry` where
 -- they read `fwd` at the two content-step sites — the field is handed on through `.imp id (PackAlt.step_content …)` now,
 -- a carried step rather than a verbatim forward; `fwd` 2 → 0, `carry` +2 on each.
 -- 2026-10-23 (item 345): the twin spine `SSLComments ⇒ Key(_)▹ExplValueLine(_)` — two content-park sites relay
 -- `h_closeFV_old`/`h_closeFV` where they closed with `trivial` (`punt` → `carry`/`stream`).
+-- 2026-10-24 (B3 [66] col-0 threading): the content parks' spines are read from `sp_gram` (run + gate);
+-- site classes unchanged except where the structural step now closes through `SSLCommentsFrom`.
 def expectedSpines : List String :=
   -- Item 305: `pendingBlock.h_closeFV`'s spine — the compact arm pays it (one site fewer punts, one more carried).
   ["  stream=0 carry=16 fwd=0 punt=0 closed=0 SSLComments ⇒ Stream  ← pendingContent.h_closable, pendingBlockContent.h_closable",
@@ -782,6 +787,8 @@ def expectedSpines : List String :=
 -- through `.imp id (PackAlt.step_content …)` (`fwd` → `carry` on `h_kslot`, `h_routeE`, `h_kslotE`, `h_closeFEV`).
 -- 2026-10-23 (item 345): the three `accum_content_pending` decorated-dispatch exits carry `h_kslotUp` where they punted
 -- (paid off the park's single slot).
+-- 2026-10-24 (B3 [66] col-0 threading): `accum_structural_pending` closes through `SSLCommentsFrom ⇒ Stream`
+-- (the separator-less comment arm the park's run + gate pay).
 def expectedSites : List String :=
   -- Item 305: the compact arm's `h_closeFV` hand-off is a carry (the `?` slot's bottom), not a punt.
   ["  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_new:=param:h_close_pending closedBy=[SSLComments ⇒ Stream] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
@@ -830,8 +837,8 @@ def expectedSites : List String :=
    "  accum_flow_open_depth0: carrier park= stream=param:h_stream closedBy=[]  flow[value=carry,key=carry,key=carry,key=carry,key=carry,vslot=carry]",
    "  accum_flow_open_depth0: carrier park= stream=param:h_stream closedBy=[]  flow[value=carry,key=carry,key=carry,key=carry,key=carry,vslot=carry]",
    "  colon_open_map_props: nil park=pendingMapValue stream=param:h_stream_block closedBy=[] h_close=carry,h_ivl=punt,h_expl=punt,h_vslot=punt,h_kslot=carry,h_closeF=carry,h_frames=carry,h_closeFV=carry,h_framesV=carry,h_seqF=punt,h_explUp=punt",
-   "  accum_structural_pending: nil park=bound:obtained:h_pend_new stream=bound:h_stream_mid:=bound:h_close closedBy=[SSLComments ⇒ Stream] ",
-   "  accum_structural_pending: nil park=bound:obtained:h_pend_new stream=bound:h_stream_mid:=bound:h_close closedBy=[SSLComments ⇒ Stream] ",
+   "  accum_structural_pending: nil park=bound:obtained:h_pend_new stream=bound:h_stream_mid:=bound:h_close closedBy=[SSLCommentsFrom ⇒ Stream] ",
+   "  accum_structural_pending: nil park=bound:obtained:h_pend_new stream=bound:h_stream_mid:=bound:h_close closedBy=[SSLCommentsFrom ⇒ Stream] ",
    "  accum_structural_pending: nil park=bound:obtained:h_pend' stream=bound:h_stream_old closedBy=[obtained] "]
 /-- Item 295: four spines are first built from the stream at the flow open's
     key (`mk.key`).  `slot_ride`'s route and the props arm's fallback close the
@@ -839,6 +846,8 @@ def expectedSites : List String :=
     the entry, the value-line pair and the two resume twins — each head a
     spine there, and `flowKeyRoute_of_root.h_close` joins the
     `SSLComments ⇒ Stream` closure's sites. -/
+-- 2026-10-24 (B3 [66] col-0 threading): the `SSLComments ⇒ Stream` closure's sites now include the content
+-- parks' `sp_gram` hand-offs; the K-table moves with them.
 def expectedK : List String :=
   ["  SBlockNode(_+1,blockIn) ⇒ Stream  ← question_open_map:pendingMapValue.h_close, colon_open_map:pendingMapValue.h_close  [pendingMapValue.h_close]",
    "  [col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream  ← question_open_map:pendingMapValue.h_ivl, question_open_map:pendingMapValue.h_vslot, accum_block_pending→accum_block_on_closeThenBlock.h_vslot  [pendingMapValue.h_ivl, pendingMapValue.h_vslot]",
@@ -850,8 +859,8 @@ def expectedK : List String :=
    "  [_=_] SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream  ← accum_flow_open_depth0:mk.key  []",
    "  [_=_] SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)  ← accum_flow_open_depth0:mk.key  []",
    "  GAlt(SLBareDocument,GSeq(SENode,SSLComments)) ⇒ Stream  ← structural_dispatch_to_pending:pendingDocStart.h_doc_route  [pendingDocStart.h_doc_route]",
-   "  SBlockNode(0,blockIn) ⇒ Stream  ← content_dispatch_after_close→content_dispatch_routed.h_route, accum_content_pending→content_dispatch_routed.h_route  []",
-   "  SSLComments ⇒ Stream  ← accum_content_pending→keyctx_of_preprocess.h_close, accum_content_on_noPending→keyctx_of_preprocess.h_close, accum_flow_open_depth0→flowKeyRoute_of_root.h_close, accum_block_pending→accum_block_on_pendingContent.h_close_pending, accum_block_pending→accum_block_on_closeThenBlock.h_close_pending, accum_block_pending→accum_block_on_pendingBlockContent.h_close_pending, accum_block_pending→accum_block_on_pendingBlock.h_close_pending  [pendingContent.h_closable, pendingBlockContent.h_closable]",
+   "  SBlockNode(0,blockIn) ⇒ Stream  ← content_dispatch_after_close→content_dispatch_routed.h_route  []",
+   "  SSLComments ⇒ Stream  ← accum_content_on_noPending→keyctx_of_preprocess.h_close, accum_flow_open_depth0→flowKeyRoute_of_root.h_close, accum_block_pending→accum_block_on_closeThenBlock.h_close_pending, accum_block_pending→accum_block_on_pendingBlock.h_close_pending  [pendingContent.h_closable, pendingBlockContent.h_closable]",
    "  [col(_)=_+1] SBlockIndented(_,blockOut) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← accum_block_pending→accum_block_on_closeThenBlock.h_vslot  []",
    "  SLDirectiveDocument ⇒ Stream  ← accum_structural_pending→dispatch_new_pending.h_dir_route  [pendingDirective.h_dir_route]"]
 /-- Item 256 moves two closure slots from `punt` to `carry` — the root `-`'s
@@ -907,19 +916,23 @@ def expectedK : List String :=
 -- optional[stream 3 → 2 carry 123 → 121 punt 69 → 60], carry 173 → 174, punt 75 → 74, routeArgs
 -- 154 → 155, routeFwd 50 → 51, build[carry 288 → 289 punt 79 → 78] — `h_expl`/`h_explUp` are
 -- mandatory closures now (alternative `NotQuestionPark sc`); the compact `?` producer carries `h_explUp`.
+-- 2026-10-24 (B3 [66] col-0 threading): others 1 → 4 and closedDistinct 2 → 3 — the content parks' closures are
+-- stated from `sp_gram` (run + gate); the route tallies move with them (routeStream 21 → 16, routeCarry 48 → 52,
+-- routeFwd 50 → 52, routePairs 9 → 7, streamBuilders 9 → 8): the parks hand the run on instead of building the stream.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (optional 40 → 38, mandatory punt 6 → 14:
+-- the content parks' `sp_gram` closures are mandatory fields now).
 def expectedLine : String :=
-  "closures=54 packed=14 optional=38 guarded=13 facts=3 others=1 byHead=6 byFirst=8 \
-bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 \
-stream=7 carry=174 fwd=0 punt=74 closed=0 mandatory[stream=5 carry=53 fwd=0 punt=14 \
-closed=0] optional[stream=2 carry=121 fwd=0 punt=60 closed=0] packSlots=104 \
-pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=32 \
-spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=11 \
-closedDistinct=2 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 \
-carry=29 fwd=0 punt=4 closed=1] routeArgs=155 routeStream=21 routeCarry=48 routeFwd=51 \
-routeClosed=35 routeToWalked=97 routeStreamToWalked=14 viaObtained=0 viaSites=0 \
-builders=13 builds=170 buildSlots=1101 build[stream=16 carry=289 fwd=697 punt=78 \
-closed=21] buildStreamSlots=16 buildSpines=10 routePairs=9 routeSpines=5 k=14 kHeads=6 \
-streamBuilders=9"
+  "closures=54 packed=14 optional=38 guarded=13 facts=3 others=4 byHead=6 byFirst=8 bySpine=39 \
+   flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 stream=7 carry=174 \
+   fwd=0 punt=74 closed=0 mandatory[stream=5 carry=53 fwd=0 punt=14 closed=0] optional[stream=2 \
+   carry=121 fwd=0 punt=60 closed=0] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] \
+   spinesFromStream=5 spinesCarried=32 spinesTouched=37 firstsFromStream=4 headsFromStream=4 \
+   streamSites=2 closings=11 closedDistinct=3 closedIn=2 absorbed=4 obtained=2 flowSites=7 \
+   flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=156 routeStream=16 \
+   routeCarry=52 routeFwd=53 routeClosed=35 routeToWalked=98 routeStreamToWalked=11 viaObtained=0 \
+   viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=16 carry=289 fwd=697 punt=78 \
+   closed=21] buildStreamSlots=16 buildSpines=10 routePairs=7 routeSpines=5 k=14 kHeads=6 \
+   streamBuilders=8"
 
 set_option maxHeartbeats 4000000 in
 run_cmd Lean.Elab.Command.liftTermElabM do

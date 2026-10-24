@@ -168,14 +168,14 @@ lemma sepResidue_false_at_zero_width (ch : Char) (rest : List Char) :
     exact absurd (hpre ▸ hmem) (by simp)
   · exact absurd he (by simp [atEnd])
 
-/-- **…and where it still does, volunteered.**  At the end of the input every
-    separation is inline and `atEnd` holds, so the two disjuncts are both true
-    there.  That span is one a key consumer is never at — a key is followed by
-    a `:` — which is why the residue is refutable although it is not
-    disjoint. -/
-lemma sepResidue_overlaps_at_eof (col : Nat) :
-    SSeparate 0 .blockKey ⟨[], col⟩ ⟨[], col⟩ ∧ SepResidue ⟨[], col⟩ ⟨[], col⟩ :=
-  ⟨SSeparateInLine.startOfLine _, Or.inr rfl⟩
+/-- **…and where it still does, volunteered.**  At the end of the input, at
+    column 0, the zero-width separation is inline and `atEnd` holds, so the two
+    disjuncts are both true there.  That span is one a key consumer is never at
+    — a key is followed by a `:` — which is why the residue is refutable
+    although it is not disjoint. -/
+lemma sepResidue_overlaps_at_eof :
+    SSeparate 0 .blockKey ⟨[], 0⟩ ⟨[], 0⟩ ∧ SepResidue ⟨[], 0⟩ ⟨[], 0⟩ :=
+  ⟨SSeparateInLine.startOfLine [], Or.inr rfl⟩
 
 /-! ## §2b Is the new residue itself vacuous?
 
@@ -291,7 +291,7 @@ partial def scanTerm (e : Expr) (seen : Std.HashSet Expr) (r i : Nat) :
 -- resolved obligation (`imp` 100 → 101, 61 → 63 with it).
 -- 2026-10-20 (item 309): `rows` 18 → 15, `res` 59 → 57 — `frameChainUnion`, `flowVPack_of_close` and `explFrameValueLine`
 -- conclude in `∨ alt` (generic in the alternative) and leave the `∨ True` survey.
-def expectedLedgerTally : String := "rows=15 res=55"
+def expectedLedgerTally : String := "rows=15 res=54"
 
 /-- The rows, machine-produced, sorted by `res` then `prem` descending.  Three
     rows are all-zero — the proof never reaches the right arm by any route —
@@ -317,22 +317,24 @@ def expectedLedgerTally : String := "rows=15 res=55"
 -- Item 304: `resumectx_of_landing` at `res=10` sorts before `flowKeyRoute_of_open`.
 -- 2026-10-20 (item 309): 18 → 15 — `frameChainUnion`, `flowVPack_of_close` and `explFrameValueLine` conclude in `∨ alt`
 -- and leave the `∨ True` survey (the census's paste-ready block).
+-- 2026-10-24 (B3 [66] col-0 threading): `flowKeyRoute_of_root`/`_of_open` are restated from the park's
+-- `sp_gram` with the run + gate; the residual/implicit counts move with the new premises.
 def expectedLedger : List String :=
-  [ "res=11 imp=100 prem=6 proj=0 flowKeyRoute_of_root",
-    "res=10 imp=85 prem=2 proj=0 flowKeyRoute_of_open",
-    "res=9 imp=61 prem=3 proj=0 resumectx_of_landing",
-    "res=4 imp=7 prem=1 proj=0 markerctx_of_landing",
-    "res=4 imp=7 prem=1 proj=0 suffixctx_of_landing",
-    "res=3 imp=10 prem=2 proj=0 dedent_cover_of_landing",
-    "res=3 imp=5 prem=1 proj=0 flowOpen_marker",
-    "res=3 imp=5 prem=1 proj=0 flowOpen_stamp",
-    "res=3 imp=12 prem=0 proj=0 keyctx_of_preprocess",
-    "res=3 imp=12 prem=0 proj=0 nodocctx_of_preprocess",
-    "res=1 imp=4 prem=1 proj=0 PreprocessIndentStable.IndentFloor.transport",
-    "res=1 imp=4 prem=1 proj=0 flowOpen_floor_at_prep",
-    "res=0 imp=0 prem=0 proj=0 flowKeyHead",
-    "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.key",
-    "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.vslot" ]
+  ["res=11 imp=100 prem=6 proj=0 flowKeyRoute_of_root",
+   "res=9 imp=61 prem=3 proj=0 resumectx_of_landing",
+   "res=9 imp=86 prem=2 proj=0 flowKeyRoute_of_open",
+   "res=4 imp=7 prem=1 proj=0 markerctx_of_landing",
+   "res=4 imp=7 prem=1 proj=0 suffixctx_of_landing",
+   "res=3 imp=10 prem=2 proj=0 dedent_cover_of_landing",
+   "res=3 imp=5 prem=1 proj=0 flowOpen_marker",
+   "res=3 imp=5 prem=1 proj=0 flowOpen_stamp",
+   "res=3 imp=12 prem=0 proj=0 keyctx_of_preprocess",
+   "res=3 imp=12 prem=0 proj=0 nodocctx_of_preprocess",
+   "res=1 imp=4 prem=1 proj=0 PreprocessIndentStable.IndentFloor.transport",
+   "res=1 imp=4 prem=1 proj=0 flowOpen_floor_at_prep",
+   "res=0 imp=0 prem=0 proj=0 flowKeyHead",
+   "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.key",
+   "res=0 imp=0 prem=0 proj=1 FlowBaseRoutes.vslot"]
 
 /-! ## §4 What stopped the other five, and what it cost
 
@@ -351,7 +353,8 @@ keeping this gate: the instrument was priced at 69 arms by signatures BEFORE it
 existed, and the block it walks is still exactly 69 arms. -/
 
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 18 → 20, `ctors` 69 → 77, `suffixLemmas` 18 → 20.
-def expectedFamily : String := "types=20 ctors=77 suffixLemmas=20"
+-- 2026-10-24 (B3): ctors 77 → 79 — the explicit JSON-key adjacent-value twins ([142]+[148]/[149]) in Surface/Node.lean.
+def expectedFamily : String := "types=20 ctors=79 suffixLemmas=20"
 
 open Meta in
 run_cmd do
