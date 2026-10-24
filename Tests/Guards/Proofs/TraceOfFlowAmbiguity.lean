@@ -5,7 +5,7 @@ public meta import L4YAML.Proofs.Serialization.TraceOf.Node
 
 /-! # `tFlowNode_unique` on the event-annotated flow grammar (Rule 2)
 
-Refutations (two closed, one open) of
+Refutations (all three closed) of
 
     TFlowNode n c s s' ev₁ → TFlowNode n c s s' ev₂ → ev₁ = ev₂
 
@@ -21,10 +21,11 @@ each a pair of hand-built derivations of the same span with different traces.
    `[130]` has no `#` and `[132]`'s `hash` entry needs an empty `s-white*`,
    so ` #` is no entry (`hash_after_white_not_entry`) and only the comment
    reading `readComment` (trace `[]`) remains.
-3. `[!t &x a]` — tag non-maximal: `!t` is a primary tag, or the non-specific
-   tag `!` followed by an EMPTY `s-separate` and the plain scalar `t &x a`
-   (`&` is plain-safe after the first character).  Traces
-   `[useTag "!", defineAnchor "x"]` vs `[useTag "!"]`. -/
+3. `[!t &x a]` — tag non-maximal, CLOSED: `!t` is a primary tag, or it was the
+   non-specific tag `!` followed by an EMPTY `s-separate` and the plain scalar
+   `t &x a` (traces `[useTag "!", defineAnchor "x"]` vs `[useTag "!"]`).  Every
+   `[97]` arm now ends with `GNot (GChar isTagCharProp)`, so `[100]` cannot stop
+   in front of `t` (`nonSpecific_not_before_t`); only the first reading remains. -/
 
 namespace L4YAML.Tests.Guards.TraceOfFlowAmbiguity
 
@@ -148,9 +149,8 @@ abbrev u5 : SurfPos := ⟨[' ', 'a', ']'], 6⟩
 abbrev u6 : SurfPos := ⟨['a', ']'], 7⟩
 abbrev u7 : SurfPos := ⟨[']'], 8⟩
 
-private lemma safe_t : isNsPlainSafe .flowIn 't' := by unfold isNsPlainSafe isNsChar; decide
-private lemma safe_amp : isNsPlainSafe .flowIn '&' := by unfold isNsPlainSafe isNsChar; decide
-private lemma safe_x : isNsPlainSafe .flowIn 'x' := by unfold isNsPlainSafe isNsChar; decide
+private lemma gnot_tag_u2 : GNot (GChar isTagCharProp) u2 :=
+  fun _ h => by cases h with | mk _ _ _ hp => exact absurd hp (by decide)
 
 /-- Tag `!t`, anchor `&x`, plain `a`. -/
 lemma readTagAnchor : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!", Event.defineAnchor "x"] :=
@@ -158,7 +158,8 @@ lemma readTagAnchor : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!", Event.defineA
     (TCNsProperties.tagFirst u0 u2 u5 [Event.useTag "!"] [Event.defineAnchor "x"]
       (And.intro
         (SCNsTagProperty.primary _ 1 u2
-          (GPlus.mk _ _ _ (GChar.mk 't' _ 2 (by decide)) (GStar.nil _)))
+          (GPlus.mk _ _ _ (GChar.mk 't' _ 2 (by decide)) (GStar.nil _))
+          gnot_tag_u2)
         (by decide))
       (TOpt.some _ _ _ (TSeq.mk u2 u3 u5 [] [Event.defineAnchor "x"]
         (And.intro
@@ -178,37 +179,10 @@ lemma readTagAnchor : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!", Event.defineA
           (SNsPlainFirst.nonIndicator .flowIn 'a' _ 7 safe_a (by decide)) (GStar.nil _))
         (GStar.nil _)))
 
-/-- Non-specific tag `!`, empty separation, plain `t &x a` (`&` is plain-safe
-after the first character). -/
-lemma readTagPlain : TFlowNode 0 .flowIn u0 u7 [Event.useTag "!"] :=
-  .propsContent 0 .flowIn u0 u1 u1 u7 [Event.useTag "!"] []
-    (TCNsProperties.tagFirst u0 u1 u1 [Event.useTag "!"] []
-      (And.intro (SCNsTagProperty.nonSpecific _ 1) (by decide))
-      (TOpt.none _))
-    (SSeparateLines.inline 0 u1 u1 (.startOfLine u1))
-    (.plain 0 .flowIn u1 u7
-      (SNsPlainMultiLine.mk 0 .flowIn u1 u7 u7
-        (SNsPlainOneLine.mk .flowIn u1 u2 u7
-          (SNsPlainFirst.nonIndicator .flowIn 't' _ 2 safe_t (by decide))
-          (GStar.cons u2 u4 u7
-            (SNbNsPlainInLineEntry.mk .flowIn u2 u3 u4
-              (GStar.cons _ _ _ (SSWhite.space _ 3) (GStar.nil _))
-              (SNsPlainChar.safe .flowIn '&' _ 4 safe_amp (by decide) (by decide)))
-          (GStar.cons u4 u5 u7
-            (SNbNsPlainInLineEntry.mk .flowIn u4 u4 u5 (GStar.nil _)
-              (SNsPlainChar.safe .flowIn 'x' _ 5 safe_x (by decide) (by decide)))
-          (GStar.cons u5 u7 u7
-            (SNbNsPlainInLineEntry.mk .flowIn u5 u6 u7
-              (GStar.cons _ _ _ (SSWhite.space _ 6) (GStar.nil _))
-              (SNsPlainChar.safe .flowIn 'a' _ 7 safe_a (by decide) (by decide)))
-            (GStar.nil _)))))
-        (GStar.nil _)))
-
-#guard ([Event.useTag "!", Event.defineAnchor "x"] == [Event.useTag "!"]) = false
-
-lemma tFlowNode_unique_false_tag :
-    ¬ ∀ ev₁ ev₂, TFlowNode 0 .flowIn u0 u7 ev₁ → TFlowNode 0 .flowIn u0 u7 ev₂ → ev₁ = ev₂ :=
-  fun h => absurd (h _ _ readTagAnchor readTagPlain) (by decide)
+/-- The former second reading — `[100]` stopping in front of `t` — is no
+longer a derivation: the tag must be maximal (`t` is a `[40] ns-tag-char`). -/
+lemma nonSpecific_not_before_t : ¬ GNot (GChar isTagCharProp) u1 :=
+  fun h => h _ (GChar.mk 't' _ 2 (by decide))
 
 end TagSplit
 

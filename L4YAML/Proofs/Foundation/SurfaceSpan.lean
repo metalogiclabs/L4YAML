@@ -257,14 +257,14 @@ lemma scNsTagProperty_suffix {a b : SurfPos} (h : SCNsTagProperty a b) :
   | .verbatim rest _ _ _ _ hlt hp hgt =>
     exact (((glit_suffix hgt).trans (gplus_suffix (fun _ _ => gchar_suffix) hp)).trans
       (glit_suffix hlt)).trans (List.suffix_cons '!' rest)
-  | .secondary srest _ _ hg =>
+  | .secondary srest _ _ hg _ =>
     exact (gstar_suffix (fun _ _ => gchar_suffix) hg).trans
       (List.suffix_append ['!', '!'] srest)
-  | .named rest _ _ _ _ hp hl hg =>
+  | .named rest _ _ _ _ hp hl hg _ =>
     exact (((gstar_suffix (fun _ _ => gchar_suffix) hg).trans (glit_suffix hl)).trans
       (gplus_suffix (fun _ _ => gchar_suffix) hp)).trans (List.suffix_cons '!' rest)
-  | .nonSpecific rest _ => exact List.suffix_cons '!' rest
-  | .primary rest _ _ hg =>
+  | .nonSpecific rest _ _ => exact List.suffix_cons '!' rest
+  | .primary rest _ _ hg _ =>
     exact (gplus_suffix (fun _ _ => gchar_suffix) hg).trans (List.suffix_cons '!' rest)
 
 lemma scNsAnchorProperty_suffix {a b : SurfPos} (h : SCNsAnchorProperty a b) :

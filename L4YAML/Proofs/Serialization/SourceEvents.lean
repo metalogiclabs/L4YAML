@@ -329,11 +329,21 @@ lemma alias_use_surface
     (by simpa [Nat.add_assoc] using hname)
     (tail_gnot_anchor tail _ htail)
 
+lemma tail_gnot_tag (tail : List Char) (col : Nat)
+    (htail : ∀ d ∈ tail.head?, L4YAML.CharPredicates.isTagCharBool d = false) :
+    GNot (GChar isTagCharProp) ⟨tail, col⟩ := by
+  intro s' h
+  cases h with
+  | mk d rest _ hd =>
+    have hf := htail d (by simp)
+    exact absurd ((L4YAML.CharPredicates.isTagChar_iff d).mpr hd) (by simp [hf])
+
 lemma named_tag_use_surface
     (c : Char) (handleRest suffix tail : List Char) (col : Nat)
     (hc : isWordCharProp c)
     (hhandle : ∀ d ∈ handleRest, isWordCharProp d)
-    (hsuffix : ∀ d ∈ suffix, isTagCharProp d) :
+    (hsuffix : ∀ d ∈ suffix, isTagCharProp d)
+    (htail : ∀ d ∈ tail.head?, L4YAML.CharPredicates.isTagCharBool d = false) :
     SCNsTagProperty
       ⟨'!' :: ((c :: handleRest) ++ '!' :: (suffix ++ tail)), col⟩
       ⟨tail, col + 1 + (c :: handleRest).length + 1 + suffix.length⟩ := by
@@ -359,7 +369,7 @@ lemma named_tag_use_surface
     ⟨'!' :: (suffix ++ tail), col + 1 + handle.length⟩
     ⟨suffix ++ tail, col + 1 + handle.length + 1⟩
     ⟨tail, col + 1 + handle.length + 1 + suffix.length⟩
-    hwords hbang hsuffixStar
+    hwords hbang hsuffixStar (tail_gnot_tag tail _ htail)
 
 /-! ## Composition with the already-proved runtime guards
 

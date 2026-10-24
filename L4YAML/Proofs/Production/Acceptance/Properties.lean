@@ -371,17 +371,22 @@ private lemma gstar_append_local {P : SurfPos → SurfPos → Prop} {a b c : Sur
   | nil _ => exact id
   | cons s₁ s₂ _ hx _ ih => exact fun h => GStar.cons s₁ s₂ c hx (ih h)
 
+private lemma gnot_gchar_of_hmax {P : Char → Prop} {sp : SurfPos}
+    (h : ∀ c, sp.chars.head? = some c → ¬ P c) : GNot (GChar P) sp := by
+  intro s' hg; cases hg with | mk c _ _ hp => exact h c rfl hp
+
 /-- `TagOk` is a sub-relation of `[97] c-ns-tag-property`. -/
 lemma TagOk.toSCNsTagProperty {s s' : SurfPos} (h : TagOk s s') : SCNsTagProperty s s' := by
   cases h with
   | verbatim rest col s₁ s₂ s' h₁ h₂ h₃ => exact .verbatim rest col s₁ s₂ s' h₁ h₂ h₃
-  | secondary srest col s' h _ => exact .secondary srest col s' h
-  | named rest col s₁ s₂ s' h₁ h₂ h₃ _ => exact .named rest col s₁ s₂ s' h₁ h₂ h₃
-  | primary rest col s₁ s' h _ hsuf _ _ =>
+  | secondary srest col s' h hmax => exact .secondary srest col s' h (gnot_gchar_of_hmax hmax)
+  | named rest col s₁ s₂ s' h₁ h₂ h₃ hmax =>
+    exact .named rest col s₁ s₂ s' h₁ h₂ h₃ (gnot_gchar_of_hmax hmax)
+  | primary rest col s₁ s' h _ hsuf hmax _ =>
     have hfull := gstar_append_local (GStar_gchar_lift (fun _ => isWordCharProp_to_isTagCharProp) h) hsuf
     by_cases h_ne : (⟨rest, col + 1⟩ : SurfPos) = s'
-    · subst h_ne; exact .nonSpecific rest col
-    · exact .primary rest col s' (GStar_to_GPlus hfull h_ne)
+    · subst h_ne; exact .nonSpecific rest col (gnot_gchar_of_hmax hmax)
+    · exact .primary rest col s' (GStar_to_GPlus hfull h_ne) (gnot_gchar_of_hmax hmax)
 
 lemma wordChar_ne_lt_bang {c : Char} (hw : isWordCharProp c) : c ≠ '<' ∧ c ≠ '!' := by
   refine ⟨?_, ?_⟩ <;> intro e <;> subst e <;>

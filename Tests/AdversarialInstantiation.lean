@@ -3364,6 +3364,79 @@ def testMaximalPropertyLeaves (state : IO.Ref TestCollector) : IO Unit := do
         (s'.tokens.back?.map (·.val) == some (.tag handle suffix)) s!"got {repr (s'.tokens.back?.map (·.val))}"
     | .error e => checkM state s!"scanTag/{repr input}: accepted" false s!"{repr e}"
 
+/-! ## Priority 19 — maximal tag leaves: `collectTagSuffixLoop_prod` and the `[97]` lookahead (N1 follow-up)
+
+Every `SCNsTagProperty` arm now ends with `GNot (GChar isTagCharProp)`; the scanner's suffix
+loop (`collectTagSuffixLoop`, N1b) delivers it under the premise `inputEnd - offset ≤ fuel`,
+exactly as `collectAnchorNameLoop_prod` does for anchors (Priority 18).  Same risk: below the
+bound the loop stops MID-suffix and the lookahead is false.  The grid separates
+**failed-hypothesis** from **theorem-holds** on empty / singleton / multi-char suffixes and on
+every terminator kind; `scanTag`'s landing is checked for all four shorthand/non-specific shapes.
+-/
+
+/-- `GNot (GChar isTagCharProp)` at the scanner's landing: end of input or a non-tag char. -/
+def gnotTagAtB (s : ScannerState) : Bool :=
+  match s.peek? with
+  | none => true
+  | some c => !L4YAML.CharPredicates.isTagCharBool c
+
+/-- One instance of `collectTagSuffixLoop_prod` from `s` with `fuel`: `(hypothesis held, GNot at the landing)`. -/
+def tagSuffixInstance (s : ScannerState) (fuel : Nat) : Bool × Bool :=
+  let (_, s') := collectTagSuffixLoop s "" fuel
+  (decide (s.inputEnd - s.offset ≤ fuel), gnotTagAtB s')
+
+def testMaximalTagLeaves (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 19: maximal tag leaves (collectTagSuffixLoop_prod, [97] lookahead)"
+  -- Fuel grid at `"t.x]"`: the remaining input is 4 bytes; `]` is a flow indicator, not a tag char.
+  for fuel in [0, 1, 2, 3, 4, 5] do
+    let (hyp, gnot) := tagSuffixInstance (nameState "t.x]") fuel
+    checkM state s!"tagSuffix/\"t.x]\" fuel={fuel}: hyp → GNot" (!hyp || gnot) s!"hyp={hyp} gnot={gnot}"
+    checkM state s!"tagSuffix/\"t.x]\" fuel={fuel}: bucket = {if hyp then "theorem-holds" else "failed-hypothesis"}"
+      (hyp == decide (4 ≤ fuel)) ""
+  for fuel in [0, 1, 2] do
+    checkM state s!"tagSuffix/\"t.x]\" fuel={fuel}: lookahead refuted without the fuel premise"
+      (!(tagSuffixInstance (nameState "t.x]") fuel).2) ""
+  -- Suffixes: empty / singleton / multi; terminators: every kind, and end of input.
+  for input in ["", "t", "t.x", "t.x]", "t,", "t}", "t ", "t\t", "t\n", "t\r\n", "t{", "t[",
+                "t!x", "t'x'", "a:b", "%21", "t#c", "t a", "]", " t", "\uFEFF"] do
+    let s := nameState input
+    let fuel := s.inputEnd - s.offset
+    let (hyp, gnot) := tagSuffixInstance s fuel
+    checkM state s!"tagSuffix/{repr input}: holds at fuel = remaining input" (hyp && gnot) s!"gnot={gnot}"
+    let (hyp', gnot') := tagSuffixInstance s (fuel + 1)
+    checkM state s!"tagSuffix/{repr input}: holds with surplus fuel" (hyp' && gnot') ""
+  -- `scanTag`: the token and the lookahead at the landing, on every `[97]` shape.
+  for (input, handle, suffix) in [("! a", "!", ""), ("!", "!", ""), ("!t a", "!", "t"), ("!t.x]", "!", "t.x"),
+                                  ("!t'x' a", "!", "t'x'"), ("!a:b,", "!", "a:b"), ("!!str a", "!!", "str"),
+                                  ("!!", "!!", ""), ("!e!t a", "!e!", "t"), ("!e!t.x}", "!e!", "t.x"),
+                                  ("!e! a", "!e!", "")] do
+    match scanTag (ScannerState.mk' input) with
+    | .ok s' =>
+      checkM state s!"scanTag/{repr input}: tag {repr handle} {repr suffix}"
+        (s'.tokens.back?.map (·.val) == some (.tag handle suffix)) s!"got {repr (s'.tokens.back?.map (·.val))}"
+      checkM state s!"scanTag/{repr input}: GNot (GChar isTagCharProp) at the landing" (gnotTagAtB s') ""
+    | .error e => checkM state s!"scanTag/{repr input}: accepted" false s!"{repr e}"
+  -- `collectTagHandleLoop_inputEnd`: the handle loop never moves `inputEnd`, for ANY fuel
+  -- (below, at, above the remaining input) and ANY accumulated prefix — the lemma has no fuel premise.
+  for input in ["abc!x", "abc!", "abc", "", "!", "a.b!", "e!t.x}"] do
+    let s := nameState input
+    let full := s.inputEnd - s.offset
+    for chars in ["", "prefix"] do
+      for fuel in [0, 1, 2, full, full + 1] do
+        let (_, _, s') := collectTagHandleLoop s chars fuel
+        checkM state s!"tagHandleLoop/{repr input} chars={repr chars} fuel={fuel}: inputEnd unchanged"
+          (s'.inputEnd == s.inputEnd) s!"got {s'.inputEnd} vs {s.inputEnd}"
+        checkM state s!"tagHandleLoop/{repr input} chars={repr chars} fuel={fuel}: offset ≤ inputEnd"
+          (s'.offset ≤ s'.inputEnd) ""
+  -- `tail_gnot_tag` / `gnot_gchar_of_hmax`: "the head is not a tag char" ↔ `GNot (GChar isTagCharProp)`
+  -- at that position: empty tail, every terminator kind, `!` (excluded from `[40]`), and a tag-char head.
+  for (tail, expected) in [("", true), (" a", true), ("]", true), (",", true), ("}", true), ("\t", true),
+                           ("\n", true), ("\r\n", true), ("[", true), ("{", true), ("\uFEFF", true),
+                           ("t", false), (".", false), ("%", false), ("'", false), ("!", true), (":", false)] do
+    let s := nameState tail
+    checkM state s!"tailGnotTag/{repr tail}: head-not-tag-char ↔ GNot at the tail"
+      (gnotTagAtB s == expected) s!"got {gnotTagAtB s}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -3389,6 +3462,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testRegisterWitnessWalk state
   testRegisterWitnessHelpers state
   testMaximalPropertyLeaves state
+  testMaximalTagLeaves state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",

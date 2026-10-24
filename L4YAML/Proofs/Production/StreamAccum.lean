@@ -11935,12 +11935,12 @@ lemma tagProperty_col_lt {sp sp' : SurfPos} (h : SCNsTagProperty sp sp') :
     simp at h1 ⊢
     omega
   | secondary =>
-    rename_i h_star
+    rename_i h_star _
     have := gstar_gchar_col_le h_star
     simp at this ⊢
     omega
   | named =>
-    rename_i h_word h_bang h_tail
+    rename_i h_word h_bang h_tail _
     have h1 := gplus_gchar_col_lt h_word
     have h2 := glit_col h_bang
     have h3 := gstar_gchar_col_le h_tail
@@ -11948,7 +11948,7 @@ lemma tagProperty_col_lt {sp sp' : SurfPos} (h : SCNsTagProperty sp sp') :
     omega
   | nonSpecific => simp
   | primary =>
-    rename_i h_plus
+    rename_i h_plus _
     have := gplus_gchar_col_lt h_plus
     simp at this ⊢
     omega
