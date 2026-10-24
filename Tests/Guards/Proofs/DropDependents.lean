@@ -279,7 +279,7 @@ pins below are what makes that checkable rather than asserted. -/
     in one.
     259 on 2026-10-23 (after `Serialization.EventsOf` and `RefLex`), when `Proofs.Production.Acceptance.Quoted` joined the
     library — the one-line quoted-scalar scanner converses. -/
-def expectedClosure : Nat := 267  -- +1: `Proofs.Production.Acceptance.Properties` (Stream E)
+def expectedClosure : Nat := 268  -- +1: `Proofs.Production.Acceptance.FlowIndicators` (Stream E)
 
 /-- `scripts/drop_sweep.py`'s reading, re-derivable in one command and pinned
     here so that a walk which starts from the wrong root disagrees with it

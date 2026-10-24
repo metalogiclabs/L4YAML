@@ -243,9 +243,13 @@ def readDecl (n : Name) : MetaM Readings := do
 
     505 → 512 on 2026-10-23: `Acceptance/Properties.lean` — the anchor/alias name loop and
     `scanAnchorOrAlias_accepts`, the tag loops, `scanTag_accepts` and the two tag-handle
-    bridges, each taking a correspondence (Stream E). -/
+    bridges, each taking a correspondence (Stream E).
+
+    512 → 519 on 2026-10-23: `Acceptance/FlowIndicators.lean` — the four bracket converses,
+    `scanFlowEntry_accepts` and the two shared landing bridges, each taking a correspondence
+    (Stream E). -/
 def expectedCensus : String :=
-  "corrHyp=512 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=519 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=
