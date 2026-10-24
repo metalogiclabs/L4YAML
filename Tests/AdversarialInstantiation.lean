@@ -3415,6 +3415,26 @@ def testMaximalTagLeaves (state : IO.Ref TestCollector) : IO Unit := do
         (s'.tokens.back?.map (·.val) == some (.tag handle suffix)) s!"got {repr (s'.tokens.back?.map (·.val))}"
       checkM state s!"scanTag/{repr input}: GNot (GChar isTagCharProp) at the landing" (gnotTagAtB s') ""
     | .error e => checkM state s!"scanTag/{repr input}: accepted" false s!"{repr e}"
+  -- `collectTagHandleLoop_inputEnd`: the handle loop never moves `inputEnd`, for ANY fuel
+  -- (below, at, above the remaining input) and ANY accumulated prefix — the lemma has no fuel premise.
+  for input in ["abc!x", "abc!", "abc", "", "!", "a.b!", "e!t.x}"] do
+    let s := nameState input
+    let full := s.inputEnd - s.offset
+    for chars in ["", "prefix"] do
+      for fuel in [0, 1, 2, full, full + 1] do
+        let (_, _, s') := collectTagHandleLoop s chars fuel
+        checkM state s!"tagHandleLoop/{repr input} chars={repr chars} fuel={fuel}: inputEnd unchanged"
+          (s'.inputEnd == s.inputEnd) s!"got {s'.inputEnd} vs {s.inputEnd}"
+        checkM state s!"tagHandleLoop/{repr input} chars={repr chars} fuel={fuel}: offset ≤ inputEnd"
+          (s'.offset ≤ s'.inputEnd) ""
+  -- `tail_gnot_tag` / `gnot_gchar_of_hmax`: "the head is not a tag char" ↔ `GNot (GChar isTagCharProp)`
+  -- at that position: empty tail, every terminator kind, `!` (excluded from `[40]`), and a tag-char head.
+  for (tail, expected) in [("", true), (" a", true), ("]", true), (",", true), ("}", true), ("\t", true),
+                           ("\n", true), ("\r\n", true), ("[", true), ("{", true), ("\uFEFF", true),
+                           ("t", false), (".", false), ("%", false), ("'", false), ("!", true), (":", false)] do
+    let s := nameState tail
+    checkM state s!"tailGnotTag/{repr tail}: head-not-tag-char ↔ GNot at the tail"
+      (gnotTagAtB s == expected) s!"got {gnotTagAtB s}"
 
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
