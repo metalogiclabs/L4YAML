@@ -1152,7 +1152,7 @@ valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLem
 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 \
 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 \
 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 \
-doorForgotten=9 doorDropped=22 doorsOther=4 nodes=105560"
+doorForgotten=9 doorDropped=22 doorsOther=4 nodes=106109"
 
 /-! ## §6 The reading -/
 

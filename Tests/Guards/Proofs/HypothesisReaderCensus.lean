@@ -601,7 +601,7 @@ def expectedModuleTally : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1169 → 1171,
   -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
-  "constants=1430 decls=1137 eta=408 FIELD=168 READ=1171 RELAY=2388 RETURN=48 \
+  "constants=1437 decls=1144 eta=408 FIELD=168 READ=1183 RELAY=2391 RETURN=48 \
 UNUSED=26"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
@@ -707,7 +707,7 @@ inherit their parents' binders filtered out so the denominator is declarations. 
 -- (a `match`) where it was RELAYed.
 -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp`
 -- `inr` arms no longer read their alternative (they pay an empty chain instead).
-def expectedOptTally : String := "total=159 ETA=31 READ=85 RELAY=43"
+def expectedOptTally : String := "total=161 ETA=31 READ=87 RELAY=43"
 
 /-- The six item 212 enumerated, by verdict — seven since item 300.  Six are
     read in `content_dispatch_routed`'s own term (`h_markerline`, the marker

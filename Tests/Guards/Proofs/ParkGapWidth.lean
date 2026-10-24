@@ -535,8 +535,8 @@ def expectedLadder : List String :=
 -- 2026-10-24 (item 350): holders=112 → 113 — `dispatchBlock_colon_notQuestion` reads the `:`
 -- dispatch equation to hand every `:` producer `NotQuestionPark`.
   ["scanNextToken_dispatchBlockIndicators holders=113 edge=0 chain=0",
-   "scanNextToken_dispatchContent holders=146 edge=2 chain=1",
-   "scanNextToken_preprocess holders=224 edge=17 chain=6"]
+   "scanNextToken_dispatchContent holders=148 edge=2 chain=1",
+   "scanNextToken_preprocess holders=226 edge=17 chain=6"]
 
 /-- **What §1's proofs spend.**  `drop=false` is the non-circularity check
     items 242 and 243 also carry: a measurement of what the escape costs may

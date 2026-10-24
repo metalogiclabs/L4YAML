@@ -84,6 +84,55 @@ def SlotWitness (input : String) (sc : ScannerState) (sp_start : SurfPos) (i : N
     ∃ (c : Nat) (sp_q : SurfPos), sc.indentColumns[i]? = some (c : Int) ∧
       QuestionEntry input sp_start c sp_q
 
+/-- Item 354 — the value-line domain a park owes: every marked slot's column is in `ns`.
+    `scanValue` emits the explicit-key `:` only at the innermost marked column, so this is
+    the exact domain of the `∃ ns` faces (`MarkedSlotsEnclosing` pins that after a landing
+    the marked slots are the strictly enclosing `?`s). -/
+def MarkedColsIn (sc : ScannerState) (ns : List Nat) : Prop :=
+  ∀ (i l : Nat) (c : Int), sc.pendingKeys[i]? = some (some l) →
+    sc.indentColumns[i]? = some c → c.toNat ∈ ns
+
+/-- A domain is kept by any superset. -/
+lemma MarkedColsIn.mono {sc : ScannerState} {ns ns' : List Nat}
+    (h : MarkedColsIn sc ns) (hsub : ∀ x, x ∈ ns → x ∈ ns') : MarkedColsIn sc ns' :=
+  fun i l c hi hc => hsub _ (h i l c hi hc)
+
+lemma MarkedColsIn.union_left {sc : ScannerState} {ns ns' : List Nat}
+    (h : MarkedColsIn sc ns) : MarkedColsIn sc (ns ++ ns') :=
+  h.mono fun _ hx => List.mem_append_left _ hx
+
+/-- Transport along a step that moves neither field the domain reads. -/
+lemma MarkedColsIn.transport {s s' : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns)
+    (hpk : s'.pendingKeys = s.pendingKeys) (hind : s'.indents = s.indents) :
+    MarkedColsIn s' ns := by
+  intro i l c hi hc
+  rw [hpk] at hi
+  rw [ScannerState.indentColumns, hind] at hc
+  exact h i l c hi hc
+
+/-- `closeStale` empties slots and re-marks none. -/
+lemma MarkedColsIn.closeStale {s : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns) (c : Char) : MarkedColsIn (s.closeStaleAt c) ns := by
+  intro i l col hi hc
+  simp only [ScannerState.closeStaleAt] at hi hc
+  exact h i l col (closeStale_marked _ _ _ _ _ _ _ hi) hc
+
+/-- A popped level takes its slot with it; the slots below keep their columns. -/
+lemma MarkedColsIn.pop {s s' : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns)
+    (hind : s'.indents = s.indents.pop) (hpk : s'.pendingKeys = s.pendingKeys.pop) :
+    MarkedColsIn s' ns := by
+  intro i l c hi hc
+  rw [hpk, Array.getElem?_pop] at hi
+  split at hi
+  · rw [indentColumns_getElem?, hind, Array.getElem?_pop] at hc
+    split at hc
+    · rw [← indentColumns_getElem?] at hc
+      exact h i l c hi hc
+    · cases hc
+  · cases hi
+
 /-- Every marked slot names a `?`. -/
 def SlotsWitness (input : String) (sc : ScannerState) (sp_start : SurfPos) : Prop :=
   ∀ i : Nat, SlotWitness input sc sp_start i
@@ -322,6 +371,33 @@ lemma unwindIndents_witness {input : String} (s : ScannerState) (col : Int) {sp_
   unwindIndentsLoop_witness s col _ h hs
 
 
+/-! ### Item 354: the domain `MarkedColsIn` along the same writers -/
+
+lemma MarkedColsIn.unwindLoop (s : ScannerState) (col : Int) (fuel : Nat) {ns : List Nat}
+    (h : MarkedColsIn s ns) : MarkedColsIn (unwindIndentsLoop s col fuel) ns := by
+  induction fuel generalizing s with
+  | zero => simpa [unwindIndentsLoop] using h
+  | succ fuel ih =>
+    unfold unwindIndentsLoop
+    split
+    · obtain ⟨h1, h2, -⟩ := unwindPop_fields s
+      exact ih _ (h.pop h1 h2)
+    · exact h
+
+lemma MarkedColsIn.unwind (s : ScannerState) (col : Int) {ns : List Nat}
+    (h : MarkedColsIn s ns) : MarkedColsIn (unwindIndents s col) ns :=
+  MarkedColsIn.unwindLoop s col _ h
+
+lemma MarkedColsIn.readPendingKey {s : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns) : MarkedColsIn s.readPendingKey ns :=
+  h.transport rfl rfl
+
+lemma MarkedColsIn.closeStaleExplicitKey {s : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns) : MarkedColsIn (closeStaleExplicitKey s) ns := by
+  rcases closeStaleExplicitKey_cases s with heq | ⟨_, _, heq⟩ <;> rw [heq]
+  · exact h
+  · exact (h.closeStale _).readPendingKey
+
 /-! ### Batch 2: the `:`, the `-`, the document markers, the flow arms, the content arm -/
 
 /-- A `closeAt` written as array equalities (the `:` arm's `settle`). -/
@@ -508,6 +584,47 @@ lemma preprocess_witness {input : String} {s s' : ScannerState} {c : Char} {sp_s
           · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
             obtain ⟨rfl, rfl⟩ := hok
             exact closeStaleExplicitKey_witness (hsave _ hW)
+
+/-- Item 354: the content dispatch moves neither field the domain reads. -/
+lemma dispatchContent_markedCols {s s' : ScannerState} {c : Char} {ns : List Nat}
+    (hok : scanNextToken_dispatchContent s c = .ok s') (h : MarkedColsIn s ns) :
+    MarkedColsIn s' ns :=
+  h.transport (dispatchContent_pendingKeys hok)
+    (L4YAML.Proofs.IndentStackBase.dispatchContent_preserves_indents hok)
+
+set_option maxHeartbeats 2000000 in
+/-- Item 354: the preprocess only unwinds, closes and saves — no slot is re-marked. -/
+lemma preprocess_markedCols {s s' : ScannerState} {c : Char} {ns : List Nat}
+    (hok : scanNextToken_preprocess s = .ok (some (s', c))) (h : MarkedColsIn s ns) :
+    MarkedColsIn s' ns := by
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+  split at hok
+  · contradiction
+  · rename_i s_skip h_skip
+    have hind_skip := L4YAML.Proofs.PreprocessIndentStable.skipToContent_preserves_indents s s_skip h_skip
+    have hpk_skip := skipToContent_preserves_pendingKeys s s_skip h_skip
+    have hW : MarkedColsIn s_skip ns := h.transport hpk_skip hind_skip
+    have hsave : ∀ t : ScannerState, MarkedColsIn t ns → MarkedColsIn (saveSimpleKey t) ns :=
+      fun t ht => ht.transport (saveSimpleKey_preserves_pendingKeys t)
+        (L4YAML.Proofs.PreprocessIndentStable.saveSimpleKey_preserves_indents t)
+    split at hok
+    · simp at hok
+    · split at hok
+      · split at hok
+        · contradiction
+        · split at hok
+          · simp at hok
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+            obtain ⟨rfl, rfl⟩ := hok
+            exact MarkedColsIn.closeStaleExplicitKey (hsave _ (MarkedColsIn.unwind _ _ hW))
+      · split at hok
+        · contradiction
+        · split at hok
+          · simp at hok
+          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+            obtain ⟨rfl, rfl⟩ := hok
+            exact MarkedColsIn.closeStaleExplicitKey (hsave _ hW)
 
 set_option maxHeartbeats 2000000 in
 lemma dispatchStructural_witness {input : String} {s s' : ScannerState} {c : Char} {sp_start : SurfPos}

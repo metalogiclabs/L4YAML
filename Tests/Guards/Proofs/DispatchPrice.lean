@@ -324,7 +324,7 @@ def expectedAlphabet : String := "prodTyped=162 prodSurf=96 prodSpec=58"
 -- 2026-10-24 (Row 12, item 350): `stepHolders` 1821 → 1823, `dispHolders` 334 → 335 —
 -- `scanValue_notQuestion` and `dispatchBlock_colon_notQuestion` hold the `:` step/dispatch equations.
 def expectedSteps : String :=
-  "stepHolders=1823 dispHolders=335 dispTwoCorr=29 fns=73 fnsIx=26"
+  "stepHolders=1826 dispHolders=337 dispTwoCorr=29 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -395,8 +395,8 @@ def expectedChainSpec : List Name :=
 -- and `indicatorAt_false_of_dispatch_none` hold the block-indicator dispatch equation.
 -- 2026-10-23 (item 348): `scanNextToken_preprocess decls` 223 → 224 — `preprocess_col0_dead` (the column-0 landing fact).
 def expectedPerFn : List String :=
-  ["scanNextToken_dispatchContent decls=146 chain=1",
-   "scanNextToken_preprocess decls=224 chain=6"]
+  ["scanNextToken_dispatchContent decls=148 chain=1",
+   "scanNextToken_preprocess decls=226 chain=6"]
 
 /-- **The one worked precedent is outside the work.**  It is not in item 238's
     transitive set and not on either repair thread, so β.5 neither pays for it

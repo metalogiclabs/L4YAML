@@ -804,7 +804,7 @@ missMono=3 missBase=3 missPrep=3 missFloorSrc=3 own=2 empty=0 relay=1 relayEntri
 bounds=2 below=0 belowSyn=0 belowArm=0 at=2 atSyn=1 atArm=1 undecided=0 bOwn=1 \
 bOld=1 landedBelow=0 inlineBelow=0 payable=0 lack=3 lackCallers=19 lackSupplied=0 \
 lackSuppliedB=3 lackLow=0 lackPayable=0 vacuous=2 bottomBelow=0 paidRows=14 \
-bottomPaidBelow=5 bottomPaidRelay=8 named=8 rows=167 nodes=105560"
+bottomPaidBelow=5 bottomPaidRelay=8 named=8 rows=167 nodes=106109"
 
 /-! ## §3 The reading -/
 

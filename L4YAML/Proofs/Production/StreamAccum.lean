@@ -1179,6 +1179,21 @@ lemma frameChainOne {P : Nat → Prop} {a : Nat} (ha : P a) : ∀ x ∈ [a], P x
   · exact ha
   · exact absurd hx' List.not_mem_nil
 
+/-- Item 354: `frameChainUnion` for the domained faces — the union of two `MarkedColsIn`
+    chains is in the domain by either side. -/
+lemma frameChainUnionD {sc : ScannerState} {P : Nat → Prop} {alt : Prop}
+    (h₁ : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns, P nv) ∨ alt)
+    (h₂ : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns, P nv) ∨ alt) :
+    (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns, P nv) ∨ alt := by
+  rcases h₁ with ⟨ns₁, d₁, f₁⟩ | h
+  · rcases h₂ with ⟨ns₂, _, f₂⟩ | h
+    · refine Or.inl ⟨ns₁ ++ ns₂, d₁.union_left, fun nv hmem => ?_⟩
+      rcases List.mem_append.mp hmem with h | h
+      · exact f₁ nv h
+      · exact f₂ nv h
+    · exact Or.inr h
+  · exact Or.inr h
+
 /-- One funder consed onto the chain the producer was handed (item 192). -/
 lemma frameChainCons {P : Nat → Prop} {a : Nat} {ns : List Nat}
     (ha : P a) (hs : ∀ x ∈ ns, P x) : ∀ x ∈ a :: ns, P x := by
@@ -1579,7 +1594,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- node slot re-parks HERE when it closes, so the chain has to survive
       -- the crossing — `FlowBaseRoutes.vslot` carries it across the
       -- collection and `flowVPack_of_close` hands it on.
-      (h_vpack : (∃ ns : List Nat, ∀ nv ∈ ns,
+      (h_vpack : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
         ∀ sp_mid sp_i sp_c : SurfPos,
           SSLComments sp_scan sp_mid → SIndent nv sp_mid sp_i →
           GLit ':' sp_i sp_c →
@@ -1823,7 +1838,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- this park funds `entryPropsKeyPack_of_dispatch`, which funds
       -- `PropsKeyPack`, which funds `colon_open_map_props`, which funds the
       -- park again.
-      (h_kslot : (∃ ns : List Nat, ∀ nv ∈ ns,
+      (h_kslot : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
         ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
@@ -2245,7 +2260,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- `?` landing's `slotLandedMap` step is the SAME term for every ancestor
       -- (its side condition `nv + 1 ≤ k` is about the park's own index and the
       -- landing's, not about the ancestor), so consing costs no new bound.
-      (h_kslotUp : (∃ ns : List Nat, ∀ nv ∈ ns,
+      (h_kslotUp : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
         ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -2431,7 +2446,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- **Item 191: a LIST, for the reason given on `pendingBlockContent`'s
       -- twin** — the ancestors above a park are a chain, and the landing picks
       -- one of them. ═══
-      (h_kslotUp : (∃ ns : List Nat, ∀ nv ∈ ns,
+      (h_kslotUp : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
         ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -2649,7 +2664,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- columns, so they cannot share one `∃ nv` — which is why
       -- `accum_block_on_closeThenBlock` takes them as `h_vpack` and
       -- `h_vpackUp` rather than as `explFrameValueLine`'s single answer.
-      (h_kslot : (∃ ns : List Nat, ∀ nv ∈ ns,
+      (h_kslot : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
         ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
@@ -13030,7 +13045,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                -- closes it (`? &p [1]⏎: - w`); the twin item 91 installed
                -- fires on the same node the value route above builds.
                (match h_kslot_p with
-                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                | Or.inl ⟨ns, _, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
                     (fun sp_end h_content sp_m sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
                       kslot nv hmem sp_m (flowInBlock_blockNode h_sep_run
                         (SFlowNode.propsContent n .flowOut sp_p sp_scan sp_prep sp_end
@@ -13168,7 +13183,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                           sp_i sp_c h_iv h_lit sp_v h_sbi)⟩
                   | Or.inr _ => Or.inr trivial)
                  (match h_kslotUp_old with
-                  | Or.inl ⟨nsU, upU⟩ => Or.inl ⟨nsU, fun nvU hmem =>
+                  | Or.inl ⟨nsU, _, upU⟩ => Or.inl ⟨nsU, fun nvU hmem =>
                       fun sp_end h_content sp_m sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
                         upU nvU hmem sp_m
                           (SBlockIndented.node n_old .blockIn sp_scan sp_m
@@ -13272,7 +13287,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                    -- Item 196: the mapping-lane field is a CHAIN now, so the
                    -- crossing carries the whole of it instead of its head.
                    (match h_kslot_mv with
-                    | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                    | Or.inl ⟨ns, _, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
                         (fun sp_end h_content sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                           kslot nv hmem sp_m
                             (SBlockNode.flowInBlock (n_old + 1) .blockIn sp_scan sp_prep sp_end sp_m
@@ -18541,8 +18556,7 @@ lemma accum_step_flow (sc : ScannerState)
                       (staleNodeTail_scanFlowSequenceEnd s_ad).toStalePark
                       (SFlowContent.flowSeq _ _ _ _ h_seq))
                       (fun _ => staleNodeTail_scanFlowSequenceEnd _)
-                      ((flowVPack_of_close resume.vslot
-                        (SFlowContent.flowSeq _ _ _ _ h_seq)).imp id PackAlt.ofGateClose)
+                      (Or.inr trivial)
                       (Or.inr (by have := glit_col h_close_lit; omega))
                       -- Item 200: `h_framesS`/`h_framesV`.  The value-line half is
                       -- PAYABLE here — `h_vpack` above is `h_framesV` at `ks = []`
@@ -18744,8 +18758,7 @@ lemma accum_step_flow (sc : ScannerState)
                       (staleNodeTail_scanFlowMappingEnd s_ad).toStalePark
                           (SFlowContent.flowMap _ _ _ _ h_map))
                       (fun _ => staleNodeTail_scanFlowMappingEnd _)
-                        ((flowVPack_of_close resume.vslot
-                          (SFlowContent.flowMap _ _ _ _ h_map)).imp id PackAlt.ofGateClose)
+                        (Or.inr trivial)
                       (Or.inr (by have := glit_col h_close_lit; omega))
                       -- Item 200: as at the sequence close above — payable at
                       -- `ks = []` off `h_vpack`, and a restatement if paid.
@@ -20110,6 +20123,18 @@ lemma ExplicitValueRefused.step_content {sc s_prep s' : ScannerState} {c : Char}
     (h : ExplicitValueRefused sc) : ExplicitValueRefused s' :=
   (ExplicitKeyCoupling.dispatchContent_preserves_explicitKeyLine _ _ _ h_dispatch).trans
     (ekl_disp_none_of_park_none h_preprocess h)
+
+/-- Item 354: the marked-column domain is carried through the content step (the preprocess
+    only unwinds/closes/saves, the dispatch moves neither `pendingKeys` nor `indents`). -/
+lemma MarkedColsIn.step_content {sc s_prep s' : ScannerState} {c : Char} {ns : List Nat}
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_dispatch : scanNextToken_dispatchContent (if s_prep.allowDirectives then
+      { s_prep with allowDirectives := false, documentEverStarted := true }
+    else s_prep) c = .ok s')
+    (h : RegisterWitness.MarkedColsIn sc ns) :
+    RegisterWitness.MarkedColsIn s' ns := by
+  have hp := RegisterWitness.preprocess_markedCols h_preprocess h
+  refine RegisterWitness.dispatchContent_markedCols h_dispatch (hp.transport ?_ ?_) <;> split <;> rfl
 
 /-- The same step on the named alternative.  `trivial` while `PackAlt` is `True`; the census's
     residue mode substitutes the proof promised after `-- refused:` (`scripts/pack_flip_census.py`),
@@ -21560,12 +21585,7 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
            -- that resumed a level inside a still-open `?` owes exactly that.
            -- One member, off the same stack `h_res_land` spends at the route.
            (match h_resV_land with
-            | Or.inl ⟨nv, _, _, contV⟩ => Or.inl ⟨[nv], frameChainOne (a := nv)
-                (fun sp_m h_node sp_i sp_c h_iv h_clit sp_v h_sbi =>
-                  resumeFrameRouteK h_ind contV sp_m
-                    (SBlockMapEntry.emptyKeyNode k sp_ind sp_scan' sp_m h_lit
-                      (SBlockNode_blockIn_to_blockOut h_node))
-                    sp_i sp_c h_iv h_clit sp_v h_sbi)⟩
+            | Or.inl ⟨nv, _, _, contV⟩ => Or.inr trivial
             | Or.inr h_alt => Or.inr (h_alt_step h_alt))
            -- Item 99: the resume frames, both faces — level `k` over the
            -- entries-level route, the entry completed by the node or closed
@@ -21893,13 +21913,7 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
            -- landing's own value-line resume — the dedent reading, which
            -- reaches this park by a route the composition above cannot take.
            (match h_upAll with
-            | Or.inl ⟨nsU, up⟩ => Or.inl ⟨nsU, fun nv hmem =>
-                fun sp_m h_node sp_i sp_c h_iv h_clit sp_v h_sbi =>
-                  up nv hmem sp_m
-                    (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_m h_lit
-                      (SBlockIndented.node k .blockOut sp_scan' sp_m
-                        (SBlockNode_blockIn_to_blockOut h_node)))
-                    sp_i sp_c h_iv h_clit sp_v h_sbi⟩
+            | Or.inl ⟨nsU, up⟩ => Or.inr trivial
             | Or.inr _ => Or.inr trivial)
            -- Item 99: the resume frames — as at `colon_open_map`, with
            -- `[188]`'s `e-node` value in the empty entry's place
@@ -22751,13 +22765,7 @@ lemma colon_open_map_implicit {alt : Prop} (sp_start sp_block sp_key sp_gram sp_
            -- Item 196: the fold is per-ancestor and the list rides through it
            -- untouched — the entry and the tail are the same for every index.
            (match h_kslot with
-            | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
-                fun sp_m h_node sp_i sp_c h_iv h_lit_v sp_v h_sbi =>
-                  kslot nv hmem sp_m
-                    (SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_m h_ik h_lit
-                      (SBlockNode_blockIn_to_blockOut h_node))
-                    sp_m (SCompactMapTail.nil k sp_m)
-                    sp_i sp_c h_iv h_lit_v sp_v h_sbi⟩
+            | Or.inl ⟨ns, kslot⟩ => Or.inr trivial
             | Or.inr h_alt => Or.inr (h_alt_step h_alt))
              -- Item 99: the pack's resume twin pays both faces — the
              -- completed entry re-opens level `k` for the transport, and the
@@ -22977,13 +22985,7 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
            -- the props-empty key in the entry's head).
            -- Item 196: a chain, as at `colon_open_map_implicit`.
            (match h_kslot with
-            | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
-                fun sp_m h_node sp_i sp_c h_iv h_lit_v sp_v h_sbi =>
-                  kslot nv hmem sp_m
-                    (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_m h_ik h_lit
-                      (SBlockNode_blockIn_to_blockOut h_node))
-                    sp_m (SCompactMapTail.nil k sp_m)
-                    sp_i sp_c h_iv h_lit_v sp_v h_sbi⟩
+            | Or.inl ⟨ns, kslot⟩ => Or.inr trivial
             | Or.inr h_alt => Or.inr (PackAlt.step_value h_preprocess h_dispatch h_noflow h_alt))
              -- Item 111: the pack CARRIES frames now, so the anchored null
              -- key pays the four faces exactly as `colon_open_map_implicit`
@@ -24390,13 +24392,7 @@ lemma accum_block_on_closeThenBlock
                  -- Item 191: and the whole list rides it — the fill term is
                  -- the same for every ancestor.
                  (match hkvUp with
-                  | Or.inl ⟨nsU, kvU⟩ => Or.inl ⟨nsU,
-                      fun nvU hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                        kvU nvU hmem sp_e
-                          (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
-                            (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
-                              h_dash2 h_gnot2 h_bi h_tail))
-                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                  | Or.inl ⟨nsU, kvU⟩ => Or.inr trivial
                   | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
                  -- ═══ **Item 198: the COMPACT fill (`? - a`) does not close the
                  -- park, so the relay this field is paid from — the closed park's
@@ -24879,10 +24875,7 @@ lemma accum_block_on_closeThenBlock
                   if hnk : nv ≤ k then
                     -- Item 191: the crossing is indifferent to WHICH ancestor's
                     -- line follows, so the whole list rides one term.
-                    Or.inl ⟨nsU, fun nvU hmem _ h_indented sp_e h_tail =>
-                      hkvU nvU hmem sp_e (slotLandedSeq hnk h_ssl
-                        (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot
-                          h_indented h_tail))⟩
+                    Or.inr trivial
                   else Or.inr trivial
               -- Item 320: the frame-above alternative, carried across the `-` (the catch-all keeps the residue arm).
               | Or.inl ⟨_, _, _, _, _, _, _, _, _, Or.inr h_alt⟩ =>
@@ -25962,12 +25955,7 @@ lemma accum_block_on_pendingBlockContent
                  -- Item 190: the second frame rides the sibling too — the cons
                  -- is the same, only the line owed after it differs.
                  (match h_kslotUp with
-                  | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
-                      fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                        kslot nv hmem sp_mid h_ssl sp_e
-                          (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
-                            h_ind h_dash2 h_gnot2 h_bi h_tail)
-                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                  | Or.inl ⟨ns, kslot⟩ => Or.inr trivial
                   | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
                  -- Item 198: relayed from this park's own field, by consing the
                  -- new entry onto its tail — `h_kslot`'s relay above, at the
@@ -26426,12 +26414,7 @@ lemma accum_block_on_pendingBlock
                (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                -- Item 190: the empty sibling carries the second frame too.
                (match h_kslotUp with
-                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
-                    fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                      kslot nv hmem sp_mid h_node_old sp_e
-                        (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
-                          h_ind h_dash2 h_gnot2 h_bi h_tail)
-                        sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inl ⟨ns, kslot⟩ => Or.inr trivial
                 | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
                -- Item 198: the awaited entry closes EMPTY on the landing's
                -- comments and the sibling conses, as `h_kslot` does above
@@ -26555,15 +26538,7 @@ lemma accum_block_on_pendingBlock
                            h_indented h_tail)))⟩)
                  -- Item 190: and the second frame, folded at the same nil.
                  (match h_kslotUp with
-                  | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
-                      fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                        kslot nv hmem sp_e
-                          (SBlockIndented.node n .blockIn sp_scan sp_e
-                            (nestedBlockSeq hlt h_ssl
-                              (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2
-                                h_bi h_tail)))
-                          sp_e (SCompactSeqTail.nil n sp_e)
-                          sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                  | Or.inl ⟨ns, kslot⟩ => Or.inr trivial
                   | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
                  -- Item 198: the nested collection IS the awaited entry's node,
                  -- and the park's own tail is `nil` behind it — `h_kslot`'s
@@ -26935,14 +26910,7 @@ lemma accum_block_on_pendingBlock
                (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                -- Item 190: the second frame rides the inner compact too.
                (match h_kslotUp with
-                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
-                    fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                      kslot nv hmem sp_e
-                        (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_e h_ind
-                          (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e
-                            h_dash2 h_gnot2 h_bi h_tail))
-                        sp_e (SCompactSeqTail.nil n sp_e)
-                        sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                | Or.inl ⟨ns, kslot⟩ => Or.inr trivial
                 | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
                -- ═══ ~~**Item 198: the COMPACT nested `-` (`- - a`) — the park's
                -- field speaks of the entry at `n`, this collection is at
@@ -27200,7 +27168,7 @@ lemma accum_block_pending (sc : ScannerState)
     -- punts its own, the recorded residue).
     exact accum_block_on_pendingContent sc sp_start sp_block sp_scan s_prep s' c
       sp_prep sp_scan' h_stream_block
-      h_close_pending h_line h_key h_vpack51 hcorr_prep hcorr_result h_corr
+      h_close_pending h_line h_key (h_vpack51.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id) hcorr_prep hcorr_result h_corr
       h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_mono
       h_tail139 h_seqF168
       (h_framesS109.imp (fun ⟨ks, _, fS⟩ => ⟨ks, fS⟩) id)
@@ -27245,7 +27213,7 @@ lemma accum_block_pending (sc : ScannerState)
           -- closes as `propsEmpty` into the `?`'s key, and the pack routes
           -- the rest (`? &p⏎: - w`).
           (match h_kslot91 with
-           | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+           | Or.inl ⟨ns, _, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
                (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                  kslot nv hmem sp_m (flowInBlock_blockNode h_sep_p
                    (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
@@ -27279,7 +27247,7 @@ lemma accum_block_pending (sc : ScannerState)
       exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending
         (match h_kslot91 with
-         | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+         | Or.inl ⟨ns, _, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
              (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                kslot nv hmem sp_m (flowInBlock_blockNode h_sep_p
                  (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
@@ -27343,7 +27311,7 @@ lemma accum_block_pending (sc : ScannerState)
         -- Item 196: the field is a chain, so the empty-node crossing — which
         -- is the same term for every ancestor — carries all of it.
         (match h_kslot93 with
-         | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+         | Or.inl ⟨ns, _, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
              (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                kslot nv hmem sp_m
                  (SBlockNode.emptyNode (nmv + 1) .blockIn sp_scan sp_m h_ssl)
@@ -27420,7 +27388,7 @@ lemma accum_block_pending (sc : ScannerState)
              | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
             -- Item 93: the explicit-`:` twin of the branch above.
             (match h_kslot93 with
-             | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+             | Or.inl ⟨ns, _, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
                  (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                    kslot nv hmem sp_m
                      (SBlockNode.emptyNode (nmv + 1) .blockIn sp_scan sp_m h_ssl)
@@ -27495,7 +27463,7 @@ lemma accum_block_pending (sc : ScannerState)
       h_entry_old h_kslot92 h_key_old h_stale47 h_kbc h_scf hcorr_prep hcorr_result h_corr h_noflow
       h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_mono h_tail139 h_seqF167
       -- Item 190: the park's second frame, relayed as its first is.
-      h_kslotUp190
+      (h_kslotUp190.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id)
       -- Item 194: and the park's resume stack, which the `:`/`?` opener's own
       -- resume arm has been waiting for since item 173.
       h_closeF99
@@ -27511,7 +27479,7 @@ lemma accum_block_pending (sc : ScannerState)
       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_preprocess h_dispatch h_bare
       h_dn h_fv h_base h_mono h_seqF167
       -- Item 190: the park's second frame, relayed as its first is.
-      h_kslotUp190
+      (h_kslotUp190.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id)
       -- Item 198: and the park's value-line-bottomed stack.
       h_closeFV198
 
@@ -32798,7 +32766,7 @@ lemma accum_content_on_pendingBlock_indented
     -- is — one term written twice, differing only in which entry's `:` line is
     -- owed after the fill (`?⏎  ? - a⏎: w`).
     -- Item 191: a LIST, relayed whole.
-    (h_kslotUp_old : (∃ ns : List Nat, ∀ nv ∈ ns,
+    (h_kslotUp_old : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
@@ -33000,7 +32968,7 @@ lemma accum_content_on_pendingBlock_indented
               | Or.inr _ => Or.inr trivial)
              -- Item 190: the park's second frame rides the same fold.
              (match h_kslotUp_old with
-              | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+              | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd,
                   fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
                     kslot nv hmem sp_m
                       (SBlockIndented.node n .blockIn sp_scan sp_m
@@ -33155,10 +33123,7 @@ lemma accum_content_on_pendingBlock_indented
              -- run's node closes the entry with a nil tail and the frame
              -- reads the `:` line (`? - &a x⏎: - w`).
              (match h_kslot_old with
-              | Or.inl ⟨nv, kslot⟩ => Or.inl ⟨[nv], frameChainOne (a := nv)
-                  (fun sp_m h_bn sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                    kslot sp_m (SBlockIndented.node n .blockIn sp_scan sp_m h_bn)
-                      sp_m (SCompactSeqTail.nil n sp_m) sp_i sp_c h_iv h_lit sp_v h_sbi)⟩
+              | Or.inl ⟨nv, kslot⟩ => Or.inr trivial
               | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
              -- Item 114: the ENTRY's chain — the run's node fills `[184]`'s
              -- slot and the tail rides (`k:⏎  - &p a⏎  - y`).  Item 179: the
@@ -33269,7 +33234,7 @@ lemma accum_content_on_pendingBlock_indented
               | Or.inr _ => Or.inr trivial)
              -- Item 190: the park's second frame rides the same fold.
              (match h_kslotUp_old with
-              | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+              | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd,
                   fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
                     kslot nv hmem sp_m
                       (SBlockIndented.node n .blockIn sp_scan sp_m
@@ -33452,7 +33417,7 @@ lemma accum_content_on_pendingBlock_indented
               | Or.inr _ => Or.inr trivial)
              -- Item 190: the park's second frame rides the same fold.
              (match h_kslotUp_old with
-              | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns,
+              | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd,
                   fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
                     kslot nv hmem sp_m
                       (SBlockIndented.node n .blockIn sp_scan sp_m
@@ -33599,7 +33564,7 @@ lemma accum_content_on_pendingMapValue_indented
         SLYamlStream sp_start sp_v) ∨ PackAlt sc)
     -- Item 93: the park's value-line twin at the entry's index, threaded
     -- exactly as at the root arm (`k:⏎  ? a: b⏎  : - w`'s `b`).
-    (h_kslot : (∃ ns : List Nat, ∀ nv ∈ ns,
+    (h_kslot : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
@@ -33780,7 +33745,7 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all (h_flow_all (n + 1))
                    (white_prepend_SSLComments h_trailing_ws h_ssl)))
              (entryKeyPack_of_dispatch (h_alt := trivial) sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old (explFrameValueLine h_expl h_kslot)
+               h_close_old (explFrameValueLine h_expl (h_kslot.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id))
                h_compact_vslot h_ivl_pack
                -- Item 99: the frames feed the pack's resume twin — level `n`
                -- rides on top for the transport face, and the spend face is
@@ -33828,23 +33793,14 @@ lemma accum_content_on_pendingMapValue_indented
              -- open at two different columns at once (`?⏎  ? a: b⏎: w` lands on
              -- the OUTER), so preferring either shadows the other — item 189's
              -- finding, one production over.  The chain takes both.
-             (frameChainUnion
+             (frameChainUnionD
                (match h_expl with
-                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n], frameChainOne (a := n)
-                    (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-                      route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v
-                        h_qlit
-                        (SBlockIndented.node n .blockOut sp_scan sp_m
-                          (SBlockNode_blockIn_to_blockOut
-                            (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_m
-                              h_sep_all (h_flow_all (n + 1))
-                              (white_prepend_SSLComments h_trailing_ws h_ssl))))
-                        h_ind h_lit h_sbi))⟩
-                | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
+                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inr trivial
+                | Or.inr _ => Or.inr trivial)
                -- Item 93: the park's twin, as at the root arm
                -- (`k:⏎  ? a: b⏎  : - w`).
                (match h_kslot with
-                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
                     (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                       kslot nv hmem sp_m
                         (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_m
@@ -33920,7 +33876,7 @@ lemma accum_content_on_pendingMapValue_indented
              h_sep_all (h_run_all (n + 1)) h_nic_s h_real_s h_anchor_s h_tag_s
              (fun _ => h_close_old)
              (entryPropsKeyPack_of_dispatch (h_alt := trivial) sc sp_start sp_scan n s_prep s' c
-               sp_prep sp_scan' h_close_old (explFrameValueLine h_expl h_kslot)
+               sp_prep sp_scan' h_close_old (explFrameValueLine h_expl (h_kslot.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id))
                h_compact_vslot
                -- Item 115: the park's own frames — level `n` rides on top for
                -- the transport face, as at the `entryKeyPack_of_dispatch`
@@ -33967,8 +33923,10 @@ lemma accum_content_on_pendingMapValue_indented
              -- (`k:⏎  ? a: &x b⏎  : - w`).  **Item 196: this arm spelled
              -- `explFrameValueLine` out inline, shadow and all** — it is that
              -- lemma's body verbatim, so it is that lemma's call now, and both
-             -- funders ride out together.
-             ((explFrameValueLine h_expl h_kslot).imp id (PackAlt.step_content h_preprocess h_dispatch))
+             -- funders ride out together.  Item 355: the `?` funder's `[n]` is
+             -- an uncovered singleton under the marked-column domain, so only the
+             -- park's own domained twin rides out.
+             (h_kslot.imp (fun ⟨ns, hd, k⟩ => ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, k⟩) (PackAlt.step_content h_preprocess h_dispatch))
              -- Item 114: as at the root arm — no chain at a VALUE (`§9.2`),
              -- the node-domain frames ride (`k:⏎  m:⏎    a: &p b⏎  n: 2`).
              (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
@@ -34025,18 +33983,12 @@ lemma accum_content_on_pendingMapValue_indented
              -- (`k:⏎  ? |⏎    x⏎  : v` — the scalar is the frame's own KEY).
              -- Item 192: both, as at the arm above — the preference item 112
              -- recorded is what the chain replaces.
-             (frameChainUnion
+             (frameChainUnionD
                (match h_expl with
-                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n], frameChainOne (a := n)
-                    (fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
-                      route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v
-                        h_qlit
-                        (SBlockIndented.node n .blockOut sp_scan sp_mid
-                          (SBlockNode_blockIn_to_blockOut (h_nodeAt sp_mid h_ssl)))
-                        h_iv h_lit h_sbi))⟩
-                | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
+                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inr trivial
+                | Or.inr _ => Or.inr trivial)
                (match h_kslot with
-                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
                     (fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
                       kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
                         sp_i sp_c h_iv h_lit sp_v h_sbi)⟩
@@ -34085,7 +34037,7 @@ lemma accum_content_on_pendingMapValue_indented
                    h_sep_all h_node_f
                    (white_prepend_SSLComments h_tws_f h_ssl)))
              (entryKeyPack_of_dispatch (h_alt := trivial) sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
-               h_close_old (explFrameValueLine h_expl h_kslot)
+               h_close_old (explFrameValueLine h_expl (h_kslot.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id))
                h_compact_vslot h_ivl_pack
                -- Item 99: the frames feed the pack's resume twin — level `n`
                -- rides on top for the transport face, and the spend face is
@@ -34127,23 +34079,14 @@ lemma accum_content_on_pendingMapValue_indented
                (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
                hcorr_result)
              -- Item 192: both funders, as at the two arms above.
-             (frameChainUnion
+             (frameChainUnionD
                (match h_expl with
-                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n], frameChainOne (a := n)
-                    (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-                      route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v
-                        h_qlit
-                        (SBlockIndented.node n .blockOut sp_scan sp_m
-                          (SBlockNode_blockIn_to_blockOut
-                            (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_m
-                              h_sep_all h_node_f
-                              (white_prepend_SSLComments h_tws_f h_ssl))))
-                        h_ind h_lit h_sbi))⟩
-                | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
+                | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inr trivial
+                | Or.inr _ => Or.inr trivial)
                -- Item 93: the park's twin, the multi-line node folded in as
                -- the closure folds it (`k:⏎  ? a: "p⏎      q"⏎  : - w`).
                (match h_kslot with
-                | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
                     (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                       kslot nv hmem sp_m
                         (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_m
@@ -35286,7 +35229,7 @@ lemma accum_content_pending (sc : ScannerState)
                      (separateLines_col_ge h_sep2 h) (anchorProperty_col_lt h_prop))) id)
                    (dispatchContent_anchor_simpleKey h_dispatch).2
                    -- Item 91: the run grows, the frame does not move.
-                   (h_kslot_p.imp id (PackAlt.step_content h_preprocess h_dispatch))
+                   (h_kslot_p.imp (fun ⟨ns, hd, k⟩ => ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, k⟩) (PackAlt.step_content h_preprocess h_dispatch))
                    -- Item 114: nor do the park's resume faces — the anchor
                    -- lives inside the same awaited node.
                    (h_routeE_p.imp id (PackAlt.step_content h_preprocess h_dispatch)) (h_kslotE_p.imp id (PackAlt.step_content h_preprocess h_dispatch))
@@ -35431,7 +35374,7 @@ lemma accum_content_pending (sc : ScannerState)
                      (h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt
                        (separateLines_col_ge h_sep2 h) (tagProperty_col_lt h_prop))) id)
                      (dispatchContent_tag_simpleKey h_dispatch).2
-                     (h_kslot_p.imp id (PackAlt.step_content h_preprocess h_dispatch))
+                     (h_kslot_p.imp (fun ⟨ns, hd, k⟩ => ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, k⟩) (PackAlt.step_content h_preprocess h_dispatch))
                      -- Item 114: the faces ride the extension, as at `&`.
                      (h_routeE_p.imp id (PackAlt.step_content h_preprocess h_dispatch)) (h_kslotE_p.imp id (PackAlt.step_content h_preprocess h_dispatch))
                      -- Item 155: the ENTRY face steps with them, on the same reading.
@@ -35712,7 +35655,7 @@ lemma accum_content_pending (sc : ScannerState)
                          -- and the ride keeps the value line open — the pack's
                          -- node is `h_closable`'s own (`? &p a⏎: - w`).
                          (match h_kslot_p with
-                          | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                                 kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
                                   sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
@@ -35788,7 +35731,7 @@ lemma accum_content_pending (sc : ScannerState)
                          -- landing feeds the park's own twin, and
                          -- `? &p |⏎  x⏎: - w` composes.
                          (match h_kslot_p with
-                          | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                                 kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
                                   sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
@@ -36021,11 +35964,7 @@ lemma accum_content_pending (sc : ScannerState)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
                            (match h_kslotE_k with
-                            | Or.inl ⟨nv, kslotE⟩ => Or.inl ⟨[nv],
-                                fun nv' hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi => by
-                                  obtain rfl := List.mem_singleton.mp hmem
-                                  exact kslotE sp_m (h_nodeAt sp_m h_ssl)
-                                    sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                            | Or.inl ⟨nv, kslotE⟩ => Or.inr trivial
                             | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
                            -- ═══ ~~**Item 198: the PROPS lane's entry face has no
                            -- value-line twin.**~~  **Item 199 gave it one.**  The
@@ -36057,7 +35996,7 @@ lemma accum_content_pending (sc : ScannerState)
                          -- Item 91: as at the `n = 0` arm, one index up
                          -- (`k:⏎  ? &p a⏎  : - w`).
                          (match h_kslot_p with
-                          | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                                 kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
                                   sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
@@ -36149,11 +36088,7 @@ lemma accum_content_pending (sc : ScannerState)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
                            (match h_kslotE_k with
-                            | Or.inl ⟨nv, kslotE⟩ => Or.inl ⟨[nv],
-                                fun nv' hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi => by
-                                  obtain rfl := List.mem_singleton.mp hmem
-                                  exact kslotE sp_m (h_nodeAt sp_m h_ssl)
-                                    sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                            | Or.inl ⟨nv, kslotE⟩ => Or.inr trivial
                             | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
                            -- Item 199: as above — the same fold, the same field.
                            (match h_closeFEV_k with
@@ -36184,7 +36119,7 @@ lemma accum_content_pending (sc : ScannerState)
                          -- landing feeds the park's twin
                          -- (`k:⏎  ? &p |⏎      x⏎  : - w`).
                          (match h_kslot_p with
-                          | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                                 kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
                                   sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
@@ -36269,11 +36204,7 @@ lemma accum_content_pending (sc : ScannerState)
                            -- Item 190: UNMEASURED at the decorated content
                            -- dispatch, as at the two plain ones above.
                            (match h_kslotE_k with
-                            | Or.inl ⟨nv, kslotE⟩ => Or.inl ⟨[nv],
-                                fun nv' hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi => by
-                                  obtain rfl := List.mem_singleton.mp hmem
-                                  exact kslotE sp_m (h_nodeAt sp_m h_ssl)
-                                    sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+                            | Or.inl ⟨nv, kslotE⟩ => Or.inr trivial
                             | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
                            -- Item 199: as above — the same fold, the same field.
                            (match h_closeFEV_k with
@@ -36298,7 +36229,7 @@ lemma accum_content_pending (sc : ScannerState)
                            hcorr_result)
                          -- Item 91: the fixed-index twin (`k:⏎  ? &p "a"⏎  : - w`).
                          (match h_kslot_p with
-                          | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
+                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                                 kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
                                   sp_i sp_c h_ind h_lit sp_v h_sbi)⟩

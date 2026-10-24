@@ -3966,6 +3966,79 @@ def testNotQuestionPark (state : IO.Ref TestCollector) : IO Unit := do
       s!"colons {colons} questions {questions} bad {bad}"
     checkM state s!"dispatch/{repr input}: an indicator was dispatched" (colons + questions > 0) ""
 
+
+/-! ## Priority 24 — the marked-column domain and its transport (item 355, row 12)
+
+Item 355 narrows five value-line faces to `∃ ns, MarkedColsIn sc ns ∧ …`: every marked
+`pendingKeys` column is in `ns`.  The domain is carried across every scanner writer but the
+`?` (`MarkedColsIn.pop`/`closeStale`/`transport`, `preprocess_markedCols`,
+`dispatchContent_markedCols`, `MarkedColsIn.step_content`) — marks only shrink off the `?`
+step — and `MarkedColsIn.pop` claims this WITHOUT the `pendingKeys`/`indents` lockstep.
+
+**Risk:** a writer that re-marks a slot (the transport would be false); the `?` adding a
+mark at a column other than the top level; a pop on non-lockstep arrays moving a mark to
+another column.  Instantiated on real scans (fuel 0/1/2, nested `?`, compact `? ?`, flow,
+documents) and on a synthetic non-lockstep grid.
+-/
+
+/-- The columns of the marked slots (the decidable reading of `MarkedColsIn`'s domain). -/
+def markedColsOf (pks : Array (Option Nat)) (cols : Array Int) : List Nat :=
+  (List.range pks.size).filterMap fun i =>
+    match pks[i]? with
+    | some (some _) => (cols[i]?).map Int.toNat
+    | _ => none
+
+/-- Walk `scanNextToken` from `mk'`: at every step the new marked columns must be a subset of
+    the old ones, or — when a mark was added — of the old ones plus the top level's column.
+    Returns `(steps, steps that added a mark, violations)`. -/
+def walkMarkedShrink (input : String) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut steps := 0
+  let mut grown := 0
+  let mut bad := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken s with
+    | .ok (some s') =>
+      let before := markedColsOf s.pendingKeys s.indentColumns
+      let after := markedColsOf s'.pendingKeys s'.indentColumns
+      let top := (s'.indentColumns[s'.indents.size - 1]?).map Int.toNat
+      let allowed := match top with | some c => c :: before | none => before
+      if after.length > before.length then grown := grown + 1
+      if !(after.all fun c => allowed.contains c) then bad := bad + 1
+      steps := steps + 1; s := s'
+    | _ => fuel := 0
+  return (steps, grown, bad)
+
+def testMarkedColsDomain (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 24: the marked-column domain and its transport (item 355)"
+  -- real scans: `(input, expected `?` marks added)`
+  let walks : List (String × Nat) :=
+    [("", 0), ("a", 0), ("a: 1\n", 0), ("? a\n", 1), ("? a\nb: 1\n", 1),
+     ("?\n  b: c\n  d: e\n: v\n", 1), ("?\n  ? a\n  b\n: v\n", 2),
+     ("? ? a\n  : b\nc: 1\n", 2), ("- ? a\n- ? b\n", 2), ("?\n- a\n", 1),
+     ("? [a, b]: 1\n", 1), ("{a: 1}\n", 0), ("---\n? a\n...\n", 1), ("?\n  ? a\n  ? b\nc: 1\n", 2)]
+  -- (`? b` re-marks the column-2 level the landing just closed: same columns before and after,
+  -- so it is not growth — the transport rows still hold.)
+  for (input, expectedGrown) in walks do
+    let (steps, grown, bad) := walkMarkedShrink input
+    checkM state s!"markedShrink/{repr input}: marks only shrink off the `?` step" (bad == 0)
+      s!"steps {steps} grown {grown} bad {bad}"
+    checkM state s!"markedShrink/{repr input}: `?` marks added" (grown == expectedGrown)
+      s!"grown {grown} expected {expectedGrown}"
+  -- `MarkedColsIn.pop` without lockstep: popping both arrays never moves a mark to another
+  -- column — the surviving marked columns are a subset of the old ones.
+  let grid : List (Array Int × Array (Option Nat)) :=
+    [(#[], #[]), (#[-1], #[none]), (#[-1, 0], #[none, some 0]), (#[-1, 0, 2], #[none, some 0, some 1]),
+     (#[-1, 0], #[none, some 0, some 1]), (#[-1, 0, 2], #[none, some 0]), (#[-1], #[some 3, some 4]),
+     (#[-1, 0, 2, 4], #[none, some 0, none, some 2])]
+  for (cols, pks) in grid do
+    let before := markedColsOf pks cols
+    let after := markedColsOf pks.pop cols.pop
+    checkM state s!"pop/{repr cols} {repr pks}: marked columns shrink" (after.all fun c => before.contains c)
+      s!"before {before} after {after}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -3996,6 +4069,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testGluedScannerLemmas state
   testColZeroLanding state
   testNotQuestionPark state
+  testMarkedColsDomain state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
