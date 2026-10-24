@@ -255,7 +255,7 @@ lemma saveSimpleKey_colfloor {s : ScannerState} (h : ColFloor s) : ColFloor (sav
 
 lemma closeStaleExplicitKey_colfloor {s : ScannerState} (h : ColFloor s) :
     ColFloor (closeStaleExplicitKey s) := by
-  rcases L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_cases s with heq | heq
+  rcases L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_cases s with heq | ⟨_, _, heq⟩
   · rw [heq]; exact h
   · rw [heq]
     exact h.of_fields_eq rfl rfl rfl rfl rfl rfl

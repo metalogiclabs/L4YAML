@@ -317,8 +317,10 @@ def expectedAlphabet : String := "prodTyped=159 prodSurf=94 prodSpec=56"
 -- `PackAlt.step_preprocess` (the family's preprocess transport) each hold the preprocess step equation; dispatch holders stand.
 -- 2026-10-23 (Stream E): `stepHolders` 1817 → 1818, `fns` 72 → 73 — `scanValue_accepts` in
 -- `Acceptance/BlockIndicators.lean` holds `scanValue`'s step equation; dispatch holders stand.
+-- 2026-10-23 (Row 12, item 348): `stepHolders` 1818 → 1819 — `preprocess_col0_dead` in
+-- `PendingKeySound.lean` holds `scanNextToken_preprocess`'s step equation; dispatch holders stand.
 def expectedSteps : String :=
-  "stepHolders=1818 dispHolders=332 dispTwoCorr=29 fns=73 fnsIx=26"
+  "stepHolders=1819 dispHolders=332 dispTwoCorr=29 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -385,9 +387,10 @@ def expectedChainSpec : List Name :=
 -- preprocess (+4), item 309's `preprocess_currentIndent_neg` and `indent_neg_dis_of_park`, deleted, held it too (−2).
 -- 2026-10-21 (item 324): `scanNextToken_preprocess decls` 216 → 218 — the two preprocess-transport lemmas of the alternative
 -- family (`ExplicitValueRefused.step_preprocess`, `PackAlt.step_preprocess`) read the preprocess equation; the content dispatch stands.
+-- 2026-10-23 (item 348): `scanNextToken_preprocess decls` 223 → 224 — `preprocess_col0_dead` (the column-0 landing fact).
 def expectedPerFn : List String :=
   ["scanNextToken_dispatchContent decls=146 chain=1",
-   "scanNextToken_preprocess decls=223 chain=6"]
+   "scanNextToken_preprocess decls=224 chain=6"]
 
 /-- **The one worked precedent is outside the work.**  It is not in item 238's
     transitive set and not on either repair thread, so β.5 neither pays for it

@@ -1790,7 +1790,7 @@ lemma saveSimpleKey_preserves_FlowNestingInv (s : ScannerState)
 /-- Item 333: the stale-register reset keeps `FlowNestingInv`. -/
 lemma closeStaleExplicitKey_preserves_FlowNestingInv (s : ScannerState)
     (h : FlowNestingInv s) : FlowNestingInv (closeStaleExplicitKey s) := by
-  rcases closeStaleExplicitKey_cases s with h_eq | h_eq <;> rw [h_eq] <;> exact h
+  rcases closeStaleExplicitKey_cases s with h_eq | ⟨_, _, h_eq⟩ <;> rw [h_eq] <;> exact h
 
 /-- Preprocessing preserves `FlowNestingInv`. -/
 lemma preprocess_preserves_FlowNestingInv
@@ -4596,7 +4596,7 @@ lemma saveSimpleKey_preserves_AllKeysPlaceholderInv (s : ScannerState)
 /-- Item 333: the stale-register reset keeps `AllKeysPlaceholderInv`. -/
 lemma closeStaleExplicitKey_preserves_AllKeysPlaceholderInv (s : ScannerState)
     (h : AllKeysPlaceholderInv s) : AllKeysPlaceholderInv (closeStaleExplicitKey s) := by
-  rcases closeStaleExplicitKey_cases s with h_eq | h_eq <;> rw [h_eq] <;> exact h
+  rcases closeStaleExplicitKey_cases s with h_eq | ⟨_, _, h_eq⟩ <;> rw [h_eq] <;> exact h
 
 /-- `preprocess` preserves `AllKeysPlaceholderInv`.
     `preprocess` = `skipToContent` → `unwindIndents` → `saveSimpleKey`.

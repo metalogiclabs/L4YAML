@@ -26,9 +26,10 @@ open L4YAML L4YAML.Scanner L4YAML.Scanner.Indexed
 
 lemma closeStaleExplicitKeyIx_cases {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx = s ∨
-    s.closeStaleExplicitKeyIx = (s.clearPendingKeyAt s.explicitKeyCol).readPendingKey := by
+    ∃ c, s.peek? = some c ∧ s.closeStaleExplicitKeyIx = (s.closeStaleAt c).readPendingKey := by
   unfold ScannerStateIx.closeStaleExplicitKeyIx
-  split <;> (try split) <;> (try split) <;> first | exact Or.inl rfl | exact Or.inr rfl
+  split <;> (try split) <;> (try split) <;>
+    first | exact Or.inl rfl | exact Or.inr ⟨_, by assumption, rfl⟩
 
 lemma closeStaleExplicitKeyIx_of_inFlow {input : String} (s : ScannerStateIx input)
     (h : s.inFlow = true) : s.closeStaleExplicitKeyIx = s := by
@@ -40,120 +41,120 @@ lemma closeStaleExplicitKeyIx_of_ek_none {input : String} (s : ScannerStateIx in
 
 lemma closeStaleExplicitKeyIx_explicitKeyLine {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.explicitKeyLine = s.explicitKeyLine ∨
-    s.closeStaleExplicitKeyIx.explicitKeyLine =
-      (s.clearPendingKeyAt s.explicitKeyCol).innermostPendingKey.1 := by
-  rcases closeStaleExplicitKeyIx_cases s with h | h <;> rw [h]
+    ∃ c, s.peek? = some c ∧ s.closeStaleExplicitKeyIx.explicitKeyLine =
+      (s.closeStaleAt c).innermostPendingKey.1 := by
+  rcases closeStaleExplicitKeyIx_cases s with h | ⟨c, hc, h⟩ <;> rw [h]
   · exact Or.inl rfl
-  · exact Or.inr rfl
+  · exact Or.inr ⟨c, hc, rfl⟩
 
 @[simp] lemma closeStaleExplicitKeyIx_cursor {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.cursor = s.cursor := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_indents {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.indents = s.indents := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_flowLevel {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.flowLevel = s.flowLevel := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_tokens {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.tokens = s.tokens := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_simpleKey {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.simpleKey = s.simpleKey := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_simpleKeyStack {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.simpleKeyStack = s.simpleKeyStack := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_simpleKeyAllowed {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.simpleKeyAllowed = s.simpleKeyAllowed := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_needIndentCheck {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.needIndentCheck = s.needIndentCheck := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_allowDirectives {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.allowDirectives = s.allowDirectives := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_seenYamlDirective {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.seenYamlDirective = s.seenYamlDirective := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_directivesPresent {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.directivesPresent = s.directivesPresent := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_documentEverStarted {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.documentEverStarted = s.documentEverStarted := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_flowStack {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.flowStack = s.flowStack := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_implicitValueLine {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.implicitValueLine = s.implicitValueLine := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_docStartLine {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.docStartLine = s.docStartLine := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_explicitKeyStack {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.explicitKeyStack = s.explicitKeyStack := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_definedAnchors {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.definedAnchors = s.definedAnchors := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_comments {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.comments = s.comments := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_hasMore {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.hasMore = s.hasMore := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_peek {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.peek? = s.peek? := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_inFlow {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.inFlow = s.inFlow := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 @[simp] lemma closeStaleExplicitKeyIx_currentIndent {input : String} (s : ScannerStateIx input) :
     s.closeStaleExplicitKeyIx.currentIndent = s.currentIndent := by
-  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.clearPendingKeyAt
+  unfold ScannerStateIx.closeStaleExplicitKeyIx ScannerStateIx.readPendingKey ScannerStateIx.closeStaleAt
   split <;> (try split) <;> (try split) <;> rfl
 
 /-- Indexed twin of `peel_stale`. -/
