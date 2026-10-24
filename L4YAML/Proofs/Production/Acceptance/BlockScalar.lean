@@ -160,7 +160,8 @@ inductive BlockLineOk (n : Nat) : SurfPos → SurfPos → Prop where
 /-- Where `collectBlockScalarLoop` stops at indent `n`, and where it lands: end of input
     after a partial indent or a last line; a less-indented line (landing at its start — a
     tab there is the scanner's `tabInIndentation`); a non-`LineCharOk`, non-break
-    character after a line. -/
+    character after a line; a document marker at column 0 (`|⏎a⏎---`: the loop stops
+    before it). -/
 inductive BlockStopOk (n : Nat) : SurfPos → SurfPos → Prop where
   | eofShort (k : Nat) (s s' : SurfPos) :
       NotDocMarker s → k < n → SIndent k s s' → s'.chars = [] → BlockStopOk n s s'
@@ -174,6 +175,7 @@ inductive BlockStopOk (n : Nat) : SurfPos → SurfPos → Prop where
       NotDocMarker s → SIndent n s s₁ → GStar (GChar LineCharOk) s₁ s' →
       s'.chars.head? = some c → isLineBreakBool c = false → ¬ LineCharOk c →
       BlockStopOk n s s'
+  | docMarker (s : SurfPos) : DocMarkerAt s → s.col = 0 → BlockStopOk n s s
 
 lemma SIndent.length_le {k : Nat} {s s' : SurfPos} (h : SIndent k s s') :
     s'.chars.length + k = s.chars.length := by
@@ -207,6 +209,12 @@ lemma collectBlockScalarLoop_stops (sc : ScannerState) {n : Nat} {sp sp' : SurfP
     have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₁ := by
       simp [collectBlockScalarLoop, hdb, heq, peek_none_of_corr hc₁]
     rw [hres]; exact ⟨hc₁, hk₁⟩
+  | docMarker s hm h0 =>
+    have hdb := atDocumentBoundary_true_of_marker hcorr hm h0
+    have hcol : (sc.col == 0) = true := by have := hcorr.col_eq; simp; omega
+    have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc := by
+      simp [collectBlockScalarLoop, hdb, hcol]
+    rw [hres]; exact ⟨hcorr, Keeps.refl sc⟩
   | eofLine s s₁ s' hnd hind hrun heof =>
     obtain ⟨sc₁, heq, hc₁, hk₁⟩ := consumeExactSpaces_accepts hind sc hcorr
     have hdb := atDocBoundary_false_of_corr hcorr hnd
@@ -761,6 +769,13 @@ lemma blockScalarTabStop_false_of_stop {sc : ScannerState} {n : Nat} {sp sp' : S
     simp [peek_none_of_nil hc₁ hnil]
   | .outdent k _ s₁ c hnd hk hind hhead hlb hsp htab =>
     have hc₁ := (skipSpaces_accepts sc hind hcorr (by rw [hhead]; simpa using hsp)).1
+    simp [peek_eq_of_head hc₁ hhead, htab]
+  | .docMarker _ hm h0 =>
+    obtain ⟨m, r, hm, hchars, -⟩ := hm
+    have hhead : sp.chars.head? = some m := by rw [hchars]; rfl
+    have hsp : m ≠ ' ' := by rcases hm with rfl | rfl <;> decide
+    have htab : m ≠ '\t' := by rcases hm with rfl | rfl <;> decide
+    have hc₁ := (skipSpaces_accepts sc (SIndent.zero _) hcorr (by rw [hhead]; simpa using hsp)).1
     simp [peek_eq_of_head hc₁ hhead, htab]
   | .badChar _ s₁ _ c hnd hind hrun hhead hlb hnot =>
     have hsp : c ≠ ' ' := by rintro rfl; exact hnot lineCharOk_space
