@@ -240,7 +240,8 @@ shorthand (`!!type`, `!handle!suffix`), and non-specific (`!`) forms.
 Anchors have `&name` syntax. We encode the common patterns. -/
 
 /-- [97] c-ns-tag-property: tag starting with '!'.
-    Simplified: '!' followed by zero or more non-blank characters. -/
+    [99] c-ns-shorthand-tag is `c-tag-handle ns-tag-char+`, so the `primary`
+    suffix is non-empty and the bare `!` is only `nonSpecific` ([100]). -/
 inductive SCNsTagProperty : SurfPos → SurfPos → Prop where
   | verbatim (rest : List Char) (col : Nat) (s₁ s₂ s' : SurfPos) :
       GLit '<' ⟨rest, col + 1⟩ s₁ →
@@ -258,13 +259,17 @@ inductive SCNsTagProperty : SurfPos → SurfPos → Prop where
   | nonSpecific (rest : List Char) (col : Nat) :
       SCNsTagProperty ⟨'!' :: rest, col⟩ ⟨rest, col + 1⟩
   | primary (rest : List Char) (col : Nat) (s' : SurfPos) :
-      GStar (GChar isTagCharProp) ⟨rest, col + 1⟩ s' →
+      GPlus (GChar isTagCharProp) ⟨rest, col + 1⟩ s' →
       SCNsTagProperty ⟨'!' :: rest, col⟩ s'
 
-/-- [101] c-ns-anchor-property: anchor starting with '&'. -/
+/-- [101] c-ns-anchor-property: '&' followed by the MAXIMAL run of
+    `ns-anchor-char` ([102] `ns-anchor-name` is `ns-anchor-char+`; the name
+    cannot stop in front of another anchor char, so `&xa` is the anchor `xa`
+    and never the anchor `x` followed by `a`). -/
 inductive SCNsAnchorProperty : SurfPos → SurfPos → Prop where
   | mk (rest : List Char) (col : Nat) (s' : SurfPos) :
       GPlus (GChar isNsAnchorChar) ⟨rest, col + 1⟩ s' →
+      GNot (GChar isNsAnchorChar) s' →
       SCNsAnchorProperty ⟨'&' :: rest, col⟩ s'
 
 /-- [96] c-ns-properties(n,c): tag + optional (sep + anchor), or

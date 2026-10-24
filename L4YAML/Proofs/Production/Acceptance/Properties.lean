@@ -370,7 +370,16 @@ lemma TagOk.toSCNsTagProperty {s s' : SurfPos} (h : TagOk s s') : SCNsTagPropert
   | secondary srest col s' h _ => exact .secondary srest col s' h
   | named rest col s₁ s₂ s' h₁ h₂ h₃ _ => exact .named rest col s₁ s₂ s' h₁ h₂ h₃
   | primary rest col s' h _ _ =>
-    exact .primary rest col s' (GStar_gchar_lift (fun _ => isWordCharProp_to_isTagCharProp) h)
+    -- `[99]` now demands a non-empty `ns-tag-char+`; the empty word run is the bare `!`,
+    -- i.e. the non-specific tag `[100]`.
+    cases h with
+    | nil _ => exact .nonSpecific rest col
+    | cons _ sp_mid _ h_head h_tail =>
+      have h_head' : GChar isTagCharProp ⟨rest, col + 1⟩ sp_mid := by
+        cases h_head with
+        | mk _ _ _ hc => exact GChar.mk _ _ _ (isWordCharProp_to_isTagCharProp hc)
+      exact .primary rest col s' (GPlus.mk _ sp_mid _ h_head'
+        (GStar_gchar_lift (fun _ => isWordCharProp_to_isTagCharProp) h_tail))
 
 lemma wordChar_ne_lt_bang {c : Char} (hw : isWordCharProp c) : c ≠ '<' ∧ c ≠ '!' := by
   refine ⟨?_, ?_⟩ <;> intro e <;> subst e <;>

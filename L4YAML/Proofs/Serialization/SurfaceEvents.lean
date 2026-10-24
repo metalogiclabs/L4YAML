@@ -62,13 +62,15 @@ lemma alias_surface_has_event
     (c : Char) (cs tail : List Char) (col : Nat)
     (hc : L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool c = true)
     (hcs : ∀ d ∈ cs,
-      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = true) :
+      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = true)
+    (htail : ∀ d ∈ tail.head?,
+      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = false) :
     AliasEventWitness
       ⟨'*' :: ((c :: cs) ++ tail), col⟩
       ⟨tail, col + 1 + (c :: cs).length⟩
       (String.ofList (c :: cs)) := by
   constructor
-  · exact L4YAML.Proofs.Serialization.SourceEvents.alias_use_surface c cs tail col hc hcs
+  · exact L4YAML.Proofs.Serialization.SourceEvents.alias_use_surface c cs tail col hc hcs htail
   · refine ⟨tail, ?_, rfl⟩
     simp
 
@@ -76,13 +78,15 @@ lemma anchor_surface_has_pending
     (c : Char) (cs tail : List Char) (col : Nat)
     (hc : L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool c = true)
     (hcs : ∀ d ∈ cs,
-      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = true) :
+      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = true)
+    (htail : ∀ d ∈ tail.head?,
+      L4YAML.Proofs.Serialization.SourceEvents.isAnchorCharBool d = false) :
     PendingAnchorWitness
       ⟨'&' :: ((c :: cs) ++ tail), col⟩
       ⟨tail, col + 1 + (c :: cs).length⟩
       (String.ofList (c :: cs)) := by
   constructor
-  · exact L4YAML.Proofs.Serialization.SourceEvents.anchor_definition_surface c cs tail col hc hcs
+  · exact L4YAML.Proofs.Serialization.SourceEvents.anchor_definition_surface c cs tail col hc hcs htail
   · refine ⟨tail, ?_, rfl⟩
     simp
 

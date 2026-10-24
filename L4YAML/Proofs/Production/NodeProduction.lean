@@ -563,15 +563,17 @@ lemma SBlockIndented_blockIn_to_blockOut {n : Nat} {s s' : SurfPos}
 -- Alias node: GLit '*' + GPlus anchor chars → SCNsAliasNode.
 -- Takes destructured GLit output + GPlus name.
 lemma aliasNode_of_glit_gplus {rest : List Char} {col : Nat} {sp' : SurfPos}
-    (h_gplus : GPlus (GChar isNsAnchorChar) ⟨rest, col + 1⟩ sp') :
+    (h_gplus : GPlus (GChar isNsAnchorChar) ⟨rest, col + 1⟩ sp')
+    (h_not : GNot (GChar isNsAnchorChar) sp') :
     SCNsAliasNode ⟨'*' :: rest, col⟩ sp' :=
-  SCNsAliasNode.mk rest col sp' h_gplus
+  SCNsAliasNode.mk rest col sp' h_gplus h_not
 
 -- Anchor property: GLit '&' + GPlus anchor chars → SCNsAnchorProperty.
 lemma anchorProp_of_glit_gplus {rest : List Char} {col : Nat} {sp' : SurfPos}
-    (h_gplus : GPlus (GChar isNsAnchorChar) ⟨rest, col + 1⟩ sp') :
+    (h_gplus : GPlus (GChar isNsAnchorChar) ⟨rest, col + 1⟩ sp')
+    (h_not : GNot (GChar isNsAnchorChar) sp') :
     SCNsAnchorProperty ⟨'&' :: rest, col⟩ sp' :=
-  SCNsAnchorProperty.mk rest col sp' h_gplus
+  SCNsAnchorProperty.mk rest col sp' h_gplus h_not
 
 -- scanAnchorOrAlias → SCNsAliasNode (unconditional).
 -- Since A10 Except conversion, `.ok` guarantees non-empty name, so sp_mid ≠ sp'.
@@ -580,11 +582,11 @@ lemma scanAnchorOrAlias_aliasNode_prod (sc : ScannerState) (sp : SurfPos)
     (hpeek : sc.peek? = some '*')
     (s' : ScannerState) (hok : scanAnchorOrAlias sc false = .ok s') :
     ∃ sp', SCNsAliasNode sp sp' ∧ ScannerSurfCorr s' sp' := by
-  obtain ⟨sp_mid, sp', h_glit, h_gstar, h_ne, hcorr'⟩ :=
+  obtain ⟨sp_mid, sp', h_glit, h_gstar, h_ne, h_not, hcorr'⟩ :=
     scanAnchorOrAlias_prod sc sp hcorr false '*' hpeek (by decide) (by decide) s' hok
   cases h_glit with
   | mk rest col =>
-    exact ⟨sp', aliasNode_of_glit_gplus (GStar_to_GPlus h_gstar h_ne), hcorr'⟩
+    exact ⟨sp', aliasNode_of_glit_gplus (GStar_to_GPlus h_gstar h_ne) h_not, hcorr'⟩
 
 -- scanAnchorOrAlias → SCNsAnchorProperty (unconditional).
 -- Since A10 Except conversion, `.ok` guarantees non-empty name, so sp_mid ≠ sp'.
@@ -593,11 +595,11 @@ lemma scanAnchorOrAlias_anchorProp_prod (sc : ScannerState) (sp : SurfPos)
     (hpeek : sc.peek? = some '&')
     (s' : ScannerState) (hok : scanAnchorOrAlias sc true = .ok s') :
     ∃ sp', SCNsAnchorProperty sp sp' ∧ ScannerSurfCorr s' sp' := by
-  obtain ⟨sp_mid, sp', h_glit, h_gstar, h_ne, hcorr'⟩ :=
+  obtain ⟨sp_mid, sp', h_glit, h_gstar, h_ne, h_not, hcorr'⟩ :=
     scanAnchorOrAlias_prod sc sp hcorr true '&' hpeek (by decide) (by decide) s' hok
   cases h_glit with
   | mk rest col =>
-    exact ⟨sp', anchorProp_of_glit_gplus (GStar_to_GPlus h_gstar h_ne), hcorr'⟩
+    exact ⟨sp', anchorProp_of_glit_gplus (GStar_to_GPlus h_gstar h_ne) h_not, hcorr'⟩
 
 -- scanAnchorOrAlias → SFlowNode (alias, unconditional).
 lemma scanAnchorOrAlias_flowNode_prod (sc : ScannerState) (sp : SurfPos)
