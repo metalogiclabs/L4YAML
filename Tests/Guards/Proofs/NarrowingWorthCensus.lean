@@ -800,6 +800,10 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- (`*_false_of_peekAt_blank`, its Ix twin, `*_false_of_corr_colon_blank`); none is a no-op conclusion.
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value, merged from the base): +5 — 2 suffix lemmas, 2 `*_toKey` lifts,
 -- 2 scanner JSON-key lemmas (`isValueCandidate_glued_jsonKey` + Ix twin) less the one guard theorem counted elsewhere.
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `theorems` 6060 → 6065 — 2 suffix lemmas, 2 `*_toKey` lifts, 2 scanner JSON-key
+-- lemmas (`isValueCandidate_glued_jsonKey` + Ix twin) less the one guard theorem counted elsewhere; none is a no-op conclusion.
+-- 2026-10-24 (item 349): `theorems` 6060 → 6064 — the indicator-aware gate's lemmas (`staleGate_true_of_noInd`,
+-- `staleGate_false_le`, `closeStaleExplicitKey_peekAt?`, the restated `closeStale_getElem?`); none is a no-op conclusion.
 def expectedNoopTally : String := "theorems=6067 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier

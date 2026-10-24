@@ -209,7 +209,7 @@ def indentColumns {input : String} (s : ScannerStateIx input) : Array Int := s.i
     (`PendingKeys.closeStale`). -/
 def closeStaleAt {input : String} (s : ScannerStateIx input) (c : Char) : ScannerStateIx input :=
   { s with pendingKeys :=
-      PendingKeys.closeStale s.indentColumns s.pendingKeys s.cursor.pos.col c }
+      PendingKeys.closeStale s.indentColumns s.pendingKeys s.cursor.pos.col c (s.peekAt? 1) }
 
 def clearPendingKeyAt {input : String} (s : ScannerStateIx input) (col : Int) : ScannerStateIx input :=
   { s with pendingKeys := PendingKeys.closeAt s.indentColumns s.pendingKeys col }

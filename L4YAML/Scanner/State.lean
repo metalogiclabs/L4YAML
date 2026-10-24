@@ -333,16 +333,25 @@ def PendingKeys.closeAt (cols : Array Int) (pks : Array (Option Nat)) (col : Int
   (Array.range pks.size).map fun i =>
     if cols[i]? == some col then none else pks[i]?.getD none
 
-/-- `pendingKeys` with every stale level closed at a content landing: a level at column
-    `m` is closed when the cursor at `col` with `c` under it ends its entry — `col ≤ m`, a
-    `-` only strictly left of `m`, and a `:` not at `m` itself (that `:` is its value). -/
+/-- Whether the `-` or `:` under the cursor is an indicator: followed by a blank or EOF
+    (the dispatcher's `isBlockEntryCandidate` / block-context `isValueCandidate` test). -/
+def PendingKeys.indicatorAt (c : Char) (next : Option Char) : Bool :=
+  (c == '-' || c == ':') && (match next with | some n => isBlankBool n | none => true)
+
+/-- The stale-key gate: the cursor at `col` with `c` under it (and `next` after it) ends the
+    entry of the level at column `m` — `col ≤ m`, a `-` indicator only strictly left of `m`,
+    a `:` indicator not at `m` itself (that `:` is its value); a non-indicator `-`/`:` is
+    content and closes like any other character. -/
+def PendingKeys.staleGate (col m : Int) (c : Char) (next : Option Char) : Bool :=
+  let ind := PendingKeys.indicatorAt c next
+  col ≤ m && (!(c == '-' && ind) || col < m) && !(c == ':' && ind && col == m)
+
+/-- `pendingKeys` with every level the gate closes emptied. -/
 def PendingKeys.closeStale (cols : Array Int) (pks : Array (Option Nat)) (col : Int)
-    (c : Char) : Array (Option Nat) :=
+    (c : Char) (next : Option Char) : Array (Option Nat) :=
   (Array.range pks.size).map fun i =>
     match cols[i]? with
-    | some m =>
-      if col ≤ m && (c != '-' || col < m) && !(c == ':' && col == m) then none
-      else pks[i]?.getD none
+    | some m => if PendingKeys.staleGate col m c next then none else pks[i]?.getD none
     | none => pks[i]?.getD none
 
 /-- The innermost pending explicit key as the register pair `(line, column)`;
@@ -372,7 +381,8 @@ def ScannerState.clearPendingKeyAt (s : ScannerState) (col : Int) : ScannerState
 /-- Close every pending explicit key the content `c` under the cursor lands past
     (`PendingKeys.closeStale`). -/
 def ScannerState.closeStaleAt (s : ScannerState) (c : Char) : ScannerState :=
-  { s with pendingKeys := PendingKeys.closeStale s.indentColumns s.pendingKeys s.col c }
+  { s with pendingKeys :=
+      PendingKeys.closeStale s.indentColumns s.pendingKeys s.col c (s.peekAt? 1) }
 
 /-- The innermost pending explicit key, as the register pair `(line, column)`;
     `(none, -1)` when no level holds one. -/

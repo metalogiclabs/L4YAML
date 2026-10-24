@@ -273,7 +273,7 @@ lemma SlotsWitness.closeStale {input : String} {s : ScannerState} {sp_start : Su
     SlotsWitness input (s.closeStaleAt c) sp_start := by
   intro i l hi
   simp only [ScannerState.closeStaleAt] at hi
-  exact h i l (closeStale_marked _ _ _ _ _ _ hi)
+  exact h i l (closeStale_marked _ _ _ _ _ _ _ hi)
 
 lemma pushMappingIndent_witness {input : String} {s : ScannerState} {sp_start : SurfPos} (col : Int)
     (h : SlotsWitness input s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
