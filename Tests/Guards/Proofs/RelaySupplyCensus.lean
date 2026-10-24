@@ -918,8 +918,8 @@ def hopName (env : Environment) (e : Edge) : String :=
 -- 2026-10-24 (B3 [66] col-0 threading): edges 674 → 657 (DECLINE 260 → 251, SPLIT 174 → 166, PAY 50 → 55, RELAY 68 → 64,
 -- FIELD 58 → 57) — the content parks read the run + gate fields instead of splitting a landing disjunction.
 def expectedTally : String :=
-  "edges=657 skipped=38 [DECLINE=251, FIELD=57, LOCAL=27, PAY=55, RELAY=64, \
-SPLIT=166, VIA=37]"
+  "edges=654 skipped=38 [DECLINE=270, FIELD=57, LOCAL=27, PAY=52, RELAY=64, \
+SPLIT=152, VIA=32]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
     eight of these print `h_keyctx` when the premise is narrowed; six of them
@@ -955,18 +955,20 @@ def expectedSeed : List String :=
     props arm's fallback is the other new application, and it sits inside the
     arm's split on the run's pack, so it is a `SPLIT` branch and not an edge
     here. -/
+-- 2026-10-24 (item 355): the five domained faces — the two `accum_step_flow` pipes
+-- (`flowVPack_of_close resume.vslot`, `FlowBaseRoutes.vslot`) and one `explFrameValueLine` pipe now
+-- decline (`Or.inr trivial`), three `frameChainUnion`s became the domained `frameChainUnionD`.
 def expectedProducers : List String :=
   ["2 VIA FlowBaseRoutes.key",
-   "2 VIA FlowBaseRoutes.vslot",
-   "2 VIA flowVPack_of_close",
    "2 VIA markerctx_of_landing",
    "2 VIA nodocctx_of_preprocess",
    "2 VIA suffixctx_of_landing",
+   "3 VIA explFrameValueLine",
    "3 VIA flowKeyRoute_of_open",
    "3 VIA flowKeyRoute_of_root",
-   "4 VIA explFrameValueLine",
-   "7 VIA keyctx_of_preprocess",
-   "8 VIA frameChainUnion"]
+   "3 VIA frameChainUnionD",
+   "5 VIA frameChainUnion",
+   "7 VIA keyctx_of_preprocess"]
 
 /-- **Where the 43 pipes land (DOCS item 214).**  Item 213 measured that 43 of
     this census's 79 `VIA` edges named a combinator rather than a decider and
@@ -1000,8 +1002,8 @@ def expectedProducers : List String :=
 -- through `.imp id (PackAlt.step_blockEntry h_preprocess h_dispatch)` into the new park's split field (the relay item 319's
 -- payments surfaced); producers and the other landings stand.
 def expectedPipeLanding : String :=
-  "piped=55 producers=3 [Or.imp⇒FIELD=29, Or.imp⇒LOCAL=5, Or.imp⇒RELAY=10, \
-Or.imp⇒SPLIT=4, Or.imp⇒VIA=3, dite⇒SPLIT=4]"
+  "piped=59 producers=0 [Or.imp⇒FIELD=32, Or.imp⇒LOCAL=5, Or.imp⇒RELAY=14, \
+Or.imp⇒SPLIT=4, dite⇒SPLIT=4]"
 
 /-- What the SPLITs decide (DOCS item 216), and the row that matters is
     `elsewhere=0`: **not one leaf of any case split in this module is decided
@@ -1065,10 +1067,10 @@ Or.imp⇒SPLIT=4, Or.imp⇒VIA=3, dite⇒SPLIT=4]"
 -- block-park sites split on the park's `∨ PackAlt` field.
 -- 2026-10-23 (item 345): survived 170 → 174, leaves 367 → 375, DECLINE|PAY 157 → 161 — the same four splits.
 def expectedSplitLanding : String :=
-  "survived=166 collapsed=7 leaves=359 elsewhere=1 [DECLINE=181, PAY=177, \
+  "survived=152 collapsed=21 leaves=329 elsewhere=1 [DECLINE=165, PAY=163, \
 VIA=1] [DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
-DECLINE|DECLINE|DECLINE|PAY=2, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
-DECLINE|DECLINE|PAY=5, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=153, \
+DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
+DECLINE|DECLINE|PAY=5, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=140, \
 DECLINE|PAY|PAY=1, PAY|VIA=1]"
 
 /-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
@@ -1156,9 +1158,7 @@ DECLINE|PAY|PAY=1, PAY|VIA=1]"
 -- PAY-free 177 → 181 — the four block-park relays.
 -- 2026-10-23 (item 345): splits 170 → 174, leaves 367 → 375, relayRooted 160 → 164, optionalRoot 107 → 108, plainRoot 53 → 56, agree 111/111 → 112/112, DECLINE-free 104 → 108, PAY-free 181 → 185 — the same four splits.
 def expectedSplitBranch : String :=
-  "splits=166 leaves=359 relayRooted=157 siteDecided=9 optionalRoot=104 plainRoot=53 \
-agree=107/107 disagree=0 [DECLINE-closed=81, DECLINE-free=100, PAY-free=177, VIA \
-L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1]"
+  "splits=152 leaves=329 relayRooted=144 siteDecided=8 optionalRoot=96 plainRoot=48 agree=98/98 disagree=0 [DECLINE-closed=78, DECLINE-free=87, PAY-free=163, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1]"
 
 /-- **The ten splits the site decides for itself**, which is the whole residue
     of the branch question after `expectedSplitBranch`.  Four are a `dite` on a
@@ -1169,25 +1169,14 @@ L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1]"
     `dite`'s `major` is argument 1 — the PROPOSITION, not a proof of it — so
     `VIA Eq` and `VIA LE.le` naming a type here is the instrument reading the
     condition, not losing the discriminant. -/
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedSiteDecided : List String :=
   ["1 accum_block_on_closeThenBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
    "1 accum_block_on_pendingBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
    "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|DECLINE|PAY|PAY|PAY",
    "1 accum_block_on_pendingBlockContent :: dite on VIA Eq ⇒ DECLINE|PAY",
-   "1 accum_content_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ \
-DECLINE|DECLINE|DECLINE|PAY",
-   -- Item 285: the same split; `slot_ride`'s `match h_optok` elaborates three
-   -- matchers ahead of it, so its auxiliary is `match_1_21` and no longer `_18`.
-   -- Item 295: the props arm's route split — the run's pack and the INHERITED
-   -- key (`preprocess_some_savedKey_shape`'s arm) — whose fallback takes the
-   -- landing's route (`flowKeyRoute_of_root`) instead of declining.
-   "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_22 on SPLIT Or.casesOn \
-on VIA preprocess_some_savedKey_shape ⇒ PAY|VIA",
-   -- Item 350: `question_open_map`'s second `frameChainUnion` split now pays
-   -- `h_expl`'s `?`-entry face on both branches (the `PackAlt` arm became
-   -- `NotQuestionPark`, which a `?` park cannot pay), so one split remains.
-   "1 question_open_map :: question_open_map.match_1_7 on VIA frameChainUnion ⇒ \
-DECLINE|PAY",
+   "1 accum_content_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|DECLINE|DECLINE|PAY",
+   "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_22 on SPLIT Or.casesOn on VIA preprocess_some_savedKey_shape ⇒ PAY|VIA",
    "2 accum_block_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|PAY"]
 
 /-- **The premises the branch is taken on**, by binder NAME, for the 99 splits
@@ -1206,7 +1195,28 @@ DECLINE|PAY",
 -- Item 350: `h_expl` left the premises — its four splits pay the `?`-entry
 -- face directly once the `PackAlt` arm became `NotQuestionPark`.
 def expectedBranchPremises : List String :=
-  ["1 h_mapF", "1 h_mapFV", "1 h_mapFV108", "1 h_mk", "1 h_pr", "1 h_routeS", "1 h_sfx", "1 h_valFV", "13 h_closeF_old", "22 h_closeFV_old", "3 h_cov", "3 h_kslotUp_old", "3 h_seqF_old", "3 h_vslot", "4 h_closeFV108", "4 h_kslotUp", "4 h_resV_land", "4 h_routeF", "4 h_routeFV", "5 h_seqF168", "7 h_closeF99", "8 h_kslot_old", "9 h_kslot"]
+  ["1 h_mapF",
+   "1 h_mapFV",
+   "1 h_mapFV108",
+   "1 h_mk",
+   "1 h_pr",
+   "1 h_routeS",
+   "1 h_sfx",
+   "1 h_valFV",
+   "13 h_closeF_old",
+   "22 h_closeFV_old",
+   "3 h_cov",
+   "3 h_kslotUp_old",
+   "3 h_resV_land",
+   "3 h_seqF_old",
+   "3 h_vslot",
+   "4 h_closeFV108",
+   "4 h_routeF",
+   "4 h_routeFV",
+   "5 h_seqF168",
+   "7 h_closeF99",
+   "7 h_kslot",
+   "7 h_kslot_old"]
 
 /-- **Is a DECLINE arm ever SELECTED (DOCS item 218).**  Item 217 named, for
     each of the 99 optional-rooted splits, the premise its branch is taken on.
@@ -1257,9 +1267,7 @@ def expectedBranchPremises : List String :=
 -- 2026-10-23 (item 344): `liveSplits` 100 → 101 — the `on_pendingBlock` caller's `h_valFV` split on `h_closeFV_old`.
 -- 2026-10-23 (item 345): liveSplits 101 → 102 — one more live split (the twin relay on `h_closeFV_old`).
 def expectedDeclineReach : String :=
-  "pairs=34 orphan=4 direct=7 closureDecline=30 dead=0 maxDepth=2 liveSplits=98 \
-deadSplits=0 accounted=657/657 nodes=157 fieldEdges=57 fieldResolved=57 withCycle=8 \
-declineWriters=19 parkHop=21"
+  "pairs=30 orphan=2 direct=7 closureDecline=28 dead=0 maxDepth=2 liveSplits=92 deadSplits=0 accounted=654/654 nodes=158 fieldEdges=57 fieldResolved=57 withCycle=8 declineWriters=19 parkHop=19"
 
 /-- **Every branch premise, with what its own callers supply and where that
     bottoms out.**  `⇐` names the FIRST hop — for a park field, the field
@@ -1284,6 +1292,7 @@ declineWriters=19 parkHop=21"
 -- face is paid directly; the `PackAlt` arm became `NotQuestionPark`).
 -- 2026-10-24 (B3 [66] col-0 threading): two binder indices shift with `accum_content_on_pendingBlock_indented`'s
 -- new gate field (#28 → #29, #29 → #30); rows unchanged.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedBranchSupply : List String :=
    -- 2026-10-20 (item 307): one pair more — the content route's `h_vpack` splits `h_mapFV108` (a `match`).
    -- 2026-10-20 (item 309): `explFrameValueLine`'s `h_expl` is binder #4 — `{alt : Prop}` precedes it now.
@@ -1299,19 +1308,15 @@ def expectedBranchSupply : List String :=
    "h_cov :: indicator_open_map#27 :: splits=3 sup=4 [DECLINE=1,SPLIT=3] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
    "h_kslot :: accum_block_on_pendingBlock#13 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
    "h_kslot :: accum_block_on_pendingBlockContent#15 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_kslot ⇒ brDECLINE+brPAY",
-   "h_kslot :: accum_content_on_pendingMapValue_indented#17 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
-   "h_kslot :: colon_open_map_implicit#12 :: splits=1 sup=1 [FIELD=1] ⇐ And.intro.left ⇒ ORPHAN",
-   "h_kslot :: colon_open_map_props#11 :: splits=1 sup=1 [FIELD=1] ⇐ And.intro.left ⇒ ORPHAN",
-   "h_kslotUp :: accum_block_on_pendingBlock#29 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
-   "h_kslotUp :: accum_block_on_pendingBlockContent#34 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_kslotUp ⇒ brDECLINE+brPAY",
-   "h_kslotUp_old :: accum_content_on_pendingBlock_indented#29 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
-   "h_kslot_old :: accum_content_on_pendingBlock_indented#13 :: splits=8 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
+   "h_kslot :: accum_content_on_pendingMapValue_indented#17 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_kslot ⇒ DECLINE",
+   "h_kslotUp_old :: accum_content_on_pendingBlock_indented#29 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE",
+   "h_kslot_old :: accum_content_on_pendingBlock_indented#13 :: splits=7 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
    "h_mapF :: accum_block_on_closeThenBlock#29 :: splits=1 sup=11 [DECLINE=7,FIELD=2,RELAY=2] ⇐ h_mapF109@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_frames ⇒ DECLINE+PAY+brDECLINE+brPAY",
    "h_mapFV :: accum_block_on_closeThenBlock#31 :: splits=1 sup=11 [DECLINE=3,FIELD=2,RELAY=2,SPLIT=4] ⇐ h_mapFV108@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_framesV ⇒ DECLINE+PAY+brDECLINE+brPAY",
    "h_mapFV108 :: accum_block_on_pendingContent#35 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingContent.h_framesV ⇒ DECLINE+brDECLINE+brPAY",
    "h_mk :: accum_block_on_closeThenBlock#20 :: splits=1 sup=11 [DECLINE=10,PAY=1] ⇐ - ⇒ DECLINE+PAY",
    "h_pr :: accum_block_on_closeThenBlock#30 :: splits=1 sup=11 [DECLINE=9,SPLIT=2] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
-   "h_resV_land :: colon_open_map#26 :: splits=3 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
+   "h_resV_land :: colon_open_map#26 :: splits=2 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
    "h_resV_land :: question_open_map#27 :: splits=1 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
    "h_routeF :: colon_open_map_implicit#13 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
    "h_routeF :: colon_open_map_props#12 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
@@ -1357,25 +1362,25 @@ def expectedBranchSupply : List String :=
 def expectedDeclineWriters : List String :=
   -- Item 350: the `:` producers pay `h_expl`/`h_explUp`'s `NotQuestionPark` from the dispatch
   -- (`colon_open_map` 12 → 7, the three `colon_open_map_*` 15 → 10, `compact_open_map` 14 → 9).
-  [ "10 accum_block_on_noPending",
-   "10 accum_step_flow",
+  ["10 accum_step_flow",
    "10 colon_open_map_explicit",
    "10 colon_open_map_implicit",
    "10 colon_open_map_props",
    "10 content_dispatch_routed",
-   "12 accum_content_on_pendingBlock_indented",
+   "15 accum_block_on_closeThenBlock",
    "15 accum_content_on_pendingMapValue_indented",
-   "17 accum_block_on_closeThenBlock",
-   "17 accum_block_on_pendingBlockContent",
+   "16 accum_block_on_pendingBlockContent",
    "2 colon_fires_implicit_key",
    "2 colon_fires_props_key",
    "2 question_open_map",
-   "30 accum_block_on_pendingBlock",
+   "27 accum_block_on_pendingBlock",
    "34 accum_block_pending",
-   "37 accum_content_pending",
+   "34 accum_content_pending",
    "7 colon_open_map",
    "8 accum_block_on_pendingContent",
-   "9 compact_open_map" ]
+   "9 accum_block_on_noPending",
+   "9 accum_content_on_pendingBlock_indented",
+   "9 compact_open_map"]
 
 /-- **The ONE collapsed split, named.**  Item 216 measured `collapsed=1` and
     described its splitter chain; nothing named the edge.  It is named here
@@ -1391,14 +1396,9 @@ def expectedDeclineWriters : List String :=
 -- Item 350: six more "collapsed" splits — `frameChainUnion`'s `h₁`/`h₂` matches in
 -- `accum_block_pending`, `accum_content_on_pendingMapValue_indented` and `explFrameValueLine`
 -- pay on both branches now that the `?`-entry face's `inr` arm pays an empty chain.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedCollapsedEdge : String :=
-  "accum_block_pending → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_17; \
-accum_block_pending → frameChainUnion#3 (h₂) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_19; \
-accum_content_on_pendingMapValue_indented → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; \
-accum_content_on_pendingMapValue_indented → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; \
-accum_content_on_pendingMapValue_indented → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; \
-explFrameValueLine → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.explFrameValueLine.match_1_1; \
-accum_block_on_closeThenBlock → PendingNode.pendingBlock#11 (h_closeF) = PAY via Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→dite"
+  "question_open_map → PendingNode.pendingMapValue#15 (h_kslot) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.question_open_map.match_1_7; accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; colon_open_map_props → PendingNode.pendingMapValue#15 (h_kslot) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.colon_open_map_props.match_1_1; accum_block_pending → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_19; accum_block_pending → frameChainUnion#3 (h₂) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_21; accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; explFrameValueLine → frameChainUnion#2 (h₁) = PAY via _private.L4YAM"
 
 /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
     enumerated five optional contexts of `content_dispatch_routed` by hand;

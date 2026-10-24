@@ -324,11 +324,12 @@ def expectedAlphabet : String := "prodTyped=164 prodSurf=96 prodSpec=58"
 -- `PendingKeySound.lean` holds `scanNextToken_preprocess`'s step equation; dispatch holders stand.
 -- 2026-10-24 (Row 12, item 350): `stepHolders` 1821 → 1823, `dispHolders` 334 → 335 —
 -- `scanValue_notQuestion` and `dispatchBlock_colon_notQuestion` hold the `:` step/dispatch equations.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedSteps : String :=
 -- 2026-10-24 (B3 [66] col-0 threading): stepHolders 1819 → 1874, dispHolders 332 → 348, dispTwoCorr 29 → 31 —
 -- the gate/JSON-key/reservation lemmas hold the preprocess and dispatch step equations (1878/351 on the
 -- item-354 base).
-  "stepHolders=1878 dispHolders=351 dispTwoCorr=31 fns=73 fnsIx=26"
+  "stepHolders=1881 dispHolders=353 dispTwoCorr=31 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -404,8 +405,8 @@ def expectedChainSpec : List Name :=
 -- 2026-10-24 (B3 [66] col-0 threading): dispatchContent 146 → 157, preprocess 224 → 240 holders (gate / JSON-key
 -- / reservation lemmas); preprocess chain 6 → 3 — three carriers now read the `sp_gram` edge directly.
 def expectedPerFn : List String :=
-  ["scanNextToken_dispatchContent decls=157 chain=1",
-   "scanNextToken_preprocess decls=240 chain=3"]
+  ["scanNextToken_dispatchContent decls=159 chain=1",
+   "scanNextToken_preprocess decls=242 chain=3"]
 
 /-- **The one worked precedent is outside the work.**  It is not in item 238's
     transitive set and not on either repair thread, so β.5 neither pays for it

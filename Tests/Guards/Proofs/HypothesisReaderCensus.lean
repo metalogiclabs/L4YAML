@@ -712,7 +712,7 @@ inherit their parents' binders filtered out so the denominator is declarations. 
 -- (a `match`) where it was RELAYed.
 -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp`
 -- `inr` arms no longer read their alternative (they pay an empty chain instead).
-def expectedOptTally : String := "total=159 ETA=31 READ=85 RELAY=43"
+def expectedOptTally : String := "total=161 ETA=31 READ=87 RELAY=43"
 
 /-- The six item 212 enumerated, by verdict — seven since item 300.  Six are
     read in `content_dispatch_routed`'s own term (`h_markerline`, the marker

@@ -777,8 +777,6 @@ def expectedSpines : List String :=
    "  stream=0 carry=5 fwd=0 punt=1 closed=0 SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream  ← pendingMapValue.h_closeF",
    "  stream=1 carry=3 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)  ← pendingMapValue.h_closeFV",
    "  stream=0 carry=1 fwd=0 punt=5 closed=0 SBlockNode(_+1,blockIn) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)  ← pendingMapValue.h_seqF",
-   -- 2026-10-24 (item 350): `h_explUp` carry 1 → 2, punt 5 → 4 — the compact `?` producer now pays
-   -- the chain (`ns := []` under the landed `?` literal) instead of punting to `PackAlt`.
    "  stream=0 carry=2 fwd=0 punt=4 closed=0 SBlockMapEntry(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_explUp"]
 -- Item 287: the same 47 rows.  With `accum_block_on_closeThenBlock`'s inline
 -- application gone, the walk reaches `compact_open_map` from it before it
@@ -793,8 +791,6 @@ def expectedSites : List String :=
   -- Item 305: the compact arm's `h_closeFV` hand-off is a carry (the `?` slot's bottom), not a punt.
   ["  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_new:=param:h_close_pending closedBy=[SSLComments ⇒ Stream] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
    "  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_a closedBy=[obtained] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
-   -- 2026-10-24 (item 350): `compact_open_map` carries `h_explUp` (the chain under the landed `?`,
-   -- `ns := []`) instead of punting it to `PackAlt`.
    "  compact_open_map: nil park=pendingMapValue stream=param:h_stream_block closedBy=[] h_close=carry,h_ivl=carry,h_expl=carry,h_vslot=carry,h_kslot=punt,h_closeF=carry,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=carry",
    "  block_dispatch_deferred: nil park=pendingFlow stream=param:h_stream closedBy=[] ",
    "  colon_open_map_explicit: nil park=pendingMapValue stream=param:h_stream_mid closedBy=[] h_close=carry,h_ivl=carry,h_expl=punt,h_vslot=carry,h_kslot=punt,h_closeF=punt,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=punt",

@@ -286,7 +286,7 @@ def isSurfFace (env : Environment) (lhs : Expr) : MetaM Bool := do
 -- 302's stack (`ResumeFrames` 12 → 3, `KeyFrames` 9 in the head census below).
 -- 2026-10-24 (item 350): binders 163 → 159, faces 61 → 59, heads 19 → 18 — `h_expl`/`h_explUp`
 -- stopped being optional faces (their alternative is `NotQuestionPark sc`, paid by the `:` producers).
-def expectedFaceTally : String := "binders=159 faces=59 heads=18"
+def expectedFaceTally : String := "binders=161 faces=63 heads=19"
 
 /-- The conclusion head of every left disjunct.  `FVAR 2` is `frameChainUnion`,
     whose face is schematic in `P` — the two rows no census of any kind can
@@ -302,10 +302,25 @@ def expectedHeadCensus : List String :=
   -- three restating premises, `≤` on `closeThenBlock`'s `h_valFV`) is that conjunct at six sites.
   -- Item 350: `GLit 4` left — the four `GLit '?'` faces were `h_expl`/`h_explUp`'s optional reading;
   -- the field is required now (its alternative is `NotQuestionPark sc`, paid by the `:` producers).
-  ["BareLandingFacts 8", "CompletedTail 4", "Covered 3", "Eq 19", "FVAR 2",
-   "Floor 15", "GStar 4", "IndentFloor 2", "KeyFrames 3",
-   "MarkerNodeRoute 5", "Mono 4", "PropsNodeRoute 4", "ResumeFrames 3",
-   "SLYamlStream 31", "SeqEntryTail 7", "SuffixRun 6", "le 11", "lt 28"]
+  ["BareLandingFacts 8",
+   "CompletedTail 4",
+   "Covered 3",
+   "Eq 19",
+   "FVAR 2",
+   "Floor 15",
+   "GStar 4",
+   "IndentFloor 2",
+   "KeyFrames 3",
+   "MarkedColsIn 9",
+   "MarkerNodeRoute 5",
+   "Mono 4",
+   "PropsNodeRoute 4",
+   "ResumeFrames 3",
+   "SLYamlStream 24",
+   "SeqEntryTail 7",
+   "SuffixRun 6",
+   "le 11",
+   "lt 28"]
 
 /-! ## §3  The rung-1 census: which faces are vacuous on their own
 
@@ -328,6 +343,8 @@ those heads and `expectedChainFaces` not naming a single one of them. -/
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (binder indices).
 def expectedChainFaces : List String :=
   ["FlowBaseRoutes.mk#7 (vslot)",
+   -- Item 287: these four read two binders earlier, past the retired
+   -- `sp_block_ctx` and `h_stream_fallback`.
    "PendingNode.pendingBlock#14 (h_kslotUp)",
    "PendingNode.pendingBlockContent#17 (h_kslotUp)",
    "PendingNode.pendingContent#9 (h_vpack)",
@@ -361,7 +378,7 @@ which of four reasons applies. -/
 -- Item 300: the two faces that join (`content_dispatch_routed.h_markerline`,
 -- `flowOpen_marker.h_doc`) name scanner state alone, so `state` 25 → 27.
 -- 2026-10-24 (item 350): binders 163 → 159, surf 136 → 132 — `h_expl`/`h_explUp` left the optional population.
-def expectedFidelity : String := "binders=159 surf=132 state=27"
+def expectedFidelity : String := "binders=161 surf=132 state=29"
 
 /-- The 25 faces a state census COULD evaluate — 27 since item 300 — which is
     the population the mandate's instrument is actually defined over.  Two of them
@@ -390,6 +407,8 @@ def expectedStateFaces : List String :=
    "flowOpen_stamp#4",
    "frameChainUnion#2",
    "frameChainUnion#3",
+   "frameChainUnionD#3",
+   "frameChainUnionD#4",
    "indicator_open_map#26",
    "indicator_open_map#27",
    "question_open_map#22",
@@ -501,9 +520,12 @@ def chainKeySet : Std.HashSet String :=
 -- two block routes and the content route's one on `h_mapFV108` (its `h_vpack`, a `match`).
 -- 2026-10-23 (item 344): splits 106 → 107 — `on_pendingBlock#29`'s seventh split (the relayed `h_valFV`).
 -- 2026-10-23 (item 345): splits 107 → 108 — the twin relay's split on `h_closeFV_old`.
-def expectedWorthTally : String :=
 -- 2026-10-24 (item 350): pairs 36 → 34, splits 108 → 104, sup 102 → 97 — the two `h_expl` pairs left.
-  "pairs=34 splits=104 sup=97 chainPairs=6 chainSplits=12 innerPairs=8 innerSplits=32"
+-- 2026-10-24 (item 355): pairs 34 → 30, splits 104 → 96, sup 97 → 93, chainPairs 6 → 0, chainSplits 12 → 0 — the five
+-- `MarkedColsIn`-domained ctor faces and the two domained content twins are no longer provable by the empty chain.
+def expectedWorthTally : String :=
+  "pairs=30 splits=96 sup=93 chainPairs=0 chainSplits=0 innerPairs=8 \
+innerSplits=32"
 
 /-- The ledger, worth-first.  `chain` is §3's verdict — a narrowing here lands
     on another unconditional inhabitant; `inner` means the face carries a
@@ -535,6 +557,7 @@ def expectedWorthTally : String :=
 def expectedWorthLedger : List String :=
   ["splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
    "splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
+   -- 2026-10-23 (item 344): `on_pendingBlock#29` splits 6 → 7 (the relayed `h_valFV`), sorted above `h_closeF99`.
    "splits=8 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    "splits=7 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#30",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
@@ -543,7 +566,8 @@ def expectedWorthLedger : List String :=
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
    "splits=3 sup=1 - h_kslot :: accum_block_on_pendingBlock#13",
-   "splits=3 sup=1 - h_resV_land :: colon_open_map#26",
+   "splits=3 sup=1 - h_kslot :: accum_content_on_pendingMapValue_indented#17",
+   "splits=3 sup=1 - h_kslotUp_old :: accum_content_on_pendingBlock_indented#29",
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
    "splits=3 sup=1 chain h_kslot :: accum_content_on_pendingMapValue_indented#17",
@@ -579,7 +603,7 @@ def expectedWorthLedger : List String :=
 -- 2026-10-23 (item 344): splits 106 → 107 — the relayed `h_valFV`'s split on `h_closeFV_old`.
 -- 2026-10-23 (item 345): splits 107 → 108 — the twin relay's split on `h_closeFV_old`.
 -- 2026-10-24 (item 350): branchPairs 36 → 34, splits 108 → 104 — the two `h_expl` pairs left.
-def expectedBranchReach : String := "branchPairs=34 stateReachable=1 splits=104 stateSplits=3"
+def expectedBranchReach : String := "branchPairs=30 stateReachable=1 splits=96 stateSplits=3"
 
 open Meta in
 run_cmd do
