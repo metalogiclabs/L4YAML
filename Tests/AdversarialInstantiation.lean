@@ -8,9 +8,9 @@ public import L4YAML.Parser.IndexedComposition
 public import L4YAML.Proofs.Parser.ParserGrammableBase
 public import L4YAML.Proofs.Production.StreamAccum
 public import L4YAML.Proofs.Scanner.RegisterWitness
-public import Tests.VerifiedResult
 public import L4YAML.Proofs.Scanner.FlowAdjacency
 public import L4YAML.Proofs.Scanner.FlowAdjacencyIx
+public import Tests.VerifiedResult
 
 @[expose] public section Blanket
 
@@ -3644,11 +3644,10 @@ def testGluedScannerLemmas (state : IO.Ref TestCollector) : IO Unit := do
   checkM state "p21: tally isValueCandidate_glued_jsonKey" (tallyRows json == "holds=15 failedHyp=40 refuted=0")
     (tallyRows json)
   checkM state "p21: colon states over the grid" (states == 55) s!"states={states}"
-  -- The failed-hypothesis rows are not silent: at the last pause (the glued `[`/`{`, where the scan
-  -- stops) the predicate the lemmas bound is TRUE after a plain key (the `[147]` refusal fires)
-  -- and FALSE after a JSON-like key.
+  -- The failed-hypothesis rows are not silent: at a glued `[`/`{` the predicate the lemmas bound
+  -- is TRUE after a plain key (the `[147]` refusal fires) and FALSE after a JSON-like key.
   for input in ["{a:[1]}", "{a:{b: c}}", "[a:[1]]", "{x: 1, a:[1]}", "{a:[1], x: 1}", "{:[1]}"] do
-    let v := ((colonStates input).getLast?).map flowGluedCollectionValue
+    let v := (colonStates input).getLast?.map flowGluedCollectionValue
     checkM state s!"p21/{input.quote}: glued predicate fires after a plain key" (v == some true) s!"v={v}"
   for input in ["{\"a\":[1]}", "{'a':{b: c}}", "{[a]:[1]}", "{{a: b}:[1]}", "[\"a\":[1]]"] do
     let v := ((colonStates input).getLast?).map flowGluedCollectionValue
