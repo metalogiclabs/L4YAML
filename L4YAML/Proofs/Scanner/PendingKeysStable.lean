@@ -468,7 +468,7 @@ lemma scanNamedTag_preserves_pendingKeys (s : ScannerState) (p : YamlPos) (input
   · simp only [ScannerState.emitAt]
     rw [collectTagSuffixLoop_preserves_pendingKeys, collectTagHandleLoop_preserves_pendingKeys]
   · simp only [ScannerState.emitAt]
-    rw [collectTagHandleLoop_preserves_pendingKeys]
+    rw [collectTagSuffixLoop_preserves_pendingKeys, collectTagHandleLoop_preserves_pendingKeys]
 
 lemma scanTag_preserves_pendingKeys {s s' : ScannerState}
     (hok : scanTag s = .ok s') : s'.pendingKeys = s.pendingKeys := by

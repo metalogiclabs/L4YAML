@@ -1193,10 +1193,9 @@ def scanTagIx {input : String} (s : ScannerStateIx input) :
     let cAfterHandle := r.2.2
     let (handle, suffix0) :=
       if foundBang then ("!" ++ chars ++ "!", "") else ("!", chars)
-    let rSuf := if foundBang then
-        let fuel' := input.utf8ByteSize - cAfterHandle.pos.offset
-        collectTagSuffixLoopIx cAfterHandle "" fuel'
-      else (suffix0, cAfterHandle)
+    let rSuf :=
+      let fuel' := input.utf8ByteSize - cAfterHandle.pos.offset
+      collectTagSuffixLoopIx cAfterHandle suffix0 fuel'
     let suffix := rSuf.1
     let cAfter := rSuf.2
     let sAfter : ScannerStateIx input := { sAdv with cursor := cAfter }
@@ -1206,15 +1205,8 @@ def scanTagIx {input : String} (s : ScannerStateIx input) :
         IxCursor.advance_offset_monotonic s.cursor
       have h2 : sAdv.cursor.pos.offset ≤ cAfterHandle.pos.offset :=
         collectTagHandleLoopIx_offset_monotonic sAdv.cursor "" fuel
-      have h3 : cAfterHandle.pos.offset ≤ rSuf.2.pos.offset := by
-        show cAfterHandle.pos.offset ≤
-            (if foundBang then
-                let fuel' := input.utf8ByteSize - cAfterHandle.pos.offset
-                collectTagSuffixLoopIx cAfterHandle "" fuel'
-              else (suffix0, cAfterHandle)).2.pos.offset
-        split
-        · exact collectTagSuffixLoopIx_offset_monotonic cAfterHandle "" _
-        · exact Nat.le_refl _
+      have h3 : cAfterHandle.pos.offset ≤ rSuf.2.pos.offset :=
+        collectTagSuffixLoopIx_offset_monotonic cAfterHandle suffix0 _
       exact Nat.le_trans h1 (Nat.le_trans h2 h3)
     let sEmit := sAfter.emitAt startPos (YamlToken.tag handle suffix) hBound
     .ok { sEmit with simpleKeyAllowed := false }

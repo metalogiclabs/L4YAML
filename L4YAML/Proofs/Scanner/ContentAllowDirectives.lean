@@ -139,7 +139,8 @@ lemma scanNamedTag_preserves_allowDirectives (s : ScannerState) (startPos : Yaml
   split
   · simp [emitAt_preserves_allowDirectives, collectTagSuffixLoop_preserves_allowDirectives,
           collectTagHandleLoop_preserves_allowDirectives]
-  · simp [emitAt_preserves_allowDirectives, collectTagHandleLoop_preserves_allowDirectives]
+  · simp [emitAt_preserves_allowDirectives, collectTagSuffixLoop_preserves_allowDirectives,
+          collectTagHandleLoop_preserves_allowDirectives]
 
 lemma scanTag_preserves_allowDirectives (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s') :

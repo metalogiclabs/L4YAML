@@ -1441,7 +1441,8 @@ lemma dispatchContent_new_not_placeholder (s s' : ScannerState) (c : Char)
               intro h; cases h
             · -- foundBang = false
               unfold ScannerState.emitAt; dsimp only []
-              simp only [ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
+              simp only [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
+                          ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
                           ScannerCorrectness.advance_preserves_tokens, Array.getElem_push_eq]
               intro h; cases h
       · -- remaining: block scalar, double/single quoted, plain

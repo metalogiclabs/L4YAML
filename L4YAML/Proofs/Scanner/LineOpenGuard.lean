@@ -2481,8 +2481,12 @@ private lemma scanNamedTag_col_ge (s : ScannerState) (p : YamlPos) (ie : Nat) :
       (collectTagHandleLoop s "" (ie - s.offset)).2.2 ""
     simp only [emitAt_col]
     exact Nat.le_trans h2 h3
-  · simp only [emitAt_col]
-    exact h2
+  · have h3 := collectTagSuffixLoop_col_ge
+      (ie - (collectTagHandleLoop s "" (ie - s.offset)).2.2.offset)
+      (collectTagHandleLoop s "" (ie - s.offset)).2.2
+      (collectTagHandleLoop s "" (ie - s.offset)).fst
+    simp only [emitAt_col]
+    exact Nat.le_trans h2 h3
 
 /-- `[97] c-ns-tag-property` spends its `!` before the handle, so its park is
     inside a line — the tag's half of item 77's content sweep. -/

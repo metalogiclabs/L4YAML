@@ -70,7 +70,9 @@ The position reported is the property's own indicator, not the follower. -/
 #guard rejects9f "[!t[b]]\n" '!' 0 1              -- tag, then a nested seq
 #guard rejects9f "[!t{a: b}]\n" '!' 0 1
 #guard rejects9f "[!t\"x\"]\n" '!' 0 1            -- tag, then a double-quoted scalar
-#guard rejects9f "[!t'x']\n" '!' 0 1              -- tag, then a single-quoted scalar
+-- `'` is `[39] ns-uri-char` hence `[40] ns-tag-char`: `!t'x'` is ONE primary tag
+-- (N1b: `scanNamedTag` collects the full `ns-tag-char+` suffix, not just word chars).
+#guard bothAccept "[!t'x']\n"
 #guard rejects9f "[*x[b]]\n" '*' 0 1              -- §7.5 [104]: an alias is a whole node
 #guard rejects9f "[*x{a: b}]\n" '*' 0 1
 

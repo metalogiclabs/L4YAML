@@ -448,8 +448,10 @@ lemma scanTagIx_offset_lt {s s' : ScannerStateIx input}
       exact collectTagSuffixLoopIx_offset_monotonic _ _ _
     · simp only [emitAt_cursor, advance_cursor]
       refine Nat.lt_of_lt_of_le h_adv ?_
-      exact collectTagHandleLoopIx_offset_monotonic s.cursor.advance ""
-        (input.utf8ByteSize - s.cursor.advance.pos.offset)
+      refine Nat.le_trans
+        (collectTagHandleLoopIx_offset_monotonic s.cursor.advance ""
+          (input.utf8ByteSize - s.cursor.advance.pos.offset)) ?_
+      exact collectTagSuffixLoopIx_offset_monotonic _ _ _
 
 /-! ### Block-scalar strict progress (cursor-level)
 

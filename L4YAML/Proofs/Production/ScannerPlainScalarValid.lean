@@ -319,7 +319,8 @@ lemma scanTag_psv_match (s : ScannerState)
       split
       · simp [ScannerState.emitAt, collectTagSuffixLoop_preserves_tokens,
               h_toks, Array.getElem_push_eq]
-      · simp [ScannerState.emitAt, h_toks, Array.getElem_push_eq]
+      · simp [ScannerState.emitAt, collectTagSuffixLoop_preserves_tokens,
+              h_toks, Array.getElem_push_eq]
     simp only [h_is_tag]
 
 set_option maxHeartbeats 1600000 in
@@ -2628,7 +2629,7 @@ lemma scanNamedTag_preserves_flowLevel (s : ScannerState) (startPos : YamlPos) (
   split
   · simp [ScannerState.emitAt,
           collectTagSuffixLoop_preserves_flowLevel, h_fl]
-  · simp [ScannerState.emitAt, h_fl]
+  · simp [ScannerState.emitAt, collectTagSuffixLoop_preserves_flowLevel, h_fl]
 
 lemma scanTag_preserves_flowLevel (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s') :
@@ -2691,7 +2692,7 @@ lemma scanNamedTag_new_token_is_tag (s : ScannerState) (startPos : YamlPos) (inp
     simp [ScannerState.emitAt, collectTagSuffixLoop_preserves_tokens,
           h_toks, Array.getElem_push_eq]
   · -- foundBang = false
-    simp [ScannerState.emitAt, h_toks, Array.getElem_push_eq]
+    simp [ScannerState.emitAt, collectTagSuffixLoop_preserves_tokens, h_toks, Array.getElem_push_eq]
 
 lemma scanTag_new_token_is_tag (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s')
@@ -2796,7 +2797,7 @@ lemma scanTag_preserves_FlowInv (s : ScannerState)
           simp at this
           exact this
         simp
-        rw [h_tok, advance_preserves_tokens]
+        rw [collectTagSuffixLoop_preserves_tokens, h_tok, advance_preserves_tokens]
         rw [flowNesting_push_non_flow s.tokens ⟨s.currentPos, .tag _ _, s.currentPos⟩
              (by nofun) (by nofun) (by nofun) (by nofun)]
         exact h_fni

@@ -1014,7 +1014,8 @@ lemma scanNamedTag_preserves_flowStack (s : ScannerState) (startPos : YamlPos) (
   split
   · simp [emitAt_preserves_flowStack, collectTagSuffixLoop_preserves_flowStack,
           collectTagHandleLoop_preserves_flowStack]
-  · simp [emitAt_preserves_flowStack, collectTagHandleLoop_preserves_flowStack]
+  · simp [emitAt_preserves_flowStack, collectTagSuffixLoop_preserves_flowStack,
+          collectTagHandleLoop_preserves_flowStack]
 
 -- Cloned from `ScannerCorrectness` lines 4961-4977 (`_preserves_flowStack` twin).
 lemma scanTag_preserves_flowStack (s : ScannerState)

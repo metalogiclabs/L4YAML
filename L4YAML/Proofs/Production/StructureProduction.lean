@@ -543,6 +543,12 @@ lemma GStar_gchar_lift {P Q : Char → Prop} (h : ∀ c, P c → Q c)
 /-! ### Tag suffix loop production -/
 
 -- `collectTagSuffixLoop` produces `GStar (GChar isTagCharProp)`.
+private lemma gstar_append_local {P : SurfPos → SurfPos → Prop} {a b c : SurfPos}
+    (h₁ : GStar P a b) : GStar P b c → GStar P a c := by
+  induction h₁ with
+  | nil _ => exact id
+  | cons s₁ s₂ _ hx _ ih => exact fun h => GStar.cons s₁ s₂ c hx (ih h)
+
 lemma collectTagSuffixLoop_prod (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp) (suffix : String) (fuel : Nat) :
     ∃ sp', GStar (GChar isTagCharProp) sp sp' ∧
@@ -789,14 +795,19 @@ lemma scanNamedTag_prod (sc : ScannerState) (rest : List Char) (col : Nat)
       · exact h
       · exact absurd h_fb h_fb_false
     subst h_eq
-    -- Lift GStar wordChar → GStar tagChar
+    -- Lift GStar wordChar → GStar tagChar, then the suffix loop extends it to
+    -- the full `ns-tag-char*` run (N1b: `!t.x` is one primary tag)
     have h_gstar_tag := GStar_gchar_lift (fun c => isWordCharProp_to_isTagCharProp) h_gstar_word
-    by_cases h_ne : (⟨rest, col + 1⟩ : SurfPos) = sp_mid
+    obtain ⟨sp', h_sfx, hcorr_sfx⟩ :=
+      collectTagSuffixLoop_prod _ sp_mid hcorr_hdl
+        ("!", (collectTagHandleLoop sc "" (inputEnd - sc.offset)).fst).snd _
+    have h_full := gstar_append_local h_gstar_tag h_sfx
+    by_cases h_ne : (⟨rest, col + 1⟩ : SurfPos) = sp'
     · -- empty suffix: the bare `!` is the non-specific tag [100]
       subst h_ne
-      exact ⟨_, SCNsTagProperty.nonSpecific rest col, corr_of_emitAt _ _ hcorr_hdl⟩
-    · exact ⟨sp_mid, SCNsTagProperty.primary rest col sp_mid (GStar_to_GPlus h_gstar_tag h_ne),
-             corr_of_emitAt _ _ hcorr_hdl⟩
+      exact ⟨_, SCNsTagProperty.nonSpecific rest col, corr_of_emitAt _ _ hcorr_sfx⟩
+    · exact ⟨sp', SCNsTagProperty.primary rest col sp' (GStar_to_GPlus h_full h_ne),
+             corr_of_emitAt _ _ hcorr_sfx⟩
 
 -- `scanTag` on non-secondary branches produces `SCNsTagProperty`.
 -- Handles verbatim `!<uri>`, named `!handle!suffix`, and non-specific `!`.

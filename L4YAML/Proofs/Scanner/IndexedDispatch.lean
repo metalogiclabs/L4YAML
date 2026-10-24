@@ -572,7 +572,7 @@ lemma scanTagIx_offset_monotonic {input : String}
       refine Nat.le_trans
         (collectTagHandleLoopIx_offset_monotonic s.cursor.advance ""
           (input.utf8ByteSize - s.cursor.advance.pos.offset)) ?_
-      exact Nat.le_refl _
+      exact collectTagSuffixLoopIx_offset_monotonic _ _ _
 
 /-! ### Directives -/
 
