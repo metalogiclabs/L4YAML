@@ -312,8 +312,10 @@ def expectedAlphabet : String := "prodTyped=152 prodSurf=94 prodSpec=56"
 -- scan's step (`scanDocumentEnd s = .ok s'`), the marker parks' dead-register fact; the dispatch holders stand.
 -- 2026-10-21 (item 324): `stepHolders` 1717 → 1719 — `ExplicitValueRefused.step_preprocess` and its wrapper
 -- `PackAlt.step_preprocess` (the family's preprocess transport) each hold the preprocess step equation; dispatch holders stand.
+-- 2026-10-23 (Stream E): `stepHolders` 1817 → 1818, `fns` 72 → 73 — `scanValue_accepts` in
+-- `Acceptance/BlockIndicators.lean` holds `scanValue`'s step equation; dispatch holders stand.
 def expectedSteps : String :=
-  "stepHolders=1817 dispHolders=332 dispTwoCorr=29 fns=72 fnsIx=26"
+  "stepHolders=1818 dispHolders=332 dispTwoCorr=29 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another

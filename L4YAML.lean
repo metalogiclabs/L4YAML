@@ -22,6 +22,7 @@ public import L4YAML.Proofs.Production.Acceptance.Quoted
 public import L4YAML.Proofs.Production.Acceptance.Plain
 public import L4YAML.Proofs.Production.Acceptance.Properties
 public import L4YAML.Proofs.Production.Acceptance.FlowIndicators
+public import L4YAML.Proofs.Production.Acceptance.BlockIndicators
 public import L4YAML.Proofs.Production.DocumentProduction
 public import L4YAML.Proofs.Output.DumpRoundTrip
 public import L4YAML.Proofs.Output.EmitterScannability.EscapeProperties
