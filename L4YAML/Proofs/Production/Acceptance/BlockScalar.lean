@@ -827,4 +827,149 @@ lemma blockHeader_toSCBBlockHeader {chomp : ChompStyle} {m : Option Nat} {s s₁
     (hi : HeaderIndicatorsOk chomp m s s₁) (ht : HeaderTailOk s₁ s') : SCBBlockHeader s s' :=
   .mk s s₁ s' hi.toGAlt ht.toSSBComment
 
+/-! ## §8 The auto-detected content indent -/
+
+/-- `autoDetectBlockScalarIndentLoop` from `maxWS`: a blank line widens `maxWS` to its column;
+    the first content line (no tab below `minCI`, no earlier blank wider than it) fixes
+    `n = max minCI col`; at EOF the widest blank (or `minCI`) wins. -/
+inductive AutoIndentOk (minCI : Nat) : Nat → Nat → SurfPos → Prop where
+  | content (maxWS k : Nat) (s s₁ : SurfPos) (c : Char) :
+      SIndent k s s₁ → s₁.chars.head? = some c → c ≠ ' ' → isLineBreakBool c = false →
+      (c = '\t' → minCI ≤ s₁.col) → maxWS ≤ max minCI s₁.col →
+      AutoIndentOk minCI maxWS (max minCI s₁.col) s
+  | eof (maxWS k : Nat) (s s₁ : SurfPos) :
+      SIndent k s s₁ → s₁.chars = [] →
+      AutoIndentOk minCI maxWS (max minCI (max maxWS s₁.col)) s
+  | blank (maxWS n k : Nat) (s s₁ s₂ : SurfPos) :
+      SIndent k s s₁ → SBBreakOk s₁ s₂ → AutoIndentOk minCI (max maxWS s₁.col) n s₂ →
+      AutoIndentOk minCI maxWS n s
+
+lemma autoDetectBlockScalarIndentLoop_accepts {minCI maxWS n : Nat} {sp : SurfPos}
+    (h : AutoIndentOk minCI maxWS n sp) :
+    ∀ (sc : ScannerState) (mwl fuel ie : Nat), ScannerSurfCorr sc sp → sp.chars.length < fuel →
+      ∃ line probe,
+        autoDetectBlockScalarIndentLoop sc maxWS mwl minCI fuel ie = (n, line, probe, none) := by
+  induction h with
+  | content maxWS k s s₁ c hind hhead hsp hlb htab hmax =>
+    intro sc mwl fuel ie hcorr hfuel
+    cases fuel with
+    | zero => omega
+    | succ f =>
+      have hc₁ := (skipSpaces_accepts sc hind hcorr (by rw [hhead]; simpa using hsp)).1
+      have hpk := peek_eq_of_head hc₁ hhead
+      have hcol : (skipSpaces sc).col = s₁.col := hc₁.col_eq.symm
+      have htabF : (c == '\t' && decide (s₁.col < minCI)) = false := by
+        by_cases hct : c = '\t'
+        · subst hct; simp [Nat.not_lt.mpr (htab rfl)]
+        · simp [hct]
+      have hmaxF : ¬ maxWS > max minCI s₁.col := Nat.not_lt.mpr hmax
+      simp only [autoDetectBlockScalarIndentLoop, hpk, hcol, htabF, hlb, hmaxF, Bool.false_eq_true,
+        ite_false]
+      exact ⟨_, _, rfl⟩
+  | eof maxWS k s s₁ hind hnil =>
+    intro sc mwl fuel ie hcorr hfuel
+    cases fuel with
+    | zero => omega
+    | succ f =>
+      have hc₁ := (skipSpaces_accepts sc hind hcorr (by rw [hnil]; simp)).1
+      have hpk := peek_none_of_nil hc₁ hnil
+      have hcol : (skipSpaces sc).col = s₁.col := hc₁.col_eq.symm
+      simp only [autoDetectBlockScalarIndentLoop, hpk, hcol]
+      refine ⟨mwl, sc, ?_⟩
+      split <;> simp only [Prod.mk.injEq, and_true] <;> omega
+  | blank maxWS n k s s₁ s₂ hind hb hrec ih =>
+    intro sc mwl fuel ie hcorr hfuel
+    cases fuel with
+    | zero => omega
+    | succ f =>
+      obtain ⟨c, rest, hc, hlb⟩ := hb.head
+      obtain ⟨hns, hnt, -⟩ := not_space_tab_of_break hlb
+      have hc₁ := (skipSpaces_accepts sc hind hcorr (by rw [hc]; simpa using hns)).1
+      have hpk := peek_eq_of_head hc₁ (by rw [hc]; rfl)
+      have hcol : (skipSpaces sc).col = s₁.col := hc₁.col_eq.symm
+      obtain ⟨hc₂, -⟩ := consumeNewline_accepts _ hb hc₁
+      have hl₁ := SIndent.length_le hind
+      have hl₂ := hb.length_lt
+      have hbt : (c == '\t') = false := by simp [hnt]
+      have hm : (if s₁.col > maxWS then s₁.col else maxWS) = max maxWS s₁.col := by
+        split <;> omega
+      simp only [autoDetectBlockScalarIndentLoop, hpk, hcol, hbt, Bool.false_and, Bool.false_eq_true,
+        ite_false, hlb, ite_true, hm]
+      exact ih _ _ f ie hc₂ (by omega)
+
+/-- `autoDetectBlockScalarIndent` detects exactly the `AutoIndentOk` indent, without error. -/
+lemma autoDetectBlockScalarIndent_accepts (sc : ScannerState) {minCI n : Nat} {sp : SurfPos}
+    (h : AutoIndentOk minCI 0 n sp) (hcorr : ScannerSurfCorr sc sp) (ie : Nat)
+    (hie : sc.inputEnd = ie) :
+    autoDetectBlockScalarIndent sc minCI ie = (n, none) := by
+  have hfuel := fuel_of_corr hcorr
+  obtain ⟨line, probe, heq⟩ :=
+    autoDetectBlockScalarIndentLoop_accepts h sc 0 (ie - sc.offset + 1) ie hcorr (by omega)
+  simp only [autoDetectBlockScalarIndent, heq]
+
+/-! ## §9 `scanBlockScalar` -/
+
+/-- The content indent `scanBlockScalarBody` uses: an explicit `k` relative to the parent
+    indent, or the auto-detected one. -/
+def BlockIndentOk (ci : Int) (m : Option Nat) (n : Nat) (sp : SurfPos) : Prop :=
+  match m with
+  | some k => n = (max 0 (ci + k)).toNat
+  | none => AutoIndentOk ((max 0 (ci + 1)).toNat) 0 n sp
+
+/-- `BlockLineOk n` lines then a `BlockStopOk n` stop: what `collectBlockScalarLoop` reads. -/
+def BlockBodyOk (n : Nat) (sp sp' : SurfPos) : Prop :=
+  ∃ sp₁, GStar (BlockLineOk n) sp sp₁ ∧ BlockStopOk n sp₁ sp'
+
+/-- Converse of `scanBlockScalar_prod`, modulo the header (`HeaderIndicatorsOk` then
+    `HeaderTailOk`, a sub-relation of `[162]` by `blockHeader_toSCBBlockHeader`) and the content
+    indent (`BlockIndentOk`): the scanner reads a `BlockBodyOk n` body, lands at its stop and
+    emits the scalar at the indicator's position. -/
+lemma scanBlockScalar_accepts (sc : ScannerState) {sp sp₁ sp₂ sp₃ sp' : SurfPos}
+    {chomp : ChompStyle} {m : Option Nat} {n : Nat}
+    (hcorr : ScannerSurfCorr sc sp) (hind : GLit '|' sp sp₁ ∨ GLit '>' sp sp₁)
+    (hhdr : HeaderIndicatorsOk chomp m sp₁ sp₂) (htail : HeaderTailOk sp₂ sp₃)
+    (hn : BlockIndentOk sc.currentIndent m n sp₃) (hbody : BlockBodyOk n sp₃ sp') :
+    ∃ s' content, scanBlockScalar sc = .ok s' ∧ ScannerSurfCorr s' sp' ∧
+      s'.tokens = sc.tokens.push { pos := sc.currentPos, val := .scalar content (if sc.peek? == some '|' then ScalarStyle.literal else ScalarStyle.folded) } := by
+  have hadv : ScannerSurfCorr sc.advance sp₁ := by
+    rcases hind with h | h <;> cases h <;> exact advance_corr hcorr (by decide) (by decide)
+  obtain ⟨sc₁, hhd, hc₁, hk₁⟩ := parseBlockHeaderLoop_accepts sc.advance hadv hhdr htail.head
+  obtain ⟨sc₂, hnl, hc₂, hk₂⟩ := blockHeaderTail_accepts sc₁ hc₁ htail
+  obtain ⟨sp₄, hlines, hstop⟩ := hbody
+  have hie : sc₂.inputEnd = sc.inputEnd := by rw [hk₂.2.1, hk₁.2.1, (keeps_advance sc).2.1]
+  have hfuel := fuel_of_corr hc₂
+  obtain ⟨hc₃, hk₃⟩ := collectBlockScalarLoop_accepts hlines sc₂ "" (sc.inputEnd - sc₂.offset + 1)
+    sc.inputEnd sp' hc₂ hie hstop (by rw [← hie]; exact hfuel)
+  have htab := blockScalarTabStop_false_of_stop hstop hc₃
+  generalize hcl : collectBlockScalarLoop sc₂ "" (sc.inputEnd - sc₂.offset + 1) n sc.inputEnd = r
+    at hc₃ hk₃ htab
+  obtain ⟨raw, sc₃⟩ := r
+  have htab' : blockScalarTabStop sc₃ = false := htab
+  have ht₃ : sc₃.tokens = sc₂.tokens := hk₃.1
+  have hc₃' : ScannerSurfCorr sc₃ sp' := hc₃
+  have htok : ∀ (content : String) (style : ScalarStyle),
+      ({ (sc₃.emitAt sc.currentPos (.scalar content style)) with
+          simpleKeyAllowed := true, simpleKey := { possible := false } } : ScannerState).tokens =
+        sc.tokens.push { pos := sc.currentPos, val := .scalar content style } := by
+    intro content style
+    simp [ScannerState.emitAt, ht₃, hk₂.1, hk₁.1, (keeps_advance sc).1]
+  have hcorr' : ∀ (content : String) (style : ScalarStyle),
+      ScannerSurfCorr { (sc₃.emitAt sc.currentPos (.scalar content style)) with
+          simpleKeyAllowed := true, simpleKey := { possible := false } } sp' := by
+    intro content style
+    exact ⟨hc₃'.chars_from, hc₃'.col_eq, hc₃'.end_eq, hc₃'.input_prefix, hc₃'.indent_cols_nonneg⟩
+  unfold scanBlockScalar
+  simp only [hhd, hnl]
+  unfold scanBlockScalarBody
+  cases m with
+  | some k =>
+    simp only [BlockIndentOk] at hn
+    simp only [hn.symm, hcl, htab', Bool.false_eq_true, ite_false]
+    exact ⟨_, _, rfl, hcorr' _ _, htok _ _⟩
+  | none =>
+    simp only [BlockIndentOk] at hn
+    simp only [autoDetectBlockScalarIndent_accepts sc₂ hn hc₂ sc.inputEnd hie, hcl, htab',
+      Bool.false_eq_true, ite_false]
+    exact ⟨_, _, rfl, hcorr' _ _, htok _ _⟩
+
 end L4YAML.Proofs.Acceptance
