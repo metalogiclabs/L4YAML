@@ -3905,10 +3905,25 @@ def testNotQuestionPark (state : IO.Ref TestCollector) : IO Unit := do
          ("key+placeholder", #[mk .key, mk .placeholder]),
          ("value+placeholder", #[mk .value, mk .placeholder]),
          ("key+key", #[mk .key, mk .key])]
+      -- Every `YamlToken` constructor but the two the lemma excludes (`hp`, `hk`), the
+      -- parameterised ones with a representative payload and `scalar` in all five styles.
+      let kinds : List (String × YamlToken) :=
+        [("streamStart", .streamStart), ("streamEnd", .streamEnd),
+         ("versionDirective", .versionDirective 1 2), ("tagDirective", .tagDirective "!" "!foo"),
+         ("documentStart", .documentStart), ("documentEnd", .documentEnd),
+         ("blockSequenceStart", .blockSequenceStart), ("blockMappingStart", .blockMappingStart),
+         ("blockEnd", .blockEnd), ("blockEntry", .blockEntry), ("value", .value),
+         ("flowSequenceStart", .flowSequenceStart), ("flowSequenceEnd", .flowSequenceEnd),
+         ("flowMappingStart", .flowMappingStart), ("flowMappingEnd", .flowMappingEnd),
+         ("flowEntry", .flowEntry), ("anchor", .anchor "a"), ("alias", .alias "a"),
+         ("tag", .tag "!" "x"), ("scalar/plain", .scalar "x" .plain),
+         ("scalar/singleQuoted", .scalar "x" .singleQuoted),
+         ("scalar/doubleQuoted", .scalar "x" .doubleQuoted),
+         ("scalar/literal", .scalar "x" .literal), ("scalar/folded", .scalar "x" .folded),
+         ("comment", .comment "c")]
       for (name, ts) in bases do
-        checkM state s!"push_top/{name}/value" (notQuestionParkB (ts.push (mk .value))) ""
-        checkM state s!"push_top/{name}/blockEnd" (notQuestionParkB (ts.push (mk .blockEnd))) ""
-        checkM state s!"push_top/{name}/blockEntry" (notQuestionParkB (ts.push (mk .blockEntry))) ""
+        for (kind, t) in kinds do
+          checkM state s!"push_top/{name}/{kind}" (notQuestionParkB (ts.push (mk t))) ""
         checkM state s!"push_top/{name}/key refutes (hk)" (!notQuestionParkB (ts.push (mk .key))) ""
       checkM state "push_top/key+placeholder+placeholder: still a `?` tail (hp)"
         (!notQuestionParkB (#[mk .key, mk .placeholder].push (mk .placeholder))) ""
