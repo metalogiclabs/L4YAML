@@ -1010,7 +1010,8 @@ lemma scanNamedTag_preserves_explicitKeyStack (s : ScannerState) (startPos : Yam
   split
   · simp [emitAt_preserves_explicitKeyStack, collectTagSuffixLoop_preserves_explicitKeyStack,
           collectTagHandleLoop_preserves_explicitKeyStack]
-  · simp [emitAt_preserves_explicitKeyStack, collectTagHandleLoop_preserves_explicitKeyStack]
+  · simp [emitAt_preserves_explicitKeyStack, collectTagSuffixLoop_preserves_explicitKeyStack,
+          collectTagHandleLoop_preserves_explicitKeyStack]
 
 -- Cloned from `ScannerCorrectness` lines 4961-4977 (`_preserves_explicitKeyStack` twin).
 lemma scanTag_preserves_explicitKeyStack (s : ScannerState)

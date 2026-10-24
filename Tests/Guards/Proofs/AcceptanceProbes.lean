@@ -345,11 +345,12 @@ def tg (s : String) := propAt scanTag s
 #guard tg "!" == some ("!", "", 1, 1)
 #guard tg "!a,b" == some ("!", "a", 2, 2)
 #guard tg "!a-b" == some ("!", "a-b", 4, 4)
--- Refuters: `SCNsTagProperty.primary` admits any `[40]` suffix (`%21`, `a:b`); the scanner
--- stops at `%` and `:` — hence `TagOk.primary` uses `isWordCharProp`.
-#guard tg "!%21 b" == some ("!", "", 1, 1)
-#guard tg "!a:b" == some ("!", "a", 2, 2)
-#guard tg "!a%21" == some ("!", "a", 2, 2)
+-- N1b: the scanner now collects the full `[40] ns-tag-char*` suffix after the word-char
+-- handle run (`%`, `:` included), as `SCNsTagProperty.primary` admits; `TagOk.primary` mirrors
+-- both loops.  These three used to be refuters (the scanner stopped at `%` and `:`).
+#guard tg "!%21 b" == some ("!", "%21", 4, 4)
+#guard tg "!a:b" == some ("!", "a:b", 4, 4)
+#guard tg "!a%21" == some ("!", "a%21", 5, 5)
 
 /-! Flow indicators: the landing (offset, column) and the emitted token's name, with the
     token array `prev` already scanned (the `,` guard reads `lastRealTokenVal?`). -/

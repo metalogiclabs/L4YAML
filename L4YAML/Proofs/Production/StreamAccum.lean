@@ -14118,7 +14118,8 @@ lemma dispatchContent_tag_tokens {s s' : ScannerState}
                     ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
                     ScannerCorrectness.advance_preserves_tokens]) _ _⟩
             · exact ⟨_, _, emitAt_push_tokens (by
-                rw [ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
+                rw [ScannerCorrectness.ScanHelpers.collectTagSuffixLoop_preserves_tokens,
+                    ScannerCorrectness.ScanHelpers.collectTagHandleLoop_preserves_tokens,
                     ScannerCorrectness.advance_preserves_tokens]) _ _⟩
       · rename_i h_neq; exact absurd rfl h_neq
 

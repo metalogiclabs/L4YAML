@@ -981,12 +981,17 @@ lemma scanTag_cursor {s s' : ScannerState}
       (s.inputEnd - s.advance.offset)
     rw [h_loop] at hok h_hl h_hc h_hi
     dsimp only [] at hok h_hl h_hc h_hi
-    rcases h_loop2 : collectTagSuffixLoop s_h "" (s.inputEnd - s_h.offset)
+    rcases h_loop2 : collectTagSuffixLoop s_h
+        (if fb = true then ("!" ++ chars ++ "!", "") else ("!", chars)).snd
+        (s.inputEnd - s_h.offset)
       with ⟨sfx, s_sf⟩
-    have h_sl := (collectTagSuffixLoop_line_nic s_h ""
+    have h_sl := (collectTagSuffixLoop_line_nic s_h
+      (if fb = true then ("!" ++ chars ++ "!", "") else ("!", chars)).snd
       (s.inputEnd - s_h.offset)).1
-    have h_sc := collectTagSuffixLoop_col_ge (s.inputEnd - s_h.offset) s_h ""
-    have h_si := collectTagSuffixLoop_preserves_indents s_h ""
+    have h_sc := collectTagSuffixLoop_col_ge (s.inputEnd - s_h.offset) s_h
+      (if fb = true then ("!" ++ chars ++ "!", "") else ("!", chars)).snd
+    have h_si := collectTagSuffixLoop_preserves_indents s_h
+      (if fb = true then ("!" ++ chars ++ "!", "") else ("!", chars)).snd
       (s.inputEnd - s_h.offset)
     rw [h_loop2] at h_sl h_sc h_si
     rw [h_loop2] at hok <;> try skip

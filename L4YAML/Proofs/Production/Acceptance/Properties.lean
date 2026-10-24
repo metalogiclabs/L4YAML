@@ -357,11 +357,19 @@ inductive TagOk : SurfPos → SurfPos → Prop where
       GStar (GChar isTagCharProp) s₂ s' →
       (∀ c, s'.chars.head? = some c → ¬ isTagCharProp c) →
       TagOk ⟨'!' :: rest, col⟩ s'
-  | primary (rest : List Char) (col : Nat) (s' : SurfPos) :
-      GStar (GChar isWordCharProp) ⟨rest, col + 1⟩ s' →
-      (∀ c, s'.chars.head? = some c → ¬ isWordCharProp c ∧ c ≠ '!') →
+  | primary (rest : List Char) (col : Nat) (s₁ s' : SurfPos) :
+      GStar (GChar isWordCharProp) ⟨rest, col + 1⟩ s₁ →
+      (∀ c, s₁.chars.head? = some c → ¬ isWordCharProp c ∧ c ≠ '!') →
+      GStar (GChar isTagCharProp) s₁ s' →
+      (∀ c, s'.chars.head? = some c → ¬ isTagCharProp c) →
       rest.head? ≠ some '<' →
       TagOk ⟨'!' :: rest, col⟩ s'
+
+private lemma gstar_append_local {P : SurfPos → SurfPos → Prop} {a b c : SurfPos}
+    (h₁ : GStar P a b) : GStar P b c → GStar P a c := by
+  induction h₁ with
+  | nil _ => exact id
+  | cons s₁ s₂ _ hx _ ih => exact fun h => GStar.cons s₁ s₂ c hx (ih h)
 
 /-- `TagOk` is a sub-relation of `[97] c-ns-tag-property`. -/
 lemma TagOk.toSCNsTagProperty {s s' : SurfPos} (h : TagOk s s') : SCNsTagProperty s s' := by
@@ -369,17 +377,11 @@ lemma TagOk.toSCNsTagProperty {s s' : SurfPos} (h : TagOk s s') : SCNsTagPropert
   | verbatim rest col s₁ s₂ s' h₁ h₂ h₃ => exact .verbatim rest col s₁ s₂ s' h₁ h₂ h₃
   | secondary srest col s' h _ => exact .secondary srest col s' h
   | named rest col s₁ s₂ s' h₁ h₂ h₃ _ => exact .named rest col s₁ s₂ s' h₁ h₂ h₃
-  | primary rest col s' h _ _ =>
-    -- `[99]` now demands a non-empty `ns-tag-char+`; the empty word run is the bare `!`,
-    -- i.e. the non-specific tag `[100]`.
-    cases h with
-    | nil _ => exact .nonSpecific rest col
-    | cons _ sp_mid _ h_head h_tail =>
-      have h_head' : GChar isTagCharProp ⟨rest, col + 1⟩ sp_mid := by
-        cases h_head with
-        | mk _ _ _ hc => exact GChar.mk _ _ _ (isWordCharProp_to_isTagCharProp hc)
-      exact .primary rest col s' (GPlus.mk _ sp_mid _ h_head'
-        (GStar_gchar_lift (fun _ => isWordCharProp_to_isTagCharProp) h_tail))
+  | primary rest col s₁ s' h _ hsuf _ _ =>
+    have hfull := gstar_append_local (GStar_gchar_lift (fun _ => isWordCharProp_to_isTagCharProp) h) hsuf
+    by_cases h_ne : (⟨rest, col + 1⟩ : SurfPos) = s'
+    · subst h_ne; exact .nonSpecific rest col
+    · exact .primary rest col s' (GStar_to_GPlus hfull h_ne)
 
 lemma wordChar_ne_lt_bang {c : Char} (hw : isWordCharProp c) : c ≠ '<' ∧ c ≠ '!' := by
   refine ⟨?_, ?_⟩ <;> intro e <;> subst e <;>
@@ -457,20 +459,25 @@ lemma scanTag_accepts (sc : ScannerState) {sp sp' : SurfPos}
       ⟨hc.chars_from, hc.col_eq, hc.end_eq, hc.input_prefix, hc.indent_cols_nonneg⟩, ?_⟩
     · simp [scanTag, hpk₁, hne₁, hne₂, scanNamedTag, heq₁, heq₂]
     · simp [ScannerState.emitAt, (((keeps_advance sc).trans hk₁).trans hk₂).1]
-  | primary rest col s' hhand hmax hlt =>
+  | primary rest col s₁ s' hhand hmax hsuf hmax₂ hlt =>
     have hadv₁ := advance_corr hcorr (by decide) (by decide)
     have hfuel := fuel_of_corr hadv₁
     obtain ⟨sc₁, chars', heq₁, hcorr₁, hk₁⟩ :=
       collectTagHandleLoop_accepts_open hhand hmax sc.advance ""
         (sc.inputEnd - sc.advance.offset) hadv₁ (by have := (keeps_advance sc).2.1; omega)
-    have hc := corr_of_emitAt sc.currentPos (YamlToken.tag "!" chars') hcorr₁
-    refine ⟨{ sc₁.emitAt sc.currentPos (YamlToken.tag "!" chars') with
-        simpleKeyAllowed := false }, "!", chars', ?_,
+    have hfuel₂ := fuel_of_corr hcorr₁
+    have hie₁ : sc₁.inputEnd = sc.inputEnd := by
+      have h1 := hk₁.2.1; have h2 := (keeps_advance sc).2.1; omega
+    obtain ⟨sc₂, suf', heq₂, hcorr₂, hk₂⟩ :=
+      collectTagSuffixLoop_accepts hsuf hmax₂ sc₁ chars' (sc.inputEnd - sc₁.offset) hcorr₁ (by omega)
+    have hc := corr_of_emitAt sc.currentPos (YamlToken.tag "!" suf') hcorr₂
+    refine ⟨{ sc₂.emitAt sc.currentPos (YamlToken.tag "!" suf') with
+        simpleKeyAllowed := false }, "!", suf', ?_,
       ⟨hc.chars_from, hc.col_eq, hc.end_eq, hc.input_prefix, hc.indent_cols_nonneg⟩, ?_⟩
     · cases rest with
       | nil =>
         have hpk₁ := peek_none_of_corr hadv₁
-        simp [scanTag, hpk₁, scanNamedTag, heq₁]
+        simp [scanTag, hpk₁, scanNamedTag, heq₁, heq₂]
       | cons c tl =>
         have hpk₁ := (peek_of_corr hadv₁).1
         have hne₁ : c ≠ '<' := by intro e; subst e; exact hlt rfl
@@ -480,8 +487,8 @@ lemma scanTag_accepts (sc : ScannerState) {sp sp' : SurfPos}
           | cons _ _ _ hstep _ =>
             cases hstep with
             | mk _ _ _ hc => exact (wordChar_ne_lt_bang hc).2
-        simp [scanTag, hpk₁, hne₁, hne₂, scanNamedTag, heq₁]
-    · simp [ScannerState.emitAt, ((keeps_advance sc).trans hk₁).1]
+        simp [scanTag, hpk₁, hne₁, hne₂, scanNamedTag, heq₁, heq₂]
+    · simp [ScannerState.emitAt, (((keeps_advance sc).trans hk₁).trans hk₂).1]
 
 end L4YAML.Proofs.Acceptance
 

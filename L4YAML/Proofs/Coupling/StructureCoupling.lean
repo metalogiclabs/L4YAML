@@ -282,8 +282,10 @@ lemma scanNamedTag_corr (sc : ScannerState) (sp : SurfPos)
     obtain ⟨sp_sfx, hcorr_sfx⟩ :=
       collectTagSuffixLoop_corr _ sp_hdl hcorr_hdl "" _
     exact ⟨sp_sfx, ⟨hcorr_sfx.chars_from, hcorr_sfx.col_eq, hcorr_sfx.end_eq, hcorr_sfx.input_prefix, hcorr_sfx.indent_cols_nonneg⟩⟩
-  · -- foundBang = false
-    exact ⟨sp_hdl, ⟨hcorr_hdl.chars_from, hcorr_hdl.col_eq, hcorr_hdl.end_eq, hcorr_hdl.input_prefix, hcorr_hdl.indent_cols_nonneg⟩⟩
+  · -- foundBang = false: the primary suffix also runs collectTagSuffixLoop
+    obtain ⟨sp_sfx, hcorr_sfx⟩ :=
+      collectTagSuffixLoop_corr _ sp_hdl hcorr_hdl _ _
+    exact ⟨sp_sfx, ⟨hcorr_sfx.chars_from, hcorr_sfx.col_eq, hcorr_sfx.end_eq, hcorr_sfx.input_prefix, hcorr_sfx.indent_cols_nonneg⟩⟩
 
 lemma scanTag_corr (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp) (s' : ScannerState)

@@ -748,7 +748,7 @@ lemma scanNamedTag_preserves_indents (s : ScannerState) (p : YamlPos) (inputEnd 
   · simp only [ScannerState.emitAt]
     rw [collectTagSuffixLoop_preserves_indents, collectTagHandleLoop_preserves_indents]
   · simp only [ScannerState.emitAt]
-    rw [collectTagHandleLoop_preserves_indents]
+    rw [collectTagSuffixLoop_preserves_indents, collectTagHandleLoop_preserves_indents]
 
 /-- `[97] c-ns-tag-property` in all four shapes. -/
 lemma scanTag_preserves_indents {s s' : ScannerState}

@@ -173,11 +173,8 @@ def scanNamedTag (s : ScannerState) (startPos : YamlPos) (inputEnd : Nat) : Scan
     else
       ("!", chars)
   let (suffix, s_after_suffix) :=
-    if foundBang then
-      let fuel' := inputEnd - s_after_handle.offset
-      collectTagSuffixLoop s_after_handle "" fuel'
-    else
-      (suffix_or_chars, s_after_handle)
+    let fuel' := inputEnd - s_after_handle.offset
+    collectTagSuffixLoop s_after_handle suffix_or_chars fuel'
   s_after_suffix.emitAt startPos (.tag handle suffix)
 
 /-- Scan a tag property (`!`, `!!suffix`, `!handle!suffix`, `!<uri>`).

@@ -673,7 +673,8 @@ lemma scanNamedTag_preserves_explicitKeyLine (s : ScannerState) (startPos : Yaml
   split
   · simp [emitAt_preserves_explicitKeyLine, collectTagSuffixLoop_preserves_explicitKeyLine,
           collectTagHandleLoop_preserves_explicitKeyLine]
-  · simp [emitAt_preserves_explicitKeyLine, collectTagHandleLoop_preserves_explicitKeyLine]
+  · simp [emitAt_preserves_explicitKeyLine, collectTagSuffixLoop_preserves_explicitKeyLine,
+          collectTagHandleLoop_preserves_explicitKeyLine]
 
 lemma scanTag_preserves_explicitKeyLine (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s') :
@@ -1533,7 +1534,8 @@ lemma scanNamedTag_preserves_explicitKeyCol (s : ScannerState) (startPos : YamlP
   split
   · simp [emitAt_preserves_explicitKeyCol, collectTagSuffixLoop_preserves_explicitKeyCol,
           collectTagHandleLoop_preserves_explicitKeyCol]
-  · simp [emitAt_preserves_explicitKeyCol, collectTagHandleLoop_preserves_explicitKeyCol]
+  · simp [emitAt_preserves_explicitKeyCol, collectTagSuffixLoop_preserves_explicitKeyCol,
+          collectTagHandleLoop_preserves_explicitKeyCol]
 
 lemma scanTag_preserves_explicitKeyCol (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s') :

@@ -1200,9 +1200,10 @@ lemma scanNamedTag_BoundInv {s₀ : ScannerState} (s : ScannerState)
     exact emitAt_BoundInv _ _ _
       (collectTagSuffixLoop_BoundInv _ "" _
         (collectTagHandleLoop_BoundInv _ "" _ h hend) hend)
-  · -- foundBang = false: emitAt on collectTagHandleLoop state
+  · -- foundBang = false: the primary suffix also runs collectTagSuffixLoop
     exact emitAt_BoundInv _ _ _
-      (collectTagHandleLoop_BoundInv _ "" _ h hend)
+      (collectTagSuffixLoop_BoundInv _ _ _
+        (collectTagHandleLoop_BoundInv _ "" _ h hend) hend)
 
 lemma scanTag_BoundInv (s s' : ScannerState)
     (h : BoundInv s s) (hend : s.inputEnd = s.input.utf8ByteSize)

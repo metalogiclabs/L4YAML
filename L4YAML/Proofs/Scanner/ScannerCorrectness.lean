@@ -2090,7 +2090,7 @@ lemma scanNamedTag_adds_one_token (s : ScannerState) (pos : YamlPos) (inputEnd :
   · let s_after := (collectTagHandleLoop s "" (inputEnd - s.offset)).snd.snd
     have h_suffix := collectTagSuffixLoop_preserves_tokens s_after "" (inputEnd - s_after.offset)
     rw [emitAt_tokens_size, h_suffix, h_handle]
-  · rw [emitAt_tokens_size, h_handle]
+  · rw [emitAt_tokens_size, collectTagSuffixLoop_preserves_tokens, h_handle]
 
 /-- scanTag adds exactly one token (on success). -/
 lemma scanTag_adds_one_token (s : ScannerState)
@@ -2829,7 +2829,7 @@ lemma scanNamedTag_preserves_prefix (s : ScannerState) (pos : YamlPos) (inputEnd
   · apply emitAt_chain_preserves_prefix
     rw [collectTagSuffixLoop_preserves_tokens, h_handle]
   · apply emitAt_chain_preserves_prefix
-    rw [h_handle]
+    rw [collectTagSuffixLoop_preserves_tokens, h_handle]
 
 /-- scanTag preserves token prefix (on success). -/
 lemma scanTag_preserves_prefix (s : ScannerState)
@@ -4716,7 +4716,8 @@ lemma scanNamedTag_preserves_implicitValueLine (s : ScannerState) (startPos : Ya
   split
   · simp [emitAt_preserves_implicitValueLine, collectTagSuffixLoop_preserves_implicitValueLine,
           collectTagHandleLoop_preserves_implicitValueLine]
-  · simp [emitAt_preserves_implicitValueLine, collectTagHandleLoop_preserves_implicitValueLine]
+  · simp [emitAt_preserves_implicitValueLine, collectTagSuffixLoop_preserves_implicitValueLine,
+          collectTagHandleLoop_preserves_implicitValueLine]
 
 /-- `docStartLine` twin of `scanNamedTag_preserves_implicitValueLine` (item 299): the field has one writer, `scanDocumentStart`. -/
 lemma scanNamedTag_preserves_docStartLine (s : ScannerState) (startPos : YamlPos) (inputEnd : Nat) :
@@ -4726,7 +4727,8 @@ lemma scanNamedTag_preserves_docStartLine (s : ScannerState) (startPos : YamlPos
   split
   · simp [emitAt_preserves_docStartLine, collectTagSuffixLoop_preserves_docStartLine,
           collectTagHandleLoop_preserves_docStartLine]
-  · simp [emitAt_preserves_docStartLine, collectTagHandleLoop_preserves_docStartLine]
+  · simp [emitAt_preserves_docStartLine, collectTagSuffixLoop_preserves_docStartLine,
+          collectTagHandleLoop_preserves_docStartLine]
 
 lemma scanTag_preserves_implicitValueLine (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s') :
@@ -6930,7 +6932,8 @@ lemma scanNamedTag_preserves_simpleKey (s : ScannerState) (startPos : YamlPos) (
   split
   · simp [emitAt_preserves_simpleKey, collectTagSuffixLoop_preserves_simpleKey,
           collectTagHandleLoop_preserves_simpleKey]
-  · simp [emitAt_preserves_simpleKey, collectTagHandleLoop_preserves_simpleKey]
+  · simp [emitAt_preserves_simpleKey, collectTagSuffixLoop_preserves_simpleKey,
+          collectTagHandleLoop_preserves_simpleKey]
 
 lemma scanNamedTag_preserves_simpleKeyStack (s : ScannerState) (startPos : YamlPos) (inputEnd : Nat) :
     (scanNamedTag s startPos inputEnd).simpleKeyStack = s.simpleKeyStack := by
@@ -6939,7 +6942,8 @@ lemma scanNamedTag_preserves_simpleKeyStack (s : ScannerState) (startPos : YamlP
   split
   · simp [emitAt_preserves_simpleKeyStack, collectTagSuffixLoop_preserves_simpleKeyStack,
           collectTagHandleLoop_preserves_simpleKeyStack]
-  · simp [emitAt_preserves_simpleKeyStack, collectTagHandleLoop_preserves_simpleKeyStack]
+  · simp [emitAt_preserves_simpleKeyStack, collectTagSuffixLoop_preserves_simpleKeyStack,
+          collectTagHandleLoop_preserves_simpleKeyStack]
 
 lemma scanTag_preserves_simpleKey (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s') :
@@ -7042,7 +7046,8 @@ lemma scanNamedTag_preserves_flowLevel (s : ScannerState) (startPos : YamlPos) (
   split
   · simp [emitAt_preserves_flowLevel, collectTagSuffixLoop_preserves_flowLevel,
           collectTagHandleLoop_preserves_flowLevel]
-  · simp [emitAt_preserves_flowLevel, collectTagHandleLoop_preserves_flowLevel]
+  · simp [emitAt_preserves_flowLevel, collectTagSuffixLoop_preserves_flowLevel,
+          collectTagHandleLoop_preserves_flowLevel]
 
 lemma scanTag_preserves_flowLevel (s : ScannerState)
     (s' : ScannerState) (hok : scanTag s = .ok s') :
@@ -10334,15 +10339,24 @@ lemma scanNamedTag_preserves_ScanInv (s : ScannerState) (startPos : YamlPos)
         (collectTagHandleLoop s "" (inputEnd - s.offset)).snd.snd "" (inputEnd - (collectTagHandleLoop s "" (inputEnd - s.offset)).snd.snd.offset)
       simp only [h_tok2, h_tok1] at hi ⊢
       exact h_ge ⟨i, hi⟩
-  · -- foundBang = false: collectTagHandleLoop only → emitAt
+  · -- foundBang = false: collectTagHandleLoop → collectTagSuffixLoop (primary suffix) → emitAt
     apply emitAt_preserves_ScanInv
-    · exact ScanInv_mono h
-        (ScanHelpers.collectTagHandleLoop_preserves_tokens s "" _)
-        (collectTagHandleLoop_offset_ge s "" _)
-    · exact Nat.le_trans h_pos (collectTagHandleLoop_offset_ge s "" _)
+    · have h_handle_tok := ScanHelpers.collectTagHandleLoop_preserves_tokens s "" (inputEnd - s.offset)
+      have h_handle_ge := collectTagHandleLoop_offset_ge s "" (inputEnd - s.offset)
+      have h_inv_handle : ScanInv (collectTagHandleLoop s "" (inputEnd - s.offset)).snd.snd :=
+        ScanInv_mono h h_handle_tok h_handle_ge
+      exact ScanInv_mono h_inv_handle
+        (ScanHelpers.collectTagSuffixLoop_preserves_tokens _ _ _)
+        (collectTagSuffixLoop_offset_ge _ _ _)
+    · exact Nat.le_trans h_pos (Nat.le_trans (collectTagHandleLoop_offset_ge s "" _)
+        (collectTagSuffixLoop_offset_ge _ _ _))
     · intro ⟨i, hi⟩
-      have h_tok := ScanHelpers.collectTagHandleLoop_preserves_tokens s "" (inputEnd - s.offset)
-      simp only [h_tok] at hi ⊢
+      have h_tok1 := ScanHelpers.collectTagHandleLoop_preserves_tokens s "" (inputEnd - s.offset)
+      have h_tok2 := ScanHelpers.collectTagSuffixLoop_preserves_tokens
+        (collectTagHandleLoop s "" (inputEnd - s.offset)).snd.snd
+        ("!", (collectTagHandleLoop s "" (inputEnd - s.offset)).fst).snd
+        (inputEnd - (collectTagHandleLoop s "" (inputEnd - s.offset)).snd.snd.offset)
+      simp only [h_tok2, h_tok1] at hi ⊢
       exact h_ge ⟨i, hi⟩
 
 -- scanTag preserves ScanInv (Except function).
@@ -12154,7 +12168,8 @@ lemma scanNamedTag_offset_ge (s : ScannerState) (startPos : YamlPos) (inputEnd :
   split
   · exact Nat.le_trans (collectTagHandleLoop_offset_ge s "" _)
       (collectTagSuffixLoop_offset_ge _ _ _)
-  · exact collectTagHandleLoop_offset_ge s "" _
+  · exact Nat.le_trans (collectTagHandleLoop_offset_ge s "" _)
+      (collectTagSuffixLoop_offset_ge _ _ _)
 
 set_option maxHeartbeats 800000 in
 /-- `scanTag` strictly advances offset when `offset < inputEnd`. -/

@@ -457,7 +457,11 @@ lemma scanNamedTag_line_nic (s : ScannerState) (startPos : YamlPos) (inputEnd : 
       (collectTagHandleLoop s "" (inputEnd - s.offset)).2.2 ""
       (inputEnd - (collectTagHandleLoop s "" (inputEnd - s.offset)).2.2.offset)
     exact ⟨hl2.trans hl1, hn2.trans hn1⟩
-  · exact ⟨hl1, hn1⟩
+  · obtain ⟨hl2, hn2⟩ := collectTagSuffixLoop_line_nic
+      (collectTagHandleLoop s "" (inputEnd - s.offset)).2.2
+      ("!", (collectTagHandleLoop s "" (inputEnd - s.offset)).fst).snd
+      (inputEnd - (collectTagHandleLoop s "" (inputEnd - s.offset)).2.2.offset)
+    exact ⟨hl2.trans hl1, hn2.trans hn1⟩
 
 lemma scanTag_line_nic {s s' : ScannerState}
     (hp : s.peek? = some '!')
