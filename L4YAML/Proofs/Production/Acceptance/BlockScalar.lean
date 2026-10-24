@@ -345,4 +345,486 @@ lemma collectBlockScalarLoop_accepts {n : Nat} {sp sp' : SurfPos}
       obtain ⟨h1, h2⟩ := ih sc' raw' f ie sp'' hc' (by rw [hk'.2.1, hie]) hstop (by omega)
       rw [heq]; exact ⟨h1, hk'.trans h2⟩
 
+/-! ## §3 `[162] c-b-block-header` as the scanner reads it -/
+
+/-- `[164]`: the chomping style `parseBlockHeaderLoop` records for an optional `-`/`+`. -/
+inductive ChompOk : ChompStyle → SurfPos → SurfPos → Prop where
+  | clip (s : SurfPos) : ChompOk .clip s s
+  | strip (rest : List Char) (col : Nat) : ChompOk .strip ⟨'-' :: rest, col⟩ ⟨rest, col + 1⟩
+  | keep (rest : List Char) (col : Nat) : ChompOk .keep ⟨'+' :: rest, col⟩ ⟨rest, col + 1⟩
+
+/-- `[163]`: the explicit offset `parseBlockHeaderLoop` records for an optional digit `1`–`9`. -/
+inductive IndentOk : Option Nat → SurfPos → SurfPos → Prop where
+  | auto (s : SurfPos) : IndentOk none s s
+  | digit (d : Char) (rest : List Char) (col : Nat) (h1 : '1' ≤ d) (h9 : d ≤ '9') :
+      IndentOk (some (d.toNat - '0'.toNat)) ⟨d :: rest, col⟩ ⟨rest, col + 1⟩
+
+/-- The indicators of `[162]`: at most one of each kind, in either order. -/
+inductive HeaderIndicatorsOk : ChompStyle → Option Nat → SurfPos → SurfPos → Prop where
+  | indentFirst (chomp : ChompStyle) (m : Option Nat) (s s₁ s' : SurfPos) :
+      IndentOk m s s₁ → ChompOk chomp s₁ s' → HeaderIndicatorsOk chomp m s s'
+  | chompFirst (chomp : ChompStyle) (m : Option Nat) (s s₁ s' : SurfPos) :
+      ChompOk chomp s s₁ → IndentOk m s₁ s' → HeaderIndicatorsOk chomp m s s'
+
+/-- Comment text as `collectCommentTextLoop` reads it: anything up to a break. -/
+def CommentCharOk (c : Char) : Prop := isLineBreakBool c = false
+
+/-- The header line after the indicators: `skipWhitespace`'s maximal white run, then the
+    break `scanBlockScalarConsumeNewline` takes (or EOF); or, only after at least one white,
+    a `#` comment running to that break (or EOF). -/
+inductive HeaderTailOk : SurfPos → SurfPos → Prop where
+  | break_ (s s₁ s' : SurfPos) : GStar SSWhite s s₁ → SBBreakOk s₁ s' → HeaderTailOk s s'
+  | eof (s : SurfPos) (col : Nat) : GStar SSWhite s ⟨[], col⟩ → HeaderTailOk s ⟨[], col⟩
+  | commentBreak (s s₂ s' : SurfPos) (rest : List Char) (col : Nat) :
+      GPlus SSWhite s ⟨'#' :: rest, col⟩ → GStar (GChar CommentCharOk) ⟨rest, col + 1⟩ s₂ →
+      SBBreakOk s₂ s' → HeaderTailOk s s'
+  | commentEof (s : SurfPos) (rest : List Char) (col col' : Nat) :
+      GPlus SSWhite s ⟨'#' :: rest, col⟩ →
+      GStar (GChar CommentCharOk) ⟨rest, col + 1⟩ ⟨[], col'⟩ → HeaderTailOk s ⟨[], col'⟩
+
+/-- A header tail starts with white, a break, `#`, or EOF — never a header indicator. -/
+def TailHead (c : Char) : Prop := c = ' ' ∨ c = '\t' ∨ c = '\n' ∨ c = '\r' ∨ c = '#'
+
+lemma GStar_SSWhite_head {s s' : SurfPos} (hw : GStar SSWhite s s')
+    (hs' : ∀ c, s'.chars.head? = some c → TailHead c) :
+    ∀ c, s.chars.head? = some c → TailHead c := by
+  cases hw with
+  | nil _ => exact hs'
+  | cons _ _ _ hstep _ =>
+    cases hstep with
+    | space rest col => intro c hc; simp at hc; subst hc; exact Or.inl rfl
+    | tab rest col => intro c hc; simp at hc; subst hc; exact Or.inr (Or.inl rfl)
+
+lemma lineBreak_cases {c : Char} (h : isLineBreakBool c = true) : c = '\n' ∨ c = '\r' := by
+  simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool, Bool.or_eq_true,
+    beq_iff_eq] at h
+  exact h
+
+lemma HeaderTailOk.head {s s' : SurfPos} (h : HeaderTailOk s s') :
+    ∀ c, s.chars.head? = some c → TailHead c := by
+  cases h with
+  | break_ s₁ s' hw hb =>
+    refine GStar_SSWhite_head hw ?_
+    obtain ⟨c, rest, hc, hlb⟩ := hb.head
+    intro d hd; rw [hc] at hd; simp at hd; subst hd
+    rcases lineBreak_cases hlb with rfl | rfl
+    · exact Or.inr (Or.inr (Or.inl rfl))
+    · exact Or.inr (Or.inr (Or.inr (Or.inl rfl)))
+  | eof col hw => exact GStar_SSWhite_head hw (by intro c hc; simp at hc)
+  | commentBreak s₂ s' rest col hw _ _ =>
+    cases hw with
+    | mk _ _ hstep _ =>
+      cases hstep with
+      | space rest col => intro c hc; simp at hc; subst hc; exact Or.inl rfl
+      | tab rest col => intro c hc; simp at hc; subst hc; exact Or.inr (Or.inl rfl)
+  | commentEof rest col col' hw _ =>
+    cases hw with
+    | mk _ _ hstep _ =>
+      cases hstep with
+      | space rest col => intro c hc; simp at hc; subst hc; exact Or.inl rfl
+      | tab rest col => intro c hc; simp at hc; subst hc; exact Or.inr (Or.inl rfl)
+
+/-! ## §4 Reading the header -/
+
+lemma digit_facts {d : Char} (h1 : '1' ≤ d) (h9 : d ≤ '9') :
+    d.isDigit = true ∧ d ≠ '0' ∧ d ≠ '-' ∧ d ≠ '+' ∧ d ≠ '\n' ∧ d ≠ '\r' := by
+  have h1' : (49 : UInt32) ≤ d.val := h1
+  have h9' : d.val ≤ 57 := h9
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [Char.isDigit, ge_iff_le, Bool.and_eq_true, decide_eq_true_eq]
+    exact ⟨UInt32.le_trans (by decide) h1', h9'⟩
+  all_goals (rintro rfl; first | exact absurd h1 (by decide) | exact absurd h9 (by decide))
+
+/-- From `.clip none`, `parseBlockHeaderLoop` stops at a header-tail character or EOF. -/
+lemma parseBlockHeaderLoop_stop (sc : ScannerState) (chomp : ChompStyle) (m : Option Nat)
+    (fuel : Nat) (hpk : sc.peek? = none ∨ ∃ c, sc.peek? = some c ∧ TailHead c) :
+    parseBlockHeaderLoop sc chomp m fuel = (chomp, m, sc) := by
+  cases fuel with
+  | zero => rfl
+  | succ f =>
+    rcases hpk with h | ⟨c, h, hc⟩
+    · simp [parseBlockHeaderLoop, peekBlockHeaderIndicator?, h]
+    · rcases hc with rfl | rfl | rfl | rfl | rfl <;>
+        simp [parseBlockHeaderLoop, peekBlockHeaderIndicator?, h, Char.isDigit]
+
+lemma parseBlockHeaderLoop_strip (sc : ScannerState) (m : Option Nat) (fuel : Nat)
+    (hpk : sc.peek? = some '-') :
+    parseBlockHeaderLoop sc .clip m (fuel + 1) = parseBlockHeaderLoop sc.advance .strip m fuel := by
+  simp [parseBlockHeaderLoop, peekBlockHeaderIndicator?, hpk]
+
+lemma parseBlockHeaderLoop_keep (sc : ScannerState) (m : Option Nat) (fuel : Nat)
+    (hpk : sc.peek? = some '+') :
+    parseBlockHeaderLoop sc .clip m (fuel + 1) = parseBlockHeaderLoop sc.advance .keep m fuel := by
+  simp [parseBlockHeaderLoop, peekBlockHeaderIndicator?, hpk]
+
+lemma parseBlockHeaderLoop_digit (sc : ScannerState) (chomp : ChompStyle) (fuel : Nat) {d : Char}
+    (hpk : sc.peek? = some d) (h1 : '1' ≤ d) (h9 : d ≤ '9') :
+    parseBlockHeaderLoop sc chomp none (fuel + 1) =
+      parseBlockHeaderLoop sc.advance chomp (some (d.toNat - '0'.toNat)) fuel := by
+  obtain ⟨hd, h0, hm, hp, -, -⟩ := digit_facts h1 h9
+  have hpeek : peekBlockHeaderIndicator? sc chomp none = some d := by
+    simp [peekBlockHeaderIndicator?, hpk, hm, hp]
+  simp only [parseBlockHeaderLoop, hpeek]
+  split <;> simp_all
+
+/-- `parseBlockHeaderLoop` from `.clip none` with fuel 2 reads exactly the indicators of
+    `HeaderIndicatorsOk` and lands where the tail starts. -/
+lemma parseBlockHeaderLoop_accepts (sc : ScannerState) {sp sp' : SurfPos}
+    {chomp : ChompStyle} {m : Option Nat}
+    (hcorr : ScannerSurfCorr sc sp) (h : HeaderIndicatorsOk chomp m sp sp')
+    (hhead : ∀ c, sp'.chars.head? = some c → TailHead c) :
+    ∃ sc', parseBlockHeaderLoop sc .clip none 2 = (chomp, m, sc') ∧
+      ScannerSurfCorr sc' sp' ∧ Keeps sc sc' := by
+  have stop : ∀ (sc : ScannerState) (chomp : ChompStyle) (m : Option Nat) (fuel : Nat),
+      ScannerSurfCorr sc sp' → parseBlockHeaderLoop sc chomp m fuel = (chomp, m, sc) := by
+    intro sc chomp m fuel hc
+    apply parseBlockHeaderLoop_stop
+    obtain ⟨chars, col⟩ := sp'
+    cases chars with
+    | nil => exact Or.inl (peek_none_of_corr hc)
+    | cons c tl => exact Or.inr ⟨c, (peek_of_corr hc).1, hhead c rfl⟩
+  match h with
+  | .indentFirst _ _ _ s₁ _ hi hch =>
+    cases hi with
+    | auto =>
+      cases hch with
+      | clip => exact ⟨sc, stop sc _ _ _ hcorr, hcorr, Keeps.refl sc⟩
+      | strip rest col =>
+        have hpk := (peek_of_corr hcorr).1
+        have hc₁ := advance_corr hcorr (by decide) (by decide)
+        exact ⟨sc.advance, by rw [parseBlockHeaderLoop_strip sc none 1 hpk, stop _ _ _ _ hc₁],
+          hc₁, keeps_advance sc⟩
+      | keep rest col =>
+        have hpk := (peek_of_corr hcorr).1
+        have hc₁ := advance_corr hcorr (by decide) (by decide)
+        exact ⟨sc.advance, by rw [parseBlockHeaderLoop_keep sc none 1 hpk, stop _ _ _ _ hc₁],
+          hc₁, keeps_advance sc⟩
+    | digit d rest col h1 h9 =>
+      obtain ⟨-, -, -, -, hnl, hcr⟩ := digit_facts h1 h9
+      have hpk := (peek_of_corr hcorr).1
+      have hc₁ := advance_corr hcorr hnl hcr
+      rw [parseBlockHeaderLoop_digit sc .clip 1 hpk h1 h9]
+      cases hch with
+      | clip => exact ⟨sc.advance, stop _ _ _ _ hc₁, hc₁, keeps_advance sc⟩
+      | strip rest col =>
+        have hpk₁ := (peek_of_corr hc₁).1
+        have hc₂ := advance_corr hc₁ (by decide) (by decide)
+        exact ⟨sc.advance.advance, by rw [parseBlockHeaderLoop_strip _ _ 0 hpk₁]; rfl, hc₂,
+          (keeps_advance sc).trans (keeps_advance _)⟩
+      | keep rest col =>
+        have hpk₁ := (peek_of_corr hc₁).1
+        have hc₂ := advance_corr hc₁ (by decide) (by decide)
+        exact ⟨sc.advance.advance, by rw [parseBlockHeaderLoop_keep _ _ 0 hpk₁]; rfl, hc₂,
+          (keeps_advance sc).trans (keeps_advance _)⟩
+  | .chompFirst _ _ _ s₁ _ hch hi =>
+    cases hch with
+    | clip =>
+      cases hi with
+      | auto => exact ⟨sc, stop sc _ _ _ hcorr, hcorr, Keeps.refl sc⟩
+      | digit d rest col h1 h9 =>
+        obtain ⟨-, -, -, -, hnl, hcr⟩ := digit_facts h1 h9
+        have hpk := (peek_of_corr hcorr).1
+        have hc₁ := advance_corr hcorr hnl hcr
+        exact ⟨sc.advance, by rw [parseBlockHeaderLoop_digit sc .clip 1 hpk h1 h9, stop _ _ _ _ hc₁],
+          hc₁, keeps_advance sc⟩
+    | strip rest col =>
+      have hpk := (peek_of_corr hcorr).1
+      have hc₁ := advance_corr hcorr (by decide) (by decide)
+      rw [parseBlockHeaderLoop_strip sc none 1 hpk]
+      cases hi with
+      | auto => exact ⟨sc.advance, stop _ _ _ _ hc₁, hc₁, keeps_advance sc⟩
+      | digit d rest col h1 h9 =>
+        obtain ⟨-, -, -, -, hnl, hcr⟩ := digit_facts h1 h9
+        have hpk₁ := (peek_of_corr hc₁).1
+        have hc₂ := advance_corr hc₁ hnl hcr
+        exact ⟨sc.advance.advance, by rw [parseBlockHeaderLoop_digit _ _ 0 hpk₁ h1 h9]; rfl, hc₂,
+          (keeps_advance sc).trans (keeps_advance _)⟩
+    | keep rest col =>
+      have hpk := (peek_of_corr hcorr).1
+      have hc₁ := advance_corr hcorr (by decide) (by decide)
+      rw [parseBlockHeaderLoop_keep sc none 1 hpk]
+      cases hi with
+      | auto => exact ⟨sc.advance, stop _ _ _ _ hc₁, hc₁, keeps_advance sc⟩
+      | digit d rest col h1 h9 =>
+        obtain ⟨-, -, -, -, hnl, hcr⟩ := digit_facts h1 h9
+        have hpk₁ := (peek_of_corr hc₁).1
+        have hc₂ := advance_corr hc₁ hnl hcr
+        exact ⟨sc.advance.advance, by rw [parseBlockHeaderLoop_digit _ _ 0 hpk₁ h1 h9]; rfl, hc₂,
+          (keeps_advance sc).trans (keeps_advance _)⟩
+
+/-- `collectCommentTextLoop` reads a `CommentCharOk` run up to a break or EOF. -/
+lemma collectCommentTextLoop_accepts {sp sp' : SurfPos} (h : GStar (GChar CommentCharOk) sp sp')
+    (hstop : ∀ c, sp'.chars.head? = some c → isLineBreakBool c = true) :
+    ∀ (sc : ScannerState) (text : String) (fuel : Nat),
+      ScannerSurfCorr sc sp → sp.chars.length ≤ fuel →
+      ScannerSurfCorr (collectCommentTextLoop sc text fuel).2 sp' ∧
+        Keeps sc (collectCommentTextLoop sc text fuel).2 := by
+  induction h with
+  | nil s =>
+    intro sc text fuel hcorr _
+    cases fuel with
+    | zero => simp only [collectCommentTextLoop]; exact ⟨hcorr, Keeps.refl sc⟩
+    | succ f =>
+      obtain ⟨chars, col⟩ := s
+      cases chars with
+      | nil => simp only [collectCommentTextLoop, peek_none_of_corr hcorr]; exact ⟨hcorr, Keeps.refl sc⟩
+      | cons c tl =>
+        have hpk := (peek_of_corr hcorr).1
+        simp only [collectCommentTextLoop, hpk, hstop c rfl, ite_true]
+        exact ⟨hcorr, Keeps.refl sc⟩
+  | cons s₁ s₂ s₃ hstep _ ih =>
+    intro sc text fuel hcorr hfuel
+    cases hstep with
+    | mk c rest col hc =>
+      cases fuel with
+      | zero => simp at hfuel
+      | succ f =>
+        have hpk := (peek_of_corr hcorr).1
+        have hcc : isLineBreakBool c = false := hc
+        have hnl : c ≠ '\n' := by intro e; subst e; exact absurd hcc (by decide)
+        have hcr : c ≠ '\r' := by intro e; subst e; exact absurd hcc (by decide)
+        obtain ⟨hc', hk⟩ := ih hstop sc.advance (text.push c) f (advance_corr hcorr hnl hcr)
+          (by dsimp only at hfuel ⊢; simp only [List.length_cons] at hfuel; omega)
+        simp only [collectCommentTextLoop, hpk, hcc, Bool.false_eq_true, ite_false]
+        exact ⟨hc', (keeps_advance sc).trans hk⟩
+
+lemma GStar_SSWhite_chars {s s' : SurfPos} (h : GStar SSWhite s s') :
+    ∃ ws : List Char, s.chars = ws ++ s'.chars ∧ ∀ c ∈ ws, isWhiteSpaceBool c = true := by
+  induction h with
+  | nil s => exact ⟨[], rfl, by simp⟩
+  | cons s₁ s₂ s₃ hstep _ ih =>
+    obtain ⟨ws, hws, hall⟩ := ih
+    cases hstep with
+    | space rest col =>
+      refine ⟨' ' :: ws, ?_, ?_⟩
+      · dsimp only at hws ⊢; rw [hws]; rfl
+      · intro c hc; rcases List.mem_cons.mp hc with rfl | hc
+        · decide
+        · exact hall c hc
+    | tab rest col =>
+      refine ⟨'\t' :: ws, ?_, ?_⟩
+      · dsimp only at hws ⊢; rw [hws]; rfl
+      · intro c hc; rcases List.mem_cons.mp hc with rfl | hc
+        · decide
+        · exact hall c hc
+
+lemma corr_of_comments {sc : ScannerState} {sp : SurfPos} (hcorr : ScannerSurfCorr sc sp)
+    (cs : Array (YamlPos × String)) : ScannerSurfCorr { sc with comments := cs } sp :=
+  ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
+
+/-- After `skipWhitespace` over a non-empty white run, the character behind the scanner is white. -/
+lemma peekBack_white_of_whites {sc sc₁ : ScannerState} {s s₁ : SurfPos}
+    (hcorr : ScannerSurfCorr sc s) (hc₁ : ScannerSurfCorr sc₁ s₁) (hin : sc₁.input = sc.input)
+    (hw : GPlus SSWhite s s₁) :
+    ∃ w, sc₁.peekBack? = some w ∧ isWhiteSpaceBool w = true := by
+  obtain ⟨ws, hws, hall⟩ := GStar_SSWhite_chars (GPlus.toGStar hw)
+  have hne : ws ≠ [] := by
+    rintro rfl
+    cases hw with
+    | mk s₂ _ hstep hrest =>
+      have hlen := GStar_SSWhite_length hrest
+      have hlw := congrArg List.length hws
+      cases hstep <;> simp at hlw hlen <;> omega
+  obtain ⟨pre, hsplit, hoff⟩ := hcorr.input_prefix
+  obtain ⟨pre₁, hsplit₁, hoff₁⟩ := hc₁.input_prefix
+  have hpre₁ : pre₁ = pre ++ ws := by
+    have h2 : sc₁.input.toList = (pre ++ ws) ++ s₁.chars := by
+      rw [hin, hsplit, hws, List.append_assoc]
+    exact List.append_cancel_right (hsplit₁.symm.trans h2)
+  have hne₁ : pre₁ ≠ [] := by rw [hpre₁]; simp [hne]
+  refine ⟨pre₁.getLast hne₁, peekBack_eq_last_prefix hsplit₁ hoff₁ hne₁, ?_⟩
+  have hlast : pre₁.getLast hne₁ = ws.getLast hne := by
+    subst hpre₁
+    first
+      | exact List.getLast_append_of_ne_nil _ hne
+      | exact List.getLast_append_of_ne_nil hne
+      | simp [List.getLast_append_of_ne_nil, hne]
+  rw [hlast]
+  exact hall _ (List.getLast_mem hne)
+
+/-! ## §5 The header tail -/
+
+lemma not_space_tab_of_break {c : Char} (hlb : isLineBreakBool c = true) :
+    c ≠ ' ' ∧ c ≠ '\t' ∧ c ≠ '#' := by
+  rcases lineBreak_cases hlb with rfl | rfl <;> exact ⟨by decide, by decide, by decide⟩
+
+/-- `scanBlockScalarSkipComment` leaves a state not at `#` alone. -/
+lemma scanBlockScalarSkipComment_id (sc : ScannerState) (h : sc.peek? ≠ some '#') :
+    scanBlockScalarSkipComment sc = sc := by
+  unfold scanBlockScalarSkipComment
+  split
+  · exact absurd ‹sc.peek? = some '#'› h
+  · rfl
+
+/-- `skipWhitespace`, `scanBlockScalarSkipComment` and `scanBlockScalarConsumeNewline` read a
+    `HeaderTailOk` tail and land at the start of the body. -/
+lemma blockHeaderTail_accepts (sc : ScannerState) {sp sp' : SurfPos}
+    (hcorr : ScannerSurfCorr sc sp) (htail : HeaderTailOk sp sp') :
+    ∃ sc', scanBlockScalarConsumeNewline (scanBlockScalarSkipComment (skipWhitespace sc)) =
+        .ok sc' ∧ ScannerSurfCorr sc' sp' ∧ Keeps sc sc' := by
+  cases htail with
+  | break_ s₁ s' hw hb =>
+    obtain ⟨c, rest, hc, hlb⟩ := hb.head
+    obtain ⟨hns, hnt, hnh⟩ := not_space_tab_of_break hlb
+    obtain ⟨chars, col⟩ := s₁
+    simp only at hc; subst hc
+    obtain ⟨hc₁, hk₁⟩ := skipWhitespace_accepts sc hw hcorr (by simpa using hns) (by simpa using hnt)
+    have hpk := (peek_of_corr hc₁).1
+    rw [scanBlockScalarSkipComment_id _ (by rw [hpk]; simpa using hnh)]
+    refine ⟨consumeNewline (skipWhitespace sc), ?_, ?_⟩
+    · simp [scanBlockScalarConsumeNewline, hpk, hlb]
+    · obtain ⟨hc₂, hk₂⟩ := consumeNewline_accepts _ hb hc₁
+      exact ⟨hc₂, hk₁.trans hk₂⟩
+  | eof col hw =>
+    obtain ⟨hc₁, hk₁⟩ := skipWhitespace_accepts sc hw hcorr (by simp) (by simp)
+    have hpk := peek_none_of_corr hc₁
+    rw [scanBlockScalarSkipComment_id _ (by rw [hpk]; simp)]
+    exact ⟨skipWhitespace sc, by simp [scanBlockScalarConsumeNewline, hpk], hc₁, hk₁⟩
+  | commentBreak s₂ s' rest col hw hcm hb =>
+    obtain ⟨hc₁, hk₁⟩ := skipWhitespace_accepts sc (GPlus.toGStar hw) hcorr (by simp) (by simp)
+    have hpk := (peek_of_corr hc₁).1
+    obtain ⟨w, hpb, hww⟩ := peekBack_white_of_whites hcorr hc₁ (skipWhitespace_input sc) hw
+    have hc₂ := advance_corr hc₁ (by decide) (by decide)
+    obtain ⟨c, rest₂, hc, hlb⟩ := hb.head
+    have hstop : ∀ d, s₂.chars.head? = some d → isLineBreakBool d = true := by
+      intro d hd; rw [hc] at hd; simp at hd; subst hd; exact hlb
+    have hlen := fuel_of_corr hc₂
+    obtain ⟨hc₃, hk₃⟩ := collectCommentTextLoop_accepts hcm hstop (skipWhitespace sc).advance ""
+      ((skipWhitespace sc).advance.inputEnd - (skipWhitespace sc).advance.offset) hc₂ (by omega)
+    generalize hcl : collectCommentTextLoop (skipWhitespace sc).advance ""
+      ((skipWhitespace sc).advance.inputEnd - (skipWhitespace sc).advance.offset) = r at hc₃ hk₃
+    obtain ⟨text, sc₃⟩ := r
+    have hsk : scanBlockScalarSkipComment (skipWhitespace sc) =
+        { sc₃ with comments := sc₃.comments.push ((skipWhitespace sc).currentPos, text) } := by
+      unfold scanBlockScalarSkipComment
+      simp only [hpk, hpb, hww, Bool.true_or, ite_true, hcl]
+    rw [hsk]
+    have hc₄ : ScannerSurfCorr { sc₃ with comments := sc₃.comments.push ((skipWhitespace sc).currentPos, text) } s₂ :=
+      corr_of_comments hc₃ _
+    obtain ⟨chars, col₂⟩ := s₂
+    simp only at hc; subst hc
+    have hpk₄ := (peek_of_corr hc₄).1
+    obtain ⟨hc₅, hk₅⟩ := consumeNewline_accepts _ hb hc₄
+    exact ⟨_, by simp [scanBlockScalarConsumeNewline, hpk₄, hlb], hc₅,
+      ((hk₁.trans (keeps_advance _)).trans ⟨hk₃.1, hk₃.2.1, hk₃.2.2⟩).trans hk₅⟩
+  | commentEof rest col col' hw hcm =>
+    obtain ⟨hc₁, hk₁⟩ := skipWhitespace_accepts sc (GPlus.toGStar hw) hcorr (by simp) (by simp)
+    have hpk := (peek_of_corr hc₁).1
+    obtain ⟨w, hpb, hww⟩ := peekBack_white_of_whites hcorr hc₁ (skipWhitespace_input sc) hw
+    have hc₂ := advance_corr hc₁ (by decide) (by decide)
+    have hlen := fuel_of_corr hc₂
+    obtain ⟨hc₃, hk₃⟩ := collectCommentTextLoop_accepts hcm (by simp) (skipWhitespace sc).advance ""
+      ((skipWhitespace sc).advance.inputEnd - (skipWhitespace sc).advance.offset) hc₂ (by omega)
+    generalize hcl : collectCommentTextLoop (skipWhitespace sc).advance ""
+      ((skipWhitespace sc).advance.inputEnd - (skipWhitespace sc).advance.offset) = r at hc₃ hk₃
+    obtain ⟨text, sc₃⟩ := r
+    have hsk : scanBlockScalarSkipComment (skipWhitespace sc) =
+        { sc₃ with comments := sc₃.comments.push ((skipWhitespace sc).currentPos, text) } := by
+      unfold scanBlockScalarSkipComment
+      simp only [hpk, hpb, hww, Bool.true_or, ite_true, hcl]
+    rw [hsk]
+    have hc₄ : ScannerSurfCorr { sc₃ with comments := sc₃.comments.push ((skipWhitespace sc).currentPos, text) } ⟨[], col'⟩ :=
+      corr_of_comments hc₃ _
+    have hpk₄ := peek_none_of_corr hc₄
+    exact ⟨_, by simp [scanBlockScalarConsumeNewline, hpk₄], hc₄,
+      (hk₁.trans (keeps_advance _)).trans ⟨hk₃.1, hk₃.2.1, hk₃.2.2⟩⟩
+
+/-! ## §6 No tab stop at a `BlockStopOk` landing -/
+
+lemma lineCharOk_space : LineCharOk ' ' := ⟨by decide, by decide, by decide⟩
+lemma lineCharOk_tab : LineCharOk '\t' := ⟨by decide, by decide, by decide⟩
+
+lemma peek_none_of_nil {sc : ScannerState} {sp : SurfPos} (hcorr : ScannerSurfCorr sc sp)
+    (h : sp.chars = []) : sc.peek? = none := by
+  obtain ⟨chars, col⟩ := sp
+  simp only at h; subst h
+  exact peek_none_of_corr hcorr
+
+lemma peek_eq_of_head {sc : ScannerState} {sp : SurfPos} {c : Char} (hcorr : ScannerSurfCorr sc sp)
+    (h : sp.chars.head? = some c) : sc.peek? = some c := by
+  obtain ⟨chars, col⟩ := sp
+  cases chars with
+  | nil => simp at h
+  | cons d tl => simp at h; subst h; exact (peek_of_corr hcorr).1
+
+/-- `blockScalarTabStop` is false wherever `collectBlockScalarLoop` stops on a `BlockStopOk`. -/
+lemma blockScalarTabStop_false_of_stop {sc : ScannerState} {n : Nat} {sp sp' : SurfPos}
+    (hstop : BlockStopOk n sp sp') (hcorr : ScannerSurfCorr sc sp') :
+    blockScalarTabStop sc = false := by
+  unfold blockScalarTabStop
+  match hstop with
+  | .eofShort k _ _ hnd hk hind hnil =>
+    have hc₁ := (skipSpaces_accepts sc (SIndent.zero _) hcorr (by rw [hnil]; simp)).1
+    simp [peek_none_of_nil hc₁ hnil]
+  | .eofLine _ s₁ _ hnd hind hrun hnil =>
+    have hc₁ := (skipSpaces_accepts sc (SIndent.zero _) hcorr (by rw [hnil]; simp)).1
+    simp [peek_none_of_nil hc₁ hnil]
+  | .outdent k _ s₁ c hnd hk hind hhead hlb hsp htab =>
+    have hc₁ := (skipSpaces_accepts sc hind hcorr (by rw [hhead]; simpa using hsp)).1
+    simp [peek_eq_of_head hc₁ hhead, htab]
+  | .badChar _ s₁ _ c hnd hind hrun hhead hlb hnot =>
+    have hsp : c ≠ ' ' := by rintro rfl; exact hnot lineCharOk_space
+    have htab : c ≠ '\t' := by rintro rfl; exact hnot lineCharOk_tab
+    have hc₁ := (skipSpaces_accepts sc (SIndent.zero _) hcorr (by rw [hhead]; simpa using hsp)).1
+    simp [peek_eq_of_head hc₁ hhead, htab]
+
+/-! ## §7 Sub-relation lemmas into `[162]` -/
+
+lemma ChompOk.toSCChompingIndicator {chomp : ChompStyle} {s s' : SurfPos}
+    (h : ChompOk chomp s s') : SCChompingIndicator s s' := by
+  cases h with
+  | clip s => exact .empty s
+  | strip rest col => exact .strip _ _ (.mk rest col)
+  | keep rest col => exact .keep _ _ (.mk rest col)
+
+lemma IndentOk.toSCIndentationIndicator {m : Option Nat} {s s' : SurfPos}
+    (h : IndentOk m s s') : SCIndentationIndicator s s' := by
+  cases h with
+  | auto s => exact .empty s
+  | digit d rest col h1 h9 => exact .digit _ _ (.mk d rest col ⟨h1, h9⟩)
+
+lemma HeaderIndicatorsOk.toGAlt {chomp : ChompStyle} {m : Option Nat} {s s' : SurfPos}
+    (h : HeaderIndicatorsOk chomp m s s') :
+    GAlt (GSeq SCIndentationIndicator SCChompingIndicator)
+         (GSeq SCChompingIndicator SCIndentationIndicator) s s' := by
+  match h with
+  | .indentFirst _ _ _ s₁ _ hi hch =>
+    exact .left _ _ (.mk _ s₁ _ hi.toSCIndentationIndicator hch.toSCChompingIndicator)
+  | .chompFirst _ _ _ s₁ _ hch hi =>
+    exact .right _ _ (.mk _ s₁ _ hch.toSCChompingIndicator hi.toSCIndentationIndicator)
+
+lemma GStar_commentCharOk_toSCommentChar {s s' : SurfPos}
+    (h : GStar (GChar CommentCharOk) s s') : GStar SCommentChar s s' := by
+  refine GStar_mono (fun _ _ hc => ?_) h
+  cases hc with
+  | mk c rest col hc =>
+    refine GChar.mk c rest col ?_
+    intro hlb
+    have : isLineBreakBool c = true := (isLineBreak_iff c).mpr hlb
+    exact absurd this (by rw [show isLineBreakBool c = false from hc]; decide)
+
+lemma HeaderTailOk.toSSBComment {s s' : SurfPos} (h : HeaderTailOk s s') : SSBComment s s' := by
+  cases h with
+  | break_ s₁ s' hw hb =>
+    cases hw with
+    | nil _ => exact .noSep _ _ (.break _ _ hb.toSBBreak)
+    | cons _ s₂ _ hstep hrest =>
+      exact .withSep _ _ _ _ (.whites _ _ (.mk _ s₂ _ hstep hrest)) (.none _) (.break _ _ hb.toSBBreak)
+  | eof col hw =>
+    cases hw with
+    | nil _ => exact .noSep _ _ (.eof col)
+    | cons _ s₂ _ hstep hrest =>
+      exact .withSep _ _ _ _ (.whites _ _ (.mk _ s₂ _ hstep hrest)) (.none _) (.eof col)
+  | commentBreak s₂ s' rest col hw hcm hb =>
+    exact .withSep _ _ _ _ (.whites _ _ hw)
+      (.some _ _ (.mk rest col s₂ (GStar_commentCharOk_toSCommentChar hcm))) (.break _ _ hb.toSBBreak)
+  | commentEof rest col col' hw hcm =>
+    exact .withSep _ _ _ _ (.whites _ _ hw)
+      (.some _ _ (.mk rest col _ (GStar_commentCharOk_toSCommentChar hcm))) (.eof col')
+
+/-- `HeaderIndicatorsOk` then `HeaderTailOk` is a `[162] c-b-block-header` derivation. -/
+lemma blockHeader_toSCBBlockHeader {chomp : ChompStyle} {m : Option Nat} {s s₁ s' : SurfPos}
+    (hi : HeaderIndicatorsOk chomp m s s₁) (ht : HeaderTailOk s₁ s') : SCBBlockHeader s s' :=
+  .mk s s₁ s' hi.toGAlt ht.toSSBComment
+
 end L4YAML.Proofs.Acceptance
