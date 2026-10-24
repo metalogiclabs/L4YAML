@@ -598,7 +598,10 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- 2026-10-23 (item 349): constants 1420 → 1424, decls 1130 → 1132, READ 1168 → 1169, RELAY 2372 → 2383 —
 -- the two dispatch bridges and `h_sound`/`h_dead` relayed through the seven content-step lemmas.
 def expectedModuleTally : String :=
-  "constants=1424 decls=1132 eta=408 FIELD=168 READ=1169 RELAY=2383 RETURN=48 \
+  -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1169 → 1171,
+  -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
+  -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
+  "constants=1430 decls=1137 eta=408 FIELD=168 READ=1171 RELAY=2388 RETURN=48 \
 UNUSED=26"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
@@ -702,7 +705,9 @@ inherit their parents' binders filtered out so the denominator is declarations. 
 -- `h_marker_new` (applied to the base-open premise).
 -- 2026-10-20 (item 307): `READ` 86 → 87, `RELAY` 44 → 43 — `accum_block_on_pendingContent`'s `h_mapFV108` is READ
 -- (a `match`) where it was RELAYed.
-def expectedOptTally : String := "total=163 ETA=33 READ=87 RELAY=43"
+-- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp`
+-- `inr` arms no longer read their alternative (they pay an empty chain instead).
+def expectedOptTally : String := "total=159 ETA=31 READ=85 RELAY=43"
 
 /-- The six item 212 enumerated, by verdict — seven since item 300.  Six are
     read in `content_dispatch_routed`'s own term (`h_markerline`, the marker

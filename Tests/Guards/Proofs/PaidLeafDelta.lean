@@ -335,6 +335,8 @@ def expectedTransports : List String :=
 -- 2026-10-23 (item 344): nodes 104597 → 104913, floorNodes 26089 → 26099 — the four block-park relays' terms.
 -- 2026-10-23 (item 345): nodes 104913 → 105448, floorNodes 26099 → 26251 — the content-park relays' terms.
 -- 2026-10-23 (item 349): `nodes` 105448 → 105463, `floorNodes` 26251 → 26256 — `h_dead` threaded through the content step.
+-- 2026-10-24 (item 350): nodes 105463 → 105571 — the `:` producers' `NotQuestionPark` payments and the
+-- consumers' empty-chain terms; no other column moved.
 def expectedLine : String :=
   "rows=167 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/6/15/2/2 \
 allContent=18/6/16/2/2 baseEntry=16/6/15/2/2 allEntry=18/6/16/2/2 \
@@ -344,7 +346,7 @@ coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=86 own=12 lit=5 var=6
 ownLemmas=2 scanned=32 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 \
 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 \
 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 \
-rootMonoSite=1 rootNtop=1 nodes=105463 floorNodes=26256"
+rootMonoSite=1 rootNtop=1 nodes=105571 floorNodes=26256"
 
 /-! ## §4 The reading -/
 

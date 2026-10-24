@@ -284,7 +284,9 @@ def isSurfFace (env : Environment) (lhs : Expr) : MetaM Bool := do
 -- 2026-10-20 (item 304): `heads` 18 → 19 — nine state-facing conclusions that
 -- read `ResumeFrames (ExplValueLine …)` read `KeyFrames (ExplValueLine …)`, item
 -- 302's stack (`ResumeFrames` 12 → 3, `KeyFrames` 9 in the head census below).
-def expectedFaceTally : String := "binders=163 faces=61 heads=19"
+-- 2026-10-24 (item 350): binders 163 → 159, faces 61 → 59, heads 19 → 18 — `h_expl`/`h_explUp`
+-- stopped being optional faces (their alternative is `NotQuestionPark sc`, paid by the `:` producers).
+def expectedFaceTally : String := "binders=159 faces=59 heads=18"
 
 /-- The conclusion head of every left disjunct.  `FVAR 2` is `frameChainUnion`,
     whose face is schematic in `P` — the two rows no census of any kind can
@@ -298,8 +300,10 @@ def expectedHeadCensus : List String :=
   -- Item 305: `KeyFrames` 9 → 3, `lt` 23 → 28, `le` 10 → 11 — the census reads the left
   -- disjunct's FIRST conjunct, and the width bound (`<` on the two sequence fields and their
   -- three restating premises, `≤` on `closeThenBlock`'s `h_valFV`) is that conjunct at six sites.
+  -- Item 350: `GLit 4` left — the four `GLit '?'` faces were `h_expl`/`h_explUp`'s optional reading;
+  -- the field is required now (its alternative is `NotQuestionPark sc`, paid by the `:` producers).
   ["BareLandingFacts 8", "CompletedTail 4", "Covered 3", "Eq 19", "FVAR 2",
-   "Floor 15", "GLit 4", "GStar 4", "IndentFloor 2", "KeyFrames 3",
+   "Floor 15", "GStar 4", "IndentFloor 2", "KeyFrames 3",
    "MarkerNodeRoute 5", "Mono 4", "PropsNodeRoute 4", "ResumeFrames 3",
    "SLYamlStream 31", "SeqEntryTail 7", "SuffixRun 6", "le 11", "lt 28"]
 
@@ -319,6 +323,7 @@ those heads and `expectedChainFaces` not naming a single one of them. -/
 -- 2026-10-20 (item 309): the generic helpers' binders (`∨ alt`) leave the `∨ True` rung.
 -- 2026-10-23 (item 349): three hypothesis indices +1 — `h_dead` (the column-0 landing fact) threaded into
 -- `accum_content_on_pendingBlock_indented` / `accum_content_on_pendingMapValue_indented`.
+-- 2026-10-24 (item 350): `explFrameValueLine#5` → `#6` — the helper takes `{alt alt' : Prop}` now.
 def expectedChainFaces : List String :=
   ["FlowBaseRoutes.mk#7 (vslot)",
    "PendingNode.pendingBlock#14 (h_kslotUp)",
@@ -338,7 +343,7 @@ def expectedChainFaces : List String :=
    "colon_open_map_props#11 (h_kslot)",
    "entryKeyPack_of_dispatch#10 (h_nodeV)",
    "entryPropsKeyPack_of_dispatch#10 (h_nodeV)",
-   "explFrameValueLine#5 (h_kslot)",
+   "explFrameValueLine#6 (h_kslot)",
    "flowVPack_of_close#5 (h_vslot)",
    "frameChainUnion#2 (h₁)",
    "frameChainUnion#3 (h₂)",
@@ -355,7 +360,8 @@ which of four reasons applies. -/
 -- Item 287: the departed `h_vslot` named the surface grammar; item 288's did too.
 -- Item 300: the two faces that join (`content_dispatch_routed.h_markerline`,
 -- `flowOpen_marker.h_doc`) name scanner state alone, so `state` 25 → 27.
-def expectedFidelity : String := "binders=163 surf=136 state=27"
+-- 2026-10-24 (item 350): binders 163 → 159, surf 136 → 132 — `h_expl`/`h_explUp` left the optional population.
+def expectedFidelity : String := "binders=159 surf=132 state=27"
 
 /-- The 25 faces a state census COULD evaluate — 27 since item 300 — which is
     the population the mandate's instrument is actually defined over.  Two of them
@@ -494,7 +500,8 @@ def chainKeySet : Std.HashSet String :=
 -- 2026-10-23 (item 344): splits 106 → 107 — `on_pendingBlock#29`'s seventh split (the relayed `h_valFV`).
 -- 2026-10-23 (item 345): splits 107 → 108 — the twin relay's split on `h_closeFV_old`.
 def expectedWorthTally : String :=
-  "pairs=36 splits=108 sup=102 chainPairs=6 chainSplits=12 innerPairs=8 innerSplits=32"
+-- 2026-10-24 (item 350): pairs 36 → 34, splits 108 → 104, sup 102 → 97 — the two `h_expl` pairs left.
+  "pairs=34 splits=104 sup=97 chainPairs=6 chainSplits=12 innerPairs=8 innerSplits=32"
 
 /-- The ledger, worth-first.  `chain` is §3's verdict — a narrowing here lands
     on another unconditional inhabitant; `inner` means the face carries a
@@ -520,6 +527,7 @@ def expectedWorthTally : String :=
 -- faces and splits stand, and the list is re-laid in the census's own order.
 -- 2026-10-23 (item 349): three hypothesis indices +1 — `h_dead` (the column-0 landing fact) threaded into
 -- `accum_content_on_pendingBlock_indented` / `accum_content_on_pendingMapValue_indented`.
+-- 2026-10-24 (item 350): the two `h_expl` rows left the ledger — the face no longer splits.
 def expectedWorthLedger : List String :=
   [-- 2026-10-23 (item 345): `on_pendingBlock_indented#29` splits 10 → 11 (the twin relay), sorted above `#14`.
    "splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
@@ -532,7 +540,6 @@ def expectedWorthLedger : List String :=
    "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#35",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
-   "splits=3 sup=1 - h_expl :: accum_content_on_pendingMapValue_indented#15",
    "splits=3 sup=1 - h_kslot :: accum_block_on_pendingBlock#13",
    "splits=3 sup=1 - h_resV_land :: colon_open_map#26",
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
@@ -551,7 +558,6 @@ def expectedWorthLedger : List String :=
    "splits=1 sup=11 - h_pr :: accum_block_on_closeThenBlock#29",
    "splits=1 sup=11 - h_sfx :: accum_block_on_closeThenBlock#18",
    "splits=1 sup=11 - h_valFV :: accum_block_on_closeThenBlock#31",
-   "splits=1 sup=4 - h_expl :: explFrameValueLine#4",
    "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#14",
    "splits=1 sup=1 - h_mapFV108 :: accum_block_on_pendingContent#32",
    "splits=1 sup=1 - h_resV_land :: question_open_map#27",
@@ -570,7 +576,8 @@ def expectedWorthLedger : List String :=
 -- 2026-10-20 (item 307): `branchPairs` 35 → 36, `splits` 101 → 106 (the same five).
 -- 2026-10-23 (item 344): splits 106 → 107 — the relayed `h_valFV`'s split on `h_closeFV_old`.
 -- 2026-10-23 (item 345): splits 107 → 108 — the twin relay's split on `h_closeFV_old`.
-def expectedBranchReach : String := "branchPairs=36 stateReachable=1 splits=108 stateSplits=3"
+-- 2026-10-24 (item 350): branchPairs 36 → 34, splits 108 → 104 — the two `h_expl` pairs left.
+def expectedBranchReach : String := "branchPairs=34 stateReachable=1 splits=104 stateSplits=3"
 
 open Meta in
 run_cmd do
@@ -638,7 +645,8 @@ rather than as a count. -/
 -- 2026-10-20 (item 309): `syntactic` 163 → 158, `population` 165 → 160 — the generic helpers' five `∨ alt` binders are no `∨ True` to the syntactic count.
 -- 2026-10-21 (item 311): `syntactic` 158 → 156, `population` 160 → 158 — `colon_open_map_implicit`'s two `∨ alt` premises are no
 -- `∨ True` to the syntactic count (the lemma states the family's alternative generically).
-def expectedHiddenTally : String := "hiddenDefs=1 syntactic=156 hiddenOnly=2 population=158"
+-- 2026-10-24 (item 350): syntactic 156 → 153, population 158 → 155 — as the face tally.
+def expectedHiddenTally : String := "hiddenDefs=1 syntactic=153 hiddenOnly=2 population=155"
 
 def expectedHiddenDefs : List String := ["ResumeKeyCtx"]
 
@@ -811,7 +819,9 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- 2026-10-23 (item 349): `theorems` 6064 → 6066 — `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`.
 -- 2026-10-23 (item 349): `theorems` 6067 → 6073 — `staleGate_true_of_noInd`, `staleGate_false_le`, `closeStaleExplicitKey_peekAt?`,
 -- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
-def expectedNoopTally : String := "theorems=6073 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 2026-10-24 (item 350): theorems 6073 → 6076 — `notQuestion_push_top`, `scanValue_notQuestion`,
+-- `dispatchBlock_colon_notQuestion`.
+def expectedNoopTally : String := "theorems=6076 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

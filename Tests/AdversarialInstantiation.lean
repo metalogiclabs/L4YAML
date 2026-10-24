@@ -3865,6 +3865,92 @@ def testColZeroLanding (state : IO.Ref TestCollector) : IO Unit := do
       checkM state s!"peekAt/{repr input}/{n}: indexed lookahead preserved"
         (t'.peekAt? n == t.peekAt? n) s!"{repr (t'.peekAt? n)} vs {repr (t.peekAt? n)}"
 
+/-! ## Priority 23 — `NotQuestionPark` and the `:` producers' payment (item 350, row 12)
+
+Item 350 gave `PendingNode.pendingMapValue`'s two `?`-entry faces (`h_expl`,
+`h_explUp`) the alternative `NotQuestionPark sc` — "the last real token is not
+`.key`" — in place of `PackAlt sc`, because at a `:` park inside an open `?` the
+register is LIVE (`? a: b⏎: c`) and the field was unsatisfiable under the flip.
+Every `:` producer pays it from the dispatch (`scanValue_notQuestion`,
+`dispatchBlock_colon_notQuestion`, via `notQuestion_push_top`), and the `?`
+producer (`question_open_map`) cannot: its tail IS `.key`.  Consumers spend the
+alternative as the EMPTY value-line chain (`ns := []`), so nothing below reads it.
+
+**Risk:** `notQuestion_push_top` needs BOTH hypotheses — pushing `.key` refutes
+the conclusion, and pushing a `.placeholder` onto a `.key` top keeps the `?`
+tail (`prevRealIdx?` walks past placeholders); the predicate is vacuous on an
+empty history; and on real walks a `?` dispatch must leave the predicate FALSE
+(otherwise the `?` producer could have paid `inr` and the `inl` payment was
+unnecessary).
+-/
+
+/-- Decidable mirror of `NotQuestionPark` on a token history. -/
+def notQuestionParkB (ts : Array (Positioned YamlToken)) : Bool :=
+  match prevRealIdx? ts ts.size with
+  | some i => (match ts[i]!.val with | .key => false | _ => true)
+  | none => true
+
+def testNotQuestionPark (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 23: NotQuestionPark and the `:` producers (item 350)"
+  -- `notQuestion_push_top`, hypothesis level: a non-placeholder, non-key push makes the
+  -- predicate true on every history; a `.key` push refutes it (`hk`); a `.placeholder` push
+  -- onto a `.key` top leaves it false (`hp`).
+  match scanNextToken (ScannerState.mk' "? a") with
+  | .ok (some s1) =>
+    match s1.tokens[0]? with
+    | some p =>
+      let mk (t : YamlToken) : Positioned YamlToken := { p with val := t }
+      let bases : List (String × Array (Positioned YamlToken)) :=
+        [("empty", #[]), ("key", #[mk .key]), ("value", #[mk .value]),
+         ("key+placeholder", #[mk .key, mk .placeholder]),
+         ("value+placeholder", #[mk .value, mk .placeholder]),
+         ("key+key", #[mk .key, mk .key])]
+      for (name, ts) in bases do
+        checkM state s!"push_top/{name}/value" (notQuestionParkB (ts.push (mk .value))) ""
+        checkM state s!"push_top/{name}/blockEnd" (notQuestionParkB (ts.push (mk .blockEnd))) ""
+        checkM state s!"push_top/{name}/blockEntry" (notQuestionParkB (ts.push (mk .blockEntry))) ""
+        checkM state s!"push_top/{name}/key refutes (hk)" (!notQuestionParkB (ts.push (mk .key))) ""
+      checkM state "push_top/key+placeholder+placeholder: still a `?` tail (hp)"
+        (!notQuestionParkB (#[mk .key, mk .placeholder].push (mk .placeholder))) ""
+      checkM state "push_top/value+placeholder+placeholder: still a value tail"
+        (notQuestionParkB (#[mk .value, mk .placeholder].push (mk .placeholder))) ""
+      checkM state "NotQuestionPark/empty history: vacuous" (notQuestionParkB #[]) ""
+      checkM state "NotQuestionPark/placeholder-only history: vacuous"
+        (notQuestionParkB #[mk .placeholder]) ""
+    | none => checkM state "push_top/seed token" false ""
+  | _ => checkM state "push_top/seed step" false ""
+  -- `scanValue_notQuestion` / `dispatchBlock_colon_notQuestion` on real walks: every `:` the
+  -- block dispatcher takes leaves a non-`?` tail, and every `?` it takes leaves a `?` tail
+  -- (`question_open_map` pays the face by `ns := []`, not by `NotQuestionPark`).
+  for input in ["? a: b\n: c", "? ? a\n  : b\n: c", "a: 1", "- a: b", "? a\n: b",
+                "? &p a: 1\n: c", "- ? a\n- ? b", ": a", "? [1]: b\n: - w", "?\n  ?\n    ?\n: w"] do
+    let mut s := ScannerState.mk' input
+    let mut colons := 0
+    let mut questions := 0
+    let mut bad := 0
+    let mut fuel := input.length + 8
+    while fuel > 0 do
+      fuel := fuel - 1
+      match scanNextToken_preprocess s with
+      | .ok (some (sp, c)) =>
+        if c == ':' || c == '?' then
+          match scanNextToken_dispatchBlockIndicators sp c with
+          | .ok (some s') =>
+            if c == ':' then
+              colons := colons + 1
+              if !notQuestionParkB s'.tokens then bad := bad + 1
+            else
+              questions := questions + 1
+              if notQuestionParkB s'.tokens then bad := bad + 1
+          | _ => pure ()
+      | _ => pure ()
+      match scanNextToken s with
+      | .ok (some s') => s := s'
+      | _ => fuel := 0
+    checkM state s!"dispatch/{repr input}: `:` tails are not `?`, `?` tails are" (bad == 0)
+      s!"colons {colons} questions {questions} bad {bad}"
+    checkM state s!"dispatch/{repr input}: an indicator was dispatched" (colons + questions > 0) ""
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -3894,6 +3980,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testGluedFlowValue state
   testGluedScannerLemmas state
   testColZeroLanding state
+  testNotQuestionPark state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",

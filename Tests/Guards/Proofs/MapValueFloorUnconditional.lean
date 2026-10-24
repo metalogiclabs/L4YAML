@@ -50,18 +50,20 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos} {n : Nat}
     (h_nodir : sc.allowDirectives = false)
     -- Item 284: and the offer the indicator it stands on records.
     (h_offer : OfferPred sc.tokens) 
-    (h_alt : PackAlt sc) :
+    (h_alt : PackAlt sc)
+    -- Item 350: the two `?`-entry faces take the "not a `?` park" fact instead.
+    (h_nq : NotQuestionPark sc) :
     PendingNode sc false sp_start sp_block sp_scan :=
   PendingNode.pendingMapValue (h_offer := h_offer) sp_start sp_block sp_scan n h_close h_floor
     -- Item 288: the slot's decline names the stamp this pin carries.
-    h_nic h_real (Or.inl h_ivl) (Or.inr h_alt) (Or.inr h_ivl)
+    h_nic h_real (Or.inl h_ivl) (Or.inr h_nq) (Or.inr h_ivl)
     h_sk h_col0 (Or.inr trivial) (Or.inr h_alt)
     (Or.inr trivial) (Or.inr trivial)
     (Or.inr h_alt) (Or.inr h_alt) h_nodir
     -- Item 168: this guard is about the FLOOR; the sequence face punts.
     (Or.inr trivial)
     -- Item 190: and so does the entry route's up-frame twin.
-    (Or.inr h_alt)
+    (Or.inr h_nq)
 
 /-- ...and `colon_open_map_implicit`'s slot asks for exactly that. -/
 example {s' : ScannerState} {k : Nat} (h : IndentFloor s' k) :

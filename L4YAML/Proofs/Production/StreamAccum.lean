@@ -1389,6 +1389,12 @@ def SlotFace (ts : Array (Positioned YamlToken)) : Prop :=
 def OfferPred (ts : Array (Positioned YamlToken)) : Prop :=
   ∃ i, prevRealIdx? ts ts.size = some i ∧ ts[i]!.val.offersNodeSlot = true
 
+/-- **Item 350 (K8).**  "This park is not a `?` park": the last real token the scanner emitted is
+    not `.key`.  The `:`/compact producers pay it from their dispatch; `h_expl`/`h_explUp`'s
+    alternative is this token fact, not the register (`PackAlt`). -/
+def NotQuestionPark (sc : ScannerState) : Prop :=
+  ∀ i, prevRealIdx? sc.tokens sc.tokens.size = some i → sc.tokens[i]!.val ≠ .key
+
 -- ~~**The `[96]` tail window that CROSSED a break**~~ (`PropsWindowCross`,
 -- item 170) is DELETED at item 181.  It named the array whose last real token
 -- has a PROPERTY on a different line directly below it — the configuration
@@ -2568,7 +2574,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- `h_ivl`'s stamp instead.
       (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
         ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-          SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+          SLYamlStream sp_start sp_v) ∨ NotQuestionPark sc)
       -- Item 59: the slot travels with the park's own COLUMN.  Only a `?` or
       -- an explicit `:` opens one, and both stand AT the entry's index, so the
       -- park is one past it — which is what lets the compact fill measure the
@@ -2770,7 +2776,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ nv ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ PackAlt sc)
+        SLYamlStream sp_start sp_w) ∨ NotQuestionPark sc)
       -- **Item 284 — the indicator this park stands on OFFERS a slot** (LAST,
       -- same reason).  A run started off this park and an open dispatched from
       -- it read their slot face off the token the dispatch just pushed.
@@ -5303,6 +5309,14 @@ lemma offerPred_push_top {ts : Array (Positioned YamlToken)} {p : Positioned Yam
   ⟨ts.size, by rw [Array.size_push]; exact prevRealIdx?_push_top hp,
     by rw [push_getElem!_top]; exact ho⟩
 
+lemma notQuestion_push_top {ts : Array (Positioned YamlToken)} {p : Positioned YamlToken}
+    (hp : p.val ≠ .placeholder) (hk : p.val ≠ .key) :
+    ∀ i, prevRealIdx? (ts.push p) (ts.push p).size = some i → (ts.push p)[i]!.val ≠ .key := by
+  intro i hi
+  rw [Array.size_push, prevRealIdx?_push_top hp] at hi
+  injection hi with hi; subst hi
+  rw [push_getElem!_top]; exact hk
+
 /-- The `-` a block entry pushes offers the node after it a slot. -/
 lemma scanBlockEntry_offerPred {s s' : ScannerState} (h : scanBlockEntry s = .ok s') :
     OfferPred s'.tokens := by
@@ -5338,6 +5352,17 @@ lemma scanValue_offerPred {s s' : ScannerState} (h : scanValue s = .ok s') :
     | (injection h with h; subst h
        simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit]
        exact offerPred_push_top (by nofun) rfl)
+
+lemma scanValue_notQuestion {s s' : ScannerState} (h : scanValue s = .ok s') :
+    NotQuestionPark s' := by
+  unfold scanValue at h
+  simp only [bind, Except.bind] at h
+  repeat' split at h
+  all_goals first
+    | contradiction
+    | (injection h with h; subst h
+       simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit]
+       exact notQuestion_push_top (by nofun) (by nofun))
 
 /-- …and the `...`: a suffix ends a document, so the run after it heads the
     next one (item 281). -/
@@ -8051,10 +8076,10 @@ lemma valueMapRouteF {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
     with no column to choose by hand the whole list on to a consumer that has
     one.  Where the landing's column IS known — `accum_block_on_closeThenBlock`
     — item 189's two separate faces (`h_vpack`, `h_vpackUp`) are unchanged. -/
-lemma explFrameValueLine {sp_start sp_scan : SurfPos} {n : Nat} {alt : Prop}
+lemma explFrameValueLine {sp_start sp_scan : SurfPos} {n : Nat} {alt alt' : Prop}
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-        SLYamlStream sp_start sp_v) ∨ alt)
+        SLYamlStream sp_start sp_v) ∨ alt')
     (h_kslot : (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
@@ -8077,7 +8102,9 @@ lemma explFrameValueLine {sp_start sp_scan : SurfPos} {n : Nat} {alt : Prop}
              (SBlockIndented.node n .blockOut sp_scan sp_m
                (SBlockNode_blockIn_to_blockOut h_node))
              h_iv h_lit h_sbi))⟩
-     | Or.inr h => Or.inr h)
+     -- Item 350: not a `?` park (`NotQuestionPark`, or any alternative) — the
+     -- `?` slot owes no `:` line, so its chain is the EMPTY chain, not `alt`.
+     | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
     -- …and the frames the park stands inside, which used to be dropped here.
     h_kslot
 
@@ -13210,7 +13237,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         (fun sp h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
                           route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp sp_i sp_c sp_v
                             h_qlit h_bo h_iv h_lit h_sbi))⟩
-                  | Or.inr h_alt => Or.inr h_alt)
+                  | Or.inr _ => Or.inr trivial)
                  -- Item 295: the park's own FLAG, as at `pendingBlock`.
                  h_noflow_prep (Or.inl h_sk_mv) h_corr hcorr_prep h_preprocess,
                -- …and under an open `?` the collection is the KEY half of the
@@ -20613,6 +20640,10 @@ lemma dispatchBlock_colon_offerPred {s s' : ScannerState}
     (h : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s')) : OfferPred s'.tokens :=
   scanValue_offerPred (dispatchBlock_colon_scanValue h)
 
+lemma dispatchBlock_colon_notQuestion {s s' : ScannerState}
+    (h : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s')) : NotQuestionPark s' :=
+  scanValue_notQuestion (dispatchBlock_colon_scanValue h)
+
 lemma dispatchBlock_question_offerPred {s s' : ScannerState}
     (h : scanNextToken_dispatchBlockIndicators s '?' = .ok (some s')) : OfferPred s'.tokens :=
   scanKey_offerPred (dispatchBlock_question_scanKey h)
@@ -21513,7 +21544,7 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
            -- could not consume an explicit pair, so the epilogue stamped.
            (Or.inl (scanValue_stamp_of_src (dispatchBlock_colon_scanValue h_dispatch)
              h_noflow_disp hpeek_disp h_src))
-           (Or.inr trivial) (Or.inr (scanValue_stamp_of_src (dispatchBlock_colon_scanValue h_dispatch)
+           (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)) (Or.inr (scanValue_stamp_of_src (dispatchBlock_colon_scanValue h_dispatch)
              h_noflow_disp hpeek_disp h_src))
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: the `:` stands AT the entry index (`s-indent(k)` from a
@@ -21591,7 +21622,7 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- Item 190: and no `?` literal either, so no entry route to compose
            -- an outer frame's value line against.
-           (Or.inr trivial),
+           (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)),
          hcorr_result⟩
 
 -- The col-0 `?` producer (item 20): the explicit-key twin of `colon_open_map`.
@@ -21940,7 +21971,7 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
            -- reading too.
            (match h_upAll with
             | Or.inl ⟨ns, up⟩ => Or.inl ⟨sp_ind, ns, h_lit, up⟩
-            | Or.inr _ => Or.inr trivial),
+            | Or.inr _ => Or.inl ⟨sp_ind, [], h_lit, fun _ hm => (List.not_mem_nil hm).elim⟩),
          hcorr_result⟩
 
 /-- **The explicit VALUE line** (item 51): a `:` landing at the pending
@@ -22018,7 +22049,7 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            -- Item 125: the explicit `:` does not stamp — it pays the face,
            -- the same `[185]` value slot `h_vslot` carries below.
            (Or.inr ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
-           (Or.inr trivial)
+           (Or.inr (dispatchBlock_colon_notQuestion h_dispatch))
            -- Item 209: and the slot's own stack top, the caller's measurement.
            (Or.inl ⟨h_top_in, park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
@@ -22034,7 +22065,7 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- Item 190: a VALUE park's slot is `[195]`'s, and the `?` whose
            -- entry route an outer frame's line composes against is not here.
-           (Or.inr trivial),
+           (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)),
          hcorr_result⟩
 
 /-- **A compact `?` opens the same `[186]` explicit key a landed one does**
@@ -22296,9 +22327,9 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
   -- (item 101), which is the field `hpk.2.2.1` carries. ═══
   have h_expl105 : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan' ∧
       ∀ sp_v : SurfPos, SBlockMapEntry (n + 1 + m) sp_q sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc :=
+        SLYamlStream sp_start sp_v) ∨ NotQuestionPark s' :=
     match hc with
-    | Or.inl _ => Or.inr trivial
+    | Or.inl h => Or.inr (dispatchBlock_colon_notQuestion (h ▸ h_dispatch))
     | Or.inr h => Or.inl (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).1
   have h_vslot105 : (s'.currentIndent ≤ ((n + 1 + m : Nat) : Int) ∧
       sp_scan'.col = (n + 1 + m) + 1 ∧ ∀ sp_v : SurfPos,
@@ -22370,7 +22401,10 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
            -- Item 190: the compact `?` has the literal but no outer frame's
            -- line reaches it — this park stands inside a COMPACT key, whose
            -- landing has yet to reach the branch that would spend one.
-           (Or.inr trivial),
+           (match hc with
+            | Or.inl h => Or.inr (dispatchBlock_colon_notQuestion (h ▸ h_dispatch))
+            | Or.inr h => (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).1.elim
+                fun sp_q hq => Or.inl ⟨sp_q, [], hq.1, fun _ hm => (List.not_mem_nil hm).elim⟩),
          hcorr_result⟩
 
 -- The two KEYLESS block-mapping openers under one name (item 20).  They
@@ -22705,7 +22739,7 @@ lemma colon_open_map_implicit {alt : Prop} (sp_start sp_block sp_key sp_gram sp_
              h_route sp_v
                (SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_v h_ik h_lit
                  (SBlockNode_blockIn_to_blockOut h_node)))
-           h_floor hpf.1 hpf.2.1 (Or.inl h_stamp) (Or.inr trivial) (Or.inr h_stamp)
+           h_floor hpf.1 hpf.2.1 (Or.inl h_stamp) (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)) (Or.inr h_stamp)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: the `:` is a character, so the park is past column 0.  The
            -- INDEX is the half this producer cannot measure: `k` reaches it
@@ -22811,7 +22845,7 @@ lemma colon_open_map_implicit {alt : Prop} (sp_start sp_block sp_key sp_gram sp_
             | Or.inr _ => Or.inr trivial)
            -- Item 190: an IMPLICIT key opens no `?` entry, so there is no
            -- literal to head the route an outer frame's value line needs.
-           (Or.inr trivial),
+           (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)),
          hcorr_result⟩
 
 /-- **The anchored null key** (item 49): the parked `[96]` run IS the implicit
@@ -22932,7 +22966,7 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
                  (SBlockNode_blockIn_to_blockOut h_node)))
            (implicit_key_floor h_poss h_kcol h_inh h_kline h_behind
              h_noflow h_preprocess h_dispatch)
-           hpf.1 hpf.2.1 (Or.inl h_stamp) (Or.inr trivial) (Or.inr h_stamp)
+           hpf.1 hpf.2.1 (Or.inl h_stamp) (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)) (Or.inr h_stamp)
            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
            -- Item 68: `colon_open_map_implicit`'s boundary, for its reason — the
            -- run's own column is the pack's optional datum, not this producer's.
@@ -23015,7 +23049,7 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
               | Or.inr h_alt => Or.inr (PackAlt.step_value h_preprocess h_dispatch h_noflow h_alt))
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- Item 190: the props-headed implicit key opens no `?` entry either.
-           (Or.inr trivial),
+           (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)),
          hcorr_result⟩
 
 /-! #### Wadler-style per-constructor theorems for block dispatch (Layer 4o/4x)
@@ -27378,7 +27412,7 @@ lemma accum_block_pending (sc : ScannerState)
                    route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
                      h_qlit (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl)
                      h_ind h_lit h_sbi))⟩
-             | Or.inr h_alt => Or.inr h_alt)
+             | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
             -- Item 93: the explicit-`:` twin of the branch above.
             (match h_kslot93 with
              | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
@@ -27398,7 +27432,7 @@ lemma accum_block_pending (sc : ScannerState)
                    (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
                      (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl))
                    sp_i sp_c h_ind h_lit sp_v h_sbi⟩
-           | Or.inr h_alt => Or.inr h_alt))
+           | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩))
         (match h_vslot51 with
          | Or.inl hvs => Or.inl ⟨nmv, sp_block, h_stream_block,
              -- Item 209: the slot's own stack top, handed across — the park
@@ -27413,7 +27447,7 @@ lemma accum_block_pending (sc : ScannerState)
                   (fun sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
                     route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c
                       sp_v h_qlit h_bo h_iv h_lit h_sbi))
-              | Or.inr h_alt => Or.inr h_alt),
+              | Or.inr _ => Or.inr trivial),
              -- ═══ **Item 190: and the frame ONE LEVEL UP, composed the same
              -- way.**  `h_explUp` carries the outer entry's value line against
              -- THIS `?`'s entry route, so the compact fill closes this frame's
@@ -27426,7 +27460,7 @@ lemma accum_block_pending (sc : ScannerState)
                     up nvU hmem sp_m
                       (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit h_bo)
                       sp_i sp_c h_iv h_lit sp_v h_sbi⟩
-              | Or.inr h_alt => Or.inr h_alt)⟩
+              | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)⟩
          | Or.inr h_st => Or.inr (fun _ h_pay => (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inl h_st)
             (preprocess_preserves_implicitValueLine sc s_prep c h_preprocess)
             (preprocess_preserves_docStartLine sc s_prep c h_preprocess)
@@ -33552,7 +33586,7 @@ lemma accum_content_on_pendingMapValue_indented
     -- (`k:⏎  ? a` — the nested `?`), threaded exactly as at the root arm.
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        SLYamlStream sp_start sp_v) ∨ NotQuestionPark sc)
     -- Item 89: the pending's OPEN `[185]` slot at the entry's index, threaded
     -- exactly as at the root arm (`k:⏎  ? a: b`'s `a`).
     (h_vslot : (sp_scan.col = n + 1 ∧ ∀ sp_v : SurfPos,
@@ -33696,7 +33730,7 @@ lemma accum_content_on_pendingMapValue_indented
             (fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
               route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp sp_i sp_c sp_v
                 h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi))⟩
-        | Or.inr h => Or.inr h⟩
+        | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩⟩
   have h_compact_vslot : ((∀ sp, SBlockIndented n .blockIn sp_scan sp →
       SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1 ∧
       -- Item 196: the chain, in step with the pack conjunct it funds.
@@ -33715,7 +33749,7 @@ lemma accum_content_on_pendingMapValue_indented
             (fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
               route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp sp_i sp_c sp_v
                 h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi))⟩
-        | Or.inr h => Or.inr h⟩
+        | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩⟩
     | Or.inr _ => Or.inr trivial
   rcases indentedValue_reads_at_any_indent (h_src := h_src) sc sp_scan (n + 1) s_prep s' c sp_prep sp_scan'
       h_floor_old h_col0_old hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch with
@@ -33801,7 +33835,7 @@ lemma accum_content_on_pendingMapValue_indented
                               h_sep_all (h_flow_all (n + 1))
                               (white_prepend_SSLComments h_trailing_ws h_ssl))))
                         h_ind h_lit h_sbi))⟩
-                | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
                -- Item 93: the park's twin, as at the root arm
                -- (`k:⏎  ? a: b⏎  : - w`).
                (match h_kslot with
@@ -33995,7 +34029,7 @@ lemma accum_content_on_pendingMapValue_indented
                         (SBlockIndented.node n .blockOut sp_scan sp_mid
                           (SBlockNode_blockIn_to_blockOut (h_nodeAt sp_mid h_ssl)))
                         h_iv h_lit h_sbi))⟩
-                | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
                (match h_kslot with
                 | Or.inl ⟨ns, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
                     (fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
@@ -34100,7 +34134,7 @@ lemma accum_content_on_pendingMapValue_indented
                               h_sep_all h_node_f
                               (white_prepend_SSLComments h_tws_f h_ssl))))
                         h_ind h_lit h_sbi))⟩
-                | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
                -- Item 93: the park's twin, the multi-line node folded in as
                -- the closure folds it (`k:⏎  ? a: "p⏎      q"⏎  : - w`).
                (match h_kslot with

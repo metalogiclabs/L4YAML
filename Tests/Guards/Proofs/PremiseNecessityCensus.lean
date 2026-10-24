@@ -350,7 +350,9 @@ declarations' own binders and not by a rescoring of an existing one.
 -- 2026-10-23 (item 344): constants/decls +1, READ 1200 → 1203 — the relayed `h_valFV`'s `match` and the relays' reads.
 -- 2026-10-23 (item 345): constants 1419 → 1420, decls 1129 → 1130, READ 1203 → 1206 — the `h_kslotUp` singleton relays' tactic block: one auxiliary declaration, three more reads (same as HypothesisReaderCensus).
 def expectedModuleTallyP : String :=
-  "constants=1424 decls=1132 eta=408 FIELD=189 READ=1207 RELAY=2233 RETURN=139 UNUSED=26"
+  -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
+  -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
+  "constants=1430 decls=1137 eta=408 FIELD=189 READ=1209 RELAY=2237 RETURN=140 UNUSED=26"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -360,7 +362,9 @@ def expectedModuleTallyP : String :=
 -- 2026-10-20 (item 307): `READ` 86 → 87, `RELAY` 38 → 37 — `accum_block_on_pendingContent`'s `h_mapFV108` is READ
 -- (a `match`) where it was RELAYed; as `HypothesisReaderCensus.expectedOptTally`.
 def expectedOptTallyP : String :=
-  "total=163 ETA=33 FIELD=4 READ=87 RELAY=37 RETURN=2"
+  -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp` `inr`
+  -- arms pay an empty chain and no longer read their alternative.
+  "total=159 ETA=31 FIELD=4 READ=85 RELAY=37 RETURN=2"
 
 run_cmd do
   let env ← getEnv
@@ -815,7 +819,8 @@ lemma opt_premise_is_no_premise {A P : Prop} : (A ∨ True → P) ↔ P :=
 -- (`{alt : Prop}`), so its two `∨ alt` premises leave the literal-optional population, as the three generic helpers'
 -- did at item 309; `total` stands at 163.
 def expectedOptPopulation : String :=
-  "total=163 optTy=156 ctorFields=33"
+  -- 2026-10-24 (item 350): total 163 → 159, optTy 156 → 153, ctorFields 33 → 31 — as above.
+  "total=159 optTy=153 ctorFields=31"
 
 run_cmd do
   let env ← getEnv
