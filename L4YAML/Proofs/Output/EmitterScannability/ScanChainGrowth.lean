@@ -404,6 +404,19 @@ lemma isValueCandidate_of_peekAt_blank (s : ScannerState)
       · rw [h]; decide
   · rw [h]; dsimp only []; simp [isBlankBool, isWhiteSpaceBool, isSpaceBool, isTabBool]
 
+/-- At `": "` the glued-collection refusal of `scanValueValidate` ([147]) does not fire. -/
+lemma flowGluedCollectionValue_false_of_corr_colon_blank (s : ScannerState)
+    (rest' : List Char)
+    (hcorr : ScannerSurfCorr s ⟨':' :: ' ' :: rest', s.col⟩) :
+    flowGluedCollectionValue s = false := by
+  have ⟨h_pk_colon, h_lt_colon⟩ := peek_of_chars_cons s ':' (' ' :: rest') s.col hcorr
+  have h_adv_corr := advance_non_newline_corr s ':' (' ' :: rest') hcorr h_lt_colon
+    (by decide) (by decide)
+  have ⟨h_pk_space, _⟩ := peek_of_chars_cons s.advance ' ' rest' (s.col + 1) h_adv_corr
+  apply flowGluedCollectionValue_false_of_peekAt_blank
+  rw [← L4YAML.Proofs.ScannerPlainContent.advance_peek_eq_peekAt_one s ':' h_pk_colon]
+  exact h_pk_space
+
 -- Value indicator `:` scanning in flow context.
 -- Value indicator `:` scanning in flow context.
 -- After scanning a key (e.g., double-quoted scalar), `:` dispatches through
@@ -1156,6 +1169,7 @@ lemma emitPairList_scans_nonempty (pairs : List (YamlValue × YamlValue))
         rw [h_sk_id]
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
           (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
       -- Step 3: Scan ':' via scanNextToken_flow_value
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
               h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, h_val_push⟩ :=
@@ -1303,6 +1317,7 @@ lemma emitPairList_scans_nonempty (pairs : List (YamlValue × YamlValue))
         rw [h_sk_id]
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
           (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
       -- Step 3: Scan ':' via scanNextToken_flow_value
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
               h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, h_val_push⟩ :=
@@ -2627,6 +2642,7 @@ lemma emitPairList_scans_nonempty_keyshape
       rw [h_sk_id]
       exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
         (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
     -- Step 2: Scan ':' via the strengthened colon (exposes the `.key` token effect).
     obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
             h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂,
@@ -2765,6 +2781,7 @@ lemma emitPairList_scans_nonempty_keyshape
       rw [h_sk_id]
       exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
         (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
     -- Step 2: Scan ':' via the strengthened colon.
     obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
             h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂,

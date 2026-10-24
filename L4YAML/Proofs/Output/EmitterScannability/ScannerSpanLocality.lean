@@ -613,6 +613,7 @@ lemma emitPairList_allScalar_body_content_at :
         rw [h_sk_id]
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
           (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
       have h_corr₁_col : ScannerSurfCorr s₁
           ⟨':' :: ' ' :: (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest), s₁.col⟩ :=
         h_corr₁
@@ -822,6 +823,7 @@ lemma emitPairList_allScalar_body_content_at :
         rw [h_sk_id]
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
           (by rw [h_ek₁]; exact h_ek) h_entry₁ h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
       have h_corr₁_col : ScannerSurfCorr s₁
           ⟨':' :: ' ' :: (['"'] ++ (escapeString sv.content).toList ++ ['"'] ++ rest_inner), s₁.col⟩ :=
         h_corr₁

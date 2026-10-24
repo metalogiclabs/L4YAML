@@ -257,7 +257,9 @@ def readDecl (n : Name) : MetaM Readings := do
     the auto-detect loop and `scanBlockScalar_accepts`, each taking a correspondence
     (Stream E). -/
 def expectedCensus : String :=
-  "corrHyp=545 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+-- 2026-10-23 ([147] glued value): corrHyp 545 → 546 — `flowGluedCollectionValue_false_of_corr_colon_blank` reads
+-- the `": "` surface through a `ScannerSurfCorr` hypothesis; the thread, held and pair rows are unchanged.
+  "corrHyp=546 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

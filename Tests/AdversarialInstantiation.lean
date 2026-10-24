@@ -3437,6 +3437,55 @@ def testMaximalTagLeaves (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"tailGnotTag/{repr tail}: head-not-tag-char ↔ GNot at the tail"
       (gnotTagAtB s == expected) s!"got {gnotTagAtB s}"
 
+
+/-! ## Priority 20 — `[147]` glued flow value: `flowGluedCollectionValue` refusal grid
+
+`scanValueValidate` now refuses a flow `:` glued to `[`/`{` unless the key is JSON-like
+(`[148]`/`[149]`).  The grid separates the refused shapes (plain, empty and explicit yaml keys,
+map and sequence context, first entry and after `,`) from the accepted ones (JSON-like keys,
+separated values, block context where `a:[1]` is one plain scalar, and the other glued
+indicators `" ' & ! *`, which continue the plain scalar per `ns-plain-safe(flow)`).  The fuel
+row checks the refusal is `unseparatedValue` at full fuel and only `fuelExhausted` below it.
+-/
+
+/-- `(scanner ok, refused as unseparatedValue)` for `scan`. -/
+def gluedVerdict (input : String) : Bool × Bool :=
+  match scan input with
+  | .ok _ => (true, false)
+  | .error (.unseparatedValue _ _) => (false, true)
+  | .error _ => (false, false)
+
+def testGluedFlowValue (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 20: [147] glued flow value (flowGluedCollectionValue)"
+  -- Refused: yaml key × glued collection indicator × map/seq × position.
+  for input in ["{a:[1]}", "{a:{b: c}}", "[a:[1]]", "[a:{b: c}]", "{a:[]}", "{a:{}}",
+                "{a :[1]}", "{:[1]}", "[:[1]]", "{? a :[1]}", "[? a :[1]]",
+                "{x: 1, a:[1]}", "[x, a:[1]]", "{a:[1], x: 1}", "{\n  a:[1]}"] do
+    checkM state s!"glued/refused {input.quote}" (gluedVerdict input == (false, true))
+      s!"verdict={gluedVerdict input}"
+  -- Accepted: JSON-like key adjacent value ([148]/[149]).
+  for input in ["{\"a\":[1]}", "{'a':{b: c}}", "{[a]:[1]}", "{{a: b}:[1]}", "[\"a\":[1]]",
+                "{x: 1, \"a\":[1]}"] do
+    checkM state s!"glued/json-key {input.quote}" (gluedVerdict input == (true, false))
+      s!"verdict={gluedVerdict input}"
+  -- Accepted: separated value (a break is `[80] s-separate-lines` in flow), block context, and
+  -- the non-collection glued indicators.
+  for input in ["{a: [1]}", "{a:\t[1]}", "{a:\n[1]}", "a: [1]", "a:[1]", "a:{b}", "{a:b}", "{a:\"x\"}",
+                "{a:'x'}", "{a:&x b}", "{a:!t b}", "{a:*x}"] do
+    checkM state s!"glued/control {input.quote}" (gluedVerdict input == (true, false))
+      s!"verdict={gluedVerdict input}"
+  -- Fuel row at `{a:[1]}`: 5 tokens are needed to reach the refusal.
+  for fuel in [0, 1, 2, 3, 4, 5, 6, 8, 16] do
+    let r := scanLoop (ScannerState.mk' "{a:[1]}") fuel
+    let kind := match r with
+      | .error (.fuelExhausted _ _) => "fuelExhausted"
+      | .error (.unseparatedValue _ _) => "unseparatedValue"
+      | .error _ => "otherError"
+      | .ok _ => "ok"
+    checkM state s!"glued/fuel={fuel}: refusal kind" (kind == "fuelExhausted" || kind == "unseparatedValue")
+      s!"kind={kind}"
+    checkM state s!"glued/fuel={fuel}: monotone" (fuel < 3 || kind == "unseparatedValue") s!"kind={kind}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -3463,6 +3512,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testRegisterWitnessHelpers state
   testMaximalPropertyLeaves state
   testMaximalTagLeaves state
+  testGluedFlowValue state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",

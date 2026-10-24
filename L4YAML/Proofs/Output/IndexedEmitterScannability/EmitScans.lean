@@ -678,11 +678,12 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
   -- Step 5 (hoisted above the dispatch by item 9d — the adjacency check exempts
   -- `:` only while it is a value indicator): `isValueCandidateIx s_ad = true` via
   -- the `peekAt? 1 = ' '` fallback.
-  have h_vc : isValueCandidateIx s_ad = true := by
-    apply isValueCandidate_of_peekAt_blankIx
+  have h_ad_peekAt1 : s_ad.peekAt? 1 = some ' ' := by
     show s_ad.cursor.peekAt? 1 = some ' '
     rw [h_ad_cursor, ← IxCursor.advance_peek_eq_peekAt_one s.cursor h_pk_colon']
     exact h_pk_space
+  have h_vc : isValueCandidateIx s_ad = true :=
+    isValueCandidate_of_peekAt_blankIx s_ad h_ad_peekAt1
   have h_flow_none : scanNextTokenIx_dispatchFlowIndicators s_ad ':' = .ok none :=
     dispatchFlowIndicators_none s_ad ':'
       (by decide) (by decide) (by decide) (by decide) (by decide)
@@ -712,7 +713,7 @@ lemma scanNextToken_flow_valueIx (s : ScannerStateIx input)
       rw [h_ad_tokens, h_sk_id]
   have h_validate : scanValueValidateIx s_ad = .ok () :=
     scanValueValidateIx_ok_of_flow_allTokensOnLine s_ad h_ad_flow h_ad_ek_none
-      h_skb_ad h_endline_ad
+      h_skb_ad h_endline_ad (flowGluedCollectionValueIx_false_of_peekAt_blank s_ad h_ad_peekAt1)
   have h_adv_inflow :
       (((scanValuePrepareIx s_ad).emit YamlToken.value).advance).inFlow = true := by
     rw [advance_inFlow, emit_inFlow]

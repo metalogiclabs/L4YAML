@@ -403,6 +403,7 @@ lemma emitPairList_scans_tokvals (pairs : List (YamlValue × YamlValue))
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
           (by rw [h_ek₁]; exact h_ek)
           (savedKeyAtEntryBoundary_of_take h_tidx₁ h_szlt₁ h_ph0₁ h_take_k h_pse) h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
               h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, h_val_push⟩ :=
         scanNextToken_flow_value s₁ ((emit p.2).toList ++ rest_chars)
@@ -557,6 +558,7 @@ lemma emitPairList_scans_tokvals (pairs : List (YamlValue × YamlValue))
         exact scanValueValidate_ok_of_flow_allTokensOnLine s₁ h_flow₁
           (by rw [h_ek₁]; exact h_ek)
           (savedKeyAtEntryBoundary_of_take h_tidx₁ h_szlt₁ h_ph0₁ h_take_k h_pse) h_endline₁
+          (flowGluedCollectionValue_false_of_corr_colon_blank s₁ _ h_corr₁)
       obtain ⟨s₂, h_snt₂, h_corr₂, h_fl₂, h_dp₂, h_ids₂, h_col₂,
               h_flow₂, h_indent₂, h_ek₂, _h_line₂, h_atol₂, h_endline₂, h_stack_v₂, _, _, h_val_push⟩ :=
         scanNextToken_flow_value s₁

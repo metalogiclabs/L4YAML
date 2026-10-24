@@ -471,6 +471,19 @@ def isJsonNodeTokenIx (tok : YamlToken) : Bool :=
   | .flowMappingEnd => true
   | _ => false
 
+/-- Indexed twin of `flowGluedCollectionValue` (§7.4.2 [147]/[149]). -/
+def flowGluedCollectionValueIx {input : String} (s : ScannerStateIx input) : Bool :=
+  s.inFlow
+    && (match s.peekAt? 1 with
+        | some n => n == '[' || n == '{'
+        | none => false)
+    && !(match (if s.simpleKey.possible
+                    && s.simpleKey.cursor.pos.offset == s.cursor.pos.offset
+                then s.tokens.tokens[s.simpleKey.tokenIndex - 1]?
+                else s.tokens.tokens[s.tokens.size - 1]?) with
+         | some t => isJsonNodeTokenIx t.token
+         | none => false)
+
 /-- Whether `:` at the current cursor is a value indicator. -/
 def isValueCandidateIx {input : String} (s : ScannerStateIx input) : Bool :=
   if s.inFlow && s.simpleKey.possible then
@@ -812,6 +825,9 @@ def scanValueValidateIx {input : String} (s : ScannerStateIx input) :
     throw (.nestedMappingOnLine s.cursor.pos.line s.cursor.pos.col)
   if !s.inFlow && s.markerOnLine then
     throw (.contentOnDocumentStartLine s.cursor.pos.line s.cursor.pos.col)
+  -- §7.4.2 [147]: mirror of the legacy glued-collection-value refusal.
+  if flowGluedCollectionValueIx s then
+    throw (.unseparatedValue s.cursor.pos.line s.cursor.pos.col)
 
 /-- Resolve a pending simple key by overwriting placeholders at
     `simpleKey.tokenIndex`. Pure state update on the token stream

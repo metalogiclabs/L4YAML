@@ -796,9 +796,11 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- `gnot_gchar_nil`/`gnot_gchar_head`/`gnot_gchar_of_peek_none`, `peek_none_of_fuel_zero`); none is a no-op conclusion.
 -- 2026-10-23 (item 348): `theorems` 6049 → 6060 — the widened stale-key hook's lemmas (`closeStale_*`, `closeStaleAt_slots`,
 -- `SlotsWitness.closeStale`, `innermost_closeStale_col0`, `reg_col_nonneg`, `hook_col0_dead`, `preprocess_col0_dead`); none is a no-op conclusion.
--- 2026-10-24 ([148]/[149] JSON-key adjacent value): `theorems` 6060 → 6065 — 2 suffix lemmas, 2 `*_toKey` lifts, 2 scanner JSON-key
--- lemmas (`isValueCandidate_glued_jsonKey` + Ix twin) less the one guard theorem counted elsewhere; none is a no-op conclusion.
-def expectedNoopTally : String := "theorems=6065 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 2026-10-23 ([147] glued value): `theorems` 6060 → 6062 — the `flowGluedCollectionValue` helper lemmas
+-- (`*_false_of_peekAt_blank`, its Ix twin, `*_false_of_corr_colon_blank`); none is a no-op conclusion.
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value, merged from the base): +5 — 2 suffix lemmas, 2 `*_toKey` lifts,
+-- 2 scanner JSON-key lemmas (`isValueCandidate_glued_jsonKey` + Ix twin) less the one guard theorem counted elsewhere.
+def expectedNoopTally : String := "theorems=6067 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

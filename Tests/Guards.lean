@@ -5,6 +5,7 @@ import Tests.Guards.Proofs.AcceptanceProbes
 import Tests.Guards.Proofs.AliasNodeRoute
 import Tests.Guards.Proofs.Col0LandingDead
 import Tests.Guards.Proofs.TokenGrammarProbes
+import Tests.Guards.Proofs.FlowGluedColonExhibit
 import Tests.Guards.Proofs.BlockCollectionWidthFloor
 import Tests.Guards.Proofs.BlockHeaderExactness
 import Tests.Guards.Proofs.BodySuccSeqDiscriminator

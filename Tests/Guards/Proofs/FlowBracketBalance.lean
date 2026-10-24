@@ -131,8 +131,10 @@ private def sweep : Nat → List String → Nat × Nat × Bool
 
 #guard sweep 1 [""] == (11, 16, true)
 #guard sweep 2 [""] == (121, 203, true)
-#guard sweep 3 [""] == (1331, 2382, true)
-#guard sweep 4 [""] == (14641, 27193, true)
+-- [147] glued value: `scanValueValidate` now refuses `a:[`/`a:{` in flow (`flowGluedCollectionValue`),
+-- so those inputs stop at the `:` — length 3: 2382 → 2374 steps, length 4: 27193 → 27009; agreement unchanged.
+#guard sweep 3 [""] == (1331, 2374, true)
+#guard sweep 4 [""] == (14641, 27009, true)
 
 /-! ## §2  The three pushes, proved
 
