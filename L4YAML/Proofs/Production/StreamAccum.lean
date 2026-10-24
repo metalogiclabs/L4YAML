@@ -1180,19 +1180,24 @@ lemma frameChainOne {P : Nat → Prop} {a : Nat} (ha : P a) : ∀ x ∈ [a], P x
   · exact absurd hx' List.not_mem_nil
 
 /-- Item 354: `frameChainUnion` for the domained faces — the union of two `MarkedColsIn`
-    chains is in the domain by either side. -/
+    chains is in the domain by either side.  Item 355: a funder that declines does not
+    discard the other's chain (either `inl` alone is the answer; `inr` only when both
+    decline) — the review of PR 98 caught the first version dropping `h_kslot`'s chain
+    behind a declining `h_expl`. -/
 lemma frameChainUnionD {sc : ScannerState} {P : Nat → Prop} {alt : Prop}
     (h₁ : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns, P nv) ∨ alt)
     (h₂ : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns, P nv) ∨ alt) :
     (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns, P nv) ∨ alt := by
   rcases h₁ with ⟨ns₁, d₁, f₁⟩ | h
-  · rcases h₂ with ⟨ns₂, _, f₂⟩ | h
+  · rcases h₂ with ⟨ns₂, _, f₂⟩ | _
     · refine Or.inl ⟨ns₁ ++ ns₂, d₁.union_left, fun nv hmem => ?_⟩
       rcases List.mem_append.mp hmem with h | h
       · exact f₁ nv h
       · exact f₂ nv h
+    · exact Or.inl ⟨ns₁, d₁, f₁⟩
+  · rcases h₂ with ⟨ns₂, d₂, f₂⟩ | _
+    · exact Or.inl ⟨ns₂, d₂, f₂⟩
     · exact Or.inr h
-  · exact Or.inr h
 
 /-- One funder consed onto the chain the producer was handed (item 192). -/
 lemma frameChainCons {P : Nat → Prop} {a : Nat} {ns : List Nat}
