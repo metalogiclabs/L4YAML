@@ -73,6 +73,8 @@ The position reported is the property's own indicator, not the follower. -/
 -- `'` is `[39] ns-uri-char` hence `[40] ns-tag-char`: `!t'x'` is ONE primary tag
 -- (N1b: `scanNamedTag` collects the full `ns-tag-char+` suffix, not just word chars).
 #guard bothAccept "[!t'x']\n"
+#guard bothAccept "[!t.x]\n"                        -- `.` and `/` are ns-tag-chars too:
+#guard bothAccept "[!t/x a]\n"                      -- one tag `!t/x`, then plain `a`
 #guard rejects9f "[*x[b]]\n" '*' 0 1              -- §7.5 [104]: an alias is a whole node
 #guard rejects9f "[*x{a: b}]\n" '*' 0 1
 
