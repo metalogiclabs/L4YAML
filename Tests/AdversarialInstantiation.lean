@@ -3265,6 +3265,104 @@ def testRegisterWitnessHelpers (state : IO.Ref TestCollector) : IO Unit := do
           && s'.indentColumns[s'.indents.size - 1]? == some (col : Int)) ""
     | .error _ => checkM state s!"witness/scanKey {label}: scans" false ""
 
+/-! ## Priority 18 — maximal property leaves: `collectAnchorNameLoop_prod` and the `GNot` lookahead (N1a)
+
+`[101]`/`[104]` now end an anchor/alias name with `GNot (GChar isNsAnchorChar)` and the
+primary tag suffix `[99]` is `ns-tag-char+` (`L4YAML/Surface/Basic.lean`,
+`L4YAML/Surface/Scalars.lean`).  `collectAnchorNameLoop_prod`
+(`L4YAML/Proofs/Production/StructureProduction.lean`) carries the lookahead to the
+scanner under the new premise `inputEnd - offset ≤ fuel`: the loop stops only at end
+of input or at a non-anchor char.
+
+**Risk:** the premise is load-bearing — with too little fuel the loop stops MID-name, the
+landing is followed by an anchor char and `GNot` is false.  The grid below separates
+**failed-hypothesis** (fuel below the remaining input) from **theorem-holds** (fuel at or
+above it), on empty / singleton / multi-char names and on every terminator kind.
+`scanAnchorOrAlias_prod`'s new conjuncts (`sp_mid ≠ sp'`, `GNot`) are checked through
+`scanAnchorOrAlias` itself; `"&"`/`"& a"` are the `GPlus` refuters (`emptyAnchorName`).
+-/
+
+/-- `[102] ns-anchor-char` as the scanner tests it (`collectAnchorNameLoop`'s guard). -/
+def anchorCharB (c : Char) : Bool :=
+  !L4YAML.CharPredicates.isFlowIndicatorBool c && !L4YAML.CharPredicates.isWhiteSpaceBool c
+    && !L4YAML.CharPredicates.isLineBreakBool c && L4YAML.CharPredicates.isPrintableBool c
+    && c != '\uFEFF'
+
+/-- `GNot (GChar isNsAnchorChar)` at the scanner's landing: end of input or a non-anchor char. -/
+def gnotAnchorAtB (s : ScannerState) : Bool :=
+  match s.peek? with
+  | none => true
+  | some c => !anchorCharB c
+
+/-- One instance of `collectAnchorNameLoop_prod` from the state `s` with `fuel`:
+    `(hypothesis held, GNot at the landing, name unchanged ↔ position unchanged)`. -/
+def anchorLoopInstance (s : ScannerState) (fuel : Nat) : Bool × Bool × Bool :=
+  let (name, s') := collectAnchorNameLoop s "" fuel
+  (decide (s.inputEnd - s.offset ≤ fuel), gnotAnchorAtB s',
+   (decide (s'.offset = s.offset)) == (name == ""))
+
+/-- The remaining input of `input` seen as an anchor-name position (offset 0). -/
+def nameState (input : String) : ScannerState := ScannerState.mk' input
+
+def testMaximalPropertyLeaves (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 18: maximal property leaves (collectAnchorNameLoop_prod, N1a)"
+  -- Fuel grid at `"xa]"`: the remaining input is 3 bytes.
+  for fuel in [0, 1, 2, 3, 4] do
+    let (hyp, gnot, stable) := anchorLoopInstance (nameState "xa]") fuel
+    -- The statement: hypothesis → conclusion.
+    checkM state s!"anchorLoop/\"xa]\" fuel={fuel}: hyp → GNot ∧ name/position agree"
+      (!hyp || (gnot && stable)) s!"hyp={hyp} gnot={gnot} stable={stable}"
+    -- Record which bucket the row is in, so a vacuous pass is visible.
+    checkM state s!"anchorLoop/\"xa]\" fuel={fuel}: bucket = {if hyp then "theorem-holds" else "failed-hypothesis"}"
+      (hyp == decide (3 ≤ fuel)) ""
+  -- Below the bound the loop stops mid-name and the lookahead is FALSE: the premise is load-bearing.
+  checkM state "anchorLoop/\"xa]\" fuel=0: lookahead refuted without the fuel premise"
+    (!(anchorLoopInstance (nameState "xa]") 0).2.1) ""
+  checkM state "anchorLoop/\"xa]\" fuel=1: lookahead refuted without the fuel premise"
+    (!(anchorLoopInstance (nameState "xa]") 1).2.1) ""
+  -- Names: empty / singleton / multi; terminators: every kind, and end of input.
+  for input in ["", "x", "xa", "xa]", "x,", "x}", "x ", "x\t", "x\n", "x\r\n", "x{", "x[",
+                "xa\uFEFF", "x: y", "x#c", "xa b", "]", " x"] do
+    let s := nameState input
+    let fuel := s.inputEnd - s.offset
+    let (hyp, gnot, stable) := anchorLoopInstance s fuel
+    checkM state s!"anchorLoop/{repr input}: holds at fuel = remaining input"
+      (hyp && gnot && stable) s!"gnot={gnot} stable={stable}"
+    let (hyp', gnot', stable') := anchorLoopInstance s (fuel + 1)
+    checkM state s!"anchorLoop/{repr input}: holds with surplus fuel"
+      (hyp' && gnot' && stable') ""
+  -- `scanAnchorOrAlias_prod`: marker, non-empty maximal name, lookahead, the pushed token.
+  for (marker, isAnchor) in [('&', true), ('*', false)] do
+    -- `:` is an `[102] ns-anchor-char` (ns-char minus the flow indicators): `&a: 1` names `a:`.
+    for (name, tail) in [("x", ""), ("xa", "]"), ("x", " "), ("x", ","), ("x", "\n"), ("a-b_c", " 1"),
+                         ("a:", " 1"), ("a:b", ""), ("x", "{"), ("x", "}"), ("x", "[")] do
+      let input := s!"{marker}{name}{tail}"
+      match scanAnchorOrAlias (ScannerState.mk' input) isAnchor with
+      | .ok s' =>
+        let tok := s'.tokens.back?.map (·.val)
+        let expected : YamlToken := if isAnchor then .anchor name else .alias name
+        checkM state s!"scanAnchorOrAlias/{repr input}: maximal name token"
+          (tok == some expected) s!"got {repr tok}"
+        checkM state s!"scanAnchorOrAlias/{repr input}: GNot at the landing"
+          (gnotAnchorAtB s') ""
+        checkM state s!"scanAnchorOrAlias/{repr input}: sp_mid ≠ sp' (name non-empty)"
+          (s'.offset > 1) ""
+      | .error e =>
+        checkM state s!"scanAnchorOrAlias/{repr input}: accepted" false s!"{repr e}"
+    -- The `GPlus` refuters: no name at all.
+    for input in [s!"{marker}", s!"{marker} a", s!"{marker}]", s!"{marker}\n"] do
+      checkM state s!"scanAnchorOrAlias/{repr input}: refused (empty name)"
+        (match scanAnchorOrAlias (ScannerState.mk' input) isAnchor with
+         | .error _ => true | .ok _ => false) ""
+  -- `[99]`/`[100]`: a bare `!` is the non-specific tag; `!t` is a primary tag with suffix `t`.
+  for (input, handle, suffix) in [("! a", "!", ""), ("!t a", "!", "t"), ("!t", "!", "t"),
+                                  ("!!str a", "!!", "str"), ("!e!t a", "!e!", "t")] do
+    match scanTag (ScannerState.mk' input) with
+    | .ok s' =>
+      checkM state s!"scanTag/{repr input}: tag {repr handle} {repr suffix}"
+        (s'.tokens.back?.map (·.val) == some (.tag handle suffix)) s!"got {repr (s'.tokens.back?.map (·.val))}"
+    | .error e => checkM state s!"scanTag/{repr input}: accepted" false s!"{repr e}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -3289,6 +3387,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testColFloorHelpers state
   testRegisterWitnessWalk state
   testRegisterWitnessHelpers state
+  testMaximalPropertyLeaves state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
