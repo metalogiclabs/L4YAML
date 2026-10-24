@@ -255,7 +255,9 @@ it may only shrink. -/
     2026-10-21 (item 331; rows re-keyed by field and the disjunct list added the
     same day, after Devin Review on PR #7), the day the census was taken — Rule 8's baseline; the
     carriers are every `Prop`-valued declaration of `StreamAccum` (see `carriersOf`). -/
-def expectedSummary : String := "carriers=52 snapshot=9 ghost=72 or=92"
+-- Item 350: carriers 52 → 53 — `NotQuestionPark sc` joins the carrier list (the two
+-- `?`-entry faces' `PackAlt` arm became it); the 92 disjuncts are unchanged in number.
+def expectedSummary : String := "carriers=53 snapshot=9 ghost=72 or=92"
 
 def expectedTally : List String :=
   [ "BareLandingFacts: surface=0 state=2 prop=0 scalar=1 snapshot=0 ghost=0 or=0",
@@ -284,6 +286,7 @@ def expectedTally : List String :=
     "KmSound: surface=0 state=1 prop=9 scalar=21 snapshot=0 ghost=3 or=2",
     "MapFrame: surface=40 state=0 prop=30 scalar=2 snapshot=0 ghost=1 or=0",
     "MarkerNodeRoute: surface=4 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0",
+    "NotQuestionPark: surface=0 state=1 prop=1 scalar=3 snapshot=0 ghost=0 or=0",
     "OfferPred: surface=0 state=0 prop=0 scalar=4 snapshot=0 ghost=0 or=0",
     "OpenSeqEntry: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=1",
     "PackAlt: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
@@ -469,7 +472,7 @@ def expectedDisjuncts : List String :=
     "PendingNode.pendingBlock[14].h_kslotUp ∨ PackAlt sc",
     "PendingNode.pendingBlock[15].h_closeFV ∨ PackAlt sc",
     "PendingNode.pendingMapValue[9].h_ivl ∨ sp_scan.col = n + 1 ∧ ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v",
-    "PendingNode.pendingMapValue[10].h_expl ∨ PackAlt sc",
+    "PendingNode.pendingMapValue[10].h_expl ∨ NotQuestionPark sc",
     "PendingNode.pendingMapValue[11].h_vslot ∨ sc.implicitValueLine = some sc.line",
     "PendingNode.pendingMapValue[14].h_ncol ∨ True",
     "PendingNode.pendingMapValue[15].h_kslot ∨ PackAlt sc",
@@ -482,7 +485,7 @@ def expectedDisjuncts : List String :=
     "PendingNode.pendingMapValue[19].h_framesV ∨ PackAlt sc",
     "PendingNode.pendingMapValue[19].h_framesV ∨ True",
     "PendingNode.pendingMapValue[21].h_seqF ∨ True",
-    "PendingNode.pendingMapValue[22].h_explUp ∨ PackAlt sc",
+    "PendingNode.pendingMapValue[22].h_explUp ∨ NotQuestionPark sc",
     "PropsKeyPack.body ∨ PackAlt sc",
     "PropsKeyPack.body ∨ True",
     "PropsKeyPack.body ∨ True",

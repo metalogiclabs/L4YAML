@@ -321,8 +321,10 @@ def expectedAlphabet : String := "prodTyped=162 prodSurf=96 prodSpec=58"
 -- `Acceptance/BlockIndicators.lean` holds `scanValue`'s step equation; dispatch holders stand.
 -- 2026-10-23 (Row 12, item 348): `stepHolders` 1818 → 1819 — `preprocess_col0_dead` in
 -- `PendingKeySound.lean` holds `scanNextToken_preprocess`'s step equation; dispatch holders stand.
+-- 2026-10-24 (Row 12, item 350): `stepHolders` 1821 → 1823, `dispHolders` 334 → 335 —
+-- `scanValue_notQuestion` and `dispatchBlock_colon_notQuestion` hold the `:` step/dispatch equations.
 def expectedSteps : String :=
-  "stepHolders=1821 dispHolders=334 dispTwoCorr=29 fns=73 fnsIx=26"
+  "stepHolders=1823 dispHolders=335 dispTwoCorr=29 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another

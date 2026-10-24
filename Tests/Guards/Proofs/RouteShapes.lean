@@ -710,7 +710,9 @@ def expectedClosures : List String :=
     "pendingBlock.h_closeFV[LEE2] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Key(_)▹ExplValueLine(_)",
     "pendingMapValue.h_close[] req: sp_scan: SBlockNode(n+1,blockIn) ⇒ Stream",
     "pendingMapValue.h_ivl[R2] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
-    "pendingMapValue.h_expl[LE2] opt: _: SBlockMapEntry(n) ⇒ Stream",
+   -- 2026-10-24 (item 350): `h_expl`/`h_explUp` read `req`, no longer `opt` — their alternative is
+   -- `NotQuestionPark sc` (a scanner fact the `:` producers pay), not a `PackAlt`/`True` escape.
+    "pendingMapValue.h_expl[LE2] req: _: SBlockMapEntry(n) ⇒ Stream",
     "pendingMapValue.h_vslot[L3] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
     "pendingMapValue.h_kslot[LE] opt: sp_scan: SBlockNode(n+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
     "pendingMapValue.h_closeF[LE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Resume(map(n)::_)▹Stream",
@@ -718,7 +720,7 @@ def expectedClosures : List String :=
     "pendingMapValue.h_closeFV[LEE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)",
     "pendingMapValue.h_framesV[LEE2] opt: sp_scan: SSLComments ⇒ Key(_)▹ExplValueLine(_)",
     "pendingMapValue.h_seqF[LEE2] opt: sp_scan: SBlockNode(n+1,blockIn) > SCompactMapTail(n) ⇒ Resume(_)▹SeqEntryTail(_)",
-    "pendingMapValue.h_explUp[LEE2] opt: _: SBlockMapEntry(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+    "pendingMapValue.h_explUp[LEE2] req: _: SBlockMapEntry(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
     "mk.value[] req+guard: sp_br: SFlowContent(n,flowOut) > SSLComments ⇒ Stream",
     "mk.key[LEE1] opt: [kc=_] _: SBlockMapEntry(_) ⇒ Stream",
     "mk.key[LEE4LE] opt: [kc=_] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
@@ -770,7 +772,9 @@ def expectedSpines : List String :=
    "  stream=0 carry=5 fwd=0 punt=1 closed=0 SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream  ← pendingMapValue.h_closeF",
    "  stream=1 carry=3 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)  ← pendingMapValue.h_closeFV",
    "  stream=0 carry=1 fwd=0 punt=5 closed=0 SBlockNode(_+1,blockIn) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)  ← pendingMapValue.h_seqF",
-   "  stream=0 carry=1 fwd=0 punt=5 closed=0 SBlockMapEntry(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_explUp"]
+   -- 2026-10-24 (item 350): `h_explUp` carry 1 → 2, punt 5 → 4 — the compact `?` producer now pays
+   -- the chain (`ns := []` under the landed `?` literal) instead of punting to `PackAlt`.
+   "  stream=0 carry=2 fwd=0 punt=4 closed=0 SBlockMapEntry(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_explUp"]
 -- Item 287: the same 47 rows.  With `accum_block_on_closeThenBlock`'s inline
 -- application gone, the walk reaches `compact_open_map` from it before it
 -- reaches the escape through the stamp wrappers, so those two rows trade places.
@@ -782,7 +786,9 @@ def expectedSites : List String :=
   -- Item 305: the compact arm's `h_closeFV` hand-off is a carry (the `?` slot's bottom), not a punt.
   ["  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_new:=param:h_close_pending closedBy=[SSLComments ⇒ Stream] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
    "  accum_block_on_closeThenBlock: nil park=pendingBlock stream=bound:h_stream_a closedBy=[obtained] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=carry,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
-   "  compact_open_map: nil park=pendingMapValue stream=param:h_stream_block closedBy=[] h_close=carry,h_ivl=carry,h_expl=carry,h_vslot=carry,h_kslot=punt,h_closeF=carry,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=punt",
+   -- 2026-10-24 (item 350): `compact_open_map` carries `h_explUp` (the chain under the landed `?`,
+   -- `ns := []`) instead of punting it to `PackAlt`.
+   "  compact_open_map: nil park=pendingMapValue stream=param:h_stream_block closedBy=[] h_close=carry,h_ivl=carry,h_expl=carry,h_vslot=carry,h_kslot=punt,h_closeF=carry,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=carry",
    "  block_dispatch_deferred: nil park=pendingFlow stream=param:h_stream closedBy=[] ",
    "  colon_open_map_explicit: nil park=pendingMapValue stream=param:h_stream_mid closedBy=[] h_close=carry,h_ivl=carry,h_expl=punt,h_vslot=carry,h_kslot=punt,h_closeF=punt,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=punt",
    "  question_open_map: nil park=pendingMapValue stream=param:h_stream_land closedBy=[] h_close=stream,h_ivl=stream,h_expl=stream,h_vslot=stream,h_kslot=carry,h_closeF=carry,h_frames=carry,h_closeFV=stream,h_framesV=stream,h_seqF=punt,h_explUp=carry",
@@ -897,8 +903,23 @@ def expectedK : List String :=
 -- 2026-10-23 (item 344): routeCarry 47 → 48, routeClosed 36 → 35 — the `on_pendingBlock` caller's `h_valFV`
 -- now relays `h_closeFV_old` instead of closing with `trivial`.
 -- 2026-10-23 (item 345): carry 170 → 173, punt 78 → 75, carry 120 → 123, punt 72 → 69, carry 285 → 288, punt 82 → 79 — the five content-park relays.
+-- 2026-10-24 (item 350): optional 40 → 38, mandatory[stream 4 → 5 carry 50 → 53 punt 6 → 14],
+-- optional[stream 3 → 2 carry 123 → 121 punt 69 → 60], carry 173 → 174, punt 75 → 74, routeArgs
+-- 154 → 155, routeFwd 50 → 51, build[carry 288 → 289 punt 79 → 78] — `h_expl`/`h_explUp` are
+-- mandatory closures now (alternative `NotQuestionPark sc`); the compact `?` producer carries `h_explUp`.
 def expectedLine : String :=
-  "closures=54 packed=14 optional=40 guarded=13 facts=3 others=1 byHead=6 byFirst=8 bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 stream=7 carry=173 fwd=0 punt=75 closed=0 mandatory[stream=4 carry=50 fwd=0 punt=6 closed=0] optional[stream=3 carry=123 fwd=0 punt=69 closed=0] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=32 spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=11 closedDistinct=2 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=154 routeStream=21 routeCarry=48 routeFwd=50 routeClosed=35 routeToWalked=97 routeStreamToWalked=14 viaObtained=0 viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=16 carry=288 fwd=697 punt=79 closed=21] buildStreamSlots=16 buildSpines=10 routePairs=9 routeSpines=5 k=14 kHeads=6 streamBuilders=9"
+  "closures=54 packed=14 optional=38 guarded=13 facts=3 others=1 byHead=6 byFirst=8 \
+bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 \
+stream=7 carry=174 fwd=0 punt=74 closed=0 mandatory[stream=5 carry=53 fwd=0 punt=14 \
+closed=0] optional[stream=2 carry=121 fwd=0 punt=60 closed=0] packSlots=104 \
+pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=32 \
+spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=11 \
+closedDistinct=2 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 \
+carry=29 fwd=0 punt=4 closed=1] routeArgs=155 routeStream=21 routeCarry=48 routeFwd=51 \
+routeClosed=35 routeToWalked=97 routeStreamToWalked=14 viaObtained=0 viaSites=0 \
+builders=13 builds=170 buildSlots=1101 build[stream=16 carry=289 fwd=697 punt=78 \
+closed=21] buildStreamSlots=16 buildSpines=10 routePairs=9 routeSpines=5 k=14 kHeads=6 \
+streamBuilders=9"
 
 set_option maxHeartbeats 4000000 in
 run_cmd Lean.Elab.Command.liftTermElabM do
