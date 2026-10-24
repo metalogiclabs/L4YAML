@@ -24247,9 +24247,14 @@ lemma accum_block_on_closeThenBlock
     -- none of its own); `nv` is the FRAME's index and is a different number —
     -- `h_closeFV`'s widths already run to the park's own level inclusive, so
     -- nothing is consed on the way across. ═══
+    -- **Item 352: the alternative is `True`, as `h_valF`'s is.**  The `-` arm reads this
+    -- face at one site only, to build the new park's `h_closeFV` when `nn < k`; its
+    -- fallback (`h_slotV'`) never reads the alternative, so `∨ PackAlt sc` here was a
+    -- carrier no payer could fill (a content park awaits no node: a deeper landing
+    -- after a complete node is `invalidBareDocument`, a column-0 `-` refutes `nn < k`).
     (h_valFV : (∃ (nn nv : Nat) (ks : List FrameLevel), (∀ fr ∈ ks, fr.width ≤ nn) ∧
       ∀ sp_mid : SurfPos, SBlockNode (nn + 1) .blockIn sp_scan sp_mid →
-      KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ PackAlt sc)
+      KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨ True)
     -- **Item 208 (LAST): the park's own INDENT CHECK where it stands AT a line
     -- start** — item 154's field, made unconditional at item 207 and read here
     -- at the BLOCK landing.  `landing_floor_of_arm` reads the `-`'s floor off
@@ -26643,7 +26648,7 @@ lemma accum_block_on_pendingBlock
                fun sp_mid h_node => closeFV sp_mid
                  (SBlockIndented.node n .blockIn sp_scan sp_mid h_node)
                  sp_mid (SCompactSeqTail.nil n sp_mid)⟩
-           | Or.inr h_alt => Or.inr h_alt)
+           | Or.inr _ => Or.inr trivial)
           -- Item 208: this park sits at `n + 1`, so the premise is refuted.
           (nic0_of_col_pos (by omega))
   · -- c ≠ '-' at the landing: a ':' opens `[189]`'s empty-key entry there

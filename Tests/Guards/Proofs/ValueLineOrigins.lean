@@ -1112,8 +1112,9 @@ def expectedUnborn : List String := []
 -- content step; origins/rows unmoved once the bottoms memo is keyed by the binder stack.
 -- 2026-10-24 (item 350): punt 10 → 5, stamp 28 → 32, built 142 → 143, relayedStamp 10 → 11, follows 347 → 343, lapps 724 → 725, alts 4501 → 4513, nodes 12593 → 12597, liteNodes 544809 → 546045
 -- — the `:` producers stamp `NotQuestionPark sc`; `inr` arms spend `empty`/absurd.
+-- 2026-10-23 (item 345): liteNodes 546045 → 546027
 def expectedLine : String :=
-  "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=180 ctorRows=98 paramRows=82 packagedRows=29 punt=5 stamp=32 built=143 origins=76 originRows=41 route=23 frames=30 tail=0 other=7 concl=8 invariant=8 heldOrigins=23 allHeld=9 someHeld=11 noneHeld=108 unbornRows=0 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=343 lets=572 lapps=725 alts=4513 nodes=12597 liteNodes=546045"
+  "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=180 ctorRows=98 paramRows=82 packagedRows=29 punt=5 stamp=32 built=143 origins=76 originRows=41 route=23 frames=30 tail=0 other=7 concl=8 invariant=8 heldOrigins=23 allHeld=9 someHeld=11 noneHeld=108 unbornRows=0 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=343 lets=572 lapps=725 alts=4513 nodes=12597 liteNodes=546027"
 
 /-! ## §4 The reading -/
 
