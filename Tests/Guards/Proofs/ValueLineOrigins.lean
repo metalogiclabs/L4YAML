@@ -327,7 +327,11 @@ def isTransport (pe : PackEnv) (m : Name) : Bool :=
     hasHead c streamN || (hasHead c resumeN || hasHead c keyN) || vcDeep pe c || (c.find? fun s => s.isApp && s.getAppFn.isBVar).isSome
   | _ => false
 
-abbrev BMemo := IO.Ref (Std.HashMap (Expr × Nat × List VStep) (Array Bot))
+-- Keyed by the whole stack, not its depth: a depth-keyed hit from another binder context returned
+-- that context's bottoms (item 349 — `question_open_map`'s `h_resV_land` frames origin vanished).
+def stackKey (st : Stack) : Array (Name × Option String) := st.map fun b => (b.name, b.prov)
+
+abbrev BMemo := IO.Ref (Std.HashMap (Expr × Array (Name × Option String) × List VStep) (Array Bot))
 
 /-- The matches the bottoms reader enters (their alternative binders are
     labeled from the discriminants), for the follower to resolve. -/
@@ -344,9 +348,9 @@ partial def bottomsOf (pe : PackEnv) (memo : BMemo) (budget : Budget) (dyn : Dyn
   if (← budget.get) == 0 then return #[.term "budget"]
   budget.modify (· - 1)
   let e := peelSafe e
-  if let some r := (← memo.get)[(e, st.size, path)]? then return r
+  if let some r := (← memo.get)[(e, stackKey st, path)]? then return r
   let r ← go e
-  memo.modify (·.insert (e, st.size, path) r)
+  memo.modify (·.insert (e, stackKey st, path) r)
   return r
 where
   go (e : Expr) : MetaM (Array Bot) := do
@@ -1099,13 +1103,15 @@ def expectedUnborn : List String := []
 -- 2026-10-23 (item 344): `punt` 14 → 13, `built` 138 → 139, `noneHeld` 104 → 105, `follows` 343 → 344, `lapps` 709 → 714, `alts` 4490 → 4494, `liteNodes` 543421 → 543929
 -- — `accum_block_pending` #2 pays `h_vpack` (one more built row, its term's size).
 -- 2026-10-23 (item 345): punt 13 → 10, built 139 → 142, noneHeld 105 → 108, follows 344 → 347, lapps 714 → 722, alts 4494 → 4499, liteNodes 543929 → 544679 — the three `h_kslotUp` singleton relays.
+-- 2026-10-23 (item 349): `lets` 570 → 572, `lapps` 722 → 724, `alts` 4499 → 4501, `nodes` 12587 → 12593, `liteNodes` 544679 → 544809 — `h_dead` threaded through the
+-- content step; origins/rows unmoved once the bottoms memo is keyed by the binder stack.
 def expectedLine : String :=
   "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=180 ctorRows=98 \
 paramRows=82 packagedRows=29 punt=10 stamp=28 built=142 origins=76 originRows=41 \
 route=23 frames=30 tail=0 other=7 concl=8 invariant=8 heldOrigins=23 allHeld=9 \
 someHeld=11 noneHeld=108 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 \
-relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=347 lets=570 lapps=722 alts=4499 \
-nodes=12587 liteNodes=544679"
+relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=347 lets=572 lapps=724 alts=4501 \
+nodes=12593 liteNodes=544809"
 
 /-! ## §4 The reading -/
 

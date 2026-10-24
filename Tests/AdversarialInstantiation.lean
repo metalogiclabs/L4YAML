@@ -3654,6 +3654,7 @@ def testGluedScannerLemmas (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"p21/{input.quote}: glued predicate silent after a JSON key" (v == some false) s!"v={v}"
 
 /-! ## Priority 19 — the widened stale hook and the column-0 landing fact (items 348–349, row 12)
+/-! ## Priority 20 — the widened stale hook and the column-0 landing fact (items 348–349, row 12)
 
 Item 348 made `closeStaleExplicitKey` close EVERY marked `pendingKeys` level the
 cursor lands at or left of (`PendingKeys.closeStale`), and item 349 narrowed its
@@ -3703,7 +3704,7 @@ def walkCol0Dead (input : String) : Nat × Nat × Nat := Id.run do
   return (steps, landings, refuted)
 
 def testColZeroLanding (state : IO.Ref TestCollector) : IO Unit := do
-  setCategory state "Priority 19: widened stale hook and the column-0 landing fact (items 348–349)"
+  setCategory state "Priority 20: widened stale hook and the column-0 landing fact (items 348–349)"
   -- `indicatorAt`: `-`/`:` are indicators only before a blank or at EOF.
   let indRows : List (Char × Option Char × Bool) :=
     [('-', some ' ', true), ('-', none, true), ('-', some 'x', false), ('-', some '\n', true),

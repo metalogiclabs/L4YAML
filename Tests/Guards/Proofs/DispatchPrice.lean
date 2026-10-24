@@ -322,7 +322,7 @@ def expectedAlphabet : String := "prodTyped=162 prodSurf=96 prodSpec=58"
 -- 2026-10-23 (Row 12, item 348): `stepHolders` 1818 → 1819 — `preprocess_col0_dead` in
 -- `PendingKeySound.lean` holds `scanNextToken_preprocess`'s step equation; dispatch holders stand.
 def expectedSteps : String :=
-  "stepHolders=1819 dispHolders=332 dispTwoCorr=29 fns=73 fnsIx=26"
+  "stepHolders=1821 dispHolders=334 dispTwoCorr=29 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -389,6 +389,8 @@ def expectedChainSpec : List Name :=
 -- preprocess (+4), item 309's `preprocess_currentIndent_neg` and `indent_neg_dis_of_park`, deleted, held it too (−2).
 -- 2026-10-21 (item 324): `scanNextToken_preprocess decls` 216 → 218 — the two preprocess-transport lemmas of the alternative
 -- family (`ExplicitValueRefused.step_preprocess`, `PackAlt.step_preprocess`) read the preprocess equation; the content dispatch stands.
+-- 2026-10-23 (item 349): `stepHolders` 1819 → 1821, `dispHolders` 332 → 334 — `not_blockEntryCandidate_of_dispatch_none`
+-- and `indicatorAt_false_of_dispatch_none` hold the block-indicator dispatch equation.
 -- 2026-10-23 (item 348): `scanNextToken_preprocess decls` 223 → 224 — `preprocess_col0_dead` (the column-0 landing fact).
 def expectedPerFn : List String :=
   ["scanNextToken_dispatchContent decls=146 chain=1",

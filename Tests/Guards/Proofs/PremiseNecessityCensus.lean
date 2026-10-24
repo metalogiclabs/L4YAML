@@ -350,7 +350,7 @@ declarations' own binders and not by a rescoring of an existing one.
 -- 2026-10-23 (item 344): constants/decls +1, READ 1200 → 1203 — the relayed `h_valFV`'s `match` and the relays' reads.
 -- 2026-10-23 (item 345): constants 1419 → 1420, decls 1129 → 1130, READ 1203 → 1206 — the `h_kslotUp` singleton relays' tactic block: one auxiliary declaration, three more reads (same as HypothesisReaderCensus).
 def expectedModuleTallyP : String :=
-  "constants=1420 decls=1130 eta=408 FIELD=189 READ=1206 RELAY=2222 RETURN=139 UNUSED=26"
+  "constants=1424 decls=1132 eta=408 FIELD=189 READ=1207 RELAY=2233 RETURN=139 UNUSED=26"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -622,6 +622,8 @@ def aliveSet (g : Graph) : Std.HashSet String := Id.run do
 -- `lane stub` like the other promised wrappers; regenerated from the census's own `got` rows.
 -- 2026-10-21 (item 324): two rows added — `PackAlt.step_preprocess`'s `_h_preprocess`/`_h`, `lane stub` like the other promised
 -- wrappers (`deadReason` lists them); rows from the guard's own `got`.
+-- 2026-10-23 (item 349): PEELED constants 1420 → 1424, decls 1130 → 1132, READ 1206 → 1207, RELAY 2222 → 2233 (the two
+-- dispatch bridges; `h_sound`/`h_dead` relayed through the content step); DEAD set 32 → 31, see the reason table.
 def expectedDead : List String :=
   [ "L4YAML.Proofs.StreamAccum.PackAlt.ofGateClose#2 (_h) [lane stub]",
     "L4YAML.Proofs.StreamAccum.PackAlt.ofRefused#1 (_h) [lane stub]",
@@ -640,7 +642,7 @@ def expectedDead : List String :=
     "L4YAML.Proofs.StreamAccum.PackAlt.step_value#5 (_h_noflow) [lane stub]",
     "L4YAML.Proofs.StreamAccum.PackAlt.step_value#6 (_h) [lane stub]",
     "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2 (_h) [lane stub]",
-    "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#16 (h_alt) [promised step]",
+    "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#17 (h_alt) [family uniformity]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline#12 (_h_res) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#10 (_h_src) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#11 (_h_indent) [class marker]",
@@ -648,7 +650,6 @@ def expectedDead : List String :=
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#11 (_h_src) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#12 (_h_indent) [class marker]",
     "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol#13 (_h_ne) [class marker]",
-    "L4YAML.Proofs.StreamAccum.content_dispatch_routed#29 (h_alt) [promised step]",
     "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#27 (h_alt) [promised step]",
     "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30 (h_alt) [promised step]",
     "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#31 (h_dispatch) [promised step]",
@@ -673,10 +674,10 @@ def deadReason : String → String
   | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#31"
   -- Item 340: the flip's premise `h_alt : PackAlt _` on the four lemmas that relay it into their packs through
   -- `PackAlt.step_dispatch`/`step_content`/`step_preprocess` — the same chase, ending at the same unused step binder.
-  | "L4YAML.Proofs.StreamAccum.content_dispatch_routed#29"
   | "L4YAML.Proofs.StreamAccum.entryKeyPack_of_dispatch#27"
-  | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30"
-  | "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#16" => "promised step"
+  -- Item 349: `content_dispatch_routed#29` left the set (its `h_alt` is read at the `k = 0` payment's `dif`);
+  -- `accum_content_on_noPending`'s `h_alt` moved to #17 behind `h_dead` and reads as family uniformity.
+  | "L4YAML.Proofs.StreamAccum.entryPropsKeyPack_of_dispatch#30" => "promised step"
   | "L4YAML.Proofs.StreamAccum.PackAlt.ofRefused#1"
   | "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2"
   | "L4YAML.Proofs.StreamAccum.PackAlt.ofGateClose#2"
@@ -704,7 +705,8 @@ def deadReason : String → String
 -- 2026-10-21 (item 324): `dead` 26 → 28, `UNUSED` 25 → 27 — `PackAlt.step_preprocess`'s two lane-stub binders above.
 -- 2026-10-22 (item 340): `dead` 28 → 32, `RELAY` 1 → 5 — the four `h_alt` premises above, relayed to the promised
 -- wrappers; `entryPropsKeyPack_of_dispatch`'s `h_dispatch` moved from #30 to #31 behind the new binder.
-def expectedDeadTally : String := "dead=32 RELAY=5 UNUSED=27 RELAY=5"
+-- 2026-10-23 (item 349): `dead` 32 → 31, `RELAY` 5 → 4 — `content_dispatch_routed#29 (h_alt)` is read at the `k = 0` payment.
+def expectedDeadTally : String := "dead=31 RELAY=4 UNUSED=27 RELAY=4"
 
 run_cmd do
   let env ← getEnv
