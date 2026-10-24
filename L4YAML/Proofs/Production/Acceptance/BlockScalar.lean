@@ -987,4 +987,110 @@ lemma scanBlockScalar_accepts (sc : ScannerState) {sp sp₁ sp₂ sp₃ sp' : Su
       Bool.false_eq_true, ite_false]
     exact ⟨_, _, rfl, hcorr' _ _, htok _ _⟩
 
+/-! ## §10 `BlockBodyOk n` is a `[173] l-literal-content(n)` derivation -/
+
+lemma LineCharOk.toNbChar {c : Char} (h : LineCharOk c) : isNbChar c := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨fun hb => ?_, (isPrintable_iff c).mp h2, h3⟩
+  have := (isLineBreak_iff c).mpr hb
+  rw [h1] at this; exact absurd this (by decide)
+
+lemma GChar_lineChar_toNb {s s' : SurfPos} (h : GChar LineCharOk s s') : SNbChar s s' :=
+  match h with
+  | .mk c rest col hc => GChar.mk c rest col hc.toNbChar
+
+lemma GStar_lineChar_toNb {s s' : SurfPos} (h : GStar (GChar LineCharOk) s s') :
+    GStar SNbChar s s' :=
+  GStar_mono (fun _ _ hc => GChar_lineChar_toNb hc) h
+
+lemma GPlus_lineChar_toNb {s s' : SurfPos} (h : GPlus (GChar LineCharOk) s s') :
+    GPlus SNbChar s s' :=
+  match h with
+  | .mk _ s₂ _ hstep hrest => .mk _ s₂ _ (GChar_lineChar_toNb hstep) (GStar_lineChar_toNb hrest)
+
+lemma SIndentLe_of_le {k n : Nat} {s s' : SurfPos} (h : SIndent k s s') (hk : k ≤ n) :
+    SIndentLe n s s' := ⟨k, hk, h⟩
+
+/-- A blank body line is `[70] l-empty(n, BLOCK-IN)`. -/
+lemma blank_toSLEmpty {n k : Nat} {s s₁ s' : SurfPos} (hk : k ≤ n) (hind : SIndent k s s₁)
+    (hb : SBBreakOk s₁ s') : SLEmpty n .blockIn s s' :=
+  .block n s s₁ s' .blockIn (Or.inr rfl) (.some _ _ (SIndentLe_of_le hind hk)) hb.toSBBreak
+
+/-- The two shapes of a `[173]` tail the body induction builds: no content line yet
+    (`blanks`), or at least one (`text`). -/
+inductive BodyTail (n : Nat) : SurfPos → SurfPos → Prop where
+  | blanks (s s₃ s₄ s' : SurfPos) :
+      GStar (SLEmpty n .blockIn) s s₃ → GOpt (SLTrailComments n) s₃ s₄ →
+      GOpt (SIndentLe n) s₄ s' → BodyTail n s s'
+  | text (s s₁ s₂ s₃ s₄ s' : SurfPos) :
+      GSeq (SLNbLiteralText n) (GStar (SBNbLiteralNext n)) s s₁ → GOpt SBBreak s₁ s₂ →
+      GStar (SLEmpty n .blockIn) s₂ s₃ → GOpt (SLTrailComments n) s₃ s₄ →
+      GOpt (SIndentLe n) s₄ s' → BodyTail n s s'
+
+lemma BodyTail.toSLLiteralContent {n : Nat} {s s' : SurfPos} (h : BodyTail n s s') :
+    SLLiteralContent n s s' :=
+  match h with
+  | .blanks _ s₃ s₄ _ he ht hi => .mk n s s s s₃ s₄ s' (.none s) (.none s) he ht hi
+  | .text _ s₁ s₂ s₃ s₄ _ htx hb he ht hi => .mk n s s₁ s₂ s₃ s₄ s' (.some _ _ htx) hb he ht hi
+
+lemma BodyTail.blank {n k : Nat} {s s₁ s₂ s' : SurfPos} (hk : k ≤ n) (hind : SIndent k s s₁)
+    (hb : SBBreakOk s₁ s₂) (ht : BodyTail n s₂ s') : BodyTail n s s' :=
+  have he := blank_toSLEmpty hk hind hb
+  match ht with
+  | .blanks _ s₃ s₄ _ hes htc hi => .blanks s s₃ s₄ s' (.cons _ _ _ he hes) htc hi
+  | .text _ t₁ t₂ s₃ s₄ _ (.mk _ sm _ (.mk _ _ sm₁ _ hemp hseq) hnext) hbr hes htc hi =>
+    .text s t₁ t₂ s₃ s₄ s'
+      (.mk _ sm _ (.mk n _ sm₁ _ (.cons _ _ _ he hemp) hseq) hnext) hbr hes htc hi
+
+lemma BodyTail.content {n : Nat} {s s₁ s₂ s₃ s' : SurfPos} (hind : SIndent n s s₁)
+    (hrun : GPlus (GChar LineCharOk) s₁ s₂) (hb : SBBreakOk s₂ s₃) (ht : BodyTail n s₃ s') :
+    BodyTail n s s' :=
+  have htext : SLNbLiteralText n s s₂ :=
+    .mk n s s s₂ (.nil s) (.mk s s₁ s₂ hind (GPlus_lineChar_toNb hrun))
+  match ht with
+  | .blanks _ s₄ s₅ _ hes htc hi =>
+    .text s s₂ s₃ s₄ s₅ s' (.mk s s₂ s₂ htext (.nil s₂)) (.some _ _ hb.toSBBreak) hes htc hi
+  | .text _ t₁ t₂ s₄ s₅ _ (.mk _ sm _ htext' hnext) hbr hes htc hi =>
+    .text s t₁ t₂ s₄ s₅ s'
+      (.mk s s₂ t₁ htext (.cons s₂ sm t₁ (.mk n s₂ s₃ sm hb.toSBBreak htext') hnext))
+      hbr hes htc hi
+
+lemma lineRun_toBodyTail {n : Nat} {s s₁ s' : SurfPos} (hind : SIndent n s s₁)
+    (hrun : GStar (GChar LineCharOk) s₁ s') : BodyTail n s s' :=
+  match hrun with
+  | .nil _ => .blanks s s s s₁ (.nil s) (.none s) (.some _ _ (SIndentLe_of_le hind (Nat.le_refl n)))
+  | .cons _ sm _ hstep hrest =>
+    .text s s' s' s' s' s'
+      (.mk s s' s' (.mk n s s s' (.nil s)
+        (.mk s s₁ s' hind (GPlus_lineChar_toNb (.mk _ sm _ hstep hrest)))) (.nil s'))
+      (.none s') (.nil s') (.none s') (.none s')
+
+lemma BlockStopOk.toBodyTail {n : Nat} {s s' : SurfPos} (h : BlockStopOk n s s') :
+    BodyTail n s s' :=
+  match h with
+  | .eofShort _ _ _ _ hk hind _ =>
+    .blanks s s s s' (.nil s) (.none s) (.some _ _ (SIndentLe_of_le hind (Nat.le_of_lt hk)))
+  | .eofLine _ _ _ _ hind hrun _ => lineRun_toBodyTail hind hrun
+  | .outdent _ _ _ _ _ _ _ _ _ _ _ => .blanks s s s s (.nil s) (.none s) (.none s)
+  | .badChar _ _ _ _ _ hind hrun _ _ _ => lineRun_toBodyTail hind hrun
+  | .docMarker _ _ _ => .blanks s s s s (.nil s) (.none s) (.none s)
+
+/-- `BlockBodyOk n` is a sub-relation of `[173] l-literal-content(n)` (and so of `[176]`
+    `l-folded-content` as `SCLFolded` states it). -/
+lemma BlockBodyOk.toSLLiteralContent {n : Nat} {sp sp' : SurfPos} (h : BlockBodyOk n sp sp') :
+    SLLiteralContent n sp sp' := by
+  obtain ⟨sp₁, hlines, hstop⟩ := h
+  have hbase := hstop.toBodyTail
+  clear hstop
+  suffices hpre : ∀ t, BodyTail n sp₁ t → BodyTail n sp t from
+    (hpre sp' hbase).toSLLiteralContent
+  clear hbase
+  induction hlines with
+  | nil _ => exact fun _ ht => ht
+  | cons s₁ s₂ s₃ hstep _ ih =>
+    intro t ht
+    match hstep with
+    | .blank _ _ u₁ _ _ hk hind hb => exact BodyTail.blank hk hind hb (ih t ht)
+    | .content _ u₁ u₂ _ _ hind hrun hb => exact BodyTail.content hind hrun hb (ih t ht)
+
 end L4YAML.Proofs.Acceptance

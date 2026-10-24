@@ -232,7 +232,7 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
 -- 152 → 159 on 2026-10-23: the seven block-scalar relations of `Acceptance/BlockScalar.lean`
 -- (`BlockLineOk`, `BlockStopOk`, `ChompOk`, `IndentOk`, `HeaderIndicatorsOk`, `HeaderTailOk`,
 -- `AutoIndentOk`; Stream E).
-def expectedAlphabet : String := "prodTyped=159 prodSurf=94 prodSpec=56"
+def expectedAlphabet : String := "prodTyped=160 prodSurf=94 prodSpec=56"
 -- 133 → 137 on 2026-10-23: the four narrowed relations of `Proofs.Production.Acceptance.Quoted`
 -- (`DQCharOk`, `SQCharOk`, `SCDoubleQuotedOk`, `SCSingleQuotedOk`); not under `Surface`, no rule tag.
 
