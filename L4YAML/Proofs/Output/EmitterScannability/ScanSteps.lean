@@ -1752,16 +1752,24 @@ lemma saveSimpleKey_id_of_flow_ska_false_ek_none (s : ScannerState)
   simp only [h_flow, h_ek, show (none == some s.line) = false from by rfl,
              Bool.true_and, Bool.false_eq_true, ite_false, h_ska]
 
+/-- The emitter always writes `": "`: a blank after `:` is never a glued `[`/`{`, so the
+    `[147]` refusal in `scanValueValidate` does not fire. -/
+lemma flowGluedCollectionValue_false_of_peekAt_blank (s : ScannerState)
+    (h : s.peekAt? 1 = some ' ') :
+    flowGluedCollectionValue s = false := by
+  simp [flowGluedCollectionValue, h]
+
 -- scanValueValidate always succeeds in flow when simpleKey.possible is false
 -- and explicitKeyLine is none: the key checks short-circuit on those two
 -- fields, and item 48's same-line checks (B3/B4) are `!inFlow`-gated.
 lemma scanValueValidate_ok_of_not_possible_ek_none (s : ScannerState)
     (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
-    (h_sk : s.simpleKey.possible = false) :
+    (h_sk : s.simpleKey.possible = false)
+    (h_glued : flowGluedCollectionValue s = false) :
     scanValueValidate s = .ok () := by
   unfold scanValueValidate
-  simp only [h_sk, h_flow, Bool.not_true, Bool.false_and, Bool.and_false,
+  simp only [h_glued, h_sk, h_flow, Bool.not_true, Bool.false_and, Bool.and_false,
              ite_false, h_ek, reduceCtorEq]
   rfl
 
@@ -1975,30 +1983,31 @@ lemma scanValueValidate_ok_of_flow_allTokensOnLine (s : ScannerState)
     (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
     (h_entry : SavedKeyAtEntryBoundary s)
-    (h_end : EndLineOnLine s) :
+    (h_end : EndLineOnLine s)
+    (h_glued : flowGluedCollectionValue s = false) :
     scanValueValidate s = .ok () := by
   unfold scanValueValidate EndLineOnLine SavedKeyAtEntryBoundary at *
   cases h_poss : s.simpleKey.possible
   · -- possible = false: all checks short-circuit
-    simp only [h_flow, Bool.false_and, Bool.not_true, Bool.and_false,
+    simp only [h_glued, h_flow, Bool.false_and, Bool.not_true, Bool.and_false,
                ite_false, h_ek, reduceCtorEq]; rfl
   · -- possible = true: endLine = line from h_end
     have ⟨h_el, _⟩ := h_end h_poss
     -- Checks 1,3: !inFlow = false.  Check 2: endLine = line.  Check 5: ek = none.
-    simp only [h_flow, h_el, h_ek, Bool.not_true, Bool.and_false, Bool.false_and,
+    simp only [h_glued, h_flow, h_el, h_ek, Bool.not_true, Bool.and_false, Bool.false_and,
                Bool.true_and, bne_self_eq_false, ite_false, reduceCtorEq]
     -- Check 4: possible && inFlow && tokenIndex > 0 && slot below is `.value`
     by_cases h_ti : s.simpleKey.tokenIndex > 0
-    · simp only [show (decide (s.simpleKey.tokenIndex > 0)) = true from decide_eq_true h_ti]
+    · simp only [h_glued, show (decide (s.simpleKey.tokenIndex > 0)) = true from decide_eq_true h_ti]
       -- Case analysis on `s.tokens[tokenIndex - 1]?`
       cases h_tok : s.tokens[s.simpleKey.tokenIndex - 1]? with
       | none => rfl -- no token at that index: check passes trivially
       | some tok =>
         have h_ne : tok.val ≠ .value := h_entry h_ti tok h_tok
-        simp only [show (tok.val == YamlToken.value) = false from
+        simp only [h_glued, show (tok.val == YamlToken.value) = false from
                      beq_eq_false_iff_ne.mpr h_ne]
         rfl
-    · simp only [show (decide (s.simpleKey.tokenIndex > 0)) = false from
+    · simp only [h_glued, show (decide (s.simpleKey.tokenIndex > 0)) = false from
                    decide_eq_false (by omega)]; rfl
 
 -- saveSimpleKey only adds placeholder tokens, so filtering them out is invariant.

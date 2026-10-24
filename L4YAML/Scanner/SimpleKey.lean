@@ -269,6 +269,35 @@ def scanValueClearKey (s : ScannerState) : ScannerState :=
     else s
   else s
 
+/-- Check whether a token is a JSON-like node end (§7.5 [160] c-flow-json-node).
+    JSON nodes are: quoted scalars (single/double), flow sequence end `]`,
+    and flow mapping end `}`.  Used by `isValueCandidate` to allow adjacent
+    `:` per [148]/[149]. -/
+@[yaml_spec "7.5" 160 "c-flow-json-node"]
+def isJsonNodeToken (tok : YamlToken) : Bool :=
+  match tok with
+  | .scalar _ .doubleQuoted => true
+  | .scalar _ .singleQuoted => true
+  | .flowSequenceEnd => true
+  | .flowMappingEnd => true
+  | _ => false
+
+/-- §7.4.2 [147]/[149]: in flow context a `:` glued to a `[`/`{` value is legal only after a
+    JSON-like key (`c-ns-flow-map-adjacent-value`); after a plain key `[147]` demands
+    `s-separate`.  The JSON test mirrors `isValueCandidate`'s two reservation branches. -/
+@[yaml_spec "7.4.2" 147 "c-ns-flow-map-separate-value",
+  yaml_spec "7.4.2" 149 "c-ns-flow-map-adjacent-value"]
+def flowGluedCollectionValue (s : ScannerState) : Bool :=
+  s.inFlow
+    && (match s.peekAt? 1 with
+        | some n => n == '[' || n == '{'
+        | none => false)
+    && !(match (if s.simpleKey.possible && s.simpleKey.pos.offset == s.offset
+                then s.tokens[s.simpleKey.tokenIndex - 1]?
+                else s.tokens[s.tokens.size - 1]?) with
+         | some tok => isJsonNodeToken tok.val
+         | none => false)
+
 /-- Validate pre-conditions for `:` as a value indicator.
     Returns `Unit` on success, throws on violation.
     Does **not** modify the scanner state — only inspects it. -/
@@ -330,6 +359,9 @@ def scanValueValidate (s : ScannerState) : Except ScanError Unit := do
   -- alone writes, in place of a walk over the line's tokens.
   if !s.inFlow && s.markerOnLine then
     throw (.contentOnDocumentStartLine s.line s.col)
+  -- §7.4.2 [147]: `{a:[1]}` — a flow value glued to `[`/`{` after a non-JSON key.
+  if flowGluedCollectionValue s then
+    throw (.unseparatedValue s.line s.col)
 
 /-- Build the prepared state: resolve a pending simple key by overwriting
     placeholder slots (via `Array.setIfInBounds`), optionally pushing indent
@@ -556,19 +588,6 @@ def isKeyCandidate (s : ScannerState) : Bool :=
   match s.peekAt? 1 with
   | some n => isBlankBool n || (s.inFlow && isFlowIndicatorBool n)
   | none => true
-
-/-- Check whether a token is a JSON-like node end (§7.5 [160] c-flow-json-node).
-    JSON nodes are: quoted scalars (single/double), flow sequence end `]`,
-    and flow mapping end `}`.  Used by `isValueCandidate` to allow adjacent
-    `:` per [148]/[149]. -/
-@[yaml_spec "7.5" 160 "c-flow-json-node"]
-def isJsonNodeToken (tok : YamlToken) : Bool :=
-  match tok with
-  | .scalar _ .doubleQuoted => true
-  | .scalar _ .singleQuoted => true
-  | .flowSequenceEnd => true
-  | .flowMappingEnd => true
-  | _ => false
 
 /-- Check whether a value indicator (`:`) should be recognized.
     §7.4.2 [147]: For YAML keys in flow context, `:` requires NOT-followed-by

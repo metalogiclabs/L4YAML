@@ -362,13 +362,20 @@ key downstream consumer):
     so the call sites read as one-argument edits, exactly like the
     legacy landing.) -/
 
+/-- Indexed twin of `flowGluedCollectionValue_false_of_peekAt_blank`. -/
+lemma flowGluedCollectionValueIx_false_of_peekAt_blank {input : String}
+    (s : ScannerStateIx input) (h : s.peekAt? 1 = some ' ') :
+    flowGluedCollectionValueIx s = false := by
+  simp [flowGluedCollectionValueIx, h]
+
 lemma scanValueValidateIx_ok_of_not_possible_ek_none (s : ScannerStateIx input)
     (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
-    (h_sk : s.simpleKey.possible = false) :
+    (h_sk : s.simpleKey.possible = false)
+    (h_glued : flowGluedCollectionValueIx s = false) :
     scanValueValidateIx s = .ok () := by
   unfold scanValueValidateIx
-  simp only [h_sk, h_flow, Bool.not_true, Bool.false_and, ↓reduceIte, h_ek,
+  simp only [h_glued, h_sk, h_flow, Bool.not_true, Bool.false_and, ↓reduceIte, h_ek,
              reduceCtorEq]
   rfl
 
@@ -379,26 +386,27 @@ lemma scanValueValidateIx_ok_of_flow_allTokensOnLine (s : ScannerStateIx input)
     (h_flow : s.inFlow = true)
     (h_ek : s.explicitKeyLine = none)
     (h_entry : SavedKeyAtEntryBoundaryIx s)
-    (h_end : EndLineOnLineIx s) :
+    (h_end : EndLineOnLineIx s)
+    (h_glued : flowGluedCollectionValueIx s = false) :
     scanValueValidateIx s = .ok () := by
   unfold scanValueValidateIx EndLineOnLineIx SavedKeyAtEntryBoundaryIx at *
   cases h_poss : s.simpleKey.possible
-  · simp only [h_flow, Bool.false_and, Bool.not_true, Bool.and_false,
+  · simp only [h_glued, h_flow, Bool.false_and, Bool.not_true, Bool.and_false,
                ↓reduceIte, h_ek, reduceCtorEq]
     rfl
   · have ⟨h_el, _⟩ := h_end h_poss
-    simp only [h_flow, h_el, h_ek, Bool.not_true, Bool.and_false, Bool.false_and,
+    simp only [h_glued, h_flow, h_el, h_ek, Bool.not_true, Bool.and_false, Bool.false_and,
                Bool.true_and, bne_self_eq_false, ↓reduceIte, reduceCtorEq]
     by_cases h_ti : s.simpleKey.tokenIndex > 0
-    · simp only [show (decide (s.simpleKey.tokenIndex > 0)) = true from decide_eq_true h_ti]
+    · simp only [h_glued, show (decide (s.simpleKey.tokenIndex > 0)) = true from decide_eq_true h_ti]
       cases h_tok : s.tokens.tokens[s.simpleKey.tokenIndex - 1]? with
       | none => rfl
       | some tok =>
         have h_ne : tok.token ≠ .value := h_entry h_ti tok h_tok
-        simp only [show (tok.token == YamlToken.value) = false from
+        simp only [h_glued, show (tok.token == YamlToken.value) = false from
                      beq_eq_false_iff_ne.mpr h_ne, ↓reduceIte]
         rfl
-    · simp only [show (decide (s.simpleKey.tokenIndex > 0)) = false from
+    · simp only [h_glued, show (decide (s.simpleKey.tokenIndex > 0)) = false from
                    decide_eq_false (by omega)]
       rfl
 
