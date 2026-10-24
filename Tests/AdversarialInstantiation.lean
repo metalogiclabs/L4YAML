@@ -8,6 +8,8 @@ public import L4YAML.Parser.IndexedComposition
 public import L4YAML.Proofs.Parser.ParserGrammableBase
 public import L4YAML.Proofs.Production.StreamAccum
 public import L4YAML.Proofs.Scanner.RegisterWitness
+public import L4YAML.Proofs.Scanner.FlowAdjacency
+public import L4YAML.Proofs.Scanner.FlowAdjacencyIx
 public import Tests.VerifiedResult
 
 @[expose] public section Blanket
@@ -3486,6 +3488,171 @@ def testGluedFlowValue (state : IO.Ref TestCollector) : IO Unit := do
       s!"kind={kind}"
     checkM state s!"glued/fuel={fuel}: monotone" (fuel < 3 || kind == "unseparatedValue") s!"kind={kind}"
 
+/-! ## Priority 21 — glued-`:` scanner lemmas: `flowGluedCollectionValue_false_of_*` and `isValueCandidate_glued_jsonKey`
+
+Rule-2 instantiations of the five scanner lemmas behind the `[147]`/`[149]` split, taken on the
+scanner's own reachable states: every state at which `scanNextToken` / `scanNextTokenIx` pauses
+with `:` under the cursor while scanning the grid input.  Each (lemma, state) row is classified
+failed-hypothesis / theorem-holds / theorem-refuted; a refutation fails the suite, and the tally
+of each class is pinned so a hypothesis that silently fails on every row is caught (§7), legacy
+and indexed are compared row by row, and `{a:b}` pins that the scanner never pauses at a `:` the
+plain scalar absorbed.
+-/
+
+open L4YAML.CharPredicates L4YAML.Proofs.FlowAdjacency L4YAML.Proofs.FlowAdjacencyIx
+  L4YAML.Scanner.Indexed L4YAML.Scanner.Indexed.ScannerStateIx
+
+/-- Rule-2 classification of one (lemma, state) row. -/
+inductive Rule2Row where
+  | failedHyp | holds | refuted
+  deriving BEq, Repr, Inhabited
+
+def Rule2Row.of (hyp concl : Bool) : Rule2Row :=
+  if !hyp then .failedHyp else if concl then .holds else .refuted
+
+/-- Every legacy state at which the scanner pauses with `:` under the cursor while scanning
+    `input` (the initial state included), in scan order; scanning stops at the first error. -/
+def colonStates (input : String) (fuel : Nat := 64) : List ScannerState := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut acc : List ScannerState := if s.peek? == some ':' then [s] else []
+  for _ in [:fuel] do
+    match scanNextToken s with
+    | .error _ => return acc
+    | .ok none => return acc
+    | .ok (some s') =>
+      s := s'
+      if s.peek? == some ':' then acc := acc ++ [s]
+  return acc
+
+/-- The indexed twin of `colonStates`. -/
+def colonStatesIx (input : String) (fuel : Nat := 64) : List (ScannerStateIx input) := Id.run do
+  let mut s := ScannerStateIx.mk' input
+  let mut acc : List (ScannerStateIx input) := if s.peek? == some ':' then [s] else []
+  for _ in [:fuel] do
+    match scanNextTokenIx s with
+    | .error _ => return acc
+    | .ok none => return acc
+    | .ok (some s') =>
+      s := s'
+      if s.peek? == some ':' then acc := acc ++ [s]
+  return acc
+
+/-- `flowGluedCollectionValue_false_of_peekAt_blank` at `s`. -/
+def rowGluedBlank (s : ScannerState) : Rule2Row :=
+  .of (s.peekAt? 1 == some ' ') (flowGluedCollectionValue s == false)
+
+/-- `flowGluedCollectionValueIx_false_of_peekAt_blank` at `s`. -/
+def rowGluedBlankIx {input : String} (s : ScannerStateIx input) : Rule2Row :=
+  .of (s.peekAt? 1 == some ' ') (flowGluedCollectionValueIx s == false)
+
+/-- `flowGluedCollectionValue_false_of_corr_colon_blank` at `s`: the decidable shadow of its
+    `ScannerSurfCorr s ⟨':' :: ' ' :: rest', s.col⟩` premise on ASCII input is "the characters
+    from the cursor start `: `". -/
+def rowGluedCorr (s : ScannerState) : Rule2Row :=
+  let hyp := match s.input.toList.drop s.offset with
+    | ':' :: ' ' :: _ => true
+    | _ => false
+  .of hyp (flowGluedCollectionValue s == false)
+
+/-- `isValueCandidate_glued_jsonKey` at `s`. -/
+def rowJsonKey (s : ScannerState) : Rule2Row :=
+  let hyp := s.inFlow
+    && (match s.peekAt? 1 with
+        | some n => !(isBlankBool n || isFlowIndicatorBool n)
+        | none => false)
+    && isValueCandidate s
+  let concl := s.simpleKey.possible
+    && (match flowKeyToken s with
+        | some tok => isJsonNodeToken tok.val
+        | none => false)
+  .of hyp concl
+
+/-- `isValueCandidateIx_glued_jsonKey` at `s`. -/
+def rowJsonKeyIx {input : String} (s : ScannerStateIx input) : Rule2Row :=
+  let hyp := s.inFlow
+    && (match s.peekAt? 1 with
+        | some n => !(isBlankBool n || isFlowIndicatorBool n)
+        | none => false)
+    && isValueCandidateIx s
+  let concl := s.simpleKey.possible
+    && (match flowKeyTokenIx s with
+        | some t => isJsonNodeTokenIx t.token
+        | none => false)
+  .of hyp concl
+
+/-- The grid: empty / bare `:` / blank, tab, break after `:` / glued `[` `{` after a plain key
+    (the `[147]` refusal) and after each JSON-like key kind (`[149]`) / glued plain, quoted,
+    alias, anchored, tagged values after a JSON key / first, after-`,`, before-`,`, nested
+    positions / block context.  `{a:b}` is the absorbed-`:` control (no pause). -/
+def gluedScannerGrid : List String :=
+  ["", ":", ": ", ":[", "{:[1]}", "[: a]",
+   "{a: [1]}", "{a: b}", "[a: [1]]", "{\"a\": [1]}", "{x: 1, a: [1]}", "{a: [1], x: 1}",
+   "a: [1]", "a:\n  [1]",
+   "{a:[1]}", "{a:{b: c}}", "[a:[1]]", "{x: 1, a:[1]}", "{a:[1], x: 1}", "{a :[1]}",
+   "{\"a\":[1]}", "{'a':{b: c}}", "{[a]:[1]}", "{{a: b}:[1]}", "[\"a\":[1]]", "{x: 1, \"a\":[1]}",
+   "{\"a\":b}", "{'a':b}", "{[a]:b}", "{{a: b}:c}", "[\"a\":b]", "{x: 1, \"a\":b}", "{\"a\":b, x: 1}",
+   "{\"a\":\"x\"}", "{\"a\":'x'}", "{\"a\":*x}", "{\"a\":&x b}", "{\"a\":!t b}",
+   "{o: {\"a\":b}}", "{\"a\":{\"b\":c}}", "[[\"a\":b]]",
+   "{a:\t[1]}", "{a:\n[1]}",
+   "\"a\":b", "\"a\":[1]", "a:[1]", "? a\n:[1]", "{a:b}"]
+
+def Rule2Row.label : Rule2Row → String
+  | .failedHyp => "failed-hypothesis"
+  | .holds => "theorem-holds"
+  | .refuted => "theorem-refuted"
+
+def tallyRows (rows : List Rule2Row) : String :=
+  s!"holds={(rows.filter (· == .holds)).length} failedHyp={(rows.filter (· == .failedHyp)).length} refuted={(rows.filter (· == .refuted)).length}"
+
+def testGluedScannerLemmas (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 21: glued-':' scanner lemmas (flowGluedCollectionValue / isValueCandidate_glued_jsonKey)"
+  let mut blank : List Rule2Row := []
+  let mut corr : List Rule2Row := []
+  let mut json : List Rule2Row := []
+  let mut states := 0
+  for input in gluedScannerGrid do
+    let ss := colonStates input
+    let ts := colonStatesIx input
+    checkM state s!"p21/{input.quote}: legacy and indexed pause at the same number of ':'"
+      (ss.length == ts.length) s!"legacy={ss.length} indexed={ts.length}"
+    states := states + ss.length
+    for (s, i) in ss.zipIdx do
+      let rb := rowGluedBlank s
+      let rc := rowGluedCorr s
+      let rj := rowJsonKey s
+      blank := blank ++ [rb]; corr := corr ++ [rc]; json := json ++ [rj]
+      checkM state s!"p21/{input.quote}#{i}: flowGluedCollectionValue_false_of_peekAt_blank not refuted"
+        (rb != .refuted) rb.label
+      checkM state s!"p21/{input.quote}#{i}: flowGluedCollectionValue_false_of_corr_colon_blank not refuted"
+        (rc != .refuted) rc.label
+      checkM state s!"p21/{input.quote}#{i}: isValueCandidate_glued_jsonKey not refuted"
+        (rj != .refuted) rj.label
+      match ts[i]? with
+      | some t =>
+        checkM state s!"p21/{input.quote}#{i}: Ix twin of *_false_of_peekAt_blank agrees"
+          (rowGluedBlankIx t == rb) s!"legacy={rb.label} indexed={(rowGluedBlankIx t).label}"
+        checkM state s!"p21/{input.quote}#{i}: Ix twin of isValueCandidate_glued_jsonKey agrees"
+          (rowJsonKeyIx t == rj) s!"legacy={rj.label} indexed={(rowJsonKeyIx t).label}"
+      | none => pure ()
+  checkM state "p21: {a:b} never pauses at the absorbed ':'" ((colonStates "{a:b}").length == 0)
+    s!"pauses={(colonStates "{a:b}").length}"
+  -- The grid is not vacuous for any lemma: both classes are populated, and the tallies are pinned.
+  checkM state "p21: tally *_false_of_peekAt_blank" (tallyRows blank == "holds=19 failedHyp=36 refuted=0")
+    (tallyRows blank)
+  checkM state "p21: tally *_false_of_corr_colon_blank" (tallyRows corr == "holds=19 failedHyp=36 refuted=0")
+    (tallyRows corr)
+  checkM state "p21: tally isValueCandidate_glued_jsonKey" (tallyRows json == "holds=15 failedHyp=40 refuted=0")
+    (tallyRows json)
+  checkM state "p21: colon states over the grid" (states == 55) s!"states={states}"
+  -- The failed-hypothesis rows are not silent: at a glued `[`/`{` the predicate the lemmas bound
+  -- is TRUE after a plain key (the `[147]` refusal fires) and FALSE after a JSON-like key.
+  for input in ["{a:[1]}", "{a:{b: c}}", "[a:[1]]", "{x: 1, a:[1]}", "{a:[1], x: 1}", "{:[1]}"] do
+    let v := (colonStates input).getLast?.map flowGluedCollectionValue
+    checkM state s!"p21/{input.quote}: glued predicate fires after a plain key" (v == some true) s!"v={v}"
+  for input in ["{\"a\":[1]}", "{'a':{b: c}}", "{[a]:[1]}", "{{a: b}:[1]}", "[\"a\":[1]]"] do
+    let v := ((colonStates input).getLast?).map flowGluedCollectionValue
+    checkM state s!"p21/{input.quote}: glued predicate silent after a JSON key" (v == some false) s!"v={v}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -3513,6 +3680,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testMaximalPropertyLeaves state
   testMaximalTagLeaves state
   testGluedFlowValue state
+  testGluedScannerLemmas state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
