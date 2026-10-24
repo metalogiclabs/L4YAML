@@ -4521,8 +4521,11 @@ script, as `expectedInlineArms` is. -/
 -- 2026-10-22 (item 340): 119 → 89 / 101 → 71 — `content_dispatch_routed` (23 packs), `entryKeyPack_of_dispatch` and
 -- `entryPropsKeyPack_of_dispatch` (16) relay a caller-paid `h_alt` instead of declining, and three park arms pay it
 -- from `h_noek`; the declarations the flip breaks drop 23 → 21 (the two producers are paid on the flip tree).
+-- 2026-10-24 (item 356): sites 89 → 91, decls 21 → 20, decline 89 → 87, relay 0 → 2, leaf 26 → 45, uncond 63 → 42 —
+-- first complete reading since #83 (same instrument repair as `expectedPackResidue` above); the two relays are
+-- item 355's domained twins riding `MarkedColsIn.step_content` through the content step.
 def expectedPackFlip : String :=
-  "sites=89 decls=21 rounds=2 decline=89 relay=0 leaf=26 uncond=63 stubs=8"
+  "sites=91 decls=20 rounds=2 decline=87 relay=2 leaf=45 uncond=42 stubs=8"
 
 /-- **The RESIDUE** (item 312): the same census with `PackAlt sc := ExplicitValueRefused sc` — the
     predicate the family will carry — in place of `False`.  A bare `trivial` still fails (an unpaid
@@ -4564,8 +4567,12 @@ def expectedPackFlip : String :=
 -- `on_pendingBlock` caller, `h_mapFV` ×2 and `h_vpack` behind a props park); `relayState` stands at 1.
 -- 2026-10-23 (item 345): `decline` 66 → 61 — five content-park relays (two twins off `h_closeFV_old`/`h_closeFV`,
 -- three `h_kslotUp` packs off the decorated dispatch's single slot); `relayState` stands at 1.
+-- 2026-10-24 (item 356): sites 62 → 72, decls 19 → 18, decline 61 → 68, relayState 1 → 4, leaf 16 → 35,
+-- uncond 45 → 33 — the first complete reading since #83 (the instrument dropped the tail of a same-line
+-- relay edit and stopped on the cascade): item 355's visible declines on the five domained faces and the
+-- block-step-fed twins, items 349–352's relays, #83's `dispatchContent_tag_tokens` site.
 def expectedPackResidue : String :=
-  "sites=62 decls=19 rounds=2 decline=61 relayTrue=0 relayState=1 leaf=16 uncond=45 stubs=1 promised=6"
+  "sites=72 decls=18 rounds=2 decline=68 relayTrue=0 relayState=4 leaf=35 uncond=33 stubs=1 promised=6"
 
 /-! **The 32 roots (29 since item 307), by what the register does there** — a READING of each site
 (the compiler prices it when the construction is attempted, §1):
