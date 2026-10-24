@@ -350,7 +350,8 @@ type of the block.  The first two numbers are unmoved, which is the point of
 keeping this gate: the instrument was priced at 69 arms by signatures BEFORE it
 existed, and the block it walks is still exactly 69 arms. -/
 
-def expectedFamily : String := "types=18 ctors=69 suffixLemmas=18"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 18 → 20, `ctors` 69 → 77, `suffixLemmas` 18 → 20.
+def expectedFamily : String := "types=20 ctors=77 suffixLemmas=20"
 
 open Meta in
 run_cmd do

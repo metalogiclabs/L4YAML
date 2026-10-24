@@ -375,9 +375,11 @@ def expectedEndsLit : List String :=
 -- one legal `#` position in a plain scalar, replacing `[130]`'s `hashAfterNs` (`ctors` unchanged).
 -- `prods` 152 → 159, `ctors` 276 → 293 on 2026-10-23: the seven block-scalar relations of
 -- `Acceptance/BlockScalar.lean` (Stream E); none ends at a literal the park reads.
+-- `prods` 160 → 162, `ctors` 296 → 304 on 2026-10-24: `SCFlowJsonContent`/`SCFlowJsonNode` ([148]/[149]
+-- JSON-key adjacent value) and their 8 arms; no park reading moved.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=160 ctors=296 \
+depth=4 prods=162 ctors=304 \
 endsLit=39 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
