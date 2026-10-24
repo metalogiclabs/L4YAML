@@ -10671,7 +10671,7 @@ def SimpleKeyValid (s : ScannerState) : Prop :=
     nor `tokens`. -/
 lemma closeStaleExplicitKey_preserves_SimpleKeyValid (s : ScannerState)
     (h : SimpleKeyValid s) : SimpleKeyValid (closeStaleExplicitKey s) := by
-  rcases closeStaleExplicitKey_cases s with h_eq | h_eq <;> rw [h_eq] <;> exact h
+  rcases closeStaleExplicitKey_cases s with h_eq | ⟨_, _, h_eq⟩ <;> rw [h_eq] <;> exact h
 
 -- SimpleKeyValid is vacuously true when possible = false.
 lemma SimpleKeyValid_of_not_possible (s : ScannerState)
@@ -10825,7 +10825,7 @@ def AllKeysValid (s : ScannerState) : Prop :=
 /-- Item 333, the stack half. -/
 lemma closeStaleExplicitKey_preserves_SimpleKeyStackValid (s : ScannerState)
     (h : SimpleKeyStackValid s) : SimpleKeyStackValid (closeStaleExplicitKey s) := by
-  rcases closeStaleExplicitKey_cases s with h_eq | h_eq <;> rw [h_eq] <;> exact h
+  rcases closeStaleExplicitKey_cases s with h_eq | ⟨_, _, h_eq⟩ <;> rw [h_eq] <;> exact h
 
 -- SimpleKeyStackValid is monotone: preserved when tokens grow and existing entries unchanged.
 lemma SimpleKeyStackValid_mono (s s' : ScannerState)

@@ -794,7 +794,9 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- `[163]`/`[164]` suffix lemmas; none is a no-op conclusion.
 -- 2026-10-24 (N1a): `theorems` 6044 → 6049 — the `[101]`/`[104]` maximality helpers (`scanner_cond_of_isNsAnchorChar`,
 -- `gnot_gchar_nil`/`gnot_gchar_head`/`gnot_gchar_of_peek_none`, `peek_none_of_fuel_zero`); none is a no-op conclusion.
-def expectedNoopTally : String := "theorems=6049 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 2026-10-23 (item 348): `theorems` 6049 → 6060 — the widened stale-key hook's lemmas (`closeStale_*`, `closeStaleAt_slots`,
+-- `SlotsWitness.closeStale`, `innermost_closeStale_col0`, `reg_col_nonneg`, `hook_col0_dead`, `preprocess_col0_dead`); none is a no-op conclusion.
+def expectedNoopTally : String := "theorems=6060 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

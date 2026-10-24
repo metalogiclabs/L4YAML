@@ -341,6 +341,43 @@ lemma pushMappingIndent_sound (s : ScannerState) (col : Int) (h : Sound s) :
   · exact h.push_none _ rfl rfl rfl rfl rfl rfl
   · exact h
 
+/-- `closeStale` only erases slots. -/
+lemma closeStale_getElem? (cols : Array Int) (pks : Array (Option Nat)) (col : Int) (c : Char)
+    (i : Nat) :
+    (PendingKeys.closeStale cols pks col c)[i]? =
+      if i < pks.size then
+        some (match cols[i]? with
+          | some m =>
+            if col ≤ m && (c != '-' || col < m) && !(c == ':' && col == m) then none
+            else pks[i]?.getD none
+          | none => pks[i]?.getD none)
+      else none := by
+  unfold PendingKeys.closeStale
+  rw [Array.getElem?_map, Array.getElem?_range]
+  split <;> rfl
+
+lemma closeStale_size (cols : Array Int) (pks : Array (Option Nat)) (col : Int) (c : Char) :
+    (PendingKeys.closeStale cols pks col c).size = pks.size := by
+  simp [PendingKeys.closeStale]
+
+/-- A slot still marked after `closeStale` was marked before. -/
+lemma closeStale_marked (cols : Array Int) (pks : Array (Option Nat)) (col : Int) (c : Char)
+    (i l : Nat) (h : (PendingKeys.closeStale cols pks col c)[i]? = some (some l)) :
+    pks[i]? = some (some l) := by
+  rw [closeStale_getElem?] at h
+  split at h
+  · simp only [Option.some.injEq] at h
+    split at h
+    · split at h
+      · cases h
+      · cases hq : pks[i]? with
+        | none => simp [hq] at h
+        | some v => simp [hq] at h; simp [h]
+    · cases hq : pks[i]? with
+      | none => simp [hq] at h
+      | some v => simp [hq] at h; simp [h]
+  · cases h
+
 /-- `closeAt` only erases slots, so `SlotsOk` survives it. -/
 lemma clearPendingKeyAt_slots {s : ScannerState} (h : SlotsOk s) (col : Int) :
     SlotsOk (s.clearPendingKeyAt col) := by
@@ -348,6 +385,14 @@ lemma clearPendingKeyAt_slots {s : ScannerState} (h : SlotsOk s) (col : Int) :
   intro i l hi
   simp only [ScannerState.clearPendingKeyAt] at hi
   exact h.2 i l (closeAt_marked _ _ _ _ _ hi).1
+
+/-- `closeStale` only erases slots, so `SlotsOk` survives it. -/
+lemma closeStaleAt_slots {s : ScannerState} (h : SlotsOk s) (c : Char) :
+    SlotsOk (s.closeStaleAt c) := by
+  refine ⟨by simp [ScannerState.closeStaleAt, closeStale_size, h.1], ?_⟩
+  intro i l hi
+  simp only [ScannerState.closeStaleAt] at hi
+  exact h.2 i l (closeStale_marked _ _ _ _ _ _ hi)
 
 /-- Re-reading the register off the stack restores `RegOk` by construction, and
     touches nothing else. -/
@@ -363,10 +408,10 @@ lemma closeStaleExplicitKey_sound {s : ScannerState} (h : Sound s) :
   · rw [closeStaleExplicitKey_of_inFlow s hf]; exact h
   · have h0 : s.flowLevel = 0 := by
       simp [ScannerState.inFlow] at hf; omega
-    rcases closeStaleExplicitKey_cases s with heq | heq <;> rw [heq]
+    rcases closeStaleExplicitKey_cases s with heq | ⟨_, _, heq⟩ <;> rw [heq]
     · exact h
-    · exact readPendingKey_sound (clearPendingKeyAt_slots h.slots _)
-        (fun hpos => absurd hpos (by simp [ScannerState.clearPendingKeyAt, h0])) h.stack
+    · exact readPendingKey_sound (closeStaleAt_slots h.slots _)
+        (fun hpos => absurd hpos (by simp [ScannerState.closeStaleAt, h0])) h.stack
 
 lemma indentColumns_getElem? (s : ScannerState) (i : Nat) :
     s.indentColumns[i]? = s.indents[i]?.map (·.column) := by
@@ -1016,14 +1061,14 @@ lemma marked_le_innermost {s : ScannerState} (hs : SlotsOk s) (hm : Mono s) (i l
 /-- The hook never moves the cursor. -/
 lemma closeStaleExplicitKey_peek (s : ScannerState) :
     (closeStaleExplicitKey s).peek? = s.peek? := by
-  rcases closeStaleExplicitKey_cases s with h | h <;> rw [h] <;> rfl
+  rcases closeStaleExplicitKey_cases s with h | ⟨_, _, h⟩ <;> rw [h] <;> rfl
 
 /-- Outside flow, with a character under the cursor, the hook either re-reads
     the register or leaves it because the cursor is at or right of the register
     column (or the register is already dead). -/
 lemma closeStaleExplicitKey_spec (s : ScannerState) (hnf : s.inFlow = false) {c : Char}
     (hpeek : s.peek? = some c) :
-    closeStaleExplicitKey s = (s.clearPendingKeyAt s.explicitKeyCol).readPendingKey ∨
+    closeStaleExplicitKey s = (s.closeStaleAt c).readPendingKey ∨
     (closeStaleExplicitKey s = s ∧
       (s.explicitKeyLine = none ∨ s.explicitKeyCol ≤ (s.col : Int))) := by
   unfold closeStaleExplicitKey
@@ -1079,15 +1124,9 @@ lemma hook_after_unwind {s0 : ScannerState} (h : Sound s0) (hm : Mono s0) (hnf :
     exact hle
   rcases closeStaleExplicitKey_spec t hnf_t hpeek_t with hre | ⟨hid, hwhy⟩
   · rw [hre]
-    have hb' : BaseOk (t.clearPendingKeyAt t.explicitKeyCol) := by
-      intro hp
-      simp only [ScannerState.clearPendingKeyAt] at hp
-      rw [hfl_t] at hp; exact absurd hp (Nat.lt_irrefl 0)
-    have hst' : StackOk (t.clearPendingKeyAt t.explicitKeyCol) := by
-      show (t.clearPendingKeyAt t.explicitKeyCol).explicitKeyStack.size
-        = (t.clearPendingKeyAt t.explicitKeyCol).flowLevel
-      exact hstk_t
-    exact readPendingKey_sound (clearPendingKeyAt_slots hs_t _) hb' hst'
+    refine readPendingKey_sound (closeStaleAt_slots hs_t _) (fun hp => ?_) hstk_t
+    simp only [ScannerState.closeStaleAt] at hp
+    rw [hfl_t] at hp; exact absurd hp (Nat.lt_irrefl 0)
   · rw [hid]
     refine ⟨hs_t, fun _ => ?_, hb_t, hstk_t⟩
     -- the marked slots of `s0` sit at or left of the cursor, so the unwind kept them
@@ -1173,6 +1212,139 @@ lemma preprocess_sound {s s' : ScannerState} {c : Char}
               (L4YAML.Proofs.ExplicitKeyCoupling.saveSimpleKey_preserves_explicitKeyCol _)
               (L4YAML.Proofs.ScannerEkStack.saveSimpleKey_preserves_explicitKeyStack _)
             exact closeStaleExplicitKey_sound hT
+
+/-- With every marked slot at a non-negative column (`SlotsOk`), a column-0 landing that is
+    neither `-` nor `:` closes them all, so nothing is left to re-read. -/
+lemma innermost_closeStale_col0 (cols : Array Int) (pks : Array (Option Nat)) {c : Char}
+    (hs : ∀ (i l : Nat), pks[i]? = some (some l) → ∃ m, cols[i]? = some m ∧ 0 ≤ m)
+    (hdash : c ≠ '-') (hcolon : c ≠ ':') :
+    (PendingKeys.innermost cols (PendingKeys.closeStale cols pks 0 c)).1 = none := by
+  cases hx : (PendingKeys.innermost cols (PendingKeys.closeStale cols pks 0 c)).1 with
+  | none => rfl
+  | some l =>
+    exfalso
+    obtain ⟨i, -, hi, -⟩ := innermost_some_mem cols _ l _ (Prod.ext hx rfl)
+    obtain ⟨m, hm, hm0⟩ := hs i l (closeStale_marked _ _ _ _ _ _ hi)
+    rw [closeStale_getElem?] at hi
+    split at hi
+    · simp only [Option.some.injEq] at hi
+      rw [hm] at hi
+      dsimp only at hi
+      split at hi
+      · cases hi
+      · rename_i hcond
+        apply hcond
+        simp only [Bool.and_eq_true, Bool.or_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq,
+          Bool.not_eq_true', Bool.and_eq_false_iff]
+        exact ⟨⟨hm0, Or.inl hdash⟩, Or.inl (by rw [beq_eq_false_iff_ne]; exact hcolon)⟩
+    · cases hi
+
+/-- Outside flow a live register sits at a non-negative column: it is the innermost marked
+    slot, and marked slots never sit on the sentinel. -/
+lemma reg_col_nonneg {s : ScannerState} (h : Sound s) (h0 : s.flowLevel = 0)
+    (hl : s.explicitKeyLine ≠ none) : 0 ≤ s.explicitKeyCol := by
+  have hreg := h.reg h0
+  cases hekl : s.explicitKeyLine with
+  | none => exact absurd hekl hl
+  | some l =>
+    rw [hekl] at hreg
+    obtain ⟨i, -, hi, hc⟩ := innermost_some_mem _ _ l _ hreg.symm
+    obtain ⟨m, hm, hm0⟩ := h.slots.2 i l hi
+    rw [← hc, hm]; exact hm0
+
+/-- The hook at a column-0 landing that is neither `-` nor `:`: a live register has a
+    non-negative column, so the hook fires and `closeStale` empties every marked level. -/
+lemma hook_col0_dead {t : ScannerState} {c : Char} (hs : SlotsOk t) (hnf : t.inFlow = false)
+    (hpeek : t.peek? = some c) (hcol : t.col = 0)
+    (hekc : t.explicitKeyLine ≠ none → 0 ≤ t.explicitKeyCol)
+    (hdash : c ≠ '-') (hcolon : c ≠ ':') :
+    (closeStaleExplicitKey t).explicitKeyLine = none := by
+  have hc0 : ((t.col : Nat) : Int) = 0 := by rw [hcol]; rfl
+  unfold closeStaleExplicitKey
+  rw [hnf, hpeek]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  rcases hekl : t.explicitKeyLine with _ | l
+  · simpa using hekl
+  · have h0 : 0 ≤ t.explicitKeyCol := hekc (by rw [hekl]; simp)
+    dsimp only
+    split
+    · show (PendingKeys.innermost (t.closeStaleAt c).indentColumns
+        (t.closeStaleAt c).pendingKeys).1 = none
+      have hpk : (t.closeStaleAt c).pendingKeys =
+          PendingKeys.closeStale t.indentColumns t.pendingKeys 0 c := by
+        rw [← hc0]; rfl
+      have hcols : (t.closeStaleAt c).indentColumns = t.indentColumns := rfl
+      rw [hpk, hcols]
+      exact innermost_closeStale_col0 _ _ hs.2 hdash hcolon
+    · rename_i hcond
+      exfalso; apply hcond
+      simp only [Bool.and_eq_true, Bool.or_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq,
+        Bool.not_eq_true', Bool.and_eq_false_iff, hc0]
+      exact ⟨⟨h0, Or.inl hdash⟩, Or.inl (by rw [beq_eq_false_iff_ne]; exact hcolon)⟩
+
+/-- **A column-0 landing kills the register** (item 348).  Outside flow, preprocessing that
+    lands on column 0 under a character that is neither `-` nor `:` leaves
+    `explicitKeyLine = none`: the widened hook closes every marked level. -/
+lemma preprocess_col0_dead {s s' : ScannerState} {c : Char}
+    (hok : scanNextToken_preprocess s = .ok (some (s', c))) (h : Sound s)
+    (hnf : s.inFlow = false) (hcol : s'.col = 0) (hdash : c ≠ '-') (hcolon : c ≠ ':') :
+    s'.explicitKeyLine = none := by
+  have h0 : s.flowLevel = 0 := by simp [ScannerState.inFlow] at hnf; omega
+  unfold scanNextToken_preprocess at hok
+  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+  split at hok
+  · contradiction
+  · rename_i s_skip h_skip
+    have hind_skip := L4YAML.Proofs.PreprocessIndentStable.skipToContent_preserves_indents s s_skip h_skip
+    have hfl_skip := L4YAML.Proofs.ScannerCorrectness.skipToContent_preserves_flowLevel s s_skip h_skip
+    have hS : Sound s_skip := Sound.of_eq h (skipToContent_preserves_pendingKeys s s_skip h_skip)
+      hind_skip hfl_skip
+      (L4YAML.Proofs.ExplicitKeyCoupling.skipToContent_preserves_explicitKeyLine s s_skip h_skip)
+      (L4YAML.Proofs.ExplicitKeyCoupling.skipToContent_preserves_explicitKeyCol s s_skip h_skip)
+      (L4YAML.Proofs.ScannerEkStack.skipToContent_preserves_explicitKeyStack s s_skip h_skip)
+    have h0' : s_skip.flowLevel = 0 := hfl_skip.trans h0
+    have hekc_skip : s_skip.explicitKeyLine ≠ none → 0 ≤ s_skip.explicitKeyCol :=
+      reg_col_nonneg hS h0'
+    split at hok
+    · simp at hok
+    · split at hok
+      · split at hok
+        · contradiction
+        · split at hok
+          · simp at hok
+          · rename_i cpk hpeek
+            simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+            obtain ⟨rfl, rfl⟩ := hok
+            rw [closeStaleExplicitKey_col] at hcol
+            rw [closeStaleExplicitKey_peek] at hpeek
+            refine hook_col0_dead ?_ ?_ hpeek hcol ?_ hdash hcolon
+            · exact SlotsOk.of_eq (unwindIndents_slots _ _ hS.slots)
+                (saveSimpleKey_preserves_pendingKeys _)
+                (L4YAML.Proofs.PreprocessIndentStable.saveSimpleKey_preserves_indents _)
+            · simp [ScannerState.inFlow, L4YAML.Proofs.ScannerCorrectness.unwindIndents_preserves_flowLevel, h0']
+            · intro hl
+              simp only [L4YAML.Proofs.ExplicitKeyCoupling.saveSimpleKey_preserves_explicitKeyLine,
+                L4YAML.Proofs.ExplicitKeyCoupling.unwindIndents_preserves_explicitKeyLine] at hl
+              simp only [L4YAML.Proofs.ExplicitKeyCoupling.saveSimpleKey_preserves_explicitKeyCol,
+                L4YAML.Proofs.ExplicitKeyCoupling.unwindIndents_preserves_explicitKeyCol]
+              exact hekc_skip hl
+      · split at hok
+        · contradiction
+        · split at hok
+          · simp at hok
+          · rename_i cpk hpeek
+            simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at hok
+            obtain ⟨rfl, rfl⟩ := hok
+            rw [closeStaleExplicitKey_col] at hcol
+            rw [closeStaleExplicitKey_peek] at hpeek
+            refine hook_col0_dead ?_ ?_ hpeek hcol ?_ hdash hcolon
+            · exact SlotsOk.of_eq hS.slots (saveSimpleKey_preserves_pendingKeys _)
+                (L4YAML.Proofs.PreprocessIndentStable.saveSimpleKey_preserves_indents _)
+            · simp [ScannerState.inFlow, h0']
+            · intro hl
+              rw [L4YAML.Proofs.ExplicitKeyCoupling.saveSimpleKey_preserves_explicitKeyLine] at hl
+              rw [L4YAML.Proofs.ExplicitKeyCoupling.saveSimpleKey_preserves_explicitKeyCol]
+              exact hekc_skip hl
 
 /-! ## §4  The dispatchers -/
 

@@ -88,8 +88,10 @@ namespace L4YAML.Tests.Guards.GateVocabulary
 -- script is the reading, this literal is the pin, and a disagreement is an item's to repin, not to record.
 -- 2026-10-23: 111/466 → 113/468 — the Step 5 status row names two new gates (`parseStream_accepts`,
 -- `TokenGrammar`'s module) from Stream D.
+-- 2026-10-23 (item 348): 468 → 469 — the `DispatchPrice`/`ParkGapWidth` pin notes name the preprocess step
+-- function once more (`preprocess_col0_dead` holds its equation).
 def expectedGateVocab : String :=
-  "names=113 mentions=468 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
+  "names=113 mentions=469 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
 
 end L4YAML.Tests.Guards.GateVocabulary
 

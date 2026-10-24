@@ -2401,19 +2401,20 @@ def testPendingKeys (state : IO.Ref TestCollector) : IO Unit := do
     (PendingKeys.close cols #[some 0, none, none] 0 == (#[none, none, none], none, -1)) ""
   checkM state "close/lockstep: shorter cols → missing columns never match"
     (PendingKeys.close #[0] #[some 0, some 1] 2 == (#[some 0, some 1], some 1, -1)) ""
-  -- The stale hook on a two-level stack: `z` at column 0 closes the inner `? a`
-  -- (column 2) and the register becomes the OUTER `?`'s (line 0, column 0).
+  -- The stale hook on a two-level stack: `z` at column 0 closes the inner `? a` (column 2)
+  -- AND the outer `?` (column 0) — since item 348 the hook closes every marked level the
+  -- cursor lands at or left of, so the register dies (it re-read the outer key before).
   let s0 := staleStateAt "?\n  ? a\nz: v" 8 2 0 (some 1) 2 0
   let s2 : ScannerState := { s0 with
     indents := #[{ column := -1, isSequence := false }, { column := 0, isSequence := false },
                  { column := 2, isSequence := false }],
     pendingKeys := #[none, some 0, some 1] }
   let s2' := closeStaleExplicitKey s2
-  checkM state "hook/two levels: register re-read to the outer key"
-    ((s2'.explicitKeyLine, s2'.explicitKeyCol) == (some 0, 0))
+  checkM state "hook/two levels: the column-0 landing kills the register (item 348)"
+    ((s2'.explicitKeyLine, s2'.explicitKeyCol) == (none, -1))
     s!"({repr s2'.explicitKeyLine}, {s2'.explicitKeyCol})"
-  checkM state "hook/two levels: inner slot closed, outer kept"
-    (s2'.pendingKeys == #[none, some 0, none]) s!"{repr s2'.pendingKeys}"
+  checkM state "hook/two levels: both marked slots closed"
+    (s2'.pendingKeys == #[none, none, none]) s!"{repr s2'.pendingKeys}"
   let s1 : ScannerState := { s2 with pendingKeys := #[none, none, some 1] }
   let s1' := closeStaleExplicitKey s1
   checkM state "hook/one level: register dies (item 333's arm)"

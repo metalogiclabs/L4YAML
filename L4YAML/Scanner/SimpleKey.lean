@@ -506,7 +506,7 @@ def closeStaleExplicitKey (s : ScannerState) : ScannerState :=
     | some _, some c =>
       if (s.col : Int) ≤ s.explicitKeyCol
           && (c != '-' || (s.col : Int) < s.explicitKeyCol) && !(c == ':' && (s.col : Int) == s.explicitKeyCol) then
-        (s.clearPendingKeyAt s.explicitKeyCol).readPendingKey
+        (s.closeStaleAt c).readPendingKey
       else s
     | _, _ => s
 

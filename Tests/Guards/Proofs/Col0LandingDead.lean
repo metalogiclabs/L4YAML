@@ -1,12 +1,12 @@
 import L4YAML.Scanner.Scanner
 
-/-! # The explicit-key register at column-0 content landings (item 347, Rule 2)
+/-! # The explicit-key register at column-0 content landings (items 347–348, Rule 2)
 
 The register (`explicitKeyLine`) read after the token scanned at each landing.  A column-0
-content landing (not `-`, not `:`) leaves `none` when every open `?` has met its `:` — but NOT
-after an inner `?` that never did: the hook closes one level (the register's own column) per
-preprocess and re-reads the outer key, so `ExplicitValueRefused` is FALSE at that landing
-although the document parses.  A column-0 `-` and an indented landing keep the register. -/
+content landing (not `-`, not `:`) leaves `none` — also after an inner `?` that never met its
+`:` (item 347's refutation of the one-level hook): since item 348 the hook closes every marked
+level at or right of the cursor, not just the register's own.  A column-0 `-` and an indented
+landing keep the register. -/
 
 open L4YAML L4YAML.Scanner
 
@@ -30,10 +30,10 @@ where
 #guard eklAfter "? ? a\n  : b\nc: 1\n" 4 = some (some 0)
 #guard eklAfter "? ? a\n  : b\nc: 1\n" 5 = some none
 #guard eklAfter "?\n  ? a\n  : b\nc: 1\n" 5 = some none
--- REFUTATION of "a column-0 content landing kills the register": an inner `?` never closed
--- by `:` — the hook closes at the inner column, re-reads the outer; the document parses.
-#guard eklAfter "?\n  ? a\nc: 1\n" 3 = some (some 0)
-#guard eklAfter "?\n  ? a\n  ? b\nc: 1\n" 5 = some (some 0)
+-- an inner `?` never closed by `:` (item 347's LIVE rows): the widened hook closes the
+-- outer key too — these were `some (some 0)` under the one-level hook
+#guard eklAfter "?\n  ? a\nc: 1\n" 3 = some none
+#guard eklAfter "?\n  ? a\n  ? b\nc: 1\n" 5 = some none
 #guard eklAfter "? ? a\nc: 1\n" 4 = some none
 -- the two excluded shapes: a column-0 `-` keeps the register, an indented landing keeps it
 #guard eklAfter "?\n- a\n" 1 = some (some 0)

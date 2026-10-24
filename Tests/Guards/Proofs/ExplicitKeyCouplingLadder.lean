@@ -95,7 +95,7 @@ example : ∀ (s s1 : ScannerState) (c : Char),
     scanNextToken_preprocess s = .ok (some (s1, c)) →
     (s1.explicitKeyLine = s.explicitKeyLine ∧ s1.explicitKeyCol = s.explicitKeyCol) ∨
     (s.explicitKeyLine ≠ none ∧
-      ∃ t : ScannerState, s1 = (t.clearPendingKeyAt t.explicitKeyCol).readPendingKey) :=
+      ∃ (t : ScannerState) (c' : Char), t.peek? = some c' ∧ s1 = (t.closeStaleAt c').readPendingKey) :=
   L4YAML.Proofs.ExplicitKeyCoupling.preprocess_explicitKey_cases
 
 example : ∀ (s s1 : ScannerState) (c : Char),

@@ -172,7 +172,7 @@ lemma scanFlowSequenceStart_BoundInv (s : ScannerState)
 /-- Item 333: the register reset reads no bound-bearing field. -/
 lemma closeStaleExplicitKey_BoundInv {s₀ : ScannerState} (s : ScannerState)
     (h : BoundInv s₀ s) : BoundInv s₀ (closeStaleExplicitKey s) := by
-  rcases closeStaleExplicitKey_cases s with h_eq | h_eq <;> rw [h_eq] <;>
+  rcases closeStaleExplicitKey_cases s with h_eq | ⟨_, _, h_eq⟩ <;> rw [h_eq] <;>
     exact ⟨h.offset_le, h.inputEnd_eq, h.input_eq, h.isValid⟩
 
 lemma scanFlowMappingStart_BoundInv (s : ScannerState)

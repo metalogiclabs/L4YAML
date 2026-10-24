@@ -333,6 +333,18 @@ def PendingKeys.closeAt (cols : Array Int) (pks : Array (Option Nat)) (col : Int
   (Array.range pks.size).map fun i =>
     if cols[i]? == some col then none else pks[i]?.getD none
 
+/-- `pendingKeys` with every stale level closed at a content landing: a level at column
+    `m` is closed when the cursor at `col` with `c` under it ends its entry — `col ≤ m`, a
+    `-` only strictly left of `m`, and a `:` not at `m` itself (that `:` is its value). -/
+def PendingKeys.closeStale (cols : Array Int) (pks : Array (Option Nat)) (col : Int)
+    (c : Char) : Array (Option Nat) :=
+  (Array.range pks.size).map fun i =>
+    match cols[i]? with
+    | some m =>
+      if col ≤ m && (c != '-' || col < m) && !(c == ':' && col == m) then none
+      else pks[i]?.getD none
+    | none => pks[i]?.getD none
+
 /-- The innermost pending explicit key as the register pair `(line, column)`;
     `(none, -1)` when no level holds one. -/
 def PendingKeys.innermost (cols : Array Int) (pks : Array (Option Nat)) : Option Nat × Int :=
@@ -356,6 +368,11 @@ def ScannerState.indentColumns (s : ScannerState) : Array Int := s.indents.map (
 /-- Close the pending explicit key of the level at column `col`. -/
 def ScannerState.clearPendingKeyAt (s : ScannerState) (col : Int) : ScannerState :=
   { s with pendingKeys := PendingKeys.closeAt s.indentColumns s.pendingKeys col }
+
+/-- Close every pending explicit key the content `c` under the cursor lands past
+    (`PendingKeys.closeStale`). -/
+def ScannerState.closeStaleAt (s : ScannerState) (c : Char) : ScannerState :=
+  { s with pendingKeys := PendingKeys.closeStale s.indentColumns s.pendingKeys s.col c }
 
 /-- The innermost pending explicit key, as the register pair `(line, column)`;
     `(none, -1)` when no level holds one. -/

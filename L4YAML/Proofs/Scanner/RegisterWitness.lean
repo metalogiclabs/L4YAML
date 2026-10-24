@@ -267,6 +267,14 @@ lemma SlotsWitness.close {input : String} {s : ScannerState} {sp_start : SurfPos
   simp only [ScannerState.clearPendingKeyAt] at hi
   exact h i l (closeAt_marked _ _ _ _ _ hi).1
 
+/-- `closeStale` empties slots and re-marks none, so every slot still marked keeps its witness. -/
+lemma SlotsWitness.closeStale {input : String} {s : ScannerState} {sp_start : SurfPos}
+    (h : SlotsWitness input s sp_start) (c : Char) :
+    SlotsWitness input (s.closeStaleAt c) sp_start := by
+  intro i l hi
+  simp only [ScannerState.closeStaleAt] at hi
+  exact h i l (closeStale_marked _ _ _ _ _ _ hi)
+
 lemma pushMappingIndent_witness {input : String} {s : ScannerState} {sp_start : SurfPos} (col : Int)
     (h : SlotsWitness input s sp_start) (hsz : s.pendingKeys.size = s.indents.size) :
     SlotsWitness input (pushMappingIndent s col) sp_start := by
@@ -292,9 +300,9 @@ lemma readPendingKey_witness {input : String} {s : ScannerState} {sp_start : Sur
 /-- The stale-key hook: the identity, or a close followed by the re-read. -/
 lemma closeStaleExplicitKey_witness {input : String} {s : ScannerState} {sp_start : SurfPos}
     (h : SlotsWitness input s sp_start) : SlotsWitness input (closeStaleExplicitKey s) sp_start := by
-  rcases closeStaleExplicitKey_cases s with heq | heq <;> rw [heq]
+  rcases closeStaleExplicitKey_cases s with heq | ⟨_, _, heq⟩ <;> rw [heq]
   · exact h
-  · exact readPendingKey_witness (h.close _)
+  · exact readPendingKey_witness (h.closeStale _)
 
 lemma unwindIndentsLoop_witness {input : String} (s : ScannerState) (col : Int) (fuel : Nat)
     {sp_start : SurfPos} (h : SlotsWitness input s sp_start) (hs : SlotsOk s) :

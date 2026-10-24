@@ -1833,7 +1833,7 @@ lemma preprocess_explicitKey_cases (s s1 : ScannerState) (c : Char)
     (h : scanNextToken_preprocess s = .ok (some (s1, c))) :
     (s1.explicitKeyLine = s.explicitKeyLine ∧ s1.explicitKeyCol = s.explicitKeyCol) ∨
     (s.explicitKeyLine ≠ none ∧
-      ∃ t : ScannerState, s1 = (t.clearPendingKeyAt t.explicitKeyCol).readPendingKey) := by
+      ∃ (t : ScannerState) (c' : Char), t.peek? = some c' ∧ s1 = (t.closeStaleAt c').readPendingKey) := by
   unfold scanNextToken_preprocess at h
   simp only [bind, pure, Pure.pure, Except.pure] at h
   simp only [Except.bind] at h
@@ -1868,7 +1868,7 @@ lemma preprocess_explicitKey_cases (s s1 : ScannerState) (c : Char)
                 rw [unwindIndents_preserves_explicitKeyCol]; exact h_c_skip
             · rcases closeStaleExplicitKey_cases
                   (saveSimpleKey { unwindIndents s_skip s_skip.col with needIndentCheck := false })
-                with h_eq | h_eq <;> rw [h_eq]
+                with h_eq | ⟨_, hc, h_eq⟩ <;> rw [h_eq]
               · left
                 rw [saveSimpleKey_preserves_explicitKeyLine, saveSimpleKey_preserves_explicitKeyCol]
                 constructor
@@ -1876,7 +1876,7 @@ lemma preprocess_explicitKey_cases (s s1 : ScannerState) (c : Char)
                   rw [unwindIndents_preserves_explicitKeyLine]; exact h_l_skip
                 · show (unwindIndents s_skip s_skip.col).explicitKeyCol = s.explicitKeyCol
                   rw [unwindIndents_preserves_explicitKeyCol]; exact h_c_skip
-              · right; exact ⟨h_dead, _, rfl⟩
+              · right; exact ⟨h_dead, _, _, hc, rfl⟩
       · split at h
         · contradiction
         · split at h
@@ -1890,11 +1890,11 @@ lemma preprocess_explicitKey_cases (s s1 : ScannerState) (c : Char)
               left
               rw [saveSimpleKey_preserves_explicitKeyLine, saveSimpleKey_preserves_explicitKeyCol]
               exact ⟨h_l_skip, h_c_skip⟩
-            · rcases closeStaleExplicitKey_cases (saveSimpleKey s_skip) with h_eq | h_eq <;> rw [h_eq]
+            · rcases closeStaleExplicitKey_cases (saveSimpleKey s_skip) with h_eq | ⟨_, hc, h_eq⟩ <;> rw [h_eq]
               · left
                 rw [saveSimpleKey_preserves_explicitKeyLine, saveSimpleKey_preserves_explicitKeyCol]
                 exact ⟨h_l_skip, h_c_skip⟩
-              · right; exact ⟨h_dead, _, rfl⟩
+              · right; exact ⟨h_dead, _, _, hc, rfl⟩
 
 /-- A dead register stays dead through preprocessing: both arms of
     `preprocess_explicitKey_cases` end at `none`. -/

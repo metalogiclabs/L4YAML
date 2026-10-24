@@ -286,7 +286,7 @@ lemma scanNextToken_dispatchContent_corr (sc : ScannerState) (sp : SurfPos) (c :
 /-- Item 333: the stale-register reset moves no surface datum. -/
 lemma closeStaleExplicitKey_corr (s : ScannerState) (sp : SurfPos)
     (h : ScannerSurfCorr s sp) : ScannerSurfCorr (closeStaleExplicitKey s) sp := by
-  rcases closeStaleExplicitKey_cases s with h_eq | h_eq <;> rw [h_eq] <;>
+  rcases closeStaleExplicitKey_cases s with h_eq | ⟨_, _, h_eq⟩ <;> rw [h_eq] <;>
     exact ⟨h.chars_from, h.col_eq, h.end_eq, h.input_prefix, h.indent_cols_nonneg⟩
 
 lemma scanNextToken_preprocess_corr (sc : ScannerState) (sp : SurfPos)
