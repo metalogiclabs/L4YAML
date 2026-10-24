@@ -111,7 +111,8 @@ partial def peelsTo (a b : Expr) : Nat → Bool
     else false
 
 -- 2026-10-23 ([162]): +2 types / +5 connected arms — `SCIndentationIndicator` and `SCChompingIndicator`.
-def expectedChain : String := "types=79 arms=172 connected=171 broken=1 paramOnly=7"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 79 → 81, `arms` 172 → 180, `connected` 171 → 179 — the 8 new arms are suffix-connected.
+def expectedChain : String := "types=81 arms=180 connected=179 broken=1 paramOnly=7"
 
 /-- The one arm of the surface grammar that connects nothing to nothing. -/
 def expectedBroken : List String := ["L4YAML.Surface.SLYamlStream.scannerDrop"]

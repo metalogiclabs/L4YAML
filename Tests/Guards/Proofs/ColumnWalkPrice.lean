@@ -274,7 +274,9 @@ def isSurfRel (t : Expr) : MetaM Bool :=
 
 -- 2026-10-23 ([162]): +2 acyclic sccs — `SCIndentationIndicator` and `SCChompingIndicator`, both leaves.
 def expectedCycles : String :=
-  "types=79 sccs=64 cyclic=8 acyclic=56 cyclicTypes=23 cyclicArms=81 largest=9"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 79 → 81, `cyclicTypes` 23 → 25, `cyclicArms` 81 → 89, `largest` 9 → 10 —
+-- the two JSON-node families join the flow SCC (`SCFlowJsonContent` ↔ `SFlowSequence`/`SFlowMapping`).
+  "types=81 sccs=64 cyclic=8 acyclic=56 cyclicTypes=25 cyclicArms=89 largest=10"
 
 /-! ## §4 What a walk costs
 
@@ -286,12 +288,15 @@ composition node is a link that is not the first of its arm. -/
 
 -- 2026-10-23 ([162]): +5 arms / +3 links — the `[163]`/`[164]` indicator leaves under `SCBBlockHeader`.
 def expectedPrice : String :=
-  "arms=172 links=324 oneWalk=324 twoWalks=800 defProds=9 defCitations=39"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `arms` 172 → 180, `links`/`oneWalk` 324 → 342, `twoWalks` 800 → 846, `defCitations` 39 → 40.
+  "arms=180 links=342 oneWalk=342 twoWalks=846 defProds=9 defCitations=40"
 
 /-- The two cycles, priced the same way.  `flow` is the one the compiled
     experiment walked three times. -/
 def expectedCyclePrice : String :=
-  "flow arms=41 links=123 oneWalk=123 twoWalks=328 | block arms=26 links=63 \
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): flow `arms` 41 → 49, `links`/`oneWalk` 123 → 141,
+-- `twoWalks` 328 → 374 — the two JSON-node families enter the flow cycle; block unchanged.
+  "flow arms=49 links=141 oneWalk=141 twoWalks=374 | block arms=26 links=63 \
 oneWalk=63 twoWalks=163"
 
 
@@ -314,7 +319,8 @@ says which side a production falls on. -/
 
 -- 2026-10-23 ([162]): +2 productions, both with suffix lemmas — `SCIndentationIndicator`, `SCChompingIndicator`.
 def expectedSupply : String :=
-  "productions=94 withSuffixLemma=86 missing=8 documentLayerMissing=1"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `productions` 94 → 96, `withSuffixLemma` 86 → 88; `missing` unchanged.
+  "productions=96 withSuffixLemma=88 missing=8 documentLayerMissing=1"
 
 run_cmd Command.liftTermElabM do
   let env ← getEnv

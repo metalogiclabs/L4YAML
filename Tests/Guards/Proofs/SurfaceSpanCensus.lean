@@ -65,7 +65,8 @@ a definition under-reports the thing it is pricing. -/
 
 -- 2026-10-23 ([162]): +3 ind / +7 ctors — `SCIndentationIndicator` (2), `SCChompingIndicator` (3) and `GAlt` (2),
 -- which `SCBBlockHeader` now brings into the block's closure; all three are leaves.
-def expectedClosure : String := "types=77 ind=64 def=13 ctors=150 block=18/69 leaf=59/81"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 77 → 79, `ind` 64 → 66, `ctors` 150 → 158, `block` 18/69 → 20/77.
+def expectedClosure : String := "types=79 ind=66 def=13 ctors=158 block=20/77 leaf=59/81"
 
 /-- Every production type reachable from `SFlowNode`'s mutual block, with its
     constructor count (0 for a `def`) and whether it is in the block. -/
@@ -122,7 +123,8 @@ comment family in `Proofs/Coupling/TabIndentBridge.lean`. -/
     statement would be a second name for the same fact. -/
 -- 2026-10-23 ([162]): closure 74 → 77, all three newcomers covered (`scIndentationIndicator_suffix`,
 -- `scChompingIndicator_suffix`, `galt_suffix`); the five uncovered are unchanged.
-def expectedCoverage : String := "closure=77 covered=72 uncovered=5"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `closure` 77 → 79, `covered` 72 → 74 — both new types have suffix lemmas.
+def expectedCoverage : String := "closure=79 covered=74 uncovered=5"
 
 /-! ## §3 The mutual block's eighteen -/
 
@@ -292,8 +294,8 @@ def flowExports : List String :=
    "flowSeqEntries_toKey", "flowSeqEntry_toKey", "flowMapping_toKey",
    "flowMapEntries_toKey", "flowMapEntry_toKey"]
 
-def expectedLeafSplit : String :=
-  "exports=8 noop=0 carried=82 payable=48 blocked=0 relay=34"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `carried` 82 → 96, `payable` 48 → 55, `relay` 34 → 41 — 8 new arms + 2 suffix lemmas.
+def expectedLeafSplit : String := "exports=8 noop=0 carried=96 payable=55 blocked=0 relay=41"
 
 /-- How many times a constant occurs in a term, WITHOUT deduplication: the
     compiler pays per occurrence, and item 228's DAG walk undercounted for
@@ -487,8 +489,8 @@ def flowTypeNames : List Name :=
     ["SFlowNode", "SFlowContent", "SFlowSequence", "SFlowSeqEntries",
      "SFlowSeqEntry", "SFlowMapping", "SFlowMapEntries", "SFlowMapEntry"]
 
-def expectedMotiveExport : String :=
-  "motives=18 flow=8 residue=8 trueOnly=0 none=0"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `motives` 18 → 20 — `scFlowJsonContent_suffix`, `scFlowJsonNode_suffix`.
+def expectedMotiveExport : String := "motives=20 flow=8 residue=8 trueOnly=0 none=0"
 
 /-- The recursor's motive binders, read off its type. -/
 partial def motiveBinders : Expr → Nat
@@ -638,8 +640,8 @@ partial def termSize : Expr → Nat
 
 /-- What a payment costs against what it pays for.  `resolveRight` is the
     assertion: six payments, six `Or.resolve_right` applications, one each. -/
-def expectedPaymentShape : String :=
-  "payments=6 resolveRight=6 maxPayment=111 export=55650"
+-- 2026-10-24 ([148]/[149] JSON-key adjacent value): `export` 55650 → 72045 — the flow mutual block grew by two types.
+def expectedPaymentShape : String := "payments=6 resolveRight=6 maxPayment=111 export=72045"
 
 run_cmd liftTermElabM do
   let env ← getEnv

@@ -270,9 +270,11 @@ def expectedAbsorbReaders : List String :=
 -- `prods` 152 → 159, `ctors` 276 → 293, `direct` 262 → 279 on 2026-10-23: the seven block-scalar
 -- relations of `Acceptance/BlockScalar.lean` (Stream E); `same` 21 → 24: `ChompOk.clip`,
 -- `IndentOk.auto` and `BlockStopOk.outdent` land where they start.
+-- `prods` 160 → 162, `ctors` 296 → 304, `direct` 282 → 290, `surfArms` 172 → 180, `surfDirect` 171 → 179
+-- on 2026-10-24: `SCFlowJsonContent`/`SCFlowJsonNode` ([148]/[149] JSON-key adjacent value); all 8 arms direct.
 def expectedLine : String :=
-  "prods=160 ctors=296 same=25 direct=282 anchoredOnly=12 broken=2 surfArms=172 \
-surfDirect=171 candidate=direct candidateNil=direct readers=3 libReaders=2 \
+  "prods=162 ctors=304 same=25 direct=290 anchoredOnly=12 broken=2 surfArms=180 \
+surfDirect=179 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=41 producers=21 absorbReaders=5 absorbPlainReaders=0"
 
 /-- Non-circularity, items 242–245's check: the closing lemma spends item 244's

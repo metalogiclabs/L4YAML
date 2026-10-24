@@ -20,7 +20,7 @@ that scanner module transitively depends on, do not form an import cycle.
 
 namespace L4YAML.Proofs.FlowAdjacencyIx
 
-open L4YAML L4YAML.Indexed L4YAML.Scanner L4YAML.Scanner.Indexed
+open L4YAML L4YAML.Indexed L4YAML.Scanner L4YAML.Scanner.Indexed L4YAML.CharPredicates
   L4YAML.Scanner.Indexed.ScannerStateIx
 
 /-- Peel the folded flow-adjacency check off the front of
@@ -226,6 +226,32 @@ lemma saveSimpleKeyIx_preserves_completesFalse {input : String}
     cases h_or with
     | inl h => exact h_last t h
     | inr h => subst h; rfl
+
+
+/-! ## `[148]`/`[149]` adjacent value: the indexed scanner's JSON-key path -/
+
+/-- The token slot `isValueCandidateIx` inspects for the JSON-key check. -/
+def flowKeyTokenIx {input : String} (s : ScannerStateIx input) : Option (IxToken input) :=
+  if s.simpleKey.cursor.pos.offset != s.cursor.pos.offset then s.tokens.tokens[s.tokens.size - 1]?
+  else s.tokens.tokens[s.simpleKey.tokenIndex - 1]?
+
+lemma isValueCandidateIx_glued_jsonKey {input : String} (s : ScannerStateIx input) (n : Char)
+    (hflow : s.inFlow = true) (hpk : s.peekAt? 1 = some n)
+    (hn : (isBlankBool n || isFlowIndicatorBool n) = false)
+    (h : isValueCandidateIx s = true) :
+    s.simpleKey.possible = true ∧
+      ∃ t, flowKeyTokenIx s = some t ∧ isJsonNodeTokenIx t.token = true := by
+  unfold isValueCandidateIx at h
+  obtain ⟨hb, hf⟩ := Bool.or_eq_false_iff.mp hn
+  by_cases hp : s.simpleKey.possible = true
+  · refine ⟨hp, ?_⟩
+    unfold flowKeyTokenIx
+    simp only [hflow, hp, Bool.and_self, ↓reduceIte, hpk] at h
+    split at h <;> rename_i hoff <;> simp only [hoff, ↓reduceIte] <;>
+      split at h <;> rename_i htok <;> simp [hb, hf] at h
+    all_goals exact ⟨_, htok, h⟩
+  · simp only [Bool.not_eq_true] at hp
+    simp [hflow, hp, hpk, hb, hf] at h
 
 end L4YAML.Proofs.FlowAdjacencyIx
 

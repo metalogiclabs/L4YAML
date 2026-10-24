@@ -32,7 +32,7 @@ depends on, do not form an import cycle). -/
 
 namespace L4YAML.Proofs.FlowAdjacency
 
-open L4YAML L4YAML.Scanner
+open L4YAML L4YAML.Scanner L4YAML.CharPredicates
 
 /-! ## Inversion helpers (peel the folded check) -/
 
@@ -344,6 +344,37 @@ lemma saveSimpleKey_preserves_lastRealTokenVal (s : ScannerState)
   rcases h_cases with h_eq | h_eq
   · rw [h_eq]
   · rw [h_eq]; exact lastRealTokenVal_push_two_ph_of_real rfl rfl hr
+
+
+/-! ## `[148]`/`[149]` adjacent value: the scanner's JSON-key path
+
+`isValueCandidate` accepts a `:` whose follower is neither a blank nor a flow
+indicator only through its JSON-key branch; the key token the scanner checked
+is therefore `isJsonNodeToken`.  Surface's `SFlowMapEntry.jsonKeyAdjacentValue`
+/ `SFlowSeqEntry.pairJsonAdjacentValue` are the arms that spend this fact. -/
+
+/-- The token slot `isValueCandidate` inspects for the JSON-key check. -/
+def flowKeyToken (s : ScannerState) : Option (Positioned YamlToken) :=
+  if s.simpleKey.pos.offset != s.offset then s.tokens[s.tokens.size - 1]?
+  else s.tokens[s.simpleKey.tokenIndex - 1]?
+
+lemma isValueCandidate_glued_jsonKey (s : ScannerState) (n : Char)
+    (hflow : s.inFlow = true) (hpk : s.peekAt? 1 = some n)
+    (hn : (isBlankBool n || isFlowIndicatorBool n) = false)
+    (h : isValueCandidate s = true) :
+    s.simpleKey.possible = true ∧
+      ∃ tok, flowKeyToken s = some tok ∧ isJsonNodeToken tok.val = true := by
+  unfold isValueCandidate at h
+  obtain ⟨hb, hf⟩ := Bool.or_eq_false_iff.mp hn
+  by_cases hp : s.simpleKey.possible = true
+  · refine ⟨hp, ?_⟩
+    unfold flowKeyToken
+    simp only [hflow, hp, Bool.and_self, ↓reduceIte, hpk] at h
+    split at h <;> rename_i hoff <;> simp only [hoff, ↓reduceIte] <;>
+      split at h <;> rename_i htok <;> simp [hb, hf] at h
+    all_goals exact ⟨_, htok, h⟩
+  · simp only [Bool.not_eq_true] at hp
+    simp [hflow, hp, hpk, hb, hf] at h
 
 end L4YAML.Proofs.FlowAdjacency
 
