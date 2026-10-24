@@ -250,9 +250,14 @@ def readDecl (n : Name) : MetaM Readings := do
     (Stream E).
 
     519 → 523 on 2026-10-23: `Acceptance/BlockIndicators.lean`, the `-`/`?`/`:` converses
-    and `emit_corr` (Stream E). -/
+    and `emit_corr` (Stream E).
+
+    527 → 545 on 2026-10-23: `Acceptance/BlockScalar.lean` — the indent/line/comment loop
+    converses, the header indicator and tail readers, `blockScalarTabStop_false_of_stop`,
+    the auto-detect loop and `scanBlockScalar_accepts`, each taking a correspondence
+    (Stream E). -/
 def expectedCensus : String :=
-  "corrHyp=527 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=545 streamConcl=90 both=40 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

@@ -267,8 +267,11 @@ def expectedAbsorbReaders : List String :=
 -- multi-line plain relation of `Acceptance/Plain.lean` (Stream E).
 -- `prods` 151 → 152, `ctors` 272 → 276, `direct` 258 → 262 on 2026-10-23: `TagOk` of
 -- `Acceptance/Properties.lean` (Stream E).
+-- `prods` 152 → 159, `ctors` 276 → 293, `direct` 262 → 279 on 2026-10-23: the seven block-scalar
+-- relations of `Acceptance/BlockScalar.lean` (Stream E); `same` 21 → 24: `ChompOk.clip`,
+-- `IndentOk.auto` and `BlockStopOk.outdent` land where they start.
 def expectedLine : String :=
-  "prods=152 ctors=276 same=21 direct=262 anchoredOnly=12 broken=2 surfArms=172 \
+  "prods=159 ctors=293 same=24 direct=279 anchoredOnly=12 broken=2 surfArms=172 \
 surfDirect=171 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=41 producers=21 absorbReaders=5 absorbPlainReaders=0"
 

@@ -373,9 +373,11 @@ def expectedEndsLit : List String :=
 -- `Acceptance/Properties.lean` (Stream E); `TagOk.verbatim` ends in `>` like `[97]`'s verbatim arm.
 -- `endsLit` 38 → 39 on 2026-10-23: `[132]`'s `SNbNsPlainInLineEntry.hash` ends in its `#` — the
 -- one legal `#` position in a plain scalar, replacing `[130]`'s `hashAfterNs` (`ctors` unchanged).
+-- `prods` 152 → 159, `ctors` 276 → 293 on 2026-10-23: the seven block-scalar relations of
+-- `Acceptance/BlockScalar.lean` (Stream E); none ends at a literal the park reads.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=152 ctors=276 \
+depth=4 prods=159 ctors=293 \
 endsLit=39 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
