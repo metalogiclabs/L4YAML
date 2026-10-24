@@ -25,7 +25,15 @@ each a pair of hand-built derivations of the same span with different traces.
    non-specific tag `!` followed by an EMPTY `s-separate` and the plain scalar
    `t &x a` (traces `[useTag "!", defineAnchor "x"]` vs `[useTag "!"]`).  Every
    `[97]` arm now ends with `GNot (GChar isTagCharProp)`, so `[100]` cannot stop
-   in front of `t` (`nonSpecific_not_before_t`); only the first reading remains. -/
+   in front of `t` (`nonSpecific_not_before_t`); only the first reading remains.
+4. `[!<a>]` — verbatim-vs-non-specific, OPEN (closes with the `[66]` col-0
+   narrowing): the verbatim tag `!<a>` (trace `[]`, §6 Q4), or the non-specific
+   tag `!` (`<` is no `[40] ns-tag-char`, so `[100]`'s lookahead holds), an EMPTY
+   `s-separate` through `SSeparateInLine.startOfLine` at col 2, and the plain
+   scalar `<a>` (trace `[useTag "!"]`).  `[96]` is followed by a mandatory
+   `s-separate` in the spec, which is non-empty off a line start; once
+   `startOfLine` is only col 0 the second reading has no derivation
+   (`tFlowNode_unique_refuted_at_verbatim` must then be deleted, not kept). -/
 
 namespace L4YAML.Tests.Guards.TraceOfFlowAmbiguity
 
@@ -185,5 +193,62 @@ lemma nonSpecific_not_before_t : ¬ GNot (GChar isTagCharProp) u1 :=
   fun h => h _ (GChar.mk 't' _ 2 (by decide))
 
 end TagSplit
+
+/-! ## Refutation 4 (OPEN until `[66]` is col 0): `[!<a>]` -/
+section VerbatimSplit
+
+abbrev v0 : SurfPos := ⟨['!', '<', 'a', '>', ']'], 1⟩
+abbrev v1 : SurfPos := ⟨['<', 'a', '>', ']'], 2⟩
+abbrev v2 : SurfPos := ⟨['a', '>', ']'], 3⟩
+abbrev v3 : SurfPos := ⟨['>', ']'], 4⟩
+abbrev v4 : SurfPos := ⟨[']'], 5⟩
+
+private lemma safe_lt : isNsPlainSafe .flowIn '<' := by unfold isNsPlainSafe isNsChar; decide
+private lemma safe_gt : isNsPlainSafe .flowIn '>' := by unfold isNsPlainSafe isNsChar; decide
+
+/-- `<` is not a `[40] ns-tag-char`, so `[100] c-non-specific-tag` may stop after `!`. -/
+private lemma gnot_tag_v1 : GNot (GChar isTagCharProp) v1 :=
+  fun _ h => by cases h with | mk _ _ _ hp => exact absurd hp (by decide)
+
+/-- Reading 1: the verbatim tag `!<a>`, which names no handle (trace `[]`). -/
+lemma readVerbatim : TFlowNode 0 .flowIn v0 v4 [] :=
+  .propsEmpty 0 .flowIn v0 v4 []
+    (TCNsProperties.tagFirst v0 v4 v4 [] []
+      (And.intro
+        (SCNsTagProperty.verbatim _ 1 v2 v3 v4
+          (GLit.mk _ 2)
+          (GPlus.mk _ _ _ (GChar.mk 'a' _ 3 (by decide)) (GStar.nil _))
+          (GLit.mk _ 4))
+        (by decide))
+      (TOpt.none _))
+
+/-- Reading 2: the non-specific tag `!`, an EMPTY `s-separate` (`startOfLine` at
+col 2), then the plain scalar `<a>` (trace `[useTag "!"]`). -/
+lemma readNonSpecificPlain : TFlowNode 0 .flowIn v0 v4 [Event.useTag "!"] :=
+  .propsContent 0 .flowIn v0 v1 v1 v4 [Event.useTag "!"] []
+    (TCNsProperties.tagFirst v0 v1 v1 [Event.useTag "!"] []
+      (And.intro (SCNsTagProperty.nonSpecific _ 1 gnot_tag_v1) (by decide))
+      (TOpt.none _))
+    (SSeparateLines.inline 0 v1 v1 (SSeparateInLine.startOfLine v1))
+    (.plain 0 .flowIn v1 v4
+      (SNsPlainMultiLine.mk 0 .flowIn v1 v4 v4
+        (SNsPlainOneLine.mk .flowIn v1 v2 v4
+          (SNsPlainFirst.nonIndicator .flowIn '<' _ 2 safe_lt (by decide))
+          (GStar.cons _ _ _
+            (SNbNsPlainInLineEntry.mk .flowIn v2 v2 v3 (GStar.nil _)
+              (SNsPlainChar.safe .flowIn 'a' _ 3 safe_a (by decide) (by decide)))
+            (GStar.cons _ _ _
+              (SNbNsPlainInLineEntry.mk .flowIn v3 v3 v4 (GStar.nil _)
+                (SNsPlainChar.safe .flowIn '>' _ 4 safe_gt (by decide) (by decide)))
+              (GStar.nil _))))
+        (GStar.nil _)))
+
+/-- The flow-fragment uniqueness statement is false on this grammar.  Delete
+this lemma (and `readNonSpecificPlain`) when `[66]` is narrowed to col 0. -/
+lemma tFlowNode_unique_refuted_at_verbatim :
+    ¬ (∀ ev₁ ev₂, TFlowNode 0 .flowIn v0 v4 ev₁ → TFlowNode 0 .flowIn v0 v4 ev₂ → ev₁ = ev₂) :=
+  fun h => by cases h _ _ readVerbatim readNonSpecificPlain
+
+end VerbatimSplit
 
 end L4YAML.Tests.Guards.TraceOfFlowAmbiguity
