@@ -6,6 +6,7 @@ import Tests.Guards.Proofs.AliasNodeRoute
 import Tests.Guards.Proofs.Col0LandingDead
 import Tests.Guards.Proofs.ContentParkNoNode
 import Tests.Guards.Proofs.MarkedSlotsEnclosing
+import Tests.Guards.Proofs.MarkedColsDomain
 import Tests.Guards.Proofs.TokenGrammarProbes
 import Tests.Guards.Proofs.FlowGluedColonExhibit
 import Tests.Guards.Proofs.BlockCollectionWidthFloor
