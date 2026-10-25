@@ -4260,6 +4260,62 @@ def testQuestionMarkColumn (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"noMark/{repr input}: marks after ⊆ before (no new mark)" (bad == 0)
       s!"bad {bad}"
 
+/-- Priority 27 (item 358): the K1 lanes of `landing_frame_of_cover`.  At every non-flow
+    `-`/`:`/`?` block-indicator step that emitted a token, read the preprocessed state `sp`:
+    SIBLING = the landing column is the stack's top (`sp.currentIndent = sp.col`); `payable` =
+    sibling ∧ (`?` ∨ the top is a MAPPING level) — the lemma's domain; `fresh` = not sibling
+    (the first key of a level: its top is the enclosing one); `other` = sibling on a
+    SEQUENCE top under `-`/`:` — the arm's genuine residue; `bad` = a sibling `?` on a
+    sequence top (would refute `scanKey_top_not_sequence`).  Returns
+    `(payable, fresh, other, bad)`. -/
+def walkK1Lanes (input : String) : Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut payable := 0
+  let mut fresh := 0
+  let mut other := 0
+  let mut bad := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if (c == '-' || c == ':' || c == '?') && !sp.inFlow && s'.tokens.size > s.tokens.size then
+          let sibling := sp.currentIndent == (sp.col : Int)
+          let mapTop := match sp.indents.back? with
+            | some top => !top.isSequence
+            | none => false
+          if !sibling then fresh := fresh + 1
+          else if c == '?' then
+            payable := payable + 1
+            if !mapTop then bad := bad + 1
+          else if mapTop then payable := payable + 1
+          else other := other + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (payable, fresh, other, bad)
+
+def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
+  -- `(input, (payable, fresh, other))`, pinned from the run.
+  let walks : List (String × (Nat × Nat × Nat)) :=
+    [("a: b", (0, 1, 0)), ("a: b\nc: d", (0, 2, 0)), ("k:\n  a: 1\n  b: 2", (0, 3, 0)),
+     ("? a\n: b", (1, 1, 0)), ("?\n  ? a\n  : b\n: c", (2, 2, 0)), ("? a\n? b\n: c", (2, 1, 0)),
+     ("- a\n- b: c\n  d: e", (0, 3, 1)), ("- ? a\n  : b", (1, 2, 0)), ("? - a\n: - b", (1, 3, 0)),
+     ("k:\n  - a\nb: 2", (0, 3, 0)), ("?\n  k:\n    - a\n: v", (1, 3, 0)), ("? a: b\n: c", (1, 2, 0)),
+     ("a:\n  b:\n    c: d\n  e: f\ng: h", (0, 5, 0)), ("- - a: 1\n    b: 2", (0, 4, 0)),
+     ("---\n? a\n: b", (1, 2, 0)), ("a: 1\n? b\n: 2", (2, 1, 0)), ("? ? a\n  : b\n: c", (2, 2, 0)),
+     ("- a", (0, 1, 0)), ("- a\n- b", (0, 1, 1)), ("k:\n- a\n- b", (2, 1, 0)), ("- - a\n  - b\n- c", (0, 2, 2)),
+     ("?\n  - a\n  - b\n: c", (1, 2, 1)), ("{ a: b }", (0, 0, 0)), ("[? a]", (0, 0, 0))]
+  for (input, (eP, eF, eO)) in walks do
+    let (p, f, o, bad) := walkK1Lanes input
+    checkM state s!"k1Lanes/{repr input}: (payable, fresh, other)" (p == eP && f == eF && o == eO)
+      s!"got ({p}, {f}, {o}) expected ({eP}, {eF}, {eO})"
+    checkM state s!"k1Lanes/{repr input}: no sibling `?` on a sequence top" (bad == 0)
+      s!"bad {bad}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -4294,6 +4350,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testColZeroParks state
 
   testQuestionMarkColumn state
+  testK1Lanes state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",

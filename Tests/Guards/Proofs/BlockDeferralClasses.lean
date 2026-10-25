@@ -4538,7 +4538,12 @@ def expectedPackFlip : String :=
   -- 2026-10-25 (item 357, on the #102 base): the two `h_closeFV108.imp (fun ⟨nv, ks, h_le, _, fV⟩ => …)` arms of
   -- `accum_block_pending` (#99) lose their expected type under the flip — a round-3 cascade the instrument stops on;
   -- the base alone reads the same two, so `decline` is read whole.
-  "sites=95 decls=21 rounds=3 decline=87 relay=2 leaf=40 uncond=47 stubs=8 cascade=2 unhandled=2"
+  -- 2026-10-25 (item 358): decline 87 → 92, sites 95 → 94, relay 2 → 0, rounds 3 → 2: the three K1 arms (+3, as
+  -- above) and the two `Or.inr (PackAlt.ofRefused …)` sites of #99 in `accum_block_pending`, which a producer pays
+  -- from a real refused fact — nothing is left of that once the alternative is `False`, so the census now stubs them
+  -- as declines (+2) instead of wrapping them as relays and cascading on its own wrap; the two former relays were
+  -- those same sites.
+  "sites=94 decls=21 rounds=2 decline=92 relay=0 leaf=43 uncond=49 stubs=8"
 
 /-- **The RESIDUE** (item 312): the same census with `PackAlt sc := ExplicitValueRefused sc` — the
     predicate the family will carry — in place of `False`.  A bare `trivial` still fails (an unpaid
@@ -4586,7 +4591,10 @@ def expectedPackFlip : String :=
 -- block-step-fed twins, items 349–352's relays, #83's `dispatchContent_tag_tokens` site.
 def expectedPackResidue : String :=
   -- 2026-10-25 (item 357, on the #102 base): same two #99 arms as `expectedPackFlip`; `decline` 68 unchanged.
-  "sites=74 decls=19 rounds=3 decline=68 relayTrue=0 relayState=4 leaf=30 uncond=38 stubs=1 promised=6 cascade=2 unhandled=2"
+  -- 2026-10-25 (item 358): decline 68 → 71, sites 74 → 75 — the three paid K1 arms each decline in TWO named
+  -- sub-sites (cover `inr`, `¬h_pay`) where they declined in one; `cascade`/`unhandled` gone: the census now reads
+  -- the pattern of an already-probed `.imp … (fun h => alt_probe h)` relay as settled (rounds 3 → 2).
+  "sites=75 decls=19 rounds=2 decline=71 relayTrue=0 relayState=4 leaf=33 uncond=38 stubs=1 promised=6"
 
 /-! **The 32 roots (29 since item 307), by what the register does there** — a READING of each site
 (the compiler prices it when the construction is attempted, §1):

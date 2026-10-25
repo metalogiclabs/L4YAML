@@ -307,10 +307,10 @@ def expectedHeadCensus : List String :=
    "Covered 3",
    "Eq 19",
    "FVAR 2",
-   "Floor 15",
+   "Floor 16",
    "GStar 4",
    "IndentFloor 2",
-   "KeyFrames 3",
+   "KeyFrames 2",
    "MarkedColsIn 15",
    "MarkerNodeRoute 5",
    "Mono 4",
@@ -513,8 +513,8 @@ def chainKeySet : Std.HashSet String :=
 -- 2026-10-24 (item 355): pairs 34 → 30, splits 104 → 96, sup 97 → 93, chainPairs 6 → 0, chainSplits 12 → 0 — the five
 -- `MarkedColsIn`-domained ctor faces and the two domained content twins are no longer provable by the empty chain.
 def expectedWorthTally : String :=
-  "pairs=35 splits=103 sup=98 chainPairs=0 chainSplits=0 innerPairs=8 \
-innerSplits=32"
+  "pairs=35 splits=103 sup=98 chainPairs=0 chainSplits=0 innerPairs=12 \
+innerSplits=55"
 
 /-- The ledger, worth-first.  `chain` is §3's verdict — a narrowing here lands
     on another unconditional inhabitant; `inner` means the face carries a
@@ -544,14 +544,15 @@ innerSplits=32"
 -- 2026-10-24 (B3 [66] col-0 threading): binder indices shift with the new park fields; verdicts unchanged.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (binder indices).
 def expectedWorthLedger : List String :=
-  ["splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
+  [
+   "splits=11 sup=1 inner h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
    "splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
-   "splits=7 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#30",
    "splits=7 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
+   "splits=7 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlock#30",
    "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#36",
-   "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#36",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
+   "splits=4 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlockContent#36",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
    "splits=3 sup=1 - h_kslot :: accum_block_on_pendingBlock#13",
    "splits=3 sup=1 - h_kslot :: accum_content_on_pendingMapValue_indented#17",
@@ -566,11 +567,11 @@ def expectedWorthLedger : List String :=
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_implicit#13",
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_props#12",
    "splits=1 sup=11 - h_mapF :: accum_block_on_closeThenBlock#29",
-   "splits=1 sup=11 - h_mapFV :: accum_block_on_closeThenBlock#31",
    "splits=1 sup=11 - h_mk :: accum_block_on_closeThenBlock#20",
    "splits=1 sup=11 - h_pr :: accum_block_on_closeThenBlock#30",
    "splits=1 sup=11 - h_sfx :: accum_block_on_closeThenBlock#19",
    "splits=1 sup=11 - h_valFV :: accum_block_on_closeThenBlock#32",
+   "splits=1 sup=11 inner h_mapFV :: accum_block_on_closeThenBlock#31",
    "splits=1 sup=1 - h_explUp_chainD :: question_open_map#29",
    "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#15",
    "splits=1 sup=1 - h_kslotD :: colon_open_map_implicit#29",
@@ -578,7 +579,8 @@ def expectedWorthLedger : List String :=
    "splits=1 sup=1 - h_kslotUp :: accum_block_on_pendingBlockContent#34",
    "splits=1 sup=1 - h_mapFV108 :: accum_block_on_pendingContent#35",
    "splits=1 sup=1 - h_resV_land :: question_open_map#27",
-   "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#27"]
+   "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#27"
+  ]
 
 /-- **What the mandate's instrument could have answered.**  Of the 36 pairs a
     narrowing would target, this many have a face a scanner-state census can
@@ -835,7 +837,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
 -- 2026-10-24 (item 350): theorems 6073 → 6076 — `notQuestion_push_top`, `scanValue_notQuestion`,
 -- `dispatchBlock_colon_notQuestion`.
-def expectedNoopTally : String := "theorems=6299 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=6300 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

@@ -825,6 +825,8 @@ sixth component (`nodes` 95163 → 96024). -/
 -- cover punted | punt) where item 108 left bare punts.
 -- 2026-10-23 (item 345): two `h_fV` rows punt → match[paid|punt] — the twin relays at `on_pendingBlock_indented` and
 -- `accum_content_pending`'s `h_defer_split` now case on the park's `h_closeFV`.
+-- 2026-10-25 (item 358): 167 → 185 rows — the cover rides `h_closeFV_old` (×3) and `closeThenBlock.h_mapFV`
+-- (relay rows at every consumer) and `landing_frame_of_cover.h_cov` is fed through `preprocess_cover`/`of_indents_eq`.
 def expectedRows : List String :=
   ["accum_block_on_closeThenBlock #1 fn:accum_block_on_closeThenBlock.h_cov_step := via:IndentStackCover.scanBlockEntry_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(fnp:accum_block_on_closeThenBlock.h_cov_step.hc))))",
    "accum_block_on_closeThenBlock #1 local:accum_block_on_closeThenBlock.h_seqFrames := cases[ite[paid{cover=step(relay(param:accum_block_on_closeThenBlock.h_valF))}|paid{cover=punt}]|paid{cover=punt}]",
@@ -994,7 +996,26 @@ def expectedRows : List String :=
    "question_open_map #1 ctor:pendingMapValue.h_closeF := paid{cover=relay(val:question_open_map.h✝)}",
    "question_open_map #1 ctor:pendingMapValue.h_frames := paid{cover=relay(val:question_open_map.h✝)}",
    "question_open_map #1 ctor:pendingMapValue.h_closeFV := paid{cover=step(relay(param:question_open_map.h_cov_nil))}",
-   "question_open_map #1 ctor:pendingMapValue.h_framesV := paid{cover=step(relay(param:question_open_map.h_cov_nil))}"]
+   "question_open_map #1 ctor:pendingMapValue.h_framesV := paid{cover=step(relay(param:question_open_map.h_cov_nil))}",
+   "accum_block_on_closeThenBlock #1 param:landing_frame_of_cover.h_cov := via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(param:accum_block_on_closeThenBlock.h_mapFV)))",
+   "accum_block_on_pendingBlock #1 param:accum_block_on_closeThenBlock.h_mapFV := match[paid{cover=step(relay(param:accum_block_on_pendingBlock.h_closeFV_old))}|punt]",
+   "accum_block_on_pendingBlock #1 param:landing_frame_of_cover.h_cov := via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(param:accum_block_on_pendingBlock.h_closeFV_old)))",
+   "accum_block_on_pendingBlockContent #1 param:accum_block_on_closeThenBlock.h_mapFV := match[paid{cover=step(relay(param:accum_block_on_pendingBlockContent.h_closeFV_old))}|punt]",
+   "accum_block_on_pendingBlockContent #1 param:landing_frame_of_cover.h_cov := via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(param:accum_block_on_pendingBlockContent.h_closeFV_old)))",
+   "accum_block_on_pendingContent #1 param:accum_block_on_closeThenBlock.h_mapFV := imp:?{punt}",
+   "accum_block_on_pendingContent #2 param:accum_block_on_closeThenBlock.h_mapFV := imp:?{punt}",
+   "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_mapFV := match[paid{cover=relay(door:pendingProps.h_closeFV)}|punt]",
+   "accum_block_pending #2 param:accum_block_on_closeThenBlock.h_mapFV := match[paid{cover=relay(door:pendingProps.h_closeFV)}|punt]",
+   "accum_block_pending #3 param:accum_block_on_closeThenBlock.h_mapFV := punt",
+   "accum_block_pending #4 param:accum_block_on_closeThenBlock.h_mapFV := punt",
+   "accum_block_pending #5 param:accum_block_on_closeThenBlock.h_mapFV := punt",
+   "accum_block_pending #1 param:accum_block_on_pendingBlockContent.h_closeFV_old := imp:?{punt}",
+   "accum_block_pending #1 param:accum_block_on_pendingBlock.h_closeFV_old := imp:?{punt}",
+   "accum_block_pending #6 param:accum_block_on_closeThenBlock.h_mapFV := imp:door:pendingMapValue.h_framesV{step(relay(door:pendingMapValue.h_framesV))}",
+   "accum_block_pending #7 param:accum_block_on_closeThenBlock.h_mapFV := imp:door:pendingMapValue.h_framesV{step(relay(door:pendingMapValue.h_framesV))}",
+   "accum_content_pending #1 param:accum_content_on_pendingBlock_indented.h_closeFV_old := imp:?{punt}",
+   "landing_frame_of_cover #1 param:landing_mem_of_key.h_cov := relay(param:landing_frame_of_cover.h_cov)"
+  ]
 -- Item 259: the compact opener's payment of `pendingMapValue.h_closeF` is a
 -- leaf of ALL FOUR trees — the mapping value field is a position of the
 -- content and entry trees through `accum_block_pending`'s door and of the
@@ -1006,14 +1027,14 @@ def expectedTrees : List String :=
    "valF: positions=9 rows=24 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=11] open=2",
    "mapValue: positions=8 rows=13 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=2] open=2"]
 def expectedEight : List String :=
-  ["accum_block_on_pendingBlock indicator_open_map.h_stream_land indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=0",
-   "accum_block_on_pendingBlock colon_open_map_explicit.h_stream_mid indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=0",
-   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_offcol.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=0",
-   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_nopack.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=0",
-   "accum_block_on_pendingBlockContent indicator_open_map.h_stream_land indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeF_old@2)",
-   "accum_block_on_pendingBlockContent colon_open_map_explicit.h_stream_mid indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeF_old@2)",
-   "accum_block_on_pendingBlockContent block_dispatch_deferred_stamp_offcol.h_stream indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeF_old@2)",
-   "accum_block_on_pendingBlockContent block_dispatch_deferred_stamp_nopack.h_stream indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeF_old@2)"]
+  ["accum_block_on_pendingBlock indicator_open_map.h_stream_land indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
+   "accum_block_on_pendingBlock colon_open_map_explicit.h_stream_mid indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
+   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_offcol.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
+   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_nopack.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
+   "accum_block_on_pendingBlockContent indicator_open_map.h_stream_land indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)",
+   "accum_block_on_pendingBlockContent colon_open_map_explicit.h_stream_mid indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)",
+   "accum_block_on_pendingBlockContent block_dispatch_deferred_stamp_offcol.h_stream indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)",
+   "accum_block_on_pendingBlockContent block_dispatch_deferred_stamp_nopack.h_stream indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)"]
 def expectedDoor : List String :=
   ["accum_block_pending: door:pendingBlock.h_closeF dropped",
    "accum_block_pending: door:pendingBlockContent.h_closeF → accum_block_on_pendingBlockContent.h_closeF_old kept",
@@ -1022,11 +1043,11 @@ def expectedDoor : List String :=
    "accum_block_pending: door:pendingMapValue.h_closeF → accum_block_on_closeThenBlock.h_valF kept",
    "accum_block_pending: door:pendingMapValue.h_closeFV → accum_block_on_closeThenBlock.h_valFV forgotten",
    "accum_block_pending: door:pendingMapValue.h_frames → accum_block_on_closeThenBlock.h_mapF forgotten",
-   "accum_block_pending: door:pendingMapValue.h_framesV → accum_block_on_closeThenBlock.h_mapFV forgotten",
+   "accum_block_pending: door:pendingMapValue.h_framesV → accum_block_on_closeThenBlock.h_mapFV kept",
    "accum_block_pending: door:pendingProps.h_closeF dropped",
    "accum_block_pending: door:pendingProps.h_closeFE dropped",
    -- 2026-10-23 (item 344): the props park's `h_closeFV` now feeds the relayed `h_mapFV` (was dropped).
-   "accum_block_pending: door:pendingProps.h_closeFV → accum_block_on_closeThenBlock.h_mapFV forgotten",
+   "accum_block_pending: door:pendingProps.h_closeFV → accum_block_on_closeThenBlock.h_mapFV kept",
    "accum_content_pending: door:pendingBlock.h_closeF → accum_content_on_pendingBlock_indented.h_closeF_old kept",
    "accum_content_pending: door:pendingBlockContent.h_closeF → local:h_defer_split.h_fS kept",
    "accum_content_pending: door:pendingContent.h_framesS → local:h_defer_split.h_fS kept",
@@ -1148,15 +1169,15 @@ def expectedDoor : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): nodes=115233 → nodes=115369 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
 def expectedLine : String :=
-  "positions=21 ctorFields=11 lemParams=29 lemmas=16 walked=24 doors=9 rows=167 ctorRows=79 \
-lemRows=55 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 \
+  "positions=23 ctorFields=11 lemParams=34 lemmas=18 walked=25 doors=9 rows=185 ctorRows=79 \
+lemRows=73 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 \
 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 \
 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 \
 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 \
 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 \
 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 \
-eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=4 doorUses=41 doorKept=10 \
-doorForgotten=9 doorDropped=22 doorsOther=5 nodes=115233"
+eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=41 doorKept=12 \
+doorForgotten=7 doorDropped=22 doorsOther=5 nodes=117261"
 
 /-! ## §6 The reading -/
 
