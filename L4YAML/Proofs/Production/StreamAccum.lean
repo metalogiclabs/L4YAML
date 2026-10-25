@@ -24363,13 +24363,21 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
     -- `scanValuePrepare`'s explicit branch leaves the stack alone — so the
     -- number is the dispatch state's floor unchanged, and the caller reads it
     -- off the landing that reached the `:`.
-    (h_top_in : s'.currentIndent ≤ (nv : Int)) :
+    (h_top_in : s'.currentIndent ≤ (nv : Int))
+    (h_outer : (PendingKeySound.Sound s_prep ∧ RegisterWitness.MarkedColsIn s_prep [nv] ∧
+      (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨ True :=
+      Or.inr trivial) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  -- Item 360: K7's pay — the park's domain says the `?` closed here is the outermost one.
+  have h_ref : ExplicitValueRefused s' ∨ True :=
+    h_outer.elim (fun ⟨hs, hm, hk⟩ => Or.inl (refused_of_outer_disp hs hm
+        (by rw [← hcorr_prep.col_eq, SIndent_col h_ind, hcol_mid]; omega) hk h_noflow_disp h_dispatch))
+      (fun _ => Or.inr trivial)
   have hpeek_disp : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).peek? = some ':' := by
@@ -24404,11 +24412,12 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)
            (Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega))
            -- Item 93: a VALUE park has no value line of its own.
-           (Or.inr trivial)
+           (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
              (Or.inr trivial)
              (Or.inr trivial)
              -- Item 108: nor a value-line-bottomed stack, for the same reason.
-             (Or.inr trivial) (Or.inr trivial)
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- Item 190: a VALUE park's slot is `[195]`'s, and the `?` whose
            -- entry route an outer frame's line composes against is not here.
@@ -24543,13 +24552,24 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     -- `h_top_old : sc ≤ n`, each beside its `h_mono`
     -- (`Tests/Guards/Proofs/PuntCoverInputs.lean` §6). ═══
     (h_mono : IndentStackMono.Mono sc)
-    (h_top : sc.currentIndent ≤ (n : Int)) :
+    (h_top : sc.currentIndent ≤ (n : Int))
+    (h_outer : (PendingKeySound.Sound s_prep ∧ RegisterWitness.MarkedColsIn s_prep [n + 1 + m] ∧
+      (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨ True :=
+      Or.inr trivial) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  -- Item 360: K7's pay — only the `:` kills the register; the compact `?` re-arms it.
+  have h_ref : ExplicitValueRefused s' ∨ True :=
+    h_outer.elim (fun ⟨hs, hm, hk⟩ => hc.elim
+        (fun hc' => Or.inl (refused_of_outer_disp hs hm
+          (by rw [← hcorr_prep.col_eq, SIndent_col h_ind, hcol_entry]) hk h_noflow_disp
+          (by rw [hc'] at h_dispatch; exact h_dispatch)))
+        (fun _ => Or.inr trivial))
+      (fun _ => Or.inr trivial)
   have hpeek_disp : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).peek? = some c := by
@@ -24710,7 +24730,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
            (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega)
            (Or.inl (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega))
            -- Item 93: the keyless compact entry's value is `s-l+block-node`.
-           (Or.inr trivial)
+           (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
              -- ═══ **Item 259: the slot's RESUME STACK, covered from the caller's
              -- park.**  The frames below the slot's own collection are none;
              -- the cover is the caller's `Covered (n + 1) [] sc`
@@ -24746,7 +24766,8 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
              -- a stack here the way `question_open_map` does; no landing inside
              -- a compact key reaches the dedent branch yet, so it stays unpaid
              -- rather than paid and unread.
-             (Or.inr trivial) (Or.inr trivial)
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- Item 190: the compact `?` has the literal but no outer frame's
            -- line reaches it — this park stands inside a COMPACT key, whose
