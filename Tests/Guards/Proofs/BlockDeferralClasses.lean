@@ -4535,7 +4535,10 @@ script, as `expectedInlineArms` is. -/
 -- first complete reading since #83 (same instrument repair as `expectedPackResidue` above); the two relays are
 -- item 355's domained twins riding `MarkedColsIn.step_content` through the content step.
 def expectedPackFlip : String :=
-  "sites=91 decls=20 rounds=2 decline=87 relay=2 leaf=45 uncond=42 stubs=8"
+  -- 2026-10-25 (item 357, on the #102 base): the two `h_closeFV108.imp (fun ⟨nv, ks, h_le, _, fV⟩ => …)` arms of
+  -- `accum_block_pending` (#99) lose their expected type under the flip — a round-3 cascade the instrument stops on;
+  -- the base alone reads the same two, so `decline` is read whole.
+  "sites=95 decls=21 rounds=3 decline=87 relay=2 leaf=40 uncond=47 stubs=8 cascade=2 unhandled=2"
 
 /-- **The RESIDUE** (item 312): the same census with `PackAlt sc := ExplicitValueRefused sc` — the
     predicate the family will carry — in place of `False`.  A bare `trivial` still fails (an unpaid
@@ -4582,7 +4585,8 @@ def expectedPackFlip : String :=
 -- relay edit and stopped on the cascade): item 355's visible declines on the five domained faces and the
 -- block-step-fed twins, items 349–352's relays, #83's `dispatchContent_tag_tokens` site.
 def expectedPackResidue : String :=
-  "sites=72 decls=18 rounds=2 decline=68 relayTrue=0 relayState=4 leaf=35 uncond=33 stubs=1 promised=6"
+  -- 2026-10-25 (item 357, on the #102 base): same two #99 arms as `expectedPackFlip`; `decline` 68 unchanged.
+  "sites=74 decls=19 rounds=3 decline=68 relayTrue=0 relayState=4 leaf=30 uncond=38 stubs=1 promised=6 cascade=2 unhandled=2"
 
 /-! **The 32 roots (29 since item 307), by what the register does there** — a READING of each site
 (the compiler prices it when the construction is attempted, §1):

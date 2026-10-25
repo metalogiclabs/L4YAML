@@ -774,7 +774,7 @@ def expectedSpines : List String :=
    "  stream=2 carry=4 fwd=0 punt=0 closed=0 SBlockNode(_+1,blockIn) ⇒ Stream  ← pendingMapValue.h_close",
    "  stream=2 carry=4 fwd=0 punt=6 closed=0 [col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_ivl, pendingMapValue.h_vslot",
    "  stream=1 carry=1 fwd=0 punt=4 closed=0 SBlockMapEntry(_) ⇒ Stream  ← pendingMapValue.h_expl",
-   "  stream=0 carry=4 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_kslot",
+   "  stream=1 carry=3 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← pendingMapValue.h_kslot",
    "  stream=0 carry=5 fwd=0 punt=1 closed=0 SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream  ← pendingMapValue.h_closeF",
    "  stream=1 carry=3 fwd=0 punt=2 closed=0 SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)  ← pendingMapValue.h_closeFV",
    "  stream=0 carry=1 fwd=0 punt=5 closed=0 SBlockNode(_+1,blockIn) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)  ← pendingMapValue.h_seqF",
@@ -795,7 +795,7 @@ def expectedSites : List String :=
    "  compact_open_map: nil park=pendingMapValue stream=param:h_stream_block closedBy=[] h_close=carry,h_ivl=carry,h_expl=carry,h_vslot=carry,h_kslot=punt,h_closeF=carry,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=carry",
    "  block_dispatch_deferred: nil park=pendingFlow stream=param:h_stream closedBy=[] ",
    "  colon_open_map_explicit: nil park=pendingMapValue stream=param:h_stream_mid closedBy=[] h_close=carry,h_ivl=carry,h_expl=punt,h_vslot=carry,h_kslot=punt,h_closeF=punt,h_frames=punt,h_closeFV=punt,h_framesV=punt,h_seqF=punt,h_explUp=punt",
-   "  question_open_map: nil park=pendingMapValue stream=param:h_stream_land closedBy=[] h_close=stream,h_ivl=stream,h_expl=stream,h_vslot=stream,h_kslot=carry,h_closeF=carry,h_frames=carry,h_closeFV=stream,h_framesV=stream,h_seqF=punt,h_explUp=carry",
+   "  question_open_map: nil park=pendingMapValue stream=param:h_stream_land closedBy=[] h_close=stream,h_ivl=stream,h_expl=stream,h_vslot=stream,h_kslot=stream,h_closeF=carry,h_frames=carry,h_closeFV=stream,h_framesV=stream,h_seqF=punt,h_explUp=carry",
    "  colon_open_map: nil park=pendingMapValue stream=param:h_stream_land closedBy=[] h_close=stream,h_ivl=punt,h_expl=punt,h_vslot=punt,h_kslot=carry,h_closeF=carry,h_frames=carry,h_closeFV=carry,h_framesV=carry,h_seqF=punt,h_explUp=punt",
    "  accum_block_on_noPending: nil park=pendingBlock stream=param:h_stream_block closedBy=[] h_close=carry,h_close_entry=carry,h_kslot=punt,h_closeF=carry,h_seqF=punt,h_kslotUp=punt,h_closeFV=punt",
    "  accum_block_on_pendingBlock: nil park=pendingBlock stream=param:h_stream_block closedBy=[] h_close=carry,h_close_entry=carry,h_kslot=carry,h_closeF=punt,h_seqF=punt,h_kslotUp=carry,h_closeFV=carry",
@@ -849,6 +849,7 @@ def expectedK : List String :=
   ["  SBlockNode(_+1,blockIn) ⇒ Stream  ← question_open_map:pendingMapValue.h_close, colon_open_map:pendingMapValue.h_close  [pendingMapValue.h_close]",
    "  [col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream  ← question_open_map:pendingMapValue.h_ivl, question_open_map:pendingMapValue.h_vslot, accum_block_pending→accum_block_on_closeThenBlock.h_vslot  [pendingMapValue.h_ivl, pendingMapValue.h_vslot]",
    "  SBlockMapEntry(_) ⇒ Stream  ← question_open_map:pendingMapValue.h_expl  [pendingMapValue.h_expl]",
+   "  SBlockNode(_+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream  ← question_open_map:pendingMapValue.h_kslot  [pendingMapValue.h_kslot]",
    "  SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)  ← question_open_map:pendingMapValue.h_closeFV  [pendingMapValue.h_closeFV]",
    "  SSLComments ⇒ Key(_)▹ExplValueLine(_)  ← question_open_map:pendingMapValue.h_framesV  [pendingContent.h_framesV, pendingMapValue.h_framesV]",
    "  [_=_] SBlockMapEntry(_) ⇒ Stream  ← accum_flow_open_depth0:mk.key  []",
@@ -919,17 +920,7 @@ def expectedK : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (optional 40 → 38, mandatory punt 6 → 14:
 -- the content parks' `sp_gram` closures are mandatory fields now).
 def expectedLine : String :=
-  "closures=54 packed=14 optional=38 guarded=13 facts=3 others=4 byHead=6 byFirst=8 bySpine=39 \
-   flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 stream=7 carry=174 \
-   fwd=0 punt=74 closed=0 mandatory[stream=5 carry=53 fwd=0 punt=14 closed=0] optional[stream=2 \
-   carry=121 fwd=0 punt=60 closed=0] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] \
-   spinesFromStream=5 spinesCarried=32 spinesTouched=37 firstsFromStream=4 headsFromStream=4 \
-   streamSites=2 closings=11 closedDistinct=3 closedIn=2 absorbed=4 obtained=2 flowSites=7 \
-   flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=156 routeStream=16 \
-   routeCarry=56 routeFwd=49 routeClosed=35 routeToWalked=98 routeStreamToWalked=11 viaObtained=0 \
-   viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=16 carry=289 fwd=697 punt=78 \
-   closed=21] buildStreamSlots=16 buildSpines=10 routePairs=7 routeSpines=5 k=14 kHeads=6 \
-   streamBuilders=8"
+  "closures=54 packed=14 optional=38 guarded=13 facts=3 others=4 byHead=6 byFirst=8 bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 stream=8 carry=173 fwd=0 punt=74 closed=0 mandatory[stream=5 carry=53 fwd=0 punt=14 closed=0] optional[stream=3 carry=120 fwd=0 punt=60 closed=0] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=6 spinesCarried=31 spinesTouched=37 firstsFromStream=4 headsFromStream=4 streamSites=2 closings=11 closedDistinct=3 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=161 routeStream=16 routeCarry=55 routeFwd=50 routeClosed=40 routeToWalked=99 routeStreamToWalked=11 viaObtained=0 viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=17 carry=288 fwd=697 punt=78 closed=21] buildStreamSlots=17 buildSpines=11 routePairs=7 routeSpines=5 k=15 kHeads=6 streamBuilders=8"
 
 set_option maxHeartbeats 4000000 in
 run_cmd Lean.Elab.Command.liftTermElabM do

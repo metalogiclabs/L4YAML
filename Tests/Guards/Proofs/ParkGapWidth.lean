@@ -537,7 +537,9 @@ corrBlock=0 corrScan=1 via="]
 def expectedLadder : List String :=
 -- 2026-10-24 (item 350): holders=112 → 113 — `dispatchBlock_colon_notQuestion` reads the `:`
 -- dispatch equation to hand every `:` producer `NotQuestionPark`.
-  ["scanNextToken_dispatchBlockIndicators holders=117 edge=1 chain=0",
+-- 2026-10-23 (item 357): holders=117 → 119 — `dispatchBlockIndicators_markedCols` and its `_of_ne`
+--   twin read the block-indicator dispatch to transport `MarkedColsIn` across the `-`/`?`/`:` step.
+  ["scanNextToken_dispatchBlockIndicators holders=119 edge=1 chain=0",
    "scanNextToken_dispatchContent holders=159 edge=3 chain=1",
    "scanNextToken_preprocess holders=242 edge=17 chain=3"]
 

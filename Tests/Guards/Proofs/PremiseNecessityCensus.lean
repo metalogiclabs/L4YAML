@@ -356,7 +356,7 @@ declarations' own binders and not by a rescoring of an existing one.
 def expectedModuleTallyP : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
-  "constants=1662 decls=1301 eta=441 FIELD=190 READ=1331 RELAY=2607 RETURN=166 UNUSED=27"
+  "constants=1662 decls=1301 eta=441 FIELD=190 READ=1339 RELAY=2618 RETURN=166 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -368,7 +368,7 @@ def expectedModuleTallyP : String :=
 def expectedOptTallyP : String :=
   -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp` `inr`
   -- arms pay an empty chain and no longer read their alternative.
-  "total=161 ETA=31 FIELD=4 READ=87 RELAY=37 RETURN=2"
+  "total=163 ETA=31 FIELD=4 READ=88 RELAY=38 RETURN=2"
 
 run_cmd do
   let env ← getEnv
@@ -834,7 +834,7 @@ lemma opt_premise_is_no_premise {A P : Prop} : (A ∨ True → P) ↔ P :=
 -- did at item 309; `total` stands at 163.
 def expectedOptPopulation : String :=
   -- 2026-10-24 (item 350): total 163 → 159, optTy 156 → 153, ctorFields 33 → 31 — as above.
-  "total=161 optTy=153 ctorFields=31"
+  "total=163 optTy=155 ctorFields=31"
 
 run_cmd do
   let env ← getEnv
