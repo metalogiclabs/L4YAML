@@ -481,7 +481,7 @@ def expectedCross : List String :=
 -- 2026-10-21 (item 320): `landed` 54 → 55, `total` 91 → 92 — `accum_block_on_closeThenBlock`'s `h_seqFramesV` lands in the
 -- new park through `.imp id (PackAlt.step_blockEntry …)`, the relay item 319's payments surfaced; producers stand.
 def expectedPipeSplit : String :=
-  "pipes=0/0 producers=41/11 landed=63 landed-producers=0 total=104"
+  "pipes=0/0 producers=42/11 landed=63 landed-producers=0 total=105"
 
 end L4YAML.Tests.Guards.ConclusionRouteCensus
 

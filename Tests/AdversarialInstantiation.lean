@@ -4625,6 +4625,56 @@ def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
   checkM state "refusedDisp: the reset branch is exercised (`: b`, `: b⏎: c`)" (resetTotal == 2)
     s!"got {resetTotal}"
 
+/-- Priority 30 (item 361): the flow lane's payer `refused_of_markedCols_nil` — a block state
+    with NO marked slot has a dead register.  At every `[`/`{` preprocess step taken from block
+    context (`sc.flowLevel = 0`, the state `accum_flow_open_depth0`'s `PackAlt sc` faces are
+    typed over) read the marked columns; none ⇒ `explicitKeyLine = none` must hold (`bad`, a
+    refutation; pinned 0); some ⇒ the premise is withdrawn and the register is expected live
+    (`markedLive`, pinned = `marked`: the premise is load-bearing).  Returns
+    `(opens, bad, marked, markedLive)`. -/
+def walkFlowOpenRegister (input : String) : Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 48
+  let mut opens := 0
+  let mut bad := 0
+  let mut marked := 0
+  let mut markedLive := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (_, c)) =>
+      if (c == '[' || c == '{') && s.flowLevel == 0 then
+        if markedColsOf s.pendingKeys s.indentColumns == [] then
+          opens := opens + 1
+          if s.explicitKeyLine.isSome then bad := bad + 1
+        else
+          marked := marked + 1
+          if s.explicitKeyLine.isSome then markedLive := markedLive + 1
+      match scanNextToken s with
+      | .ok (some s') => s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (opens, bad, marked, markedLive)
+
+def testFlowOpenRegister (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 30: flow open under an empty marked domain (item 361)"
+  -- `(input, opens, marked)`, pinned from the run; `bad` 0 and `markedLive = marked` on every row.
+  let rows : List (String × Nat × Nat) :=
+    [("[a]: b", 1, 0), ("{a: 1}: c", 1, 0), ("- [a]: b", 1, 0), ("k: [a]", 1, 0), ("k:\n  - [a, b]", 1, 0),
+     ("[a]", 1, 0), ("{}", 1, 0), ("---\n[a]: b", 1, 0), ("a: 1\n[1]: b", 1, 0),
+     ("? [a]\n: b", 0, 1), ("? {a: 1}\n: b", 0, 1), ("?\n  [a]: b\n: c", 0, 1), ("? a\n: [b]", 1, 0),
+     ("- ? [a]\n  : b", 0, 1), ("[[a]]: b", 1, 0)]
+  for (input, expOpens, expMarked) in rows do
+    let (opens, bad, marked, markedLive) := walkFlowOpenRegister input
+    checkM state s!"flowOpen/{repr input}: unmarked block opens" (opens == expOpens)
+      s!"got {opens}, expected {expOpens}"
+    checkM state s!"flowOpen/{repr input}: every unmarked open has a dead register" (bad == 0)
+      s!"{bad} refutation(s)"
+    checkM state s!"flowOpen/{repr input}: marked block opens" (marked == expMarked)
+      s!"got {marked}, expected {expMarked}"
+    checkM state s!"flowOpen/{repr input}: every marked open keeps the register live"
+      (markedLive == marked) s!"{markedLive}/{marked}"
+
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
   -- `(input, (payable, fresh, other))`, pinned from the run.
@@ -4690,6 +4740,7 @@ def collectTests : IO VerifiedSuiteResult := do
 
   testQuestionMarkColumn state
   testK1Lanes state
+  testFlowOpenRegister state
   testExplicitColonRegister state
   let results ← finish state
   return { name := "adversarialinstantiation",

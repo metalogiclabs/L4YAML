@@ -826,7 +826,7 @@ def expectedRows : List String :=
     "accum_content_pending #2 ctor:pendingBlockContent.h_kslotUp := punt/stamp pos=[] origins=[] none=[punt,stamp] ⊢ —",
     "accum_content_pending #3 ctor:pendingBlockContent.h_kslotUp := punt/stamp pos=[] origins=[] none=[punt,stamp] ⊢ —",
     "accum_content_pending #1 param:accum_content_on_pendingBlock_indented.h_kslotUp_old := relay/built pos=[ctor:pendingBlock.h_kslotUp] origins=[] ⊢ unborn",
-    "accum_flow_open_depth0 #3 param:flowKeyRoute_of_open.h_compact_pair := paid:route/built pos=[] origins=[O44] none=[punt] ⊢ all-held 1/1",
+    "accum_flow_open_depth0 #3 param:flowKeyRoute_of_open.h_compact_pair := paid:route/built pos=[] origins=[O44] none=[stamp,punt] ⊢ all-held 1/1",
     "accum_step_flow #1 ctor:pendingContent.h_key := via/built pos=[] origins=[O45] ⊢ none-held 0/1",
     "accum_step_flow #1 ctor:pendingContent.h_vpack := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
     "accum_step_flow #1 param:flowKeyPack_of_close.h_key := relay/built pos=[] origins=[O46] ⊢ none-held 0/1",
@@ -1149,7 +1149,7 @@ def expectedUnborn : List String := [
 def expectedLine : String :=
   -- 2026-10-25 (item 359): punt 12 → 11, stamp 39 → 40 — the `noPending` value-park face pays `PackAlt.ofRefused (h_noek …)`;
   -- lapps 806 → 807, liteNodes 607398 → 607407 — that one application and its term.
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=9 stamp=42 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=351 lets=637 lapps=810 alts=5052 nodes=13685 liteNodes=609688"
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=9 stamp=42 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=353 lets=637 lapps=810 alts=5058 nodes=13688 liteNodes=609987"
 
 /-! ## §4 The reading -/
 

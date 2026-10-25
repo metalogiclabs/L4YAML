@@ -80,6 +80,12 @@ MODES = {
 REFUSED = re.compile(r"\btrivial(\s+)-- refused: (.+?)\s*$")
 OPEN, CLOSE = "([{⟨", ")]}⟩"
 LEAF = re.compile(r"^(\| .*=> (exact )?Or\.inr trivial|else Or\.inr trivial|· exact Or\.inr trivial)")
+# item 361: the elim-conditioned fallback — a producer that pays the alternative with a real fact
+# when its carrier's `inl` is in hand and declines, named, when the carrier is absent
+# (`h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial)`, item 360's
+# six value-park faces under a nested `?`); the decline is conditional on an INCOMING optional
+# exactly as a match arm's is, so it is a `leaf`, listed by site as the `nested-?` roster
+ELIM_LEAF = re.compile(r"\.elim \(fun \w+ => Or\.inr \(PackAlt\.\w+ \w+\)\) \(fun _ => Or\.inr trivial\)")
 ERR = re.compile(r"^L4YAML/Proofs/Production/StreamAccum\.lean:(\d+):(\d+): error: (.*)")
 HEADER = re.compile(r"^\S+\.lean:\d+:\d+: (error|warning|info)")
 # Lean stops at 100 errors by default (`maxErrors`); a round must see every site to converge honestly
@@ -356,8 +362,11 @@ def main():
     for d, n in sorted(by.items()):
         print(f"  {n:3d}  {d}")
     kinds = Counter(c[3] for c in census)
-    leaf = sum(1 for c in census if c[3] == "DECLINE" and LEAF.match(c[6]))
+    elim_sites = [c for c in census if c[3] == "DECLINE" and not LEAF.match(c[6]) and ELIM_LEAF.search(c[6])]
+    leaf = sum(1 for c in census if c[3] == "DECLINE" and LEAF.match(c[6])) + len(elim_sites)
     uncond = kinds["DECLINE"] - leaf
+    for c in elim_sites:
+        print(f"  nested-? {c[4]}:{c[1]}")
     if args.alt == "false":
         line = (f"sites={len(census)} decls={len(by)} rounds={rounds} decline={kinds['DECLINE']} "
                 f"relay={kinds['RELAY']} leaf={leaf} uncond={uncond} stubs={stubs}")

@@ -13747,6 +13747,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     (h_stack : BlockStack sp_gram sp_block)
     (h_pending : PendingNode sc false sp_start sp_block sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_sound : PendingKeySound.Sound sc)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_open : ScannerSurfCorr s' sp_open)
@@ -14199,6 +14200,9 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
   -- rather than the sibling entry the events emit; that sibling waits on the
   -- three parks' own mapping levels (`h_mapF`).
   have slot_ride :
+      -- Item 361: the ride's K7 face — each park passes its marked domain's reading
+      -- (`refused_of_markedCols_nil` when it is empty, the decline when a `?` encloses).
+      (ExplicitValueRefused sc ∨ True) →
       (sc.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#')) →
       (s_prep.indents.any fun e => e.column == (s_prep.col : Int)) = true →
       SlotFace s_prep.tokens → s_prep.simpleKeyAllowed = true →
@@ -14211,7 +14215,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         ((1 : Nat) ≥ 1 →
           InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) :=
-    fun h_gateS hmem hrun hska =>
+    fun h_alt h_gateS hmem hrun hska =>
       match h_optok with
       | ⟨_, htok, hop, hpos⟩ =>
         ⟨sp_block, sp_block, sp_open, sp_open, h_stream_block, BlockStack.nil _,
@@ -14222,7 +14226,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
            (mk (some s_prep) 0 sp_block ⟨(fun hg => absurd hg.2 (by rw [hska]; simp)),
              flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park h_close_pending h_dn h_fv
                h_corr hcorr_prep h_preprocess (GStar.nil _) (fun _ => h_gateS) (Or.inr trivial) (Or.inr trivial) h_bare h_base
-               (Or.inr trivial) (Or.inr trivial) (Or.inr trivial),
+               (Or.inr trivial) (Or.inr trivial) (h_alt.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial)),
              Or.inr trivial⟩),
          PendingNode.noPending sp_start sp_open (Or.inr (inFlow_of_flowLevel_eq h_fl1))
            (Or.inr (inFlow_of_flowLevel_eq h_fl1))
@@ -14457,7 +14461,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                 | _, _ => flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park
                     h_close_pending h_dn h_fv h_corr hcorr_prep h_preprocess (GStar.nil _) (fun _ _ => (h_gateP (noflow_of_fl0 h_fl0)).gate) (Or.inr trivial)
                     (Or.inr trivial) h_bare h_base (Or.inr trivial) (Or.inr trivial)
-                    (Or.inr trivial)),
+                    -- Item 361: the flow lane's K7 face — no marked slot at the open ⇒ the
+                    -- register is dead (`refused_of_markedCols_nil`); a marked one (a `?`
+                    -- encloses the collection) declines, named.
+                    (match h_kslot_p with
+                     | Or.inl ⟨[], hdom, _⟩ =>
+                       Or.inr (PackAlt.ofRefused (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom))
+                     | Or.inl ⟨_ :: _, _, _⟩ => Or.inr trivial
+                     | Or.inr h => Or.inr h)),
                -- Item 96: the run's value line — the collection completes the
                -- props-headed KEY of an open `[188]` entry and the landed `:`
                -- closes it (`? &p [1]⏎: - w`); the twin item 91 installed
@@ -14488,7 +14499,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- the frame carries (item 295).
       -- The TAB half is §6.1's own refusal and stands (item 68).
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
-      · exact slot_ride (fun _ => (h_gateP (noflow_of_fl0 h_fl0)).gate)
+      · exact slot_ride
+          (match h_kslot_p with
+            | Or.inl ⟨[], hdom, _⟩ => Or.inl (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom)
+            | _ => Or.inr trivial)
+          (fun _ => (h_gateP (noflow_of_fl0 h_fl0)).gate)
           (underRunEnd_landing_on_stack h_preprocess h_base h_floor_p h_col02 hj h_ind h_end
             hcorr_prep (h_landed_ur (Nat.ne_of_gt h_col0_p) h_noflow_prep))
           (slotRun_of_dn h_slot_p h_dn (h_ska_ur (Nat.ne_of_gt h_col0_p) h_noflow_prep) h_floor_p hj h_base
@@ -14626,7 +14641,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- location refutes.
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       · -- Item 172: the deferred floor — the open step scans; nothing to spend.
-        exact slot_ride (fun _ => (h_gateB (noflow_of_fl0 h_fl0)).gate)
+        exact slot_ride
+          (match h_kslotUp_old with
+            | Or.inl ⟨[], hdom, _⟩ => Or.inl (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom)
+            | _ => Or.inr trivial)
+          (fun _ => (h_gateB (noflow_of_fl0 h_fl0)).gate)
           (underRunEnd_landing_on_stack h_preprocess h_base h_floor_old h_col02 hj h_ind h_end
             hcorr_prep (h_landed_ur (h_col59 ▸ Nat.succ_ne_zero n_old) h_noflow_prep))
           (slotRun_of_offer h_offer_b h_preprocess)
@@ -14679,7 +14698,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         (fun sp h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
                           route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp sp_i sp_c sp_v
                             h_qlit h_bo h_iv h_lit h_sbi))⟩
-                  | Or.inr _ => Or.inr trivial)
+                  -- Item 361: no `?` park at the tail — the face is paid from the park's
+                  -- marked domain when it is empty, and declines, named, when a `?` encloses.
+                  | Or.inr _ =>
+                    match h_kslot_mv with
+                    | Or.inl ⟨[], hdom, _⟩ =>
+                      Or.inr (PackAlt.ofRefused (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom))
+                    | Or.inl ⟨_ :: _, _, _⟩ => Or.inr trivial
+                    | Or.inr h => Or.inr h)
                  -- Item 295: the park's own FLAG, as at `pendingBlock`.
                  h_noflow_prep (Or.inl h_sk_mv) h_corr hcorr_prep h_preprocess (fun _ => (h_gateMV (noflow_of_fl0 h_fl0)).gate),
                -- …and under an open `?` the collection is the KEY half of the
@@ -14747,7 +14773,11 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- (`k:⏎  a:⏎[1]` is §9.2's dangling reading, three steps on).
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       · -- Item 172: the deferred floor — the open step scans; nothing to spend.
-        exact slot_ride (fun _ => (h_gateMV (noflow_of_fl0 h_fl0)).gate)
+        exact slot_ride
+          (match h_kslot_mv with
+            | Or.inl ⟨[], hdom, _⟩ => Or.inl (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom)
+            | _ => Or.inr trivial)
+          (fun _ => (h_gateMV (noflow_of_fl0 h_fl0)).gate)
           (underRunEnd_landing_on_stack h_preprocess h_base h_floor_mv h_col02 hj h_ind h_end
             hcorr_prep (h_landed_ur (Nat.ne_of_gt h_col0_mv) h_noflow_prep))
           (slotRun_of_offer h_offer_mv h_preprocess)
@@ -19737,6 +19767,7 @@ lemma accum_step_flow (sc : ScannerState)
     (h_flowK : FlowStackK sp_start sc sc.flowLevel sc.flowStack (tailOf sc.tokens) sp_block sp_flow)
     (h_pending : sc.flowLevel = 0 → PendingNode sc false sp_start sp_flow sp_scan)
     (h_corr : ScannerSurfCorr sc sp_scan)
+    (h_sound : PendingKeySound.Sound sc)
     (h_interior : sc.flowLevel ≥ 1 →
       InteriorGap sc (tailOf sc.tokens) sp_flow sp_scan ∧
         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
@@ -19827,7 +19858,7 @@ lemma accum_step_flow (sc : ScannerState)
       subst h_pos
       obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
         accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
-          s_prep _ '[' h_stream h_stack (h_pending h0) h_corr h_preprocess hcorr_prep
+          s_prep _ '[' h_stream h_stack (h_pending h0) h_corr h_sound h_preprocess hcorr_prep
           hcorr_open (by rw [h_fl, h_ad0])
           (by rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0]; rfl)
           (tailOf_scanFlowSequenceStart _).2
@@ -19889,7 +19920,7 @@ lemma accum_step_flow (sc : ScannerState)
           subst h_pos
           obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
             accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
-              s_prep _ '{' h_stream h_stack (h_pending h0) h_corr h_preprocess hcorr_prep
+              s_prep _ '{' h_stream h_stack (h_pending h0) h_corr h_sound h_preprocess hcorr_prep
               hcorr_open (by rw [h_fl, h_ad0])
               (by rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0]; rfl)
               (tailOf_scanFlowMappingStart _).2
@@ -40458,7 +40489,7 @@ lemma scanNextToken_accum_step (sc : ScannerState)
                 have h := Except.ok.inj h_ok; injection h with h; subst h
                 obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
                   accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
-                    h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_dn h_fv h_str_eq
+                    h_stream h_stack h_flow h_pending h_corr h_sound h_interior h_pre h_dn h_fv h_str_eq
                     h_flow_disp h_bare h_base
                 exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6, h_sc'.1, h_sc'.2⟩
               · rename_i h_flow_none
