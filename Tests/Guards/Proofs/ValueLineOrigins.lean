@@ -1149,7 +1149,8 @@ def expectedUnborn : List String := [
 def expectedLine : String :=
   -- 2026-10-25 (item 359): punt 12 → 11, stamp 39 → 40 — the `noPending` value-park face pays `PackAlt.ofRefused (h_noek …)`;
   -- lapps 806 → 807, liteNodes 607398 → 607407 — that one application and its term.
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=355 lets=640 lapps=813 alts=5345 nodes=13720 liteNodes=630809"
+-- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); lets 640 → 637, lapps 813 → 810, alts 5345 → 5154, nodes 13720 → 13689 (walked-term totals; the faces' punt/stamp rows unchanged).
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=355 lets=637 lapps=810 alts=5154 nodes=13689 liteNodes=616435"
 
 /-! ## §4 The reading -/
 

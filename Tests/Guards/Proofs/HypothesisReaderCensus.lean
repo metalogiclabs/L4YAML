@@ -605,7 +605,8 @@ def expectedModuleTally : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1169 → 1171,
   -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
-  "constants=1683 decls=1322 eta=441 FIELD=167 READ=1325 RELAY=2838 RETURN=54 \
+-- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); the two transport helpers and `h_pk'` go (constants 1683 → 1681, decls 1322 → 1320, READ 1325 → 1323, RELAY 2838 → 2830); `Mono sc` stays on `accum_step_flow`.
+  "constants=1681 decls=1320 eta=441 FIELD=167 READ=1323 RELAY=2830 RETURN=54 \
 UNUSED=27"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs

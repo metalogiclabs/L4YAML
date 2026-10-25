@@ -1073,7 +1073,8 @@ def expectedPerPos : List String := [
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 def expectedLine : String :=
-  "packs=11 framesOn=7 params=31 paramLemmas=19 apps=51 rows=155 ctorRows=74 paramRows=81 punt=30 stamp=21 empty=0 relay=25 step=10 via=10 chain=45 route=4 frames=3 tail=0 other=0 alt=7 held=6 levelVar=37 none=26 spendTail=2 lemmas=21 helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion,frameChainUnionD] touched=125 nodes=13689"
+-- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); nodes 13689 → 13658 (walked-term total; rows unchanged).
+  "packs=11 framesOn=7 params=31 paramLemmas=19 apps=51 rows=155 ctorRows=74 paramRows=81 punt=30 stamp=21 empty=0 relay=25 step=10 via=10 chain=45 route=4 frames=3 tail=0 other=0 alt=7 held=6 levelVar=37 none=26 spendTail=2 lemmas=21 helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion,frameChainUnionD] touched=125 nodes=13658"
 
 /-! ## §4 The reading -/
 
