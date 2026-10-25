@@ -239,6 +239,18 @@ def main():
                 elif cur is not None:
                     full[cur].append(l.strip())      # `has type` / `but is expected to have type` are NOT indented
             print(f"round {rnd}: {len(errs)} errors ({time.time() - t0:.0f}s)")
+            # item 358: a group probed in front of an applicator (`Or.inr (PackAlt.ofRefused h)`) must stay one
+            # argument — the `ofTrue_probe (…)` wrap is parenthesised (was `Function expected`, two sites of #99).
+            # item 358: an `Invalid ⟨…⟩` at the pattern of an `.imp (fun ⟨…⟩ => …) (fun h => alt_probe h)` relay
+            # is the probe already placed at that `id` (the pattern lost its expected type with it), not a new
+            # site — read as settled, so the round converges instead of stopping on its own edit
+            probed = {k for k, v in errs.items() if v.startswith("Invalid `⟨...⟩` notation")
+                      and L[k[0]][k[1]:].startswith("⟨")
+                      and (kk := L[k[0]].rfind("(fun ", 0, k[1])) != -1
+                      and re.match(r"\s+\(fun h => alt_probe h\)", L[(bb := balanced_end(L, k[0], kk))[0]][bb[1] + 1:])}
+            if probed:
+                print(f"  {len(probed)} pattern(s) of an already-probed `.imp … (fun h => alt_probe h)` relay, settled")
+                errs = {k: v for k, v in errs.items() if k not in probed}
             if not errs:
                 break
             for (ln, col), msg in sorted(errs.items(), reverse=True):
@@ -284,9 +296,25 @@ def main():
                     # a bare `id` has a function type and no outer `∨`, so its mention of `PackAlt` decides
                     state_relay = args.alt != "false" and has is not None and (
                         (alt_has is not None and alt_has != "True") or (alt_has is None and "PackAlt" in has))
+                    if text.startswith("(") and args.alt == "false" and re.match(r"\(+\s*PackAlt\.", text):
+                        # item 358: a producer paying the alternative with a real fact (`PackAlt.ofRefused h`,
+                        # `PackAlt.step_…`) has nothing to say once the alternative is `False` — a decline
+                        # here, not a relay (the refused lane counts the same body as `promised`)
+                        el, ec = balanced_end(L, ln, col)
+                        if el == ln:
+                            L[ln] = s[:col] + "sorry" + s[ec + 1:]
+                        else:
+                            L[el] = L[el][ec + 1:]
+                            L[ln] = s[:col] + "sorry"
+                            for mid in range(ln + 1, el):
+                                L[mid] = ""
+                        kind = "DECLINE"
+                        seen.add((ln, col))
+                        census.append((rnd, o, col, kind, odecl(o), msg, orig_lines[o - 1].strip()[:110]))
+                        continue
                     if text.startswith("("):
                         el, ec = balanced_end(L, ln, col)
-                        head, tail = ("(", ".imp id alt_probe)") if state_relay else ("ofTrue_probe (", ")")
+                        head, tail = ("(", ".imp id alt_probe)") if state_relay else ("(ofTrue_probe (", "))")
                         # item 356: when the group closes on its own line, the two edits must compose —
                         # writing `L[ln]` from the stale `s` after editing `L[el]` dropped the tail
                         # (`(Or.inr ((PackAlt.ofRefused h)))` lost its `.imp id alt_probe)`, and the
@@ -306,7 +334,7 @@ def main():
                         elif state_relay:
                             L[ln] = s[:col] + "((" + ident + ").imp id alt_probe)" + s[col + m.end():]
                         else:
-                            L[ln] = s[:col] + "ofTrue_probe (" + ident + ")" + s[col + m.end():]
+                            L[ln] = s[:col] + "(ofTrue_probe (" + ident + "))" + s[col + m.end():]
                     kind = "RELAY-STATE" if state_relay else "RELAY"
                 else:
                     kind, stop = "UNHANDLED", True

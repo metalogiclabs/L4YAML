@@ -222,6 +222,8 @@ def expectedTrees255 : List String :=
    "R4 merged=true"]
 def expectedPayments : List String :=
   ["R4 relay accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 src=h_frames99@2:Floor(n,ks) tgt=bound(ks<ne) Floor(ne,ks) eq(n=ne + 1) := match[paid{cover=step(relay(param:accum_content_on_pendingMapValue_indented.h_frames99))}|punt]"]
+-- 2026-10-25 (item 358): 30 → 33 — the cover conjunct on the `h_closeFV_old` twins and the two `h_closeFV_old`
+-- relays into `closeThenBlock.h_mapFV` read as `Floor lo n ks` literals.
 def expectedFloorLits : List String :=
   ["accum_block_on_closeThenBlock lo=lo idx=k ks=map(…) :: ksv var ×1",
    "accum_block_on_closeThenBlock lo=nv + 1 idx=nv + 1 + m ks=[] lit ×1",
@@ -252,7 +254,11 @@ def expectedFloorLits : List String :=
    "entryKeyPack_of_dispatch lo=lo idx=w ks=map(…) :: ks var ×2",
    "entryPropsKeyPack_of_dispatch lo=lo idx=w ks=map(…) :: ks var ×2",
    "question_open_map lo=k + 1 idx=k + 1 ks=[] own ×2",
-   "question_open_map lo=k idx=k ks=map(…) :: [] own ×5"]
+   "question_open_map lo=k idx=k ks=map(…) :: [] own ×5",
+   "accum_block_on_pendingBlock lo=lo idx=n ks=ks var ×1",
+   "accum_block_on_pendingBlockContent lo=lo idx=n ks=ks var ×1",
+   "accum_block_pending lo=lo idx=nmv + 1 ks=ks var ×2"
+  ]
 def expectedTransports : List String :=
   ["Floor.mono_index: 9 in 5 [accum_block_on_closeThenBlock=1, colon_open_map_implicit=2, colon_open_map_props=2, entryKeyPack_of_dispatch=2, entryPropsKeyPack_of_dispatch=2]",
    "Floor.cons: 4 in 2 [entryKeyPack_of_dispatch=2, entryPropsKeyPack_of_dispatch=2]",
@@ -342,15 +348,15 @@ def expectedTransports : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): nodes=115233 → nodes=115369 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
 def expectedLine : String :=
-  "rows=167 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/6/15/2/2 \
+  "rows=185 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/6/15/2/2 \
 allContent=18/6/16/2/2 baseEntry=16/6/15/2/2 allEntry=18/6/16/2/2 \
 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 \
 originsBaseEntry=6 originsAllEntry=6 puntContent=+1 puntEntry=+1 coverPuntContent=+0 \
-coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=86 own=12 lit=5 var=69 \
+coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=90 own=12 lit=5 var=73 \
 ownLemmas=2 scanned=34 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 \
 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 \
 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 \
-rootMonoSite=1 rootNtop=1 nodes=115233 floorNodes=26581"
+rootMonoSite=1 rootNtop=1 nodes=117261 floorNodes=28039"
 
 /-! ## §4 The reading -/
 

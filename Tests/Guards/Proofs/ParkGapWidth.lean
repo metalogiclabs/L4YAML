@@ -539,7 +539,8 @@ def expectedLadder : List String :=
 -- dispatch equation to hand every `:` producer `NotQuestionPark`.
 -- 2026-10-23 (item 357): holders=117 → 119 — `dispatchBlockIndicators_markedCols` and its `_of_ne`
 --   twin read the block-indicator dispatch to transport `MarkedColsIn` across the `-`/`?`/`:` step.
-  ["scanNextToken_dispatchBlockIndicators holders=119 edge=1 chain=0",
+-- 2026-10-25 (item 358): holders=119 → 120 — `landing_frame_of_cover` (the K1 bridge) holds the dispatch.
+  ["scanNextToken_dispatchBlockIndicators holders=120 edge=1 chain=0",
    "scanNextToken_dispatchContent holders=159 edge=3 chain=1",
    "scanNextToken_preprocess holders=242 edge=17 chain=3"]
 
