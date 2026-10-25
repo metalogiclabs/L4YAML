@@ -654,7 +654,12 @@ lemma explicitKeyCol_of_marked {s : ScannerState} {nv i l : Nat} (hs : Sound s) 
 
 /-- **The explicit `:` under an OUTERMOST `?` kills the register** (item 359, K7's payer): when
     every marked slot sits at the `:`'s own column `nv` and the only simple key possible is the
-    cursor's, the `:` is the explicit value ([197]), closes the level and re-reads an empty stack. -/
+    cursor's, the `:` is the explicit value ([197]), closes the level and re-reads an empty stack.
+    Capstone chain (Rule 1): Group 7.2 `scan_content_gives_stream_v2` ← `scanNextToken_accum_step`
+    ← `accum_block_pending` ← `accum_block_on_closeThenBlock`/`_pendingBlockContent`/`_pendingBlock`
+    ← `colon_open_map_explicit`/`compact_open_map`, whose `PendingNode.pendingMapValue` value-park
+    faces pay `PackAlt.ofRefused` from this lemma once the park's `Sound`, `MarkedColsIn` domain and
+    the preprocess simple-key fact reach them (item 360); until then it has no library caller. -/
 lemma scanValue_refused_of_outer {s s' : ScannerState} {nv : Nat}
     (hok : scanValue s = .ok s') (hs : Sound s) (hfl : s.flowLevel = 0)
     (hm : MarkedColsIn s [nv]) (hcol : s.col = nv)
