@@ -4546,7 +4546,7 @@ def expectedPackFlip : String :=
   -- 2026-10-25 (item 359): sites 94 → 93, decls 21 → 20, decline 92 → 91, uncond 49 → 48: `accum_block_on_noPending`'s
   -- last `Or.inr trivial` (the `pendingBlock` constructor's value-park face at the `-` root arm) pays from `h_noek`,
   -- so the lemma leaves the roster.
-  "sites=93 decls=20 rounds=2 decline=91 relay=0 leaf=49 uncond=42 stubs=8"
+  "sites=93 decls=20 rounds=2 decline=91 relay=0 leaf=50 uncond=41 stubs=8"
 
 /-- **The RESIDUE** (item 312): the same census with `PackAlt sc := ExplicitValueRefused sc` — the
     predicate the family will carry — in place of `False`.  A bare `trivial` still fails (an unpaid
@@ -4601,7 +4601,7 @@ def expectedPackResidue : String :=
   -- paid by `PackAlt.ofRefused (h_noek …)` (K7's one unconditional site); the six `colon_open_map_explicit`/
   -- `compact_open_map` K7 faces stay declined — their payer `scanValue_refused_of_outer` is proved, its five-conjunct
   -- carrier is not threaded (item 360).
-  "sites=74 decls=18 rounds=2 decline=70 relayTrue=0 relayState=4 leaf=39 uncond=31 stubs=1 promised=6"
+  "sites=74 decls=18 rounds=2 decline=70 relayTrue=0 relayState=4 leaf=40 uncond=30 stubs=1 promised=6"
 
 /-! **The 32 roots (29 since item 307), by what the register does there** — a READING of each site
 (the compiler prices it when the construction is attempted, §1):
