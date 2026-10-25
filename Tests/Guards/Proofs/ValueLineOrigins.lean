@@ -790,12 +790,12 @@ def expectedRows : List String :=
     "accum_flow_open_depth0 #1 param:flowKeyRoute_of_open.h_compact_pair := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
     "colon_open_map #1 ctor:pendingMapValue.h_ivl := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
     "colon_open_map #1 ctor:pendingMapValue.h_vslot := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
-    "colon_open_map_explicit #1 ctor:pendingMapValue.h_kslot := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_kslot := punt/stamp pos=[] origins=[] none=[stamp,punt] ⊢ —",
     "colon_open_map_implicit #1 ctor:pendingMapValue.h_ivl := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
     "colon_open_map_implicit #1 ctor:pendingMapValue.h_vslot := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
     "colon_open_map_props #1 ctor:pendingMapValue.h_ivl := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
     "colon_open_map_props #1 ctor:pendingMapValue.h_vslot := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
-    "compact_open_map #1 ctor:pendingMapValue.h_kslot := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+    "compact_open_map #1 ctor:pendingMapValue.h_kslot := punt/stamp pos=[] origins=[] none=[stamp,punt] ⊢ —",
     "content_dispatch_routed #1 ctor:pendingProps.h_key := relay/built pos=[] origins=[] none=[fact,stamp] ⊢ stamp*",
     "content_dispatch_routed #1 ctor:pendingProps.h_kslot := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
     "content_dispatch_routed #1 ctor:pendingProps.h_kslotE := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
@@ -970,7 +970,7 @@ def expectedPerPos : List String := [
   "ctor:pendingBlock.h_kslotUp writers=7 punt=0 stamp=3 built=4 unborn=4 dead=0 allHeld=0 someHeld=0 noneHeld=0 origins=[] ⊢ unborn",
   "ctor:pendingMapValue.h_ivl writers=6 punt=0 stamp=3 built=3 unborn=0 dead=0 allHeld=1 someHeld=1 noneHeld=1 origins=[O0,O1,O2,O3,O49,O53,O54,O55,O56,O57,O58,O65,O66,O67,O68,O69,O70,O71] ⊢ 13/18 held",
   "ctor:pendingMapValue.h_vslot writers=6 punt=0 stamp=3 built=3 unborn=0 dead=0 allHeld=1 someHeld=1 noneHeld=1 origins=[O0,O1,O2,O3,O50,O59,O60,O61,O62,O63,O64,O65,O66,O67,O68,O69,O70,O71] ⊢ 13/18 held",
-  "ctor:pendingMapValue.h_kslot writers=6 punt=2 stamp=1 built=3 unborn=2 dead=0 allHeld=0 someHeld=1 noneHeld=0 origins=[O65,O66,O67,O68,O69,O70,O71] ⊢ 6/7 held",
+  "ctor:pendingMapValue.h_kslot writers=6 punt=0 stamp=3 built=3 unborn=2 dead=0 allHeld=0 someHeld=1 noneHeld=0 origins=[O65,O66,O67,O68,O69,O70,O71] ⊢ 6/7 held",
   "ctor:pendingMapValue.h_explUp writers=6 punt=0 stamp=4 built=2 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O71] ⊢ 0/1 held",
   "param:accum_block_on_closeThenBlock.h_vpack writers=11 punt=1 stamp=2 built=8 unborn=0 dead=0 allHeld=0 someHeld=5 noneHeld=3 origins=[O0,O1,O2,O3,O65,O66,O67,O68,O69,O70,O71] ⊢ 7/11 held",
   "param:accum_block_on_closeThenBlock.h_vslot writers=11 punt=0 stamp=10 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O71] ⊢ 0/1 held",
@@ -1149,7 +1149,7 @@ def expectedUnborn : List String := [
 def expectedLine : String :=
   -- 2026-10-25 (item 359): punt 12 → 11, stamp 39 → 40 — the `noPending` value-park face pays `PackAlt.ofRefused (h_noek …)`;
   -- lapps 806 → 807, liteNodes 607398 → 607407 — that one application and its term.
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=11 stamp=40 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=349 lets=635 lapps=807 alts=5031 nodes=13672 liteNodes=607407"
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=9 stamp=42 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=351 lets=637 lapps=810 alts=5052 nodes=13685 liteNodes=609688"
 
 /-! ## §4 The reading -/
 

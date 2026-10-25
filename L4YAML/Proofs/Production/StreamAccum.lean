@@ -22810,6 +22810,30 @@ lemma dispatchBlock_colon_scanValue {s s' : ScannerState}
       exact hv
   · cases h
 
+/-- **K7's payer at the dispatch** (item 360): the `:` producers hold their dispatch over the
+    directive-reset twin of `s_prep`; the reset moves none of the six fields `Sound` reads, no
+    slot and no frame, so `scanValue_refused_of_outer` applies as is. -/
+lemma refused_of_outer_disp {s_prep s' : ScannerState} {nv : Nat}
+    (hs : PendingKeySound.Sound s_prep) (hm : RegisterWitness.MarkedColsIn s_prep [nv])
+    (hcol : s_prep.col = nv)
+    (hkey : s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)
+    (h_noflow_disp : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = false)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) ':' = .ok (some s')) :
+    s'.explicitKeyLine = none := by
+  by_cases had : s_prep.allowDirectives = true
+  · simp only [had, ↓reduceIte] at h_noflow_disp h_dispatch
+    exact RegisterWitness.scanValue_refused_of_outer (dispatchBlock_colon_scanValue h_dispatch)
+      (hs.of_eq rfl rfl rfl rfl rfl rfl) ((PendingKeySound.inFlow_false_iff _).1 h_noflow_disp)
+      (hm.transport rfl rfl) hcol hkey
+  · simp only [had, Bool.false_eq_true, ↓reduceIte] at h_noflow_disp h_dispatch
+    exact RegisterWitness.scanValue_refused_of_outer (dispatchBlock_colon_scanValue h_dispatch)
+      hs ((PendingKeySound.inFlow_false_iff _).1 h_noflow_disp) hm hcol hkey
+
 /-- **…and its `-` branch is `scanBlockEntry`** (item 204).  A `-` reaches no
     other branch of the dispatcher, so `.ok (some _)` forces the first one. -/
 lemma dispatchBlock_dash_scanBlockEntry {s s' : ScannerState}
@@ -24311,13 +24335,20 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
     -- `scanValuePrepare`'s explicit branch leaves the stack alone — so the
     -- number is the dispatch state's floor unchanged, and the caller reads it
     -- off the landing that reached the `:`.
-    (h_top_in : s'.currentIndent ≤ (nv : Int)) :
+    (h_top_in : s'.currentIndent ≤ (nv : Int))
+    (h_outer : (PendingKeySound.Sound s_prep ∧ RegisterWitness.MarkedColsIn s_prep [nv] ∧
+      (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  -- Item 360: K7's pay — the park's domain says the `?` closed here is the outermost one.
+  have h_ref : ExplicitValueRefused s' ∨ True :=
+    h_outer.elim (fun ⟨hs, hm, hk⟩ => Or.inl (refused_of_outer_disp hs hm
+        (by rw [← hcorr_prep.col_eq, SIndent_col h_ind, hcol_mid]; omega) hk h_noflow_disp h_dispatch))
+      (fun _ => Or.inr trivial)
   have hpeek_disp : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).peek? = some ':' := by
@@ -24352,11 +24383,12 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)
            (Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega))
            -- Item 93: a VALUE park has no value line of its own.
-           (Or.inr trivial)
+           (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
              (Or.inr trivial)
              (Or.inr trivial)
              -- Item 108: nor a value-line-bottomed stack, for the same reason.
-             (Or.inr trivial) (Or.inr trivial)
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- Item 190: a VALUE park's slot is `[195]`'s, and the `?` whose
            -- entry route an outer frame's line composes against is not here.
@@ -24491,13 +24523,23 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     -- `h_top_old : sc ≤ n`, each beside its `h_mono`
     -- (`Tests/Guards/Proofs/PuntCoverInputs.lean` §6). ═══
     (h_mono : IndentStackMono.Mono sc)
-    (h_top : sc.currentIndent ≤ (n : Int)) :
+    (h_top : sc.currentIndent ≤ (n : Int))
+    (h_outer : (PendingKeySound.Sound s_prep ∧ RegisterWitness.MarkedColsIn s_prep [n + 1 + m] ∧
+      (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨ True) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
       FlowStackB sp_start 0 0 none 0 #[] #[] .sep sp_block' sp_flow' ∧
       PendingNode s' false sp_start sp_flow' sp_scan' ∧
       ScannerSurfCorr s' sp_scan' := by
+  -- Item 360: K7's pay — only the `:` kills the register; the compact `?` re-arms it.
+  have h_ref : ExplicitValueRefused s' ∨ True :=
+    h_outer.elim (fun ⟨hs, hm, hk⟩ => hc.elim
+        (fun hc' => Or.inl (refused_of_outer_disp hs hm
+          (by rw [← hcorr_prep.col_eq, SIndent_col h_ind, hcol_entry]) hk h_noflow_disp
+          (by rw [hc'] at h_dispatch; exact h_dispatch)))
+        (fun _ => Or.inr trivial))
+      (fun _ => Or.inr trivial)
   have hpeek_disp : (if s_prep.allowDirectives then
       { s_prep with allowDirectives := false, documentEverStarted := true }
     else s_prep).peek? = some c := by
@@ -24658,7 +24700,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
            (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega)
            (Or.inl (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega))
            -- Item 93: the keyless compact entry's value is `s-l+block-node`.
-           (Or.inr trivial)
+           (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
              -- ═══ **Item 259: the slot's RESUME STACK, covered from the caller's
              -- park.**  The frames below the slot's own collection are none;
              -- the cover is the caller's `Covered (n + 1) [] sc`
@@ -24694,7 +24736,8 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
              -- a stack here the way `question_open_map` does; no landing inside
              -- a compact key reaches the dedent branch yet, so it stays unpaid
              -- rather than paid and unread.
-             (Or.inr trivial) (Or.inr trivial)
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- Item 190: the compact `?` has the literal but no outer frame's
            -- line reaches it — this park stands inside a COMPACT key, whose
@@ -26874,6 +26917,8 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
               -- Item 259: the stack's shape and the SLOT's own bound, for the
               -- resume stack the opener's park covers from them.
               h_mono h_top_slot
+              -- Item 360: K7's carrier — closeThenBlock has no domained park face (STARVED).
+              (Or.inr trivial)
           -- Item 125: the compact `:` decides its own stamp source; the one
           -- undecided shape (a live register at the `:`'s own column) stays
           -- the deferral it already was, and the `?` never reads it.
@@ -27396,6 +27441,8 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
               (noflow_disp_of_noflow h_noflow)
               (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess)
               h_dispatch)
+            -- Item 360: K7's carrier — closeThenBlock has no domained park face (STARVED).
+            (Or.inr trivial)
         -- ═══ Item 125: the landed `:` decides its own stamp source by
         -- classical case split — both conjuncts are the dispatch state's own
         -- fields.  With a source the generic reopen's park carries a REAL
@@ -28171,6 +28218,7 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
     -- Item 147: the stack's SHAPE, carried beside its base — a monotone stack
     -- is what turns a floored top into a statement about every level, which is
     -- the cover the landing's opener pays.
+    (h_sound : PendingKeySound.Sound sc)
     (h_mono : IndentStackMono.Mono sc)
     (h_tail139 : CompletedTail sc)
     -- **Item 167 (LAST): the park's ENCLOSING collection**
@@ -28582,6 +28630,12 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
                 (noflow_disp_of_noflow h_noflow)
                 (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess)
                 h_dispatch)
+              -- Item 360: K7's carrier — paid from `h_kslotUp`'s domain when only the `?`'s column is marked.
+              (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => h_park.elim (fun hp => if hns : ∀ x ∈ ns, x = k
+                then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                  (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)),
+                  fun _ => (preprocess_saved_key_col hp.1 h_noflow h_preprocess).2⟩
+                else Or.inr trivial) (fun _ => Or.inr trivial)) (fun _ => Or.inr trivial))
           -- ═══ **Item 190: the frame ONE LEVEL UP, read at the landing's
           -- own column.**  `h_kslot` above is the frame this park's collection
           -- FILLS; this is the frame that one stands inside, and a park nested
@@ -28713,6 +28767,7 @@ lemma accum_block_on_pendingBlock
     (h_base : IndentStackBase.SentinelBase sc)
     -- Item 147: the stack's SHAPE beside its base, as at the other two landing
     -- arms — the cover the landing's opener pays needs both.
+    (h_sound : PendingKeySound.Sound sc)
     (h_mono : IndentStackMono.Mono sc)
     -- **Item 167 (LAST): the park's ENCLOSING collection** (`pendingBlock.h_seqF`).
     -- The DEDENT arm below is where it is spent: `nestedBlockSeq`'s `m` cannot
@@ -29212,6 +29267,12 @@ lemma accum_block_on_pendingBlock
               (noflow_disp_of_noflow h_noflow)
               (landing_floor_of_arm h_noflow h_larm (by omega) h_base h_preprocess)
               h_dispatch)
+            -- Item 360: K7's carrier — paid from `h_kslotUp`'s domain when only the `?`'s column is marked.
+            (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => if hns : ∀ x ∈ ns, x = k
+              then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)),
+                fun _ => (preprocess_saved_key_col h_sk h_noflow h_preprocess).2⟩
+              else Or.inr trivial) (fun _ => Or.inr trivial))
         -- ═══ **Item 190: the frame ONE LEVEL UP, read at the landing's own
         -- column** — as at `accum_block_on_pendingBlockContent`, with the
         -- awaited entry in the parked content's place (`?⏎  ? -⏎: w`). ═══
@@ -29466,6 +29527,12 @@ lemma accum_block_on_pendingBlock
             -- Item 259: the stack's shape and the PARK's own bound, for the
             -- resume stack the opener's park covers from them.
             h_mono h_top_old
+            -- Item 360: K7's carrier — paid from `h_kslotUp`'s domain when only the `?`'s column is marked.
+            (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => if hns : ∀ x ∈ ns, x = n + 1 + m
+              then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)),
+                fun _ => (preprocess_saved_key_col h_sk h_noflow h_preprocess).2⟩
+              else Or.inr trivial) (fun _ => Or.inr trivial))
         -- Item 125: the compact `:`'s own stamp source, decided here; the
         -- undecided shape stays the deferral, and the `?` never reads it.
         refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
@@ -29987,7 +30054,7 @@ lemma accum_block_pending (sc : ScannerState)
     exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_scan s_prep s' c
       sp_prep sp_scan' n_old h_stream_block (fun hd _ => h_closableBC hd) h_line
       h_entry_old h_kslot92 h_key_old h_stale47 h_kbc h_scf hcorr_prep hcorr_result h_corr h_noflow
-      h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_mono h_tail139 h_seqF167
+      h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_sound h_mono h_tail139 h_seqF167
       -- Item 190: the park's second frame, relayed as its first is.
       h_kslotUp190
       -- Item 194: and the park's resume stack, which the `:`/`?` opener's own
@@ -30003,7 +30070,7 @@ lemma accum_block_pending (sc : ScannerState)
     exact accum_block_on_pendingBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep
       sp_scan' n_old h_stream_block h_close_pending h_close_entry_old h_kslot92
       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_nextB h_preprocess h_dispatch h_bare
-      h_dn h_fv h_base h_mono h_seqF167
+      h_dn h_fv h_base h_sound h_mono h_seqF167
       -- Item 190: the park's second frame, relayed as its first is.
       h_kslotUp190
       -- Item 198: and the park's value-line-bottomed stack.

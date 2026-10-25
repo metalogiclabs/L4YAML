@@ -356,7 +356,7 @@ declarations' own binders and not by a rescoring of an existing one.
 def expectedModuleTallyP : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
-  "constants=1670 decls=1309 eta=441 FIELD=190 READ=1355 RELAY=2622 RETURN=167 UNUSED=27"
+  "constants=1676 decls=1315 eta=441 FIELD=190 READ=1367 RELAY=2630 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -368,7 +368,7 @@ def expectedModuleTallyP : String :=
 def expectedOptTallyP : String :=
   -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp` `inr`
   -- arms pay an empty chain and no longer read their alternative.
-  "total=163 ETA=31 FIELD=4 READ=88 RELAY=38 RETURN=2"
+  "total=165 ETA=31 FIELD=4 READ=88 RELAY=40 RETURN=2"
 
 run_cmd do
   let env ← getEnv
@@ -464,11 +464,13 @@ also counted passes vacuously. -/
 -- 2026-10-24 (B3): binder indices shift with the new park fields (pendingBlock 27→28, pendingBlockContent 32→33,
 -- pendingContent 30→33, flowKeyRoute_of_root 21→24); the readers are unchanged.
 def expectedNineResolved : List String :=
-  [ "accum_block_on_pendingBlock#28 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
-    "accum_block_on_pendingBlockContent#33 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
+  [ "accum_block_on_pendingBlock#29 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
+    "accum_block_on_pendingBlockContent#34 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
     "accum_block_on_pendingContent#33 (h_seqF168) => RETURN@L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent#33",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old) => FIELD@L4YAML.Proofs.StreamAccum.PendingNode.pendingProps#19",
     "colon_open_map#24 (h_cov_in) => FIELD@And.intro#2",
+    "colon_open_map_explicit#21 (h_outer) => ELIM@Or.elim#3>Or.elim.match_1_1#3",
+    "compact_open_map#29 (h_outer) => ELIM@Or.elim#3>Or.elim.match_1_1#3",
     "flowKeyRoute_of_root#24 (h_tail143) => RETURN@L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root#24",  -- item 311: `{g}` precedes it
     "indicator_open_map#26 (h_ref_land) => ELIM@L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused.match_1_1#4, ELIM@L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused.match_1_1#4",
     "question_open_map#23 (h_cov_in) => FIELD@And.intro#2",
@@ -483,9 +485,10 @@ def expectedRefTerminalsP : List String :=
 run_cmd do
   let env ← getEnv
   let nine : List (Name × Nat) :=
-    [ (``accum_block_on_pendingBlock, 28), (``accum_block_on_pendingBlockContent, 33),
+    [ (``accum_block_on_pendingBlock, 29), (``accum_block_on_pendingBlockContent, 34),
       (``accum_block_on_pendingContent, 33), (``accum_content_on_pendingMapValue_indented, 14),
-      (``colon_open_map, 24), (``flowKeyRoute_of_root, 24), (``indicator_open_map, 26),
+      (``colon_open_map, 24), (``colon_open_map_explicit, 21), (``compact_open_map, 29),
+      (``flowKeyRoute_of_root, 24), (``indicator_open_map, 26),
       (``question_open_map, 23), (``question_open_map, 24) ]
   if nine.length != expectedCoreTerminal.length then
     throwError "item 225's shortlist is no longer nine rows"
@@ -498,7 +501,11 @@ run_cmd do
     throwError "the resolved nine moved.\nexpected:\n{
       String.intercalate "\n" expectedNineResolved}\ngot:\n{
       String.intercalate "\n" got}"
-  -- …and re-derived, the shortlist is EMPTY, asserted as a count.
+  -- …and re-derived, the shortlist is EMPTY, asserted as a count — until item
+  -- 360: `colon_open_map_explicit.h_outer` and `compact_open_map.h_outer` are
+  -- conditional carriers whose only reader is their own `Or.elim` (the paid
+  -- branch feeds `PackAlt.ofRefused` inside the lambda, which the peel does not
+  -- follow), so the peeled shortlist is exactly those two rows.
   let mut core : Nat := 0
   for (nm, ci) in env.constants.toList do
     -- Filter the USER name: the library's generated auxiliaries are private under
@@ -515,8 +522,8 @@ run_cmd do
       if verdictP env nm i != "RELAY" then continue
       if (chaseP env 30 nm i).toList.all (fun t => !isLibTerminal t) then
         core := core + 1
-  if core != 0 then
-    throwError "the peeled core-terminal shortlist is not empty: {core}"
+  if core != 2 then
+    throwError "the peeled core-terminal shortlist is not item 360's two h_outer rows: {core}"
   let refT := (chaseP env 30 ``content_dispatch_routed 24).toList.mergeSort
     (fun a b => a < b)
   if refT != expectedRefTerminalsP then
@@ -834,7 +841,7 @@ lemma opt_premise_is_no_premise {A P : Prop} : (A ∨ True → P) ↔ P :=
 -- did at item 309; `total` stands at 163.
 def expectedOptPopulation : String :=
   -- 2026-10-24 (item 350): total 163 → 159, optTy 156 → 153, ctorFields 33 → 31 — as above.
-  "total=163 optTy=155 ctorFields=31"
+  "total=165 optTy=157 ctorFields=31"
 
 run_cmd do
   let env ← getEnv
