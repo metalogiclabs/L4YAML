@@ -954,8 +954,8 @@ def expectedRows : List String :=
    "colon_open_map #1 ctor:pendingMapValue.h_framesV := match[paid{cover=punt}|punt]",
    "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF := punt",
    "colon_open_map_explicit #1 ctor:pendingMapValue.h_frames := punt",
-   "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeFV := punt",
-   "colon_open_map_explicit #1 ctor:pendingMapValue.h_framesV := punt",
+   "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeFV := elim[punt|punt]",
+   "colon_open_map_explicit #1 ctor:pendingMapValue.h_framesV := elim[punt|punt]",
    "colon_open_map_implicit #1 fn:colon_open_map_implicit.h_cov_step := via:Covered.dedup_head(via:IndentStackCover.scanValue_cover_key(via:Covered.of_indents_eq(relay(fnp:colon_open_map_implicit.h_cov_step.hc))))",
    "colon_open_map_implicit #1 ctor:pendingMapValue.h_closeF := match[paid{cover=step(relay(param:colon_open_map_implicit.h_routeF))}|punt]",
    "colon_open_map_implicit #1 ctor:pendingMapValue.h_frames := match[paid{cover=step(relay(param:colon_open_map_implicit.h_routeF))}|punt]",
@@ -968,8 +968,8 @@ def expectedRows : List String :=
    "colon_open_map_props #1 ctor:pendingMapValue.h_framesV := match[paid{cover=step(relay(param:colon_open_map_props.h_routeFV))}|punt]",
    "compact_open_map #1 ctor:pendingMapValue.h_closeF := paid{cover=lit(lo=n + 1,idx=n + 1 + m,ks=map(…) :: [],by=via:CoverStep.cons_of_top_eq(via:IndentStackCover.dispatchBlockIndicators_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(lemma(IndentStackCover.covered_nil_of_top_le))))))}",
    "compact_open_map #1 ctor:pendingMapValue.h_frames := punt",
-   "compact_open_map #1 ctor:pendingMapValue.h_closeFV := punt",
-   "compact_open_map #1 ctor:pendingMapValue.h_framesV := punt",
+   "compact_open_map #1 ctor:pendingMapValue.h_closeFV := elim[punt|punt]",
+   "compact_open_map #1 ctor:pendingMapValue.h_framesV := elim[punt|punt]",
    "content_dispatch_routed #1 fn:content_dispatch_routed.h_cov_lift := via:IndentStackCover.dispatchContent_cover(via:Covered.of_indents_eq(relay(fnp:content_dispatch_routed.h_cov_lift.hc)))",
    "content_dispatch_routed #1 ctor:pendingProps.h_closeFE := punt",
    "content_dispatch_routed #1 ctor:pendingProps.h_closeF := punt",
@@ -1169,15 +1169,7 @@ def expectedDoor : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): nodes=115233 → nodes=115369 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
 def expectedLine : String :=
-  "positions=23 ctorFields=11 lemParams=34 lemmas=18 walked=25 doors=9 rows=185 ctorRows=79 \
-lemRows=73 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 \
-pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 \
-pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 \
-valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 \
-contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 \
-entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 \
-eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=41 doorKept=12 \
-doorForgotten=7 doorDropped=22 doorsOther=5 nodes=117261"
+  "positions=23 ctorFields=11 lemParams=34 lemmas=18 walked=25 doors=9 rows=185 ctorRows=79 lemRows=73 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=41 doorKept=12 doorForgotten=7 doorDropped=22 doorsOther=5 nodes=117274"
 
 /-! ## §6 The reading -/
 

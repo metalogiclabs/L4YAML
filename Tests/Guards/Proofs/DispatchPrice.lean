@@ -332,7 +332,7 @@ def expectedSteps : String :=
 -- item-354 base).
 -- 2026-10-25 (item 359): stepHolders 1887 → 1888 — `scanValue_refused_of_outer` (RegisterWitness) holds the
 -- `scanValue s = .ok s'` step equation.
-  "stepHolders=1888 dispHolders=356 dispTwoCorr=31 fns=73 fnsIx=26"
+  "stepHolders=1889 dispHolders=357 dispTwoCorr=31 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another

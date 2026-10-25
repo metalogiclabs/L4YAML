@@ -286,7 +286,7 @@ def isSurfFace (env : Environment) (lhs : Expr) : MetaM Bool := do
 -- 302's stack (`ResumeFrames` 12 → 3, `KeyFrames` 9 in the head census below).
 -- 2026-10-24 (item 350): binders 163 → 159, faces 61 → 59, heads 19 → 18 — `h_expl`/`h_explUp`
 -- stopped being optional faces (their alternative is `NotQuestionPark sc`, paid by the `:` producers).
-def expectedFaceTally : String := "binders=163 faces=62 heads=19"
+def expectedFaceTally : String := "binders=165 faces=63 heads=20"
 
 /-- The conclusion head of every left disjunct.  `FVAR 2` is `frameChainUnion`,
     whose face is schematic in `P` — the two rows no census of any kind can
@@ -318,6 +318,7 @@ def expectedHeadCensus : List String :=
    "ResumeFrames 3",
    "SLYamlStream 20",
    "SeqEntryTail 7",
+   "Sound 2",
    "SuffixRun 6",
    "le 11",
    "lt 28"]
@@ -367,7 +368,7 @@ which of four reasons applies. -/
 -- Item 300: the two faces that join (`content_dispatch_routed.h_markerline`,
 -- `flowOpen_marker.h_doc`) name scanner state alone, so `state` 25 → 27.
 -- 2026-10-24 (item 350): binders 163 → 159, surf 136 → 132 — `h_expl`/`h_explUp` left the optional population.
-def expectedFidelity : String := "binders=163 surf=134 state=29"
+def expectedFidelity : String := "binders=165 surf=134 state=31"
 
 /-- The 25 faces a state census COULD evaluate — 27 since item 300 — which is
     the population the mandate's instrument is actually defined over.  Two of them
@@ -383,6 +384,8 @@ def expectedStateFaces : List String :=
    "bareNodeRoute_or_refused_content#12",
    "colon_open_map#23",
    "colon_open_map#24",
+   "colon_open_map_explicit#21",
+   "compact_open_map#29",
    "content_dispatch_after_close#22",
    "content_dispatch_routed#24",
    "content_dispatch_routed#26",
@@ -549,19 +552,19 @@ def expectedWorthLedger : List String :=
    "splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
    "splits=7 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
-   "splits=7 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlock#30",
+   "splits=7 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlock#31",
    "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#36",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
-   "splits=4 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlockContent#36",
+   "splits=4 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlockContent#37",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
    "splits=3 sup=1 - h_kslot :: accum_block_on_pendingBlock#13",
    "splits=3 sup=1 - h_kslot :: accum_content_on_pendingMapValue_indented#17",
-   "splits=3 sup=1 - h_kslotUp :: accum_block_on_pendingBlock#29",
+   "splits=3 sup=1 - h_kslotUp :: accum_block_on_pendingBlock#30",
    "splits=3 sup=1 - h_kslotUp_old :: accum_content_on_pendingBlock_indented#29",
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
    "splits=2 sup=1 - h_resV_land :: colon_open_map#26",
-   "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#35",
+   "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#36",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#12",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_props#11",
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_implicit#13",
@@ -576,7 +579,7 @@ def expectedWorthLedger : List String :=
    "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#15",
    "splits=1 sup=1 - h_kslotD :: colon_open_map_implicit#29",
    "splits=1 sup=1 - h_kslotD :: colon_open_map_props#29",
-   "splits=1 sup=1 - h_kslotUp :: accum_block_on_pendingBlockContent#34",
+   "splits=1 sup=1 - h_kslotUp :: accum_block_on_pendingBlockContent#35",
    "splits=1 sup=1 - h_mapFV108 :: accum_block_on_pendingContent#35",
    "splits=1 sup=1 - h_resV_land :: question_open_map#27",
    "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#27"
@@ -662,7 +665,7 @@ rather than as a count. -/
 -- 2026-10-21 (item 311): `syntactic` 158 → 156, `population` 160 → 158 — `colon_open_map_implicit`'s two `∨ alt` premises are no
 -- `∨ True` to the syntactic count (the lemma states the family's alternative generically).
 -- 2026-10-24 (item 350): syntactic 156 → 153, population 158 → 155 — as the face tally.
-def expectedHiddenTally : String := "hiddenDefs=1 syntactic=155 hiddenOnly=2 population=157"
+def expectedHiddenTally : String := "hiddenDefs=1 syntactic=157 hiddenOnly=2 population=159"
 
 def expectedHiddenDefs : List String := ["ResumeKeyCtx"]
 
@@ -837,7 +840,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
 -- 2026-10-24 (item 350): theorems 6073 → 6076 — `notQuestion_push_top`, `scanValue_notQuestion`,
 -- `dispatchBlock_colon_notQuestion`.
-def expectedNoopTally : String := "theorems=6306 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=6307 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

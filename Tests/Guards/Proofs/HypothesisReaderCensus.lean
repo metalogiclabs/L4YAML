@@ -605,7 +605,7 @@ def expectedModuleTally : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1169 → 1171,
   -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
-  "constants=1670 decls=1309 eta=441 FIELD=167 READ=1294 RELAY=2819 RETURN=54 \
+  "constants=1676 decls=1315 eta=441 FIELD=167 READ=1306 RELAY=2827 RETURN=54 \
 UNUSED=27"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs
@@ -712,7 +712,7 @@ inherit their parents' binders filtered out so the denominator is declarations. 
 -- (a `match`) where it was RELAYed.
 -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp`
 -- `inr` arms no longer read their alternative (they pay an empty chain instead).
-def expectedOptTally : String := "total=163 ETA=31 READ=88 RELAY=44"
+def expectedOptTally : String := "total=165 ETA=31 READ=88 RELAY=46"
 
 /-- The six item 212 enumerated, by verdict — seven since item 300.  Six are
     read in `content_dispatch_routed`'s own term (`h_markerline`, the marker
@@ -785,11 +785,13 @@ remain.) -/
 def expectedCoreTerminal : List String :=
   -- Item 287: the three `accum_block_on_*` rows read two binders earlier, past
   -- the retired `sp_block_ctx` and `h_stream_fallback`.
-  [ "accum_block_on_pendingBlock#28 (h_seqF_old)",
-    "accum_block_on_pendingBlockContent#33 (h_seqF_old)",
+  [ "accum_block_on_pendingBlock#29 (h_seqF_old)",
+    "accum_block_on_pendingBlockContent#34 (h_seqF_old)",
     "accum_block_on_pendingContent#33 (h_seqF168)",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old)",
     "colon_open_map#24 (h_cov_in)",
+    "colon_open_map_explicit#21 (h_outer)",
+    "compact_open_map#29 (h_outer)",
     "flowKeyRoute_of_root#24 (h_tail143)",  -- item 311: `{g}` precedes it
     "indicator_open_map#26 (h_ref_land)",
     "question_open_map#23 (h_cov_in)",
