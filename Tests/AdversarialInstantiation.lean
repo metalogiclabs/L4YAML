@@ -4445,6 +4445,29 @@ def walkInnermostArrays : Nat × Nat × Nat := Id.run do
           if r.1.isNone then someBad := someBad + 1
   return (cases, noneBad, someBad)
 
+/-- Priority 29 (item 360): the carrier's simple-key conjunct, instantiated at EVERY preprocess
+    step — `preprocess_saved_key_col` says that with the park's flag up and no flow the prepared
+    state's key is possible and sits at the cursor (`pos.col = col`).  Returns `(steps, bad)`:
+    `steps` = preprocess steps with `sc.simpleKeyAllowed ∧ ¬ s_prep.inFlow`, `bad` = those whose
+    prepared key is impossible or right/left of the cursor (a refutation; pinned 0). -/
+def walkSavedKeyAtCursor (input : String) : Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 48
+  let mut steps := 0
+  let mut bad := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, _)) =>
+      if s.simpleKeyAllowed && !sp.inFlow then
+        steps := steps + 1
+        if !sp.simpleKey.possible || sp.simpleKey.pos.col != sp.col then bad := bad + 1
+      match scanNextToken s with
+      | .ok (some s') => s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (steps, bad)
+
 def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 28: register after the explicit `:` (item 359)"
   let walks : List (String × List (Nat × Option Nat × List (Option Nat))) :=
@@ -4508,6 +4531,17 @@ def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
     (noneBad == 0) s!"{noneBad} refutation(s)"
   checkM state "innermostArrays: a mark below n ⇒ innermost.1 ≠ none (go_fst_some_of_marked)"
     (someBad == 0) s!"{someBad} refutation(s)"
+  -- Priority 29 (item 360): the carrier's key conjunct at every flagged block preprocess step.
+  let keyInputs : List (String × Nat) :=
+    [("? a\n: b", 3), ("?\n  ? a\n  : b\n: c", 5), ("? a: b\n: c", 4), ("- ? a\n  : b", 4),
+     ("---\n? a\n: b", 4), ("a: 1\n? b\n: 2", 4), ("k:\n  ? a\n: v", 4), ("- a\n- b: c\n  d: e", 5),
+     ("? [a]\n: b", 3), ("a:\n  - b\n  - c: d\n", 5), ("? a\n:", 2), ("x", 1)]
+  for (input, expSteps) in keyInputs do
+    let (steps, bad) := walkSavedKeyAtCursor input
+    checkM state s!"savedKey/{repr input}: flagged block preprocess steps" (steps == expSteps)
+      s!"got {steps}, expected {expSteps}"
+    checkM state s!"savedKey/{repr input}: every flagged step's key is at the cursor" (bad == 0)
+      s!"{bad} refutation(s)"
 
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
