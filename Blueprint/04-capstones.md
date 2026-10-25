@@ -270,7 +270,7 @@ well-formed.
 | 3.2 | `parseStream_sound` | [`ParserSoundness`](../L4YAML/Proofs/Parser/ParserSoundness.lean) | ✅ |
 | 3.3 | `yamlValue_has_witness` (mutual recursion with `Classical.choice`) | `ParserSoundness` | ✅ |
 | 3.4 | `parseNode_anchors_grow` | [`ParserAnchorProofs`](../L4YAML/Proofs/Parser/ParserAnchorProofs.lean) / [`ParserNodeProofs`](../L4YAML/Proofs/Parser/ParserNodeProofs.lean) | ✅ |
-| 3.5 | `parseNode_aliases_resolve` (public wrapper over `ParserNodeProofs.parseNode_aliases_resolve'`) | [`ParserAnchorProofs`](../L4YAML/Proofs/Parser/ParserAnchorProofs.lean) | ✅ |
+| 3.5 | `parseNode_aliases_declared` (public wrapper over `ParserNodeProofs.parseNode_aliases_declared'`; indexed on the declaration set, YAML §7.1 — `parseNode_aliases_resolve` is the derived resolution reading under `DeclarationsBound`) | [`ParserAnchorProofs`](../L4YAML/Proofs/Parser/ParserAnchorProofs.lean) | ✅ |
 | 3.6 | `parseDocument_aliases_resolve` | `ParserAnchorProofs` | ✅ |
 | 3.7 | `parseStream_output_aliases_resolve` | `ParserAnchorProofs` | ✅ |
 | 3.8 | `parseStream_output_anchors_wellformed` | [`ParserWfaProofs`](../L4YAML/Proofs/Parser/ParserWfaProofs.lean) | ✅ |
@@ -305,9 +305,13 @@ via Group 3.9.
   environment only ever grows as parsing proceeds. *Risk if absent:*
   anchor-scoping bugs where a later definition shadows or drops an
   earlier one, corrupting alias resolution.
-- **3.5 `parseNode_aliases_resolve`** — *Significance:* every `*alias`
-  resolves to a previously defined `&anchor`. *Risk if absent:*
-  dangling aliases resolving to undefined or arbitrary nodes —
+- **3.5 `parseNode_aliases_declared`** — *Significance:* every `*alias`
+  names an `&anchor` that has already occurred (YAML §7.1). Per node
+  only this reading is available: `&x [*x]` is legal, and the anchored
+  node's entry in the resolution table cannot exist before the node is
+  complete; the resolution reading is derived from it at the document
+  boundary (`AllAliasesResolve.of_declared`, rows 3.6/3.7). *Risk if
+  absent:* dangling aliases resolving to undefined or arbitrary nodes —
   crashes, or a data-injection primitive.
 - **3.6 / 3.7 doc- and stream-level alias resolution** —
   *Significance:* lifts alias soundness to whole documents and
