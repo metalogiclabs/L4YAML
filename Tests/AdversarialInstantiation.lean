@@ -4675,6 +4675,70 @@ def testFlowOpenRegister (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"flowOpen/{repr input}: every marked open keeps the register live"
       (markedLive == marked) s!"{markedLive}/{marked}"
 
+/-- Priority 31 (item 362): the flow CLOSE lane — the marked-column domain the enclosing block
+    park had at the `[`/`{` is still the domain at the `]`/`}` (marks never move inside flow:
+    `drift`, pinned 0), and when it was empty the register is dead on the block state after the
+    close, which is what `refused_of_markedCols_nil` pays `accum_step_flow`'s four CLOSE faces
+    with (`bad`, a refutation; pinned 0).  A non-empty domain at the open is the withdrawn
+    premise: the register is expected live after the close (`markedLive`, pinned = `marked`).
+    Returns `(closes, bad, drift, marked, markedLive)`. -/
+def walkFlowCloseRegister (input : String) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut closes := 0
+  let mut bad := 0
+  let mut drift := 0
+  let mut marked := 0
+  let mut markedLive := 0
+  let mut dom : Option (List Nat) := none
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (_, c)) =>
+      if (c == '[' || c == '{') && s.flowLevel == 0 then
+        dom := some (markedColsOf s.pendingKeys s.indentColumns)
+      match scanNextToken s with
+      | .ok (some s') =>
+        match dom with
+        | some d =>
+          if markedColsOf s'.pendingKeys s'.indentColumns != d then drift := drift + 1
+          if s'.flowLevel == 0 then
+            if d == [] then
+              closes := closes + 1
+              if s'.explicitKeyLine.isSome then bad := bad + 1
+            else
+              marked := marked + 1
+              if s'.explicitKeyLine.isSome then markedLive := markedLive + 1
+            dom := none
+        | none => pure ()
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (closes, bad, drift, marked, markedLive)
+
+def testFlowCloseRegister (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 31: flow close under the carried marked domain (item 362)"
+  -- `(input, closes, marked)`, pinned from the run; `bad` 0, `drift` 0 and `markedLive = marked`
+  -- on every row.
+  let rows : List (String × Nat × Nat) :=
+    [("[a]: b", 1, 0), ("{a: 1}: c", 1, 0), ("- [a]: b", 1, 0), ("k: [a]", 1, 0), ("k:\n  - [a, b]", 1, 0),
+     ("[a]", 1, 0), ("{}", 1, 0), ("---\n[a]: b", 1, 0), ("a: 1\n[1]: b", 1, 0),
+     ("? [a]\n: b", 0, 1), ("? {a: 1}\n: b", 0, 1), ("?\n  [a]: b\n: c", 0, 1), ("? a\n: [b]", 1, 0),
+     ("- ? [a]\n  : b", 0, 1), ("[[a]]: b", 1, 0), ("{a: [1, 2]}: c", 1, 0), ("? [a, {b: c}]\n: d", 0, 1),
+     ("k: [a]\nj: b", 1, 0), ("? [a]\n: [b]", 1, 1), ("[a, [b, {c: d}], e]", 1, 0), ("{a: {b: [1]}}", 1, 0)]
+  for (input, expCloses, expMarked) in rows do
+    let (closes, bad, drift, marked, markedLive) := walkFlowCloseRegister input
+    checkM state s!"flowClose/{repr input}: closes to block under an empty domain" (closes == expCloses)
+      s!"got {closes}, expected {expCloses}"
+    checkM state s!"flowClose/{repr input}: every such close leaves a dead register" (bad == 0)
+      s!"{bad} refutation(s)"
+    checkM state s!"flowClose/{repr input}: marks never move inside the flow node" (drift == 0)
+      s!"{drift} drifting step(s)"
+    checkM state s!"flowClose/{repr input}: closes under a marked domain" (marked == expMarked)
+      s!"got {marked}, expected {expMarked}"
+    checkM state s!"flowClose/{repr input}: every marked close keeps the register live"
+      (markedLive == marked) s!"{markedLive}/{marked}"
+
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
   -- `(input, (payable, fresh, other))`, pinned from the run.
@@ -4741,6 +4805,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testQuestionMarkColumn state
   testK1Lanes state
   testFlowOpenRegister state
+  testFlowCloseRegister state
   testExplicitColonRegister state
   let results ← finish state
   return { name := "adversarialinstantiation",

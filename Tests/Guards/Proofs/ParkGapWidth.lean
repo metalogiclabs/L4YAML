@@ -542,8 +542,8 @@ def expectedLadder : List String :=
 -- 2026-10-25 (item 358): holders=119 → 120 — `landing_frame_of_cover` (the K1 bridge) holds the dispatch.
 -- 2026-10-25 (item 360): holders=120 → 121 — `refused_of_outer_disp` (the K7 bridge) holds the dispatch.
   ["scanNextToken_dispatchBlockIndicators holders=121 edge=1 chain=0",
-   "scanNextToken_dispatchContent holders=159 edge=3 chain=1",
-   "scanNextToken_preprocess holders=242 edge=17 chain=3"]
+   "scanNextToken_dispatchContent holders=160 edge=3 chain=1",
+   "scanNextToken_preprocess holders=244 edge=17 chain=3"]
 
 /-- **What §1's proofs spend.**  `drop=false` is the non-circularity check
     items 242 and 243 also carry: a measurement of what the escape costs may

@@ -940,9 +940,9 @@ def expectedRows : List String :=
    "accum_content_pending #1 param:accum_content_on_pendingMapValue_indented.h_closeFV108 := relay(door:pendingMapValue.h_closeFV)",
    "accum_content_pending #1 param:accum_content_on_pendingMapValue_indented.h_framesV108 := relay(door:pendingMapValue.h_framesV)",
    "accum_step_flow #1 ctor:pendingContent.h_framesS := punt",
-   "accum_step_flow #1 ctor:pendingContent.h_framesV := punt",
+   "accum_step_flow #1 ctor:pendingContent.h_framesV := elim[punt|punt]",
    "accum_step_flow #2 ctor:pendingContent.h_framesS := punt",
-   "accum_step_flow #2 ctor:pendingContent.h_framesV := punt",
+   "accum_step_flow #2 ctor:pendingContent.h_framesV := elim[punt|punt]",
    "colon_fires_implicit_key #1 param:colon_open_map_implicit.h_routeF := cases[paid{cover=step(relay(fnparam:colon_fires_implicit_key.h_key))}|punt]",
    "colon_fires_implicit_key #1 param:colon_open_map_implicit.h_routeFV := cases[paid{cover=step(relay(fnparam:colon_fires_implicit_key.h_key))}|punt]",
    "colon_fires_props_key #1 param:colon_open_map_props.h_routeF := cases[paid{cover=step(relay(fnparam:colon_fires_props_key.h_key))}|punt]",
@@ -1169,7 +1169,7 @@ def expectedDoor : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): nodes=115233 → nodes=115369 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
 def expectedLine : String :=
-  "positions=23 ctorFields=11 lemParams=34 lemmas=18 walked=25 doors=9 rows=185 ctorRows=79 lemRows=73 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=41 doorKept=12 doorForgotten=7 doorDropped=22 doorsOther=5 nodes=117528"
+  "positions=23 ctorFields=11 lemParams=34 lemmas=18 walked=25 doors=9 rows=185 ctorRows=79 lemRows=73 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=41 doorKept=12 doorForgotten=7 doorDropped=22 doorsOther=5 nodes=117690"
 
 /-! ## §6 The reading -/
 

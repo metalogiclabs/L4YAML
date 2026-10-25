@@ -85,7 +85,9 @@ LEAF = re.compile(r"^(\| .*=> (exact )?Or\.inr trivial|else Or\.inr trivial|· e
 # (`h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial)`, item 360's
 # six value-park faces under a nested `?`); the decline is conditional on an INCOMING optional
 # exactly as a match arm's is, so it is a `leaf`, listed by site as the `nested-?` roster
-ELIM_LEAF = re.compile(r"\.elim \(fun \w+ => Or\.inr \(PackAlt\.\w+ \w+\)\) \(fun _ => Or\.inr trivial\)")
+# item 362: the paid side may be a bridge application rather than a bare name
+# (`PackAlt.ofRefused (RegisterWitness.refused_of_markedCols_nil …)` at the flow closes)
+ELIM_LEAF = re.compile(r"\.elim \(fun \w+ => Or\.inr \(PackAlt\.\w+ .+\)\) \(fun _ => Or\.inr trivial\)")
 ERR = re.compile(r"^L4YAML/Proofs/Production/StreamAccum\.lean:(\d+):(\d+): error: (.*)")
 HEADER = re.compile(r"^\S+\.lean:\d+:\d+: (error|warning|info)")
 # Lean stops at 100 errors by default (`maxErrors`); a round must see every site to converge honestly

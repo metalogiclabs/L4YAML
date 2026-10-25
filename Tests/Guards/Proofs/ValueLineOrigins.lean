@@ -828,10 +828,10 @@ def expectedRows : List String :=
     "accum_content_pending #1 param:accum_content_on_pendingBlock_indented.h_kslotUp_old := relay/built pos=[ctor:pendingBlock.h_kslotUp] origins=[] ⊢ unborn",
     "accum_flow_open_depth0 #3 param:flowKeyRoute_of_open.h_compact_pair := paid:route/built pos=[] origins=[O44] none=[stamp,punt] ⊢ all-held 1/1",
     "accum_step_flow #1 ctor:pendingContent.h_key := via/built pos=[] origins=[O45] ⊢ none-held 0/1",
-    "accum_step_flow #1 ctor:pendingContent.h_vpack := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+    "accum_step_flow #1 ctor:pendingContent.h_vpack := punt/stamp pos=[] origins=[] none=[stamp,punt] ⊢ —",
     "accum_step_flow #1 param:flowKeyPack_of_close.h_key := relay/built pos=[] origins=[O46] ⊢ none-held 0/1",
     "accum_step_flow #2 ctor:pendingContent.h_key := via/built pos=[] origins=[O47] ⊢ none-held 0/1",
-    "accum_step_flow #2 ctor:pendingContent.h_vpack := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+    "accum_step_flow #2 ctor:pendingContent.h_vpack := punt/stamp pos=[] origins=[] none=[stamp,punt] ⊢ —",
     "accum_step_flow #2 param:flowKeyPack_of_close.h_key := relay/built pos=[] origins=[O48] ⊢ none-held 0/1",
     "colon_open_map #1 ctor:pendingMapValue.h_kslot := punt/stamp pos=[] origins=[] none=[punt,stamp] ⊢ —",
     "compact_open_map #1 ctor:pendingMapValue.h_ivl := relay/built pos=[] origins=[O49] none=[stamp,fact] ⊢ none-held 0/1",
@@ -960,7 +960,7 @@ def expectedPerPos : List String := [
   "param:flowKeyPack_of_close.h_key writers=2 punt=0 stamp=0 built=2 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=2 origins=[O46,O48] ⊢ 0/2 held",
   "param:flowVPack_of_close.h_vslot writers=0 punt=0 stamp=0 built=0 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=0 origins=[] ⊢ punt-only",
   "ctor:pendingContent.h_key packaged writers=12 punt=0 stamp=0 built=12 unborn=0 dead=0 allHeld=0 someHeld=2 noneHeld=4 origins=[O15,O16,O17,O18,O19,O20,O21,O34,O35,O36,O37,O38,O39,O40,O45,O47,O51,O52,O65,O66,O67,O68,O69,O70,O71] ⊢ 6/25 held",
-  "ctor:pendingContent.h_vpack writers=12 punt=2 stamp=2 built=8 unborn=0 dead=0 allHeld=0 someHeld=8 noneHeld=0 origins=[O65,O66,O67,O68,O69,O70,O71] ⊢ 6/7 held",
+  "ctor:pendingContent.h_vpack writers=12 punt=0 stamp=4 built=8 unborn=0 dead=0 allHeld=0 someHeld=8 noneHeld=0 origins=[O65,O66,O67,O68,O69,O70,O71] ⊢ 6/7 held",
   "ctor:pendingProps.h_key packaged writers=6 punt=0 stamp=0 built=6 unborn=0 dead=0 allHeld=0 someHeld=1 noneHeld=1 origins=[O8,O9,O10,O25,O26,O27,O28,O29,O30,O65,O66,O67,O68,O69,O70,O71] ⊢ 6/16 held",
   "ctor:pendingProps.h_kslot writers=6 punt=0 stamp=3 built=3 unborn=0 dead=0 allHeld=0 someHeld=3 noneHeld=0 origins=[O65,O66,O67,O68,O69,O70,O71] ⊢ 6/7 held",
   "ctor:pendingProps.h_kslotE writers=6 punt=1 stamp=2 built=3 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=3 origins=[O71] ⊢ 0/1 held",
@@ -1149,7 +1149,7 @@ def expectedUnborn : List String := [
 def expectedLine : String :=
   -- 2026-10-25 (item 359): punt 12 → 11, stamp 39 → 40 — the `noPending` value-park face pays `PackAlt.ofRefused (h_noek …)`;
   -- lapps 806 → 807, liteNodes 607398 → 607407 — that one application and its term.
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=9 stamp=42 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=353 lets=637 lapps=810 alts=5058 nodes=13688 liteNodes=609987"
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=355 lets=640 lapps=813 alts=5345 nodes=13720 liteNodes=630809"
 
 /-! ## §4 The reading -/
 
