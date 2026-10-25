@@ -92,7 +92,7 @@ namespace L4YAML.Tests.Guards.GateVocabulary
 -- function once more (`preprocess_col0_dead` holds its equation).
 -- 2026-10-23 (item 349): 469 → 470 — the item-349 record names a gate in its Gates paragraph.
 def expectedGateVocab : String :=
-  "names=113 mentions=470 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
+  "names=113 mentions=471 families=14 refuted=7 wrapped=4 self=2 unresolved=0"
 
 end L4YAML.Tests.Guards.GateVocabulary
 
