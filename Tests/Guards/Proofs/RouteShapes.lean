@@ -667,6 +667,7 @@ def walk (table : Std.HashMap Name (Array Closure)) (c : Name) :
 -- 2026-10-24 (B3 [66] col-0 threading): `pendingContent`/`pendingBlockContent` closures are stated from the
 -- park's grammar endpoint `sp_gram` (the swallowed white run is the `[66]` separator), not `sp_scan`.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (content parks from `sp_gram`).
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedClosures : List String :=
    -- 2026-10-24 (item 350): `h_expl`/`h_explUp` read `req`, no longer `opt` — their alternative is
    -- `NotQuestionPark sc` (a scanner fact the `:` producers pay), not a `PackAlt`/`True` escape.
@@ -676,7 +677,7 @@ def expectedClosures : List String :=
    "pendingContent.h_key[λλLEEE6LE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
    "pendingContent.h_key[λλLEEE7LEE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
    "pendingContent.h_key[λλLEEE8LEE2] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
-   "pendingContent.h_vpack[LE] opt: sp_gram: SSLComments > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingContent.h_vpack[LE2] opt: sp_gram: SSLComments > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingContent.h_framesS[LE2] opt: sp_gram: SSLComments ⇒ Resume(_)▹Stream",
    "pendingContent.h_framesV[LEE2] opt: sp_gram: SSLComments ⇒ Key(_)▹ExplValueLine(_)",
    "pendingContent.h_seqF[LEEE2] opt: sp_gram: SSLComments > SCompactMapTail(_) ⇒ Resume(_)▹SeqEntryTail(_)",
@@ -685,7 +686,7 @@ def expectedClosures : List String :=
    "pendingProps.h_key[L1E3LE] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingProps.h_key[L1E4LE3] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
    "pendingProps.h_key[L1E5LEE3] opt+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] sp_p: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
-   "pendingProps.h_kslot[LE] opt: sp_node: SBlockNode(n,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingProps.h_kslot[LE2] opt: sp_node: SBlockNode(n,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingProps.h_routeE[LE2] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Stream",
    "pendingProps.h_kslotE[LEE2] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingProps.h_closeFE[LEE4] opt: [n=_+1] sp_node: SBlockNode(n,blockIn) > SCompactSeqTail(_) ⇒ Resume(_)▹Stream",
@@ -704,20 +705,20 @@ def expectedClosures : List String :=
    "pendingBlockContent.h_kslot[LE] opt: sp_gram: SSLComments > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingBlockContent.h_closeF[LE3] opt: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ Resume(_)▹Stream",
    "pendingBlockContent.h_seqF[LE] opt: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ SeqEntryTail(_)",
-   "pendingBlockContent.h_kslotUp[LE] opt: sp_gram: SSLComments > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingBlockContent.h_kslotUp[LE2] opt: sp_gram: SSLComments > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingBlockContent.h_closeFV[LEE2] opt: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ Key(_)▹ExplValueLine(_)",
    "pendingBlock.h_close[] req: sp_scan: SBlockIndented(n,blockIn) ⇒ Stream",
    "pendingBlock.h_close_entry[] req: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Stream",
    "pendingBlock.h_kslot[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingBlock.h_closeF[LE3] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Resume(_)▹Stream",
    "pendingBlock.h_seqF[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ SeqEntryTail(_)",
-   "pendingBlock.h_kslotUp[LE] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingBlock.h_kslotUp[LE2] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingBlock.h_closeFV[LEE2] opt: sp_scan: SBlockIndented(n,blockIn) > SCompactSeqTail(n) ⇒ Key(_)▹ExplValueLine(_)",
    "pendingMapValue.h_close[] req: sp_scan: SBlockNode(n+1,blockIn) ⇒ Stream",
    "pendingMapValue.h_ivl[R2] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
    "pendingMapValue.h_expl[LE2] req: _: SBlockMapEntry(n) ⇒ Stream",
    "pendingMapValue.h_vslot[L3] req: [col(sp_scan)=n+1] sp_scan: SBlockIndented(n,blockOut) ⇒ Stream",
-   "pendingMapValue.h_kslot[LE] opt: sp_scan: SBlockNode(n+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
+   "pendingMapValue.h_kslot[LE2] opt: sp_scan: SBlockNode(n+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream",
    "pendingMapValue.h_closeF[LE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Resume(map(n)::_)▹Stream",
    "pendingMapValue.h_frames[LE2] opt: sp_scan: SSLComments ⇒ Resume(_)▹Stream",
    "pendingMapValue.h_closeFV[LEE3] opt: sp_scan: SBlockNode(n+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)",
@@ -925,7 +926,7 @@ def expectedLine : String :=
    spinesFromStream=5 spinesCarried=32 spinesTouched=37 firstsFromStream=4 headsFromStream=4 \
    streamSites=2 closings=11 closedDistinct=3 closedIn=2 absorbed=4 obtained=2 flowSites=7 \
    flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=156 routeStream=16 \
-   routeCarry=52 routeFwd=53 routeClosed=35 routeToWalked=98 routeStreamToWalked=11 viaObtained=0 \
+   routeCarry=56 routeFwd=49 routeClosed=35 routeToWalked=98 routeStreamToWalked=11 viaObtained=0 \
    viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=16 carry=289 fwd=697 punt=78 \
    closed=21] buildStreamSlots=16 buildSpines=10 routePairs=7 routeSpines=5 k=14 kHeads=6 \
    streamBuilders=8"

@@ -494,15 +494,14 @@ def expectedSites : List String :=
    "accum_content_on_noPending→keyctx_of_preprocess.h_close → keyctx_of_preprocess.h_close: spends=2 (node 1) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
    "accum_flow_open_depth0→flowKeyRoute_of_root.h_close → flowKeyRoute_of_root.h_close: spends=2 (node 2) handoffs=0 carries=0 NEITHER reach=1 reachJudged=0 reachBoth=false"]
 -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedSpends : List String :=
   -- Item 305: two spends more at `closeThenBlock` — the slot's inner pack through `slotLandedSeq`
   -- for the first entry's stack (`h_slotV`, the landed arm) and through the compact fill for the
   -- compact entry's (`h_closeFV` at the compact arm), both under `KeyFrames.bottom`.
   ["accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=no",
    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv] cmp=no",
    "accum_block_on_pendingBlock handoff→accum_block_on_closeThenBlock.h_close_pending @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=yes[hkn:¬k = n,_hge:n ≥ k]",
-   "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
@@ -575,9 +574,10 @@ def expectedEmpties : List String :=
 -- 2026-10-20 (item 307): corrected from the census — the dedent route's two new empties: `emptyInd` 10 → 11.
 -- 2026-10-23 (item 345): empties 23 → 24 — the EMPTY-entry twin relay in `accum_content_on_pendingBlock_indented`.
 -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedLine : String :=
-  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=20 spendsC=6 \
-spendsE=0 spendsN=14 handoffs=4 carries=0 untyped=0 edges=2 paramsWalked=6 widthInd=5 \
+  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=18 spendsC=6 \
+spendsE=0 spendsN=12 handoffs=4 carries=0 untyped=0 edges=2 paramsWalked=6 widthInd=5 \
 widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 \
 handInd=4 handDirect=4 handCmp=4 sitesBoth=2 sitesWidth=2 sitesNeither=1 sitesBothAll=1 \
 empties=24 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=19 \

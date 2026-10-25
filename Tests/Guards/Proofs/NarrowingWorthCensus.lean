@@ -343,19 +343,10 @@ those heads and `expectedChainFaces` not naming a single one of them. -/
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (binder indices).
 def expectedChainFaces : List String :=
   ["FlowBaseRoutes.mk#7 (vslot)",
-   -- Item 287: these four read two binders earlier, past the retired
-   -- `sp_block_ctx` and `h_stream_fallback`.
-   "PendingNode.pendingBlock#14 (h_kslotUp)",
-   "PendingNode.pendingBlockContent#17 (h_kslotUp)",
-   "PendingNode.pendingContent#9 (h_vpack)",
-   "PendingNode.pendingMapValue#15 (h_kslot)",
-   "PendingNode.pendingProps#21 (h_kslot)",
    "accum_block_on_closeThenBlock#10 (h_vpack)",
    "accum_block_on_pendingBlock#29 (h_kslotUp)",
    "accum_block_on_pendingBlockContent#34 (h_kslotUp)",
    "accum_block_on_pendingContent#16 (h_vpack)",
-   "accum_content_on_pendingBlock_indented#29 (h_kslotUp_old)",
-   "accum_content_on_pendingMapValue_indented#17 (h_kslot)",
    "colon_open_map_implicit#12 (h_kslot)",  -- item 311: `{alt : Prop}` precedes it
    "colon_open_map_props#11 (h_kslot)",
    "entryKeyPack_of_dispatch#11 (h_nodeV)",
@@ -557,9 +548,8 @@ innerSplits=32"
 def expectedWorthLedger : List String :=
   ["splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
    "splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
-   -- 2026-10-23 (item 344): `on_pendingBlock#29` splits 6 → 7 (the relayed `h_valFV`), sorted above `h_closeF99`.
-   "splits=8 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    "splits=7 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#30",
+   "splits=7 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
    "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#36",
    "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#36",
@@ -570,9 +560,7 @@ def expectedWorthLedger : List String :=
    "splits=3 sup=1 - h_kslotUp_old :: accum_content_on_pendingBlock_indented#29",
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
-   "splits=3 sup=1 chain h_kslot :: accum_content_on_pendingMapValue_indented#17",
-   "splits=3 sup=1 chain h_kslotUp :: accum_block_on_pendingBlock#29",
-   "splits=3 sup=1 chain h_kslotUp_old :: accum_content_on_pendingBlock_indented#29",
+   "splits=2 sup=1 - h_resV_land :: colon_open_map#26",
    "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#35",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#13",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_props#12",
@@ -587,10 +575,7 @@ def expectedWorthLedger : List String :=
    "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#15",
    "splits=1 sup=1 - h_mapFV108 :: accum_block_on_pendingContent#35",
    "splits=1 sup=1 - h_resV_land :: question_open_map#27",
-   "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#28",
-   "splits=1 sup=1 chain h_kslot :: colon_open_map_implicit#12",
-   "splits=1 sup=1 chain h_kslot :: colon_open_map_props#11",
-   "splits=1 sup=1 chain h_kslotUp :: accum_block_on_pendingBlockContent#34"]
+   "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#28"]
 
 /-- **What the mandate's instrument could have answered.**  Of the 36 pairs a
     narrowing would target, this many have a face a scanner-state census can
@@ -847,7 +832,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
 -- 2026-10-24 (item 350): theorems 6073 → 6076 — `notQuestion_push_top`, `scanValue_notQuestion`,
 -- `dispatchBlock_colon_notQuestion`.
-def expectedNoopTally : String := "theorems=6277 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=6290 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

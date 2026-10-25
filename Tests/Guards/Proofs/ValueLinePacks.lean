@@ -749,16 +749,17 @@ def expectedFramesOn : List String := [
   -- item 311: `colon_open_map_implicit` states the alternative generically (`{alt : Prop}`), so its premise reads
   -- `arm=l/stamp` (a right disjunct other than `True`), as the three generic helpers do since item 309.
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 def expectedParams : List String := ["accum_block_on_closeThenBlock.h_vpack arm=l lvl=∃ns∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_block_on_pendingBlock.h_kslot arm=l lvl=∃nv premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_block_on_pendingBlock.h_kslotUp arm=l lvl=∃ns∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_block_on_pendingBlockContent.h_kslot arm=l lvl=∃nv premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_block_on_pendingBlockContent.h_kslotUp arm=l lvl=∃ns∀nv∈ns premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_block_on_pendingContent.h_vpack arm=l lvl=∃ns∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
-   "accum_content_on_pendingBlock_indented.h_kslotUp_old arm=l lvl=∃ns∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
+   "accum_content_on_pendingBlock_indented.h_kslotUp_old arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_content_on_pendingBlock_indented.h_kslot_old arm=l lvl=∃nv premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_content_on_pendingMapValue_indented.h_ivl_mv arm=r/stamp lvl=(sp_scan.col=n + 1) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
-   "accum_content_on_pendingMapValue_indented.h_kslot arm=l lvl=∃ns∀nv∈ns premises=[SBlockNode(n + 1),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
+   "accum_content_on_pendingMapValue_indented.h_kslot arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockNode(n + 1),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "accum_content_on_pendingMapValue_indented.h_vslot arm=l lvl=(sp_scan.col=n + 1) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
    "colon_open_map_explicit.hvp arm=l lvl= premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
    "colon_open_map_implicit.h_kslot arm=l/stamp lvl=∃ns∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ SLYamlStream tail=no",
@@ -1065,12 +1066,13 @@ def expectedPerPos : List String := [
 -- — `h_explUp`'s alternative is the stamp `NotQuestionPark sc`; `inr` arms spend `empty`.
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 def expectedLine : String :=
-  "packs=11 framesOn=7 params=29 paramLemmas=19 apps=51 rows=151 ctorRows=74 \
-paramRows=77 punt=17 stamp=20 empty=0 relay=32 step=8 via=9 chain=52 route=3 \
-frames=4 tail=0 other=0 alt=6 held=8 levelVar=36 none=30 spendTail=3 lemmas=21 \
-helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion] \
-touched=134 nodes=13520"
+  "packs=11 framesOn=7 params=29 paramLemmas=19 apps=51 rows=148 ctorRows=74 \
+paramRows=74 punt=33 stamp=20 empty=0 relay=23 step=12 via=9 chain=39 route=3 \
+frames=3 tail=0 other=0 alt=6 held=5 levelVar=30 none=25 spendTail=0 lemmas=21 \
+helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion,frameChainUnionD] \
+touched=115 nodes=13478"
 
 /-! ## §4 The reading -/
 

@@ -647,6 +647,7 @@ def expectedSpends : List String :=
 -- `h_valFV` now relays `h_closeFV_old`'s node-domained closure.
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 def expectedDecisions : List String :=
   -- Item 305: `closeThenBlock`'s landed-`-` arm decides the first entry's stack on the `?` slot (`h_slotV`, a third `dite kn [nv ≤ k]`), the bound-carrying `h_closeFV_old` prints its new first conjunct, and the nested arms' pushes read as carries.
   -- Item 307: the two block routes' dedent arms build `h_vpack` and `h_mapFV` from `h_closeFV_old`
@@ -667,8 +668,8 @@ def expectedDecisions : List String :=
    "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass×4|punt pos=—",
    "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
    "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
-   "accum_block_on_pendingBlock dite kn [k = n] → E:empty×4|E:node×6,P:hand,E:carry,E:empty×3 pos=—",
-   "accum_block_on_pendingBlock Or.casesOn kn [n < k ∨ n ≥ k] → E:node×5|P:hand,E:carry,E:empty×3,E:node pos=—",
+   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×7,E:node×5,P:hand,E:carry×2,P:spend×4,E:pass×5|E:prem,E:node×5,E:pass pos=above#3,above#4,above#5,above#6",
+   "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×7,E:node×5,P:hand,E:carry×2,P:spend×4,E:pass×5|— pos=above#3,above#4,above#5,above#6",
    "accum_block_on_pendingBlock dite kmem [k ∈ nsU] → paid,E:carry,E:pass|— pos=—",
    "accum_block_on_pendingBlock dite knv [nv = k] → —|— pos=—",
    "accum_block_on_pendingBlock Or.casesOn k∃ [h_upSpend:(∀ (sp_m : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp_m →…] → —|— pos=—",
@@ -679,9 +680,9 @@ def expectedDecisions : List String :=
    "flowKeyRoute_of_root match k∃ [h_resV_land:(∃ nv ks', (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks' → fr.w…] → paid|punt pos=—",
    "flowKeyRoute_of_root match k∃ [h_res_land,h_sfx,h_nodoc:((∃ ks', (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks' → fr.wid…] → paid|paid|paid|paid,P:spend pos=—",
    "flowKeyRoute_of_root match k∃ [h_resV_land:(∃ nv ks', (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks' → fr.w…] → paid|punt pos=—",
-   "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|E:prem,E:node×6,E:pass pos=above#3,above#4,above#5,above#6",
-   "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×8,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×5|— pos=above#3,above#4,above#5,above#6",
-   "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×7,E:node×6,P:hand,E:carry|P:spend×4,E:pass×5,E:empty,E:carry pos=above#3,above#4,above#5,above#6",
+   "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×6,E:node×5,P:hand,E:carry|P:spend×4,E:pass×5,E:empty,E:carry pos=above#3,above#4,above#5,above#6",
+   "accum_block_on_pendingBlock dite kn [k = n] → E:empty×3|E:node×5,P:hand,E:carry,E:empty×3 pos=—",
+   "accum_block_on_pendingBlock Or.casesOn kn [n < k ∨ n ≥ k] → E:node×4|P:hand,E:carry,E:empty×3,E:node pos=—",
    "accum_block_on_pendingBlock dite char [c = ':' ∨ c = '?'] → P:spend×4,E:pass×5,E:empty,E:carry|— pos=above#3,above#4,above#5,above#6",
    "accum_block_on_pendingBlock dite col0 [sp_scan.col = 0] → punt|paid pos=beside#3",
    "accum_block_on_pendingBlock dite kn [n + 1 ≤ k] → E:pass×4|punt pos=beside#3",
