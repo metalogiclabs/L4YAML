@@ -576,12 +576,7 @@ def expectedEmpties : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedLine : String :=
-  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=18 spendsC=6 \
-spendsE=0 spendsN=12 handoffs=4 carries=0 untyped=0 edges=2 paramsWalked=6 widthInd=5 \
-widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 \
-handInd=4 handDirect=4 handCmp=4 sitesBoth=2 sitesWidth=2 sitesNeither=1 sitesBothAll=1 \
-empties=24 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=19 \
-pairs=19 pairs21=18 pairs18=16 nonANoDrop=8 reach=38"
+  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=18 spendsC=6 spendsE=0 spendsN=12 handoffs=4 carries=0 untyped=0 edges=2 paramsWalked=6 widthInd=5 widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 handInd=4 handDirect=4 handCmp=4 sitesBoth=2 sitesWidth=2 sitesNeither=1 sitesBothAll=1 empties=24 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=20 pairs=20 pairs21=19 pairs18=17 nonANoDrop=8 reach=38"
 
 /-! ## §5 The reading -/
 
@@ -755,9 +750,9 @@ sites={sites.size} pairs={pairs.size} pairs21={shapeComps.size} pairs18={noDrop.
   logInfo s!"empties:\n{String.intercalate "\n" emptyLines.toList}"
   -- the cross-instrument checks: items 249's and 250's frames, re-derived here
   -- (2026-10-24, B3 [66] col-0 threading: 23/21/21/18 → 19/19/18/16, as StreamCompositions pins)
-  unless sites.size == 19 && pairs.size == 19 && shapeComps.size == 18 && noDrop.size == 16 do
+  unless sites.size == 20 && pairs.size == 20 && shapeComps.size == 19 && noDrop.size == 17 do
     throwError "item 249's frame moved under this pass: sites={sites.size} pairs={pairs.size} shapeComps={shapeComps.size} noDrop={noDrop.size}"
-  unless aPairs.size == 8 && nonANoDrop.size == 8 do
+  unless aPairs.size == 9 && nonANoDrop.size == 8 do
     throwError "item 250's frame moved under this pass: aPairs={aPairs.size} nonANoDrop={nonANoDrop.size}"
   let check (name : String) (gotL : Array String) (exp : List String) : MetaM Unit := do
     let gotL := gotL.map (·.trimAscii.toString)

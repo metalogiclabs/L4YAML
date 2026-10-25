@@ -435,40 +435,42 @@ def expectedExhibits : List String :=
    "slotMapRoute_closedFirst ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⊢ SBlockIndented.empty(prem:SSLComments) paths=1 CLOSED-FIRST",
    "slotMapRouteC ⟶ (fact) ⊢ SBlockIndented.node(SBlockNode.blockMap(GOpt.none,prem:SSLComments,SBlockMapEntries.single(prem:SIndent,prem:SBlockMapEntry))) paths=1"]
 def expectedAPlain : List String :=
-  ["question_open_map:pendingMapValue.h_close [SBlockNode(_+1,blockIn) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
-   "question_open_map:pendingMapValue.h_ivl [[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
-   "question_open_map:pendingMapValue.h_expl [SBlockMapEntry(_) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
-   "question_open_map:pendingMapValue.h_vslot [[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
-   "question_open_map:pendingMapValue.h_closeF [SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
-   "question_open_map:pendingMapValue.h_frames [SSLComments ⇒ Resume(_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
-   "question_open_map:pendingMapValue.h_closeFV [SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)] T1 hops=rootMapRoute,rootMapRoute_or_refused",
-   "question_open_map:pendingMapValue.h_framesV [SSLComments ⇒ Key(_)▹ExplValueLine(_)] T1 hops=rootMapRoute,rootMapRoute_or_refused",
-   "colon_open_map:pendingMapValue.h_close [SBlockNode(_+1,blockIn) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
-   "colon_open_map:pendingMapValue.h_closeF [SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
-   "colon_open_map:pendingMapValue.h_frames [SSLComments ⇒ Resume(_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
-   "content_dispatch_after_close→content_dispatch_routed.h_route [SBlockNode(0,blockIn) ⇒ Stream] N hops=bareNodeRoute"]
+  [ "question_open_map:pendingMapValue.h_close [SBlockNode(_+1,blockIn) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
+    "question_open_map:pendingMapValue.h_ivl [[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
+    "question_open_map:pendingMapValue.h_expl [SBlockMapEntry(_) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
+    "question_open_map:pendingMapValue.h_vslot [[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
+    "question_open_map:pendingMapValue.h_closeF [SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
+    "question_open_map:pendingMapValue.h_frames [SSLComments ⇒ Resume(_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
+    "question_open_map:pendingMapValue.h_closeFV [SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_)] T1 hops=rootMapRoute,rootMapRoute_or_refused",
+    "question_open_map:pendingMapValue.h_framesV [SSLComments ⇒ Key(_)▹ExplValueLine(_)] T1 hops=rootMapRoute,rootMapRoute_or_refused",
+    "colon_open_map:pendingMapValue.h_close [SBlockNode(_+1,blockIn) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused",
+    "colon_open_map:pendingMapValue.h_closeF [SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
+    "colon_open_map:pendingMapValue.h_frames [SSLComments ⇒ Resume(_)▹Stream] T2 hops=rootMapRouteF,rootMapRouteF_or_refused",
+    "content_dispatch_after_close→content_dispatch_routed.h_route [SBlockNode(0,blockIn) ⇒ Stream] N hops=bareNodeRoute",
+    "question_open_map:pendingMapValue.h_kslot [SBlockNode(_+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream] T1 hops=rootMapRoute,rootMapRoute_or_refused"]
 def expectedAPairs : List String :=
-  ["SBlockMapEntry(_) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1",
-   "SBlockNode(0,blockIn) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ N",
-   "SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_) ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ KeyFrames.bottom[S] ⟵ T1",
-   "SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ ResumeFrames.bottom[S] ▹ ResumeFrames.level[var:∀→lt,S] ⟵ T2",
-   "SBlockNode(_+1,blockIn) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1",
-   "SSLComments ⇒ Key(_)▹ExplValueLine(_) ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ KeyFrames.bottom[S] ⟵ T1",
-   "SSLComments ⇒ Resume(_)▹Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ ResumeFrames.bottom[S] ▹ ResumeFrames.level[var:∀→lt,S] ⟵ T2",
-   "[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1"]
+  [ "SBlockMapEntry(_) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1",
+    "SBlockNode(0,blockIn) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ N",
+    "SBlockNode(_+1,blockIn) ⇒ Key(_)▹ExplValueLine(_) ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ KeyFrames.bottom[S] ⟵ T1",
+    "SBlockNode(_+1,blockIn) ⇒ Resume(map(_)::_)▹Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ ResumeFrames.bottom[S] ▹ ResumeFrames.level[var:∀→lt,S] ⟵ T2",
+    "SBlockNode(_+1,blockIn) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1",
+    "SSLComments ⇒ Key(_)▹ExplValueLine(_) ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ KeyFrames.bottom[S] ⟵ T1",
+    "SSLComments ⇒ Resume(_)▹Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ▹ ResumeFrames.bottom[S] ▹ ResumeFrames.level[var:∀→lt,S] ⟵ T2",
+    "[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1",
+    "SBlockNode(_+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1"]
 def expectedAvail : List String :=
-  ["accum_block_on_closeThenBlock: behind=[h_vslot:blockOut] ahead=[h_vpack:blockOut]",
-   "accum_block_on_pendingBlock: behind=[h_close_entry_old:blockIn, h_kslot:blockIn/blockOut, h_seqF_old:blockIn, h_kslotUp:blockIn/blockOut, h_closeFV_old:blockIn] ahead=[]",
-   "accum_block_on_pendingBlockContent: behind=[] ahead=[h_kslot:blockOut, h_kslotUp:blockOut]",
-   "accum_block_on_pendingContent: behind=[] ahead=[h_vpack:blockOut]",
-   "accum_content_on_pendingBlock_indented: behind=[h_close_old:blockIn, h_close_entry_old:blockIn, h_kslot_old:blockIn/blockOut, h_closeF_old:blockIn, h_seqF_old:blockIn, h_kslotUp_old:blockIn/blockOut, h_closeFV_old:blockIn] ahead=[]",
-   "accum_content_on_pendingMapValue_indented: behind=[h_vslot:blockOut, h_ivl_mv:blockOut] ahead=[h_kslot:blockOut]",
-   "colon_open_map_explicit: behind=[] ahead=[hvp:blockOut]",
-   "colon_open_map_implicit: behind=[] ahead=[h_kslot:blockOut]",
-   "colon_open_map_props: behind=[] ahead=[h_kslot:blockOut]",
-   "compact_open_map: behind=[h_close_old:var] ahead=[]",
-   "indicator_open_map: behind=[] ahead=[h_explUp_chain:blockOut]",
-   "question_open_map: behind=[] ahead=[h_explUp_chain:blockOut]"]
+  [ "accum_block_on_closeThenBlock: behind=[h_vslot:blockOut] ahead=[h_vpack:blockOut]",
+    "accum_block_on_pendingBlock: behind=[h_close_entry_old:blockIn, h_kslot:blockIn/blockOut, h_seqF_old:blockIn, h_kslotUp:blockIn/blockOut, h_closeFV_old:blockIn] ahead=[]",
+    "accum_block_on_pendingBlockContent: behind=[] ahead=[h_kslot:blockOut, h_kslotUp:blockOut]",
+    "accum_block_on_pendingContent: behind=[] ahead=[h_vpack:blockOut]",
+    "accum_content_on_pendingBlock_indented: behind=[h_close_old:blockIn, h_close_entry_old:blockIn, h_kslot_old:blockIn/blockOut, h_closeF_old:blockIn, h_seqF_old:blockIn, h_kslotUp_old:blockIn/blockOut, h_closeFV_old:blockIn] ahead=[]",
+    "accum_content_on_pendingMapValue_indented: behind=[h_vslot:blockOut, h_ivl_mv:blockOut] ahead=[h_kslot:blockOut]",
+    "colon_open_map_explicit: behind=[] ahead=[hvp:blockOut]",
+    "compact_open_map: behind=[h_close_old:var] ahead=[]",
+    "colon_open_map_implicit: behind=[] ahead=[h_kslotD:blockOut]",
+    "colon_open_map_props: behind=[] ahead=[h_kslotD:blockOut]",
+    "indicator_open_map: behind=[] ahead=[h_explUp_chain:blockOut, h_explUp_chainD:blockOut]",
+    "question_open_map: behind=[] ahead=[h_explUp_chain:blockOut, h_explUp_chainD:blockOut]"]
 def expectedFunnel : List String :=
   ["accum_block_on_closeThenBlock → indicator_open_map: h_explUp_chain paid:slotChainMap",
    "accum_block_on_noPending → indicator_open_map: h_explUp_chain punted",
@@ -476,7 +478,7 @@ def expectedFunnel : List String :=
    "accum_block_on_pendingBlockContent → indicator_open_map: h_explUp_chain punted"]
 -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram`.
 def expectedLine : String :=
-  "aPairs=8 aSites=12 t1Pairs=5 t1Sites=7 t2Pairs=2 t2Sites=4 nPairs=1 nSites=1 multi=0 inline=0 covered1=5 covered2=7 stackedPairs=0 stackedNoDrop=0 nonA=10 nonANoDrop=8 pairs21=18 pairs18=16 sites=19 pairs=19 exhibits=5 closedFirst=1 handedNode=4 avail=12 behindLemmas=5 behindOpeners=0 aheadOpeners=1 funnelApps=4 paid=2 punted=2 other=0 chainApps=3 entryApps=3 qApps=1 cApps=1 reach=38"
+  "aPairs=9 aSites=13 t1Pairs=6 t1Sites=8 t2Pairs=2 t2Sites=4 nPairs=1 nSites=1 multi=0 inline=0 covered1=6 covered2=8 stackedPairs=0 stackedNoDrop=0 nonA=10 nonANoDrop=8 pairs21=19 pairs18=17 sites=20 pairs=20 exhibits=5 closedFirst=1 handedNode=4 avail=12 behindLemmas=5 behindOpeners=0 aheadOpeners=2 funnelApps=4 paid=2 punted=2 other=0 chainApps=3 entryApps=5 qApps=1 cApps=1 reach=38"
 
 /-! ## §6 The reading -/
 
@@ -577,7 +579,7 @@ funnelApps={fLines.size} paid={paid} punted={punted} other={other} chainApps={ch
   logInfo s!"funnel:\n{String.intercalate "\n" (fLines.map ("  " ++ ·)).toList}"
   -- the cross-instrument check: item 249's frame, re-derived here
   -- (2026-10-24, B3 [66] col-0 threading: 23/21/21/18 → 19/19/18/16, as StreamCompositions pins)
-  unless sites.size == 19 && pairs.size == 19 && shapeComps.size == 18 && noDrop.size == 16 do
+  unless sites.size == 20 && pairs.size == 20 && shapeComps.size == 19 && noDrop.size == 17 do
     throwError "item 249's frame moved under this pass: sites={sites.size} pairs={pairs.size} shapeComps={shapeComps.size} noDrop={noDrop.size}"
   let check (name : String) (gotL : Array String) (exp : List String) : MetaM Unit := do
     let gotL := gotL.map (·.trimAscii.toString)
