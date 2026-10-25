@@ -266,6 +266,64 @@ lemma scanKey_witness {s s' : ScannerState} {sp sp_start : SurfPos}
         omega
 
 
+/-- **Item 357: the `?`'s own mark.**  A `?` scanned outside flow marks the level at its
+    own column, so the marked columns after the scan are the old ones plus the `?`'s
+    column — the domain `question_open_map` owes for `k :: ns`.  Lockstep (`SlotsOk`)
+    is what pairs the marked slot with the pushed column. -/
+lemma scanKey_markedCols {s s' : ScannerState} {ns : List Nat}
+    (h_noflow : s.inFlow = false) (hok : scanKey s = .ok s') (hs : SlotsOk s)
+    (hbase : SentinelBase s) (hcol : s.currentIndent ≤ (s.col : Int))
+    (h : MarkedColsIn s ns) : MarkedColsIn s' ((s.col : Int).toNat :: ns) := by
+  have hind := L4YAML.Proofs.PreprocessIndentStable.scanKey_indents h_noflow hok
+  have hpk := scanKey_pendingKeys h_noflow hok
+  obtain ⟨pm, hpm⟩ : ∃ pm, pm = pushMappingIndent s (s.col : Int) := ⟨_, rfl⟩
+  rw [← hpm] at hind hpk
+  have hsl : SlotsOk pm := hpm ▸ pushMappingIndent_slots s _ hs
+  have hsz := hsl.1
+  have hpos : 0 < pm.indents.size :=
+    hpm ▸ (L4YAML.Proofs.IndentStackBase.pushMappingIndent_base s _ hbase).size_pos
+  have htop_ci : pm.currentIndent = (s.col : Int) := by
+    rw [hpm]
+    exact Int.le_antisymm (L4YAML.Proofs.IndentStackCover.pushMappingIndent_top_le hcol)
+      (L4YAML.Proofs.PreprocessIndentStable.pushMappingIndent_le s _)
+  have htop : pm.indentColumns[pm.indents.size - 1]? = some (s.col : Int) := by
+    rw [indentColumns_getElem?, Array.getElem?_eq_getElem (by omega)]
+    simp only [Option.map_some]
+    rw [← L4YAML.Proofs.IndentStackMono.currentIndent_eq_last hpos, htop_ci]
+  have hcols' : s'.indentColumns = pm.indentColumns := by
+    simp [ScannerState.indentColumns, hind]
+  intro i l c hi hc
+  rw [hcols'] at hc
+  rw [hpk, Array.set!_eq_setIfInBounds, Array.getElem?_setIfInBounds] at hi
+  split at hi
+  · rename_i heq
+    subst heq
+    rw [htop] at hc
+    cases hc
+    exact List.mem_cons_self
+  · rename_i hne
+    have hi' : i < pm.indents.size := by
+      obtain ⟨hlt, _⟩ := Array.getElem?_eq_some_iff.1 hi
+      omega
+    by_cases hlt : i < s.indents.size
+    · obtain ⟨hpk_i, hcol_i⟩ := hpm ▸ pushMappingIndent_getElem?_of_lt s (s.col : Int) i hlt hs.1
+      rw [hpk_i] at hi
+      rw [hcol_i] at hc
+      exact List.mem_cons_of_mem _ (h i l c hi hc)
+    · exfalso
+      rw [hpm] at hi
+      unfold pushMappingIndent at hi
+      have hsz0 := hs.1
+      split at hi
+      · simp only [ScannerState.emit] at hi
+        rw [Array.getElem?_push] at hi
+        split at hi
+        · simp at hi
+        · obtain ⟨hlt', _⟩ := Array.getElem?_eq_some_iff.1 hi
+          omega
+      · obtain ⟨hlt', _⟩ := Array.getElem?_eq_some_iff.1 hi
+        omega
+
 /-! ## §3  The writers (DOCS item 343)
 
 `SlotsWitness` reads `pendingKeys`, `indents` and `input` only, so a writer is one of
@@ -470,6 +528,157 @@ lemma scanBlockEntry_witness {input : String} {s s' : ScannerState} {sp_start : 
   (pushSequenceIndent_witness (s.col : Int) h hs.1).transport
     (scanBlockEntry_pendingKeys hnf hok)
     (L4YAML.Proofs.PreprocessIndentStable.scanBlockEntry_indents hnf hok)
+
+/-! ### Item 357: the domain `MarkedColsIn` along the block writers
+
+Mirrors of the `SlotsWitness` writers above: a PUSH adds an empty slot (no new mark), a
+CLOSE keeps or empties a slot, and the `?` mark is `scanKey_markedCols`.  Every block
+indicator step therefore lands in the domain `(s.col).toNat :: ns` — the `?`'s own
+column joins, the others only shrink. -/
+
+lemma MarkedColsIn.push {s s' : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns)
+    (e : IndentEntry) (hind : s'.indents = s.indents.push e)
+    (hpk : s'.pendingKeys = s.pendingKeys.push none)
+    (hsz : s.pendingKeys.size = s.indents.size) : MarkedColsIn s' ns := by
+  intro i l c hi hc
+  rw [hpk, Array.getElem?_push] at hi
+  split at hi
+  · simp at hi
+  · have hlt : i < s.pendingKeys.size := (Array.getElem?_eq_some_iff.1 hi).1
+    rw [indentColumns_getElem?, hind, Array.getElem?_push, if_neg (by omega)] at hc
+    exact h i l c hi (by rw [indentColumns_getElem?]; exact hc)
+
+lemma MarkedColsIn.closeAt_eq {s s' : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns) (col : Int)
+    (hpk : s'.pendingKeys = PendingKeys.closeAt s.indentColumns s.pendingKeys col)
+    (hind : s'.indents = s.indents) : MarkedColsIn s' ns := by
+  intro i l c hi hc
+  rw [hpk] at hi
+  rw [ScannerState.indentColumns, hind] at hc
+  exact h i l c (closeAt_marked _ _ _ _ _ hi).1 hc
+
+lemma pushSequenceIndent_markedCols {s : ScannerState} {ns : List Nat} (col : Int)
+    (h : MarkedColsIn s ns) (hsz : s.pendingKeys.size = s.indents.size) :
+    MarkedColsIn (pushSequenceIndent s col) ns := by
+  unfold pushSequenceIndent
+  split
+  · exact h.push { column := col, isSequence := true } (by simp [ScannerState.emit])
+      (by simp [ScannerState.emit]) hsz
+  · exact h
+
+lemma pushMappingIndent_markedCols {s : ScannerState} {ns : List Nat} (col : Int)
+    (h : MarkedColsIn s ns) (hsz : s.pendingKeys.size = s.indents.size) :
+    MarkedColsIn (pushMappingIndent s col) ns := by
+  unfold pushMappingIndent
+  split
+  · exact h.push { column := col, isSequence := false } (by simp [ScannerState.emit])
+      (by simp [ScannerState.emit]) hsz
+  · exact h
+
+lemma scanValueClearKey_markedCols {s : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns) : MarkedColsIn (scanValueClearKey s) ns :=
+  h.transport (scanValueClearKey_core s).2.1 (scanValueClearKey_core s).1
+
+lemma scanValuePrepare_markedCols {s : ScannerState} {ns : List Nat}
+    (h : MarkedColsIn s ns) (hsz : s.pendingKeys.size = s.indents.size) :
+    MarkedColsIn (scanValuePrepare s) ns := by
+  unfold scanValuePrepare
+  split
+  · split
+    · split
+      · exact h.push _ rfl rfl hsz
+      · exact h
+    · exact h
+  · split
+    · exact h
+    · split
+      · exact pushMappingIndent_markedCols _ h hsz
+      · exact h
+
+lemma scanValue_markedCols {s s' : ScannerState} {ns : List Nat}
+    (hok : scanValue s = .ok s') (h : MarkedColsIn s ns) (hs : SlotsOk s) :
+    MarkedColsIn s' ns := by
+  unfold scanValue at hok
+  simp only [bind, Except.bind] at hok
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  split at hok <;> try contradiction
+  simp only [Except.ok.injEq] at hok
+  subst hok
+  have hsz_kc : (scanValueClearKey s).pendingKeys.size = (scanValueClearKey s).indents.size := by
+    rw [(scanValueClearKey_core s).2.1, (scanValueClearKey_core s).1]; exact hs.1
+  have hw_p : MarkedColsIn (scanValuePrepare (scanValueClearKey s)) ns :=
+    scanValuePrepare_markedCols (scanValueClearKey_markedCols h) hsz_kc
+  have hadv_pk : (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).pendingKeys
+      = (scanValuePrepare (scanValueClearKey s)).pendingKeys := by
+    rw [advance_preserves_pendingKeys, emit_pendingKeys]
+  have hadv_ind : (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).indents
+      = (scanValuePrepare (scanValueClearKey s)).indents := by
+    rw [L4YAML.Proofs.EmitterScannability.advance_preserves_indents]; rfl
+  have hw_adv : MarkedColsIn (((scanValuePrepare (scanValueClearKey s)).emit .value).advance) ns :=
+    hw_p.transport hadv_pk hadv_ind
+  split
+  · exact hw_adv.transport rfl rfl
+  · split
+    · exact hw_adv.transport rfl rfl
+    · exact hw_adv.closeAt_eq _ rfl rfl
+
+lemma scanBlockEntry_markedCols {s s' : ScannerState} {ns : List Nat}
+    (hnf : s.inFlow = false) (hok : scanBlockEntry s = .ok s')
+    (h : MarkedColsIn s ns) (hs : SlotsOk s) : MarkedColsIn s' ns :=
+  (pushSequenceIndent_markedCols (s.col : Int) h hs.1).transport
+    (scanBlockEntry_pendingKeys hnf hok)
+    (L4YAML.Proofs.PreprocessIndentStable.scanBlockEntry_indents hnf hok)
+
+/-- A block step that is not a `?` adds no mark: the domain transports unchanged. -/
+lemma dispatchBlockIndicators_markedCols_of_ne {s s' : ScannerState} {c : Char} {ns : List Nat}
+    (hok : scanNextToken_dispatchBlockIndicators s c = .ok (some s'))
+    (hne : c ≠ '?') (h : MarkedColsIn s ns) (hs : SlotsOk s) : MarkedColsIn s' ns := by
+  by_cases hf : s.inFlow = true
+  · exact h.transport (dispatchBlockIndicators_preserves_pendingKeys hf hok)
+      (L4YAML.Proofs.FlowIndentStable.dispatchBlockIndicators_preserves_indents hf hok)
+  · have hnf : s.inFlow = false := by simpa using hf
+    unfold scanNextToken_dispatchBlockIndicators at hok
+    simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+    repeat (any_goals (split at hok))
+    any_goals contradiction
+    all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at *)
+    any_goals contradiction
+    all_goals (try subst_vars)
+    all_goals first
+      | exact scanBlockEntry_markedCols hnf (by assumption) h hs
+      | (exfalso
+         have hq := ‹(c == '?' && isKeyCandidate s && flowKeyPredecessorOk s
+           && flowKeyFollowerOk s) = true›
+         simp only [Bool.and_eq_true, beq_iff_eq] at hq
+         exact hne hq.1.1.1)
+      | exact scanValue_markedCols (by assumption) h hs
+
+/-- **The block step lands in `(s.col).toNat :: ns`**: `-` and `:` add no mark, the `?` adds
+    its own column. -/
+lemma dispatchBlockIndicators_markedCols {s s' : ScannerState} {c : Char} {ns : List Nat}
+    (hok : scanNextToken_dispatchBlockIndicators s c = .ok (some s'))
+    (h : MarkedColsIn s ns) (hs : SlotsOk s)
+    (hbase : SentinelBase s) (hcol : s.inFlow = false → s.currentIndent ≤ (s.col : Int)) :
+    MarkedColsIn s' ((s.col : Int).toNat :: ns) := by
+  have hmono : ∀ t, MarkedColsIn t ns → MarkedColsIn t ((s.col : Int).toNat :: ns) :=
+    fun _ ht => ht.mono (fun _ hx => List.mem_cons_of_mem _ hx)
+  by_cases hf : s.inFlow = true
+  · exact hmono _ (h.transport (dispatchBlockIndicators_preserves_pendingKeys hf hok)
+      (L4YAML.Proofs.FlowIndentStable.dispatchBlockIndicators_preserves_indents hf hok))
+  · have hnf : s.inFlow = false := by simpa using hf
+    unfold scanNextToken_dispatchBlockIndicators at hok
+    simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at hok
+    repeat (any_goals (split at hok))
+    any_goals contradiction
+    all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at *)
+    any_goals contradiction
+    all_goals (try subst_vars)
+    all_goals first
+      | exact hmono _ (scanBlockEntry_markedCols hnf (by assumption) h hs)
+      | exact scanKey_markedCols hnf (by assumption) hs hbase (hcol hnf) h
+      | exact hmono _ (scanValue_markedCols (by assumption) h hs)
 
 /-- A document marker unwinds to the sentinel; the witness follows the unwind and nothing after
     it touches a slot. -/

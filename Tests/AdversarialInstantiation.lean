@@ -4164,6 +4164,59 @@ def testColZeroParks (state : IO.Ref TestCollector) : IO Unit := do
   checkM state "col0/tally" (tally == #[(185, 16, 0), (193, 8, 0), (198, 3, 0), (178, 23, 0), (194, 7, 0)]) s!"tally={repr tally}"
 
 
+/-! ## Priority 26 — the `?`'s own mark (item 357, row 12)
+
+`scanKey_markedCols` / `dispatchBlockIndicators_markedCols`: at every block-indicator step
+the marked columns after the step lie in `s_prep.col :: before`, and when the indicator is a
+block `?` its own column IS newly marked.  Walked on real scans, including nested, compact
+(`? ? a`, `- ? a`), document-marker and flow inputs (flow `?` marks nothing). -/
+
+/-- Walk `scanNextToken` from `mk'`; at every block step whose preprocessed char is `?`
+    outside flow and that emitted a token, check (a) marks after ⊆ `col :: before` and (b) the
+    `?` column is marked afterwards.  Returns `(questionSteps, badSubset, badOwnMark)`. -/
+def walkQuestionMark (input : String) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut q := 0
+  let mut bad := 0
+  let mut own := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if c == '?' && !sp.inFlow && s'.tokens.size > s.tokens.size then
+          q := q + 1
+          let before := markedColsOf sp.pendingKeys sp.indentColumns
+          let after := markedColsOf s'.pendingKeys s'.indentColumns
+          let col := (sp.col : Int).toNat
+          if !(after.all fun x => x == col || before.contains x) then bad := bad + 1
+          if !(after.contains col) then own := own + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (q, bad, own)
+
+def testQuestionMarkColumn (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 26: the `?`'s own mark — scanKey_markedCols (item 357)"
+  -- `(input, block `?` steps expected)`; flow `?` and the `?` after `: ` on one line are not
+  -- block `?` steps.
+  let walks : List (String × Nat) :=
+    [("? a", 1), ("? a\n: b", 1), ("?\n  ? a\n: b", 2), ("? ? a", 2), ("- ? a", 1),
+     ("? - a", 1), ("a: ? b", 0), ("?\n  ?\n    ? -\n: w", 3), ("{ ? a : b }", 0), ("[? a]", 0),
+     ("?\n  ? a\n  ? b\nc: 1", 3), ("? a\n? b\n: c", 2), ("---\n? a", 1), ("&p\n? x\n: v", 1),
+     ("?\n  a: b\n  ? c\n: w", 2), ("- - ? a", 1), ("? : v", 1), ("?\n- a", 1), ("k:\n  ?\nb: 2", 1)]
+  for (input, expectedQ) in walks do
+    let (q, bad, own) := walkQuestionMark input
+    checkM state s!"questionMark/{repr input}: block `?` steps" (q == expectedQ)
+      s!"q {q} expected {expectedQ}"
+    checkM state s!"questionMark/{repr input}: marks after ⊆ `?` col :: before" (bad == 0)
+      s!"bad {bad}"
+    checkM state s!"questionMark/{repr input}: the `?` column is marked" (own == 0)
+      s!"own {own}"
+
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -4197,6 +4250,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testMarkedColsDomain state
   testColZeroParks state
 
+  testQuestionMarkColumn state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
