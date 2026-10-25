@@ -419,6 +419,14 @@ for the owner (question 3).
 3. Weaken 7.7's `←` to carry `traceOf_unique` as a hypothesis until the block
    fragment is proven?  (Default **no** — state it unconditionally and let the
    closure log carry the block-fragment item.)
+   **DECIDED 2026-10-25 by the owner: no, the default.**  7.7's `←` is stated
+   unconditionally; no interim `parse_iff_grammar_of_unique` twin enters the
+   capstone table.  `traceOf_unique` is proved by fragment where it belongs —
+   flow (`tFlowNode_unique`, in progress) then block — and until the block
+   fragment lands there is simply no checked biconditional, which the closure
+   log carries as an open item rather than the statement carrying it as a
+   premise.  The owner's stated reason: nothing is to be added that is not real
+   (no residue predicate, no second weaker capstone).
 
 ### Slice 1 landed (option 1)
 
