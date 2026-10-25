@@ -164,9 +164,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
     -- Item 299: and the marker's line as the scanner's field reads it.
     (h_docline : sc.docStartLine = some sc.line)
     -- Item 320: and the dead register the marker leaves (lane (e)'s field).
-    (h_noek : sc.explicitKeyLine = none) :
+    (h_noek : sc.explicitKeyLine = none)
+    (h_next : sc.inFlow = false → NextIsSep sc) :
     PendingNode sc false sp_start sp_block sp_scan :=
-  PendingNode.pendingDocStart sp_start sp_block sp_scan h_doc_route
+  PendingNode.pendingDocStart (h_next := h_next) sp_start sp_block sp_scan h_doc_route
     h_nic h_real h_marker_tail h_arm h_nodir h_nic0 h_docline h_noek
 
 -- The `[208]` producer's own payment: `l-explicit-document` is what the
@@ -198,9 +199,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_mid : SurfPos}
     (h_nd : danglingNodePos? sc = none)
     -- Item 275: §8.1's silence, carried beside it.
     (h_ui : underIndentedFlowValuePos? sc = none)
-    (h_ssl : SSLComments sp_scan sp_mid) :
+    (h_ssl : SSLComments sp_scan sp_mid)
+    (h_noflow : sc.inFlow = false) :
     SLYamlStream sp_start sp_mid :=
-  h_pending.close_with_ssl h_stream h_nd h_ui h_ssl
+  h_pending.close_with_ssl h_stream h_nd h_ui h_noflow h_ssl
 
 /-! ## §3 `h_nodoc` without the flag premise
 
@@ -218,9 +220,10 @@ example {sc : ScannerState} {sp_start sp : SurfPos}
     -- Item 186: and the register face, the same premise on the scanner side.
     (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
     -- Item 208: and the stack face, paid by the same split of the same eight.
-    (h_ntop : sc.inFlow = false → sc.currentIndent < 0) :
+    (h_ntop : sc.inFlow = false → sc.currentIndent < 0)
+    (h_gate : sc.inFlow = false → sp.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     PendingNode sc false sp_start sp sp :=
-  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop
+  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop h_gate
 
 -- The flow producers pay exactly as before, from the one fact all seven hold.
 example {sc : ScannerState} {n : Nat} {sp_start sp : SurfPos}
@@ -260,9 +263,10 @@ example {sp_start sp_block sp_mid sp_final : SurfPos} {k : Nat}
 example {sc : ScannerState} {sp_start sp sp_land : SurfPos}
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     (h_block : sc.inFlow = false)
-    (h_ssl : SSLComments sp sp_land) :
+    (h_ssl : SSLComments sp sp_land)
+    (h_col0 : sp.col = 0) :
     GStar SLDocumentPrefix sp_start sp_land :=
-  ssl_comments_extend_prefixes (h_nodoc h_block) h_ssl
+  ssl_comments_extend_prefixes (h_nodoc h_block) h_col0 h_ssl
 
 /-! ## §5 The surface that remains
 

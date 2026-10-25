@@ -201,7 +201,8 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
     (h_ne : k ∉ ns)
     (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true)
     -- Item 293: the escape's park reads `flag ∨ live`.
-    (h_live0 : s'.simpleKeyAllowed = true ∨ s'.simpleKey.possible = true) :
+    (h_live0 : s'.simpleKeyAllowed = true ∨ s'.simpleKey.possible = true)
+    (h_gate : s'.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk s' ∧ s'.peek? = some '#')) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -210,6 +211,7 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' s_dis : ScannerState)
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_stamp_offcol sp_start sp_X sp_scan' s' h_stream h_arm
     hcorr h_nodir h_src h_indent h_ne h_nic0 h_live0
+    ⟨sp_scan', GStar.nil _, fun _ => h_gate⟩
 
 /-- `nopack`: nothing about the pack — and, since item 187, the PARK's own
     register, read LIVE.  That is the class's proposition: it is what says the
@@ -225,7 +227,8 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' sc s_dis : ScannerState)
     (h_park : sc.explicitKeyLine ≠ none)
     (h_nic0 : sp_scan'.col = 0 → s'.needIndentCheck = true)
     -- Item 293: the escape's park reads `flag ∨ live`.
-    (h_live0 : s'.simpleKeyAllowed = true ∨ s'.simpleKey.possible = true) :
+    (h_live0 : s'.simpleKeyAllowed = true ∨ s'.simpleKey.possible = true)
+    (h_gate : s'.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk s' ∧ s'.peek? = some '#')) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -234,6 +237,7 @@ example (sp_start sp_X sp_scan' : SurfPos) (s' sc s_dis : ScannerState)
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_stamp_nopack sp_start sp_X sp_scan' s' h_stream h_arm
     hcorr h_nodir h_src h_indent h_park h_nic0 h_live0
+    ⟨sp_scan', GStar.nil _, fun _ => h_gate⟩
 
 /-- …and the transport that produces it at each of the three sites: the branch
     reads the register on the DISPATCH state, and the park is where a carrier
@@ -267,7 +271,8 @@ example (sp_start sp_X sp_scan' sp_park : SurfPos) {sc s_prep s' : ScannerState}
           { s_prep with allowDirectives := false, documentEverStarted := true }
         else s_prep) c = .ok (some s'))
     (hcorr : ScannerSurfCorr s' sp_scan')
-    (h_res : InlineResidue sp_park c) :
+    (h_res : InlineResidue sp_park c)
+    (h_gate : s'.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk s' ∧ s'.peek? = some '#')) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan'',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -276,6 +281,7 @@ example (sp_start sp_X sp_scan' sp_park : SurfPos) {sc s_prep s' : ScannerState}
       ScannerSurfCorr s' sp_scan'' :=
   block_dispatch_deferred_inline sp_start sp_X sp_scan' h_stream h_preprocess h_dispatch
     hcorr h_res
+    ⟨sp_scan', GStar.nil _, fun _ => h_gate⟩
 
 /-- `InlineResidue`'s own shape, pinned: the class is about a park OFF a line
     start, which is what makes it the mid-line `:` rather than a landing. -/
@@ -3450,9 +3456,11 @@ example {sc : ScannerState} {sp_start sp_X sp_scan' : SurfPos}
     -- Item 206: and this, which the section above said would be unpayable.
     (h_nic0 : sp_scan'.col = 0 → sc.needIndentCheck = true)
     -- Item 293: and the park's `flag ∨ live`.
-    (h_live0 : sc.simpleKeyAllowed = true ∨ sc.simpleKey.possible = true) :
+    (h_live0 : sc.simpleKeyAllowed = true ∨ sc.simpleKey.possible = true)
+    (h_gate : sc.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     PendingNode sc false sp_start sp_X sp_scan' :=
   PendingNode.pendingFlow sp_start sp_X sp_scan' h_stream h_arm h_nodir h_nic0 h_live0
+    ⟨sp_scan', GStar.nil _, fun _ => h_gate⟩
 
 end Item205
 
@@ -3703,9 +3711,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan : SurfPos}
     -- which `structural_dispatch_to_pending` reads off `scanDocumentEnd`.
     (h_offer : OfferPred sc.tokens)
     -- Item 320: and the dead register the marker leaves (lane (e)'s field).
-    (h_noek : sc.explicitKeyLine = none) :
+    (h_noek : sc.explicitKeyLine = none)
+    (h_next : sc.inFlow = false → NextIsSep sc) :
     PendingNode sc false sp_start sp_block sp_scan :=
-  PendingNode.pendingDocEnd (h_offer := h_offer) sp_start sp_block sp_scan h_line h_marker h_arm
+  PendingNode.pendingDocEnd (h_next := h_next) (h_offer := h_offer) sp_start sp_block sp_scan h_line h_marker h_arm
     (nic0_of_col_pos (by rw [scDocumentEnd_col h_marker]; omega)) h_noek
 
 /-- …and the `---` park, whose marker its producers hold but the constructor
@@ -4138,14 +4147,15 @@ example {s_prep s' : ScannerState} {sp_prep : SurfPos} {k : Nat} {c : Char}
 example {sc s_prep : ScannerState} {sp : SurfPos} {c : Char}
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
-    (h_nic : sc.needIndentCheck = false) :
+    (h_nic : sc.needIndentCheck = false)
+    (h_gate : sc.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     (∃ sp_mid, SSLComments sp sp_mid ∧ sp_mid.col = 0) ∨
       s_prep.indents = sc.indents := by
   obtain ⟨sp_mid, _, _, h_disj, _, _, _, _⟩ :=
-    preprocess_some_ssl_comments_landing sc sp s_prep c hcorr hok
+    preprocess_some_ssl_comments_landing sc sp s_prep c hcorr hok (GStar.nil _) (fun _ => h_gate)
   rcases h_disj with ⟨h_ssl, h_c0, _⟩ | ⟨_, _, _, h_ids⟩
   · exact Or.inl ⟨sp_mid, h_ssl, h_c0⟩
-  · exact Or.inr (h_ids h_nic)
+  · exact Or.inr (h_ids.1 h_nic)
 
 /-! ### §28.2  The class is EMPTY, and the emptiness is a PROOF
 

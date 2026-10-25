@@ -103,11 +103,12 @@ namespace Tests.Guards.ParkGapCensus
     fall back on. -/
 lemma corr_pair_closes {sc : ScannerState} {sp_start sp_block sp_scan sp_mid : SurfPos}
     (h_block : ScannerSurfCorr sc sp_block) (h_scan : ScannerSurfCorr sc sp_scan)
-    (h_stream : StreamND sp_start sp_block) (h_ssl : SSLComments sp_scan sp_mid) :
+    (h_stream : StreamND sp_start sp_block) (h_ssl : SSLComments sp_scan sp_mid)
+    (hcol : sp_scan.col = 0) :
     StreamND sp_start sp_mid := by
   have heq := ScannerSurfCorr_unique h_block h_scan
   subst heq
-  exact connected_drop_nd h_stream h_ssl
+  exact connected_drop_nd h_stream h_ssl hcol
 
 /-- **…and its price is the park's own content.**  The same pair forces the two
     positions equal, so a park that held both would have absorbed no characters
@@ -259,51 +260,50 @@ spans={String.intercalate "," (s.spans.map (·.getString!)).toList}"
 /-- **The population, re-derived rather than typed.**  Item 238's `D` is four;
     the walk runs over every authored declaration whose proof term references
     the arm or one of the two restatements, which is ten. -/
-def expectedPop : String := "D=4 T=28 pop=10 sites=11"
+-- 2026-10-24 (B3 [66] col-0 threading): T 28 → 29, sites 11 → 12 (one more park-gap carrier reads
+-- `sp_gram`); pop 10 → 9 (two sites now share a shape).
+def expectedPop : String := "D=4 T=29 pop=9 sites=12"
 
 /-- **The answer, in one line.**  Four independent readings of "connected", all
     zero, beside the correspondence census that explains why the fourth is. -/
+-- 2026-10-24 (B3 [66] col-0 threading): corrScan/atPark 5 → 3, parkSpan 6 → 4, noSpan 5 → 8 — two carriers
+-- are stated from the park's grammar endpoint `sp_gram` (run + gate) instead of a span at the scanner cursor;
+-- one new carrier joins them.
 def expectedTally : String :=
-  "syn=0 deq=0 eqHyp=0 forced=0 corrBlock=0 corrScan=5 atPark=5 parkSpan=6 noSpan=5 otherSpan=0"
+  "syn=0 deq=0 eqHyp=0 forced=0 corrBlock=0 corrScan=3 atPark=3 parkSpan=4 noSpan=8 otherSpan=0"
 
 /-- Every site, with what its context holds.  **`atPark=1` on five of them and
     `corrBlock=0` on all eleven is the finding**: the pair that would pin the
     endpoints together is half-present wherever the park is, and the half that
     is missing is the one §1 proves would empty it. -/
+-- 2026-10-24 (B3 [66] col-0 threading): `close_with_sslFrom` (the `SSLCommentsFrom` twin) and
+-- `accum_block_pending` now reach the `pendingFlow` arm's `dropClose` directly; `accum_structural_pending`
+-- no longer calls `close_with_ssl`.  The drop ride itself is unchanged (pendingFlow, β.5 R3).
 def expectedSites : List String :=
   ["L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl <- \
-L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false \
-corrBlock=0 corrScan=0 atPark=0 spans=HEq,PendingNode",
+L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=HEq,PendingNode",
+   "L4YAML.Proofs.StreamAccum.PendingNode.close_with_sslFrom <- \
+L4YAML.Proofs.StreamAccum.dropClose syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
    "L4YAML.Proofs.StreamAccum.accum_block_pending <- \
-L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false \
-forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode",
+L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode",
+   "L4YAML.Proofs.StreamAccum.accum_block_pending <- \
+L4YAML.Proofs.StreamAccum.dropClose syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
    "L4YAML.Proofs.StreamAccum.accum_content_pending <- \
-L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false \
-forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode",
+L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode",
    "L4YAML.Proofs.StreamAccum.accum_flow_open_depth0 <- \
-L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false \
-forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode",
+L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode",
    "L4YAML.Proofs.StreamAccum.accum_flow_open_depth0 <- \
-L4YAML.Proofs.StreamAccum.dropClose syn=false deq=false eqHyp=false forced=false \
-corrBlock=0 corrScan=0 atPark=0 spans=",
-   "L4YAML.Proofs.StreamAccum.accum_structural_pending <- \
-L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false \
-forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode,PendingNode",
+L4YAML.Proofs.StreamAccum.dropClose syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
+   "L4YAML.Proofs.StreamAccum.accum_flow_open_depth0 <- \
+L4YAML.Proofs.StreamAccum.dropClose syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
    "L4YAML.Proofs.StreamAccum.dropClose <- \
-L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false \
-corrBlock=0 corrScan=0 atPark=0 spans=",
-   "L4YAML.Proofs.StreamAccum.eof_pending <- \
-L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false \
-forced=false corrBlock=0 corrScan=1 atPark=1 spans=PendingNode",
+L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
    "Tests.Guards.ColumnWalkPrice.stream_anything <- \
-L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false \
-corrBlock=0 corrScan=0 atPark=0 spans=",
+L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
    "Tests.Guards.DropFalsity.close_with_ssl_reaches <- \
-L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false \
-forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
+L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans=",
    "Tests.Guards.SuffixGapAudit.stream_anything <- \
-L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false \
-corrBlock=0 corrScan=0 atPark=0 spans="]
+L4YAML.Surface.SLYamlStream.scannerDrop syn=false deq=false eqHyp=false forced=false corrBlock=0 corrScan=0 atPark=0 spans="]
 
 /-- **What §1's closures spend.**  `drop=false` on all three is the
     non-circularity check that item 242's derivation also carries; `unique=true`

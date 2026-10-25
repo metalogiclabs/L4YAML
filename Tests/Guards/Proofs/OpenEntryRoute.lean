@@ -474,8 +474,9 @@ def expectedFunnel : List String :=
    "accum_block_on_noPending → indicator_open_map: h_explUp_chain punted",
    "accum_block_on_pendingBlock → indicator_open_map: h_explUp_chain paid:entryChainMap",
    "accum_block_on_pendingBlockContent → indicator_open_map: h_explUp_chain punted"]
+-- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram`.
 def expectedLine : String :=
-  "aPairs=8 aSites=12 t1Pairs=5 t1Sites=7 t2Pairs=2 t2Sites=4 nPairs=1 nSites=1 multi=0 inline=0 covered1=5 covered2=7 stackedPairs=3 stackedNoDrop=2 nonA=10 nonANoDrop=8 pairs21=21 pairs18=18 sites=23 pairs=21 exhibits=5 closedFirst=1 handedNode=4 avail=12 behindLemmas=5 behindOpeners=0 aheadOpeners=1 funnelApps=4 paid=2 punted=2 other=0 chainApps=3 entryApps=3 qApps=1 cApps=1 reach=38"
+  "aPairs=8 aSites=12 t1Pairs=5 t1Sites=7 t2Pairs=2 t2Sites=4 nPairs=1 nSites=1 multi=0 inline=0 covered1=5 covered2=7 stackedPairs=0 stackedNoDrop=0 nonA=10 nonANoDrop=8 pairs21=18 pairs18=16 sites=19 pairs=19 exhibits=5 closedFirst=1 handedNode=4 avail=12 behindLemmas=5 behindOpeners=0 aheadOpeners=1 funnelApps=4 paid=2 punted=2 other=0 chainApps=3 entryApps=3 qApps=1 cApps=1 reach=38"
 
 /-! ## §6 The reading -/
 
@@ -575,7 +576,8 @@ funnelApps={fLines.size} paid={paid} punted={punted} other={other} chainApps={ch
   logInfo s!"avail:\n{String.intercalate "\n" availLines.toList}"
   logInfo s!"funnel:\n{String.intercalate "\n" (fLines.map ("  " ++ ·)).toList}"
   -- the cross-instrument check: item 249's frame, re-derived here
-  unless sites.size == 23 && pairs.size == 21 && shapeComps.size == 21 && noDrop.size == 18 do
+  -- (2026-10-24, B3 [66] col-0 threading: 23/21/21/18 → 19/19/18/16, as StreamCompositions pins)
+  unless sites.size == 19 && pairs.size == 19 && shapeComps.size == 18 && noDrop.size == 16 do
     throwError "item 249's frame moved under this pass: sites={sites.size} pairs={pairs.size} shapeComps={shapeComps.size} noDrop={noDrop.size}"
   let check (name : String) (gotL : Array String) (exp : List String) : MetaM Unit := do
     let gotL := gotL.map (·.trimAscii.toString)

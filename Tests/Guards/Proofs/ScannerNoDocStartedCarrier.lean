@@ -152,9 +152,10 @@ example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
     -- Item 208: and the STACK face, the third of the same shape.
-    (h_ntop : sc.inFlow = false → sc.currentIndent < 0) :
+    (h_ntop : sc.inFlow = false → sc.currentIndent < 0)
+    (h_gate : sc.inFlow = false → sp.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     PendingNode sc false sp_start sp sp :=
-  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop
+  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop h_gate
 
 -- The flow producers' payment is the refutation, from the one fact all
 -- seven sites hold: depth ≥ 1 makes the face's `inFlow = false` premise
@@ -191,9 +192,10 @@ stream. -/
 
 example {sp_start sp sp_land : SurfPos}
     (h_pre : GStar SLDocumentPrefix sp_start sp)
-    (h_ssl : SSLComments sp sp_land) :
+    (h_ssl : SSLComments sp sp_land)
+    (h_col0 : sp.col = 0) :
     GStar SLDocumentPrefix sp_start sp_land :=
-  ssl_comments_extend_prefixes h_pre h_ssl
+  ssl_comments_extend_prefixes h_pre h_col0 h_ssl
 
 /-! ## §5 The spend: `rootMapRoute`'s interface with no stream anywhere
 
@@ -210,15 +212,16 @@ example {sc : ScannerState} {sp_start sp sp_land sp_key : SurfPos} {k : Nat}
     (h_block : sc.inFlow = false)
     (h_ssl : SSLComments sp sp_land)
     (hcol0 : sp_land.col = 0)
-    (h_ind : SIndent k sp_land sp_key) :
+    (h_ind : SIndent k sp_land sp_key)
+    (h_col0 : sp.col = 0) :
     (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
     (∀ sp_v, SBlockMapEntry k sp_key sp_v →
      ∀ sp_e, SCompactMapTail k sp_v sp_e →
      ResumeFrames (SLYamlStream sp_start) [] sp_e) :=
   ⟨nodocMapRoute hcol0
-      (ssl_comments_extend_prefixes (h_nodoc h_block) h_ssl) h_ind,
+      (ssl_comments_extend_prefixes (h_nodoc h_block) h_col0 h_ssl) h_ind,
    nodocMapRouteF hcol0
-      (ssl_comments_extend_prefixes (h_nodoc h_block) h_ssl) h_ind⟩
+      (ssl_comments_extend_prefixes (h_nodoc h_block) h_col0 h_ssl) h_ind⟩
 
 /-! ## §6 What this item does NOT close
 

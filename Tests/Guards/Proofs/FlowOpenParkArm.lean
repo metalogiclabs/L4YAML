@@ -82,7 +82,8 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
     -- Item 146: …and so does the stack's base, which is what lets the refusal
     -- read the dedent exemption off the landing's column.
     (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc) 
-    (h_alt : PackAlt sc) :
+    (h_alt : PackAlt sc)
+    (h_gate : sc.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent 0 .flowOut sp_prep sp_end →
@@ -107,7 +108,7 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
   -- park's flag, so both punt here — and so do item 176's resume face and item
   -- 201's value-line twin beside it.
   flowKeyRoute_of_root (g := none) (m := 0) (Or.inr trivial) h_noflow h_park h_close h_dn h_fv h_corr
-    hcorr_prep h_preprocess (Or.inr trivial) (Or.inr trivial) h_bare h_base
+    hcorr_prep h_preprocess (GStar.nil _) (fun _ => h_gate) (Or.inr trivial) (Or.inr trivial) h_bare h_base
     (Or.inr trivial) (Or.inr trivial) (Or.inr h_alt)
 
 /-- The ENTRY's version, whose compact arm crosses no break and so spends the
@@ -123,7 +124,8 @@ example {n : Nat} {sc s_prep : ScannerState} {c : Char}
     (h_corr : ScannerSurfCorr sc sp_scan)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c))) 
-    (h_alt : PackAlt sc) :
+    (h_alt : PackAlt sc)
+    (h_gate : sc.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
     (∃ (k : Nat) (sp_key : SurfPos),
       (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
       (∀ sp_end, SFlowContent 0 .flowOut sp_prep sp_end →
@@ -145,7 +147,7 @@ example {n : Nat} {sc s_prep : ScannerState} {c : Char}
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         KeyFrames (ExplValueLine sp_start nv) ks sp_e) ∨ True)) ∨ True :=
   flowKeyRoute_of_open (g := none) (m := 0) h_node (Or.inl ⟨h_compact, h_col⟩) (Or.inr h_alt) h_noflow
-    (Or.inl h_sk) h_corr hcorr_prep h_preprocess
+    (Or.inl h_sk) h_corr hcorr_prep h_preprocess h_gate
 
 /-! ## §3  …and the close's pack carries its column
 

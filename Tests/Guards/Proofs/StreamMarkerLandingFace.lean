@@ -308,8 +308,7 @@ example {sp_mk sp_mid sp_prep : SurfPos}
     SSeparateLines 0 sp_mk sp_prep :=
   SSeparateLines.commented 0 sp_mk sp_mid sp_prep h_ssl_mk
     (SFlowLinePrefix.mk 0 sp_mid sp_mid sp_prep (SIndent.zero sp_mid)
-      (GOpt.some sp_mid sp_prep
-        (GStar_SSWhite_to_SSeparateInLine sp_mid sp_prep h_ws)))
+      (L4YAML.Proofs.ScalarProduction.gstar_sswhite_to_gopt_sep h_ws))
 
 -- The close the marker park still makes when NOTHING lands — `[208]`'s other
 -- alternative, which is what `---⏎...` and `---` at end of input take.
@@ -320,9 +319,10 @@ example {sc : ScannerState} {sp_start sp_block sp_scan sp_mid : SurfPos}
     (h_nd : danglingNodePos? sc = none)
     -- Item 275: §8.1's silence, carried beside it.
     (h_ui : underIndentedFlowValuePos? sc = none)
-    (h_ssl : SSLComments sp_scan sp_mid) :
+    (h_ssl : SSLComments sp_scan sp_mid)
+    (h_noflow : sc.inFlow = false) :
     SLYamlStream sp_start sp_mid :=
-  h_pending.close_with_ssl h_stream h_nd h_ui h_ssl
+  h_pending.close_with_ssl h_stream h_nd h_ui h_noflow h_ssl
 
 /-! ## §5 What remains
 

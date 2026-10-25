@@ -4039,6 +4039,131 @@ def testMarkedColsDomain (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"pop/{repr cols} {repr pks}: marked columns shrink" (after.all fun c => before.contains c)
       s!"before {before} after {after}"
 
+/-! ## Priority 25 — the `[66]` col-0 parks: `NextIsSep`, the comment gate and the JSON-key carry (B3)
+
+`s-separate-in-line` is empty only at column 0 now, so every park at column > 0 must show the
+scanner left a real separator behind it.  The rows instantiate the three scanner facts the
+StreamAccum frames spend, on the scanner's own reachable states (every state after a
+`scanNextToken` step on the grid input): `nextIsSep_of_scanValue` / `_scanKey` /
+`_scanBlockEntry` / `_propertyFollowerOk` (a block `:` `?` `-` `&x` `!t` is followed by a
+blank, a flow indicator or eof), `content_park_gate` (a content token parked before `#` at
+column > 0 has a white run behind it — the `[66]` separator), and `jsonKeyBefore_scanValue` /
+`jsonKeyOfLast_of_glued` (the `:` write preserves the key's JSON-ness, and a glued follower
+after a flow `:` means the key was JSON-like).  A refutation fails the suite; each class's
+tally is pinned so a hypothesis that fails on every row is caught (§7).
+-/
+
+/-- Decidable shadow of `NextIsSep`. -/
+def nextIsSepB (s : ScannerState) : Bool :=
+  match s.peek? with
+  | none => true
+  | some ch => isBlankBool ch || ch == ',' || ch == ']' || ch == '}'
+
+/-- Decidable shadow of `CommentOk`. -/
+def commentOkB (s : ScannerState) : Bool :=
+  s.col == 0 || (match s.peekBack? with
+    | none => true
+    | some c => isWhiteSpaceBool c || isLineBreakBool c || c == '\uFEFF')
+
+/-- The last real (non-placeholder) token of `s`. -/
+def lastReal (s : ScannerState) : Option YamlToken :=
+  (s.tokens.toList.reverse.find? (fun p => p.val != .placeholder)).map (·.val)
+
+/-- Every `(before, after)` pair of a successful legacy `scanNextToken` step on `input`, in scan
+    order; scanning stops at the first error. -/
+def stepPairs (input : String) (fuel : Nat := 64) : List (ScannerState × ScannerState) := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut acc : List (ScannerState × ScannerState) := []
+  for _ in [:fuel] do
+    match scanNextToken s with
+    | .error _ => return acc
+    | .ok none => return acc
+    | .ok (some s') =>
+      acc := acc ++ [(s, s')]
+      s := s'
+  return acc
+
+def isContentTok : YamlToken → Bool
+  | .scalar _ _ | .alias _ | .flowSequenceEnd | .flowMappingEnd => true
+  | _ => false
+
+/-- `nextIsSep_of_scan{Value,Key,BlockEntry}` at `s`: the step consumed a block-context
+    indicator (`peekBack?`) and emitted it. -/
+def rowNextIsSepInd (s : ScannerState) : Rule2Row :=
+  let hyp := !s.inFlow && (match s.peekBack?, lastReal s with
+    | some ':', some .value => true
+    | some '?', some .key => true
+    | some '-', some .blockEntry => true
+    | _, _ => false)
+  .of hyp (nextIsSepB s)
+
+/-- `nextIsSep_of_propertyFollowerOk` at `s`: the step emitted a block-context property. -/
+def rowNextIsSepProp (s : ScannerState) : Rule2Row :=
+  let hyp := !s.inFlow && (match lastReal s with
+    | some (.anchor _) | some (.tag _ _) => true
+    | _ => false)
+  .of hyp (nextIsSepB s)
+
+/-- `content_park_gate` at `s`: a content token parked before `#` at column > 0 has a white
+    run behind it (so the comment's `[66]` separator is real), i.e. `CommentOk` never fires
+    on an empty run. -/
+def rowContentGate (s : ScannerState) : Rule2Row :=
+  let hyp := s.col != 0 && s.peek? == some '#'
+    && (match lastReal s with | some t => isContentTok t | none => false)
+  let whiteBehind := match s.peekBack? with
+    | some c => isWhiteSpaceBool c
+    | none => false
+  .of hyp (whiteBehind && commentOkB s)
+
+/-- `jsonKeyBefore_scanValue` at `(s, s')`: a flow `:` step (`scanValue`) writes the key marker and
+    preserves the key's JSON-ness — `jsonKeyBefore` after equals `jsonKeyOfLast` before. -/
+def rowJsonCarry (p : ScannerState × ScannerState) : Rule2Row :=
+  let (s, s') := p
+  let hyp := s.inFlow && s.peek? == some ':' && lastReal s' == some .value
+  .of hyp (L4YAML.Proofs.StreamAccum.jsonKeyBefore s'.tokens == L4YAML.Proofs.StreamAccum.jsonKeyOfLast s.tokens)
+
+/-- `jsonKeyOfLast_of_glued` at `s`: the dispatcher pauses on a flow `:` whose follower is glued
+    (not blank, not a flow indicator) and `isValueCandidate` accepts — then the key was JSON-like. -/
+def rowJsonGlued (s : ScannerState) : Rule2Row :=
+  let glued := match s.peekAt? 1 with
+    | some n => !(isBlankBool n || isFlowIndicatorBool n)
+    | none => false
+  let hyp := s.inFlow && s.peek? == some ':' && glued && isValueCandidate s
+  .of hyp (L4YAML.Proofs.StreamAccum.jsonKeyOfLast s.tokens)
+
+def col0Inputs : List String :=
+  ["a: b", "a:\n  b", "? a\n: b", "- a", "- - a", "&x a", "!t a", "!!str a", "&x !t a", "a #b",
+   "a: b #c", "\"a\" #b", "'a' #b", "[a] #b", "{a: b} #c", "- a #b", "*x #b", "a: |\n  x\n#c",
+   "a:\n#c\n  b", "- &x a", "? &x a\n: !t b", "{\"a\":b}", "{\"a\":[1]}", "{\"a\" :b}", "{'a':{b: c}}",
+   "{[a]:[1]}", "{{a: b}:[1]}", "[\"a\":b]", "[\"a\":[1]]", "{a: b}", "{a :b}", "[a, b: c]",
+   "{\"a\":&x b}", "{\"a\":!t b}", "{\"a\":*x}", "{\"a\":\n b}", "k: {\"a\":b}", "k: [\"a\":b, c]",
+   "{x: 1, \"a\":[1]}", "{a:[1]}", "[a:{b: c}]", "{? \"a\": b}", "{? a: b}", "[? a: b]", "[]", "{}", ""]
+
+def testColZeroParks (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 25: [66] col-0 parks (NextIsSep / content_park_gate / JSON-key carry)"
+  let mut tally : Array (Nat × Nat × Nat) := #[(0,0,0), (0,0,0), (0,0,0), (0,0,0), (0,0,0)]
+  let bump (t : Nat × Nat × Nat) : Rule2Row → Nat × Nat × Nat
+    | .failedHyp => (t.1 + 1, t.2.1, t.2.2)
+    | .holds => (t.1, t.2.1 + 1, t.2.2)
+    | .refuted => (t.1, t.2.1, t.2.2 + 1)
+  let mut states := 0
+  for input in col0Inputs do
+    let pairs := stepPairs input
+    states := states + pairs.length
+    for (p, i) in pairs.zipIdx do
+      let s := p.2
+      let rows := [rowNextIsSepInd s, rowNextIsSepProp s, rowContentGate s, rowJsonCarry p, rowJsonGlued p.1]
+      for (r, k) in rows.zipIdx do
+        tally := tally.modify k (bump · r)
+        checkM state s!"col0/{input.quote}/step {i}/row {k}: not refuted" (r != .refuted)
+          s!"peek={repr s.peek?} back={repr s.peekBack?} col={s.col} inFlow={s.inFlow} last={repr (lastReal s)}"
+  checkM state "col0/states" (states == 201) s!"states={states}"
+  -- (failedHyp, holds, refuted) per row: NextIsSep indicators, NextIsSep properties, content gate,
+  -- JSON-key carry, JSON-key glued — `refuted` is 0 on every row; the tallies are pinned so a hypothesis
+  -- that fails everywhere is caught (§7).
+  checkM state "col0/tally" (tally == #[(185, 16, 0), (193, 8, 0), (198, 3, 0), (178, 23, 0), (194, 7, 0)]) s!"tally={repr tally}"
+
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -4070,6 +4195,8 @@ def collectTests : IO VerifiedSuiteResult := do
   testColZeroLanding state
   testNotQuestionPark state
   testMarkedColsDomain state
+  testColZeroParks state
+
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",

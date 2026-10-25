@@ -272,9 +272,11 @@ def expectedAbsorbReaders : List String :=
 -- `IndentOk.auto` and `BlockStopOk.outdent` land where they start.
 -- `prods` 160 → 162, `ctors` 296 → 304, `direct` 282 → 290, `surfArms` 172 → 180, `surfDirect` 171 → 179
 -- on 2026-10-24: `SCFlowJsonContent`/`SCFlowJsonNode` ([148]/[149] JSON-key adjacent value); all 8 arms direct.
+-- 2026-10-24 (B3): prods/ctors/direct/surfArms/surfDirect each +2 — the explicit JSON-key adjacent-value
+-- twins in Surface/Node.lean (both direct, no anchor).
 def expectedLine : String :=
-  "prods=162 ctors=304 same=25 direct=290 anchoredOnly=12 broken=2 surfArms=180 \
-surfDirect=179 candidate=direct candidateNil=direct readers=3 libReaders=2 \
+  "prods=164 ctors=306 same=25 direct=292 anchoredOnly=12 broken=2 surfArms=182 \
+surfDirect=181 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=41 producers=21 absorbReaders=5 absorbPlainReaders=0"
 
 /-- Non-circularity, items 242–245's check: the closing lemma spends item 244's

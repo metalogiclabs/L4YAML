@@ -377,9 +377,10 @@ def expectedEndsLit : List String :=
 -- `Acceptance/BlockScalar.lean` (Stream E); none ends at a literal the park reads.
 -- `prods` 160 → 162, `ctors` 296 → 304 on 2026-10-24: `SCFlowJsonContent`/`SCFlowJsonNode` ([148]/[149]
 -- JSON-key adjacent value) and their 8 arms; no park reading moved.
+-- 2026-10-24 (B3): prods 162 → 164, ctors 304 → 306 — the explicit JSON-key adjacent-value twins in Surface/Node.lean.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=162 ctors=304 \
+depth=4 prods=164 ctors=306 \
 endsLit=39 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 

@@ -149,7 +149,7 @@ lemma scanDoubleQuoted_flowContent_prod (sc : ScannerState) (sp : SurfPos)
     (hpeek_dq : sc.peek? = some '"')
     (hok : scanDoubleQuoted sc = .ok s') :
     ∃ sp', SFlowContent 0 .blockIn sp sp' ∧ ScannerSurfCorr s' sp' := by
-  obtain ⟨sp', h_dq, hcorr'⟩ := scanDoubleQuoted_prod sc sp hcorr hpeek_dq hok
+  obtain ⟨sp', h_dq, -, hcorr'⟩ := scanDoubleQuoted_prod sc sp hcorr hpeek_dq hok
   exact ⟨sp', doubleQuoted_flowContent h_dq, hcorr'⟩
 
 -- `scanSingleQuoted` success → `SFlowContent 0 .blockIn`.
@@ -159,7 +159,7 @@ lemma scanSingleQuoted_flowContent_prod (sc : ScannerState) (sp : SurfPos)
     (hpeek_sq : sc.peek? = some '\'')
     (hok : scanSingleQuoted sc = .ok s') :
     ∃ sp', SFlowContent 0 .blockIn sp sp' ∧ ScannerSurfCorr s' sp' := by
-  obtain ⟨sp', h_sq, hcorr'⟩ := scanSingleQuoted_prod sc sp hcorr hpeek_sq hok
+  obtain ⟨sp', h_sq, -, hcorr'⟩ := scanSingleQuoted_prod sc sp hcorr hpeek_sq hok
   exact ⟨sp', singleQuoted_flowContent h_sq, hcorr'⟩
 
 /-! ## §5 Scanner-to-SFlowNode Production (n=0, c=.blockIn) -/
@@ -884,17 +884,9 @@ def SFlowMapEntries_addTrailingComma {n : Nat} {c : YamlContext}
 
     In flow contexts (`.flowOut`/`.flowIn`) `s-separate(n,c)` [69] unfolds to
     `s-separate-lines(n)` [70], whose `inline` case wraps `s-separate-in-line`
-    [66]. Because `SSeparateInLine.startOfLine` was deliberately weakened to
-    hold at ANY column (dodging the BOM col≠0 proof gap — see `SSeparateInLine`),
-    a zero-width flow separation is available at every position, and a run of
-    whitespace gives a non-empty one. These are the separators threaded between
+    [66]: a run of whitespace is a flow separation, and the zero-width one
+    exists only at column 0.  These are the separators threaded between
     flow-collection tokens (`[`, entries, `,`, `]`). -/
-
-/-- Zero-width flow separation at any position (spec start-of-line, weakened). -/
-lemma SSeparate_flow_refl (n : Nat) {c : YamlContext}
-    (hc : c = .flowOut ∨ c = .flowIn) (sp : SurfPos) : SSeparate n c sp sp := by
-  rcases hc with rfl | rfl <;>
-    exact SSeparateLines.inline n sp sp (SSeparateInLine.startOfLine sp)
 
 /-- A run of whitespace is a flow separation. -/
 lemma SSeparate_flow_of_whites (n : Nat) {c : YamlContext} {sp sp' : SurfPos}

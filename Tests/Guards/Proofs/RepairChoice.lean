@@ -128,11 +128,12 @@ open Tests.Guards.DropDependents (usesAll rawRefs census sorted)
     through `[202] l-document-prefix`'s comment alternative and needs no
     escape.  This is `ssl_comments_extend_stream`'s proof, transported to the
     relation β.5 leaves behind — so the weak repair is a repair, not a hope. -/
-lemma nd_ssl_extend (a b c : SurfPos) (h : StreamND a b) (h_ssl : SSLComments b c) :
+lemma nd_ssl_extend (a b c : SurfPos) (h : StreamND a b) (h_ssl : SSLComments b c)
+    (hcol : b.col = 0) :
     StreamND a c :=
   StreamND.implicitContinue a b c c c h
     (GStar.cons b c c
-      (SLDocumentPrefix.comments b c (SSLComments_to_GStar b c h_ssl))
+      (SLDocumentPrefix.comments b c (SSLComments_to_GStar b c h_ssl hcol))
       (GStar.nil _))
     (GOpt.none _) (GStar.nil _)
 
@@ -226,8 +227,11 @@ def holdsScanStream (n : Name) : MetaM (Nat × Nat × Bool) := do
 
 /-- The thread, and the producer's own.  `shared` is the eleven declarations
     both repairs reach however the repair is spelled. -/
+-- 2026-10-24 (B3 [66] col-0 threading): thread 20 → 15 — `eof_pending`, `accum_structural_pending`
+-- and the step lemmas behind them now close parks through `PendingNode.close_with_sslFrom`
+-- (the `SSLCommentsFrom` twin), so they leave the supplier's reverse closure.
 def expectedThread : String :=
-  "thread=20 prodThread=21 shared=12 capstones=2 rings=8"
+  "thread=15 prodThread=21 shared=12 capstones=2 rings=8"
 
 /-- The first ring: the five library consumers item 238 named, and item 239's
     own exhibit, which rides the arm on purpose and goes with it. -/
@@ -235,27 +239,30 @@ def expectedRing1 : List Name :=
   [`L4YAML.Proofs.StreamAccum.accum_block_pending,
    `L4YAML.Proofs.StreamAccum.accum_content_pending,
    `L4YAML.Proofs.StreamAccum.accum_flow_open_depth0,
-   `L4YAML.Proofs.StreamAccum.accum_structural_pending,
-   `L4YAML.Proofs.StreamAccum.eof_pending,
    `Tests.Guards.DropFalsity.close_with_ssl_reaches]
 
 /-- **Nowhere for the premise to land.**  Seven of the nineteen carry a park at
     all, and none of the seven carries a stream to its scan position. -/
-def expectedDiscriminator : String := "withPark=7 covered=0 total=20"
+-- 2026-10-24 (B3 [66] col-0 threading): total 20 → 15 with the thread; the four park-carrying
+-- step lemmas that left it (see `expectedThread`) take `withPark` 7 → 3.
+def expectedDiscriminator : String := "withPark=3 covered=0 total=15"
 
 /-- **The thread adds nothing to β.5's bill.**  Every declaration the weak
     repair's statement change travels through is already one of the
     twenty-six item 238 counted, so the choice of repair moves items between
     *restated* and *reproved* without moving the total. -/
-def expectedInT : String := "threadInT=20 outsideT=0"
+def expectedInT : String := "threadInT=15 outsideT=0"  -- 2026-10-24 (B3): thread 20 → 15, see above
 
 /-- The walk's reading of the park's users — the upper bracket on what the
     `retire` repair breaks. -/
+-- 2026-10-24 (B3 [66] col-0 threading): + `close_with_sslFrom`, `nil_gate_of_allowDirectives` (as in ParkBill).
 def expectedParkUsers : List Name :=
   [`L4YAML.Proofs.StreamAccum.PendingNode.arm_tight_or_col,
    `L4YAML.Proofs.StreamAccum.PendingNode.close_with_ssl,
+   `L4YAML.Proofs.StreamAccum.PendingNode.close_with_sslFrom,
    `L4YAML.Proofs.StreamAccum.PendingNode.dirRoute,
    `L4YAML.Proofs.StreamAccum.PendingNode.nic0,
+   `L4YAML.Proofs.StreamAccum.PendingNode.nil_gate_of_allowDirectives,
    `L4YAML.Proofs.StreamAccum.accum_block_pending,
    `L4YAML.Proofs.StreamAccum.accum_content_pending,
    `L4YAML.Proofs.StreamAccum.accum_flow_open_depth0,
@@ -269,7 +276,9 @@ def expectedParkUsers : List Name :=
     the thread.  So the statements safe from refutation are exactly the ones a
     premise would have to travel through, and the two measurements meet rather
     than overlap by accident. -/
-def expectedEmptyClass : String := "empty=10 onThread=9"
+-- 2026-10-24 (B3 [66] col-0 threading): onThread 9 → 6 — three of the empty-premise statements
+-- left the supplier's thread with `eof_pending`/`accum_structural_pending` (see `expectedThread`).
+def expectedEmptyClass : String := "empty=10 onThread=6"
 
 /-- **Three readings of the same ten.**  `users` inlines generated
     auxiliaries, `rawRefs` is one step without them, and `fullApps` counts the
@@ -277,11 +286,15 @@ def expectedEmptyClass : String := "empty=10 onThread=9"
     arguments (item 293's `h_live0` is the ninth).  Only two of the ten BUILD a park; no reading here can say
     which two, and the pin exists so that a refinement which can disagrees
     with this file rather than replacing it silently. -/
-def expectedParkReadings : String := "users=10 rawRefs=10 fullApps=10"
+-- 2026-10-24 (B3 [66] col-0 threading): users 10 → 12 (`close_with_sslFrom`, `nil_gate_of_allowDirectives`);
+-- the three readings now separate: one of the twelve reaches the park only through a generated
+-- auxiliary (rawRefs 11), and one does not apply it at full arity (fullApps 11).
+def expectedParkReadings : String := "users=12 rawRefs=11 fullApps=11"
 
 /-- The park's arity, pinned: a change to it re-aims `fullApps`.  Item 293
     re-aims it: the park reads `flag ∨ live` (`pendingFlow.h_live0`). -/
-def parkArity : Nat := 9
+-- 2026-10-24 (B3 [66] col-0 threading): 9 → 10, `pendingFlow.h_gate` (the park's comment gate).
+def parkArity : Nat := 10
 
 /-- The largest application of `park` anywhere inside an expression.  A `cases`
     arm builds the constructor it eliminates, so this does NOT separate a

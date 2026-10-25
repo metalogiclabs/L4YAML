@@ -339,18 +339,18 @@ those heads and `expectedChainFaces` not naming a single one of them. -/
 -- 2026-10-23 (item 349): three hypothesis indices +1 — `h_dead` (the column-0 landing fact) threaded into
 -- `accum_content_on_pendingBlock_indented` / `accum_content_on_pendingMapValue_indented`.
 -- 2026-10-24 (item 350): `explFrameValueLine#5` → `#6` — the helper takes `{alt alt' : Prop}` now.
+-- 2026-10-24 (B3 [66] col-0 threading): binder indices shift with the park's new `sp_gram`/run/gate fields; faces unchanged.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (binder indices).
 def expectedChainFaces : List String :=
   ["FlowBaseRoutes.mk#7 (vslot)",
-   -- Item 287: these four read two binders earlier, past the retired
-   -- `sp_block_ctx` and `h_stream_fallback`.
-   "accum_block_on_closeThenBlock#9 (h_vpack)",
-   "accum_block_on_pendingBlock#28 (h_kslotUp)",
-   "accum_block_on_pendingBlockContent#33 (h_kslotUp)",
-   "accum_block_on_pendingContent#13 (h_vpack)",
+   "accum_block_on_closeThenBlock#10 (h_vpack)",
+   "accum_block_on_pendingBlock#29 (h_kslotUp)",
+   "accum_block_on_pendingBlockContent#34 (h_kslotUp)",
+   "accum_block_on_pendingContent#16 (h_vpack)",
    "colon_open_map_implicit#12 (h_kslot)",  -- item 311: `{alt : Prop}` precedes it
    "colon_open_map_props#11 (h_kslot)",
-   "entryKeyPack_of_dispatch#10 (h_nodeV)",
-   "entryPropsKeyPack_of_dispatch#10 (h_nodeV)",
+   "entryKeyPack_of_dispatch#11 (h_nodeV)",
+   "entryPropsKeyPack_of_dispatch#11 (h_nodeV)",
    "explFrameValueLine#6 (h_kslot)",
    "flowVPack_of_close#5 (h_vslot)",
    "frameChainUnion#2 (h₁)",
@@ -376,9 +376,11 @@ def expectedFidelity : String := "binders=161 surf=132 state=29"
     (`frameChainUnion`) are schematic, so the true reach is smaller than the
     number and never larger. -/
 -- 2026-10-20 (item 309): binder indices re-read — `{alt : Prop}` precedes the generic helpers' premises.
+-- 2026-10-24 (B3): indices shift with the new park fields (closeThenBlock 25→26, entryKeyPack 17→18,
+-- entryPropsKeyPack 16→17, flowKeyRoute_of_root 21→24).
 def expectedStateFaces : List String :=
   ["PreprocessIndentStable.IndentFloor.transport#3",
-   "accum_block_on_closeThenBlock#25",
+   "accum_block_on_closeThenBlock#26",
    "bareNodeRoute_or_refused#11",
    "bareNodeRoute_or_refused_content#12",
    "colon_open_map#23",
@@ -388,9 +390,9 @@ def expectedStateFaces : List String :=
    "content_dispatch_routed#26",
    "dedent_cover_of_landing#8",
    "dedent_cover_of_landing#9",
-   "entryKeyPack_of_dispatch#17",
-   "entryPropsKeyPack_of_dispatch#16",
-   "flowKeyRoute_of_root#21",  -- item 311: `{g}` precedes it
+   "entryKeyPack_of_dispatch#18",
+   "entryPropsKeyPack_of_dispatch#17",
+   "flowKeyRoute_of_root#24",  -- item 311: `{g}` precedes it
    "flowOpen_floor_at_prep#10",
    "flowOpen_marker#4",
    "flowOpen_stamp#4",
@@ -541,16 +543,16 @@ innerSplits=32"
 -- 2026-10-23 (item 349): three hypothesis indices +1 — `h_dead` (the column-0 landing fact) threaded into
 -- `accum_content_on_pendingBlock_indented` / `accum_content_on_pendingMapValue_indented`.
 -- 2026-10-24 (item 350): the two `h_expl` rows left the ledger — the face no longer splits.
+-- 2026-10-24 (B3 [66] col-0 threading): binder indices shift with the new park fields; verdicts unchanged.
+-- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (binder indices).
 def expectedWorthLedger : List String :=
-  [-- 2026-10-23 (item 345): `on_pendingBlock_indented#29` splits 10 → 11 (the twin relay), sorted above `#14`.
-   "splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
+  ["splits=11 sup=1 - h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
    "splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
-   "splits=7 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#29",
-   -- 2026-10-23 (item 344): `on_pendingBlock#29` splits 6 → 7 (the relayed `h_valFV`), sorted above `h_closeF99`.
+   "splits=7 sup=1 - h_closeFV_old :: accum_block_on_pendingBlock#30",
    "splits=7 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
    "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#36",
-   "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#35",
+   "splits=4 sup=1 - h_closeFV_old :: accum_block_on_pendingBlockContent#36",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
    "splits=3 sup=1 - h_kslot :: accum_block_on_pendingBlock#13",
@@ -559,19 +561,19 @@ def expectedWorthLedger : List String :=
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
    "splits=2 sup=1 - h_resV_land :: colon_open_map#26",
-   "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#34",
+   "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#35",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#13",
    "splits=2 sup=1 inner h_routeF :: colon_open_map_props#12",
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_implicit#14",
    "splits=2 sup=1 inner h_routeFV :: colon_open_map_props#13",
-   "splits=1 sup=11 - h_mapF :: accum_block_on_closeThenBlock#28",
-   "splits=1 sup=11 - h_mapFV :: accum_block_on_closeThenBlock#30",
-   "splits=1 sup=11 - h_mk :: accum_block_on_closeThenBlock#19",
-   "splits=1 sup=11 - h_pr :: accum_block_on_closeThenBlock#29",
-   "splits=1 sup=11 - h_sfx :: accum_block_on_closeThenBlock#18",
-   "splits=1 sup=11 - h_valFV :: accum_block_on_closeThenBlock#31",
-   "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#14",
-   "splits=1 sup=1 - h_mapFV108 :: accum_block_on_pendingContent#32",
+   "splits=1 sup=11 - h_mapF :: accum_block_on_closeThenBlock#29",
+   "splits=1 sup=11 - h_mapFV :: accum_block_on_closeThenBlock#31",
+   "splits=1 sup=11 - h_mk :: accum_block_on_closeThenBlock#20",
+   "splits=1 sup=11 - h_pr :: accum_block_on_closeThenBlock#30",
+   "splits=1 sup=11 - h_sfx :: accum_block_on_closeThenBlock#19",
+   "splits=1 sup=11 - h_valFV :: accum_block_on_closeThenBlock#32",
+   "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#15",
+   "splits=1 sup=1 - h_mapFV108 :: accum_block_on_pendingContent#35",
    "splits=1 sup=1 - h_resV_land :: question_open_map#27",
    "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#28"]
 
@@ -830,7 +832,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
 -- 2026-10-24 (item 350): theorems 6073 → 6076 — `notQuestion_push_top`, `scanValue_notQuestion`,
 -- `dispatchBlock_colon_notQuestion`.
-def expectedNoopTally : String := "theorems=6089 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=6290 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

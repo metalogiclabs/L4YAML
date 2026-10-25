@@ -231,17 +231,19 @@ the line start (the flow open's arm). -/
 example {sc : ScannerState} {sp_start sp sp_land : SurfPos}
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
     (h_block : sc.inFlow = false)
-    (h_ssl : SSLComments sp sp_land) :
+    (h_ssl : SSLComments sp sp_land)
+    (h_col0 : sp.col = 0) :
     GStar SLDocumentPrefix sp_start sp_land ∨ True :=
-  Or.inl (ssl_comments_extend_prefixes (h_nodoc h_block) h_ssl)
+  Or.inl (ssl_comments_extend_prefixes (h_nodoc h_block) h_col0 h_ssl)
 
 -- The flow KEY's face — `flowKeyRoute_of_root`'s new argument, stated over
 -- every landing the open may reach, as the suffix face beside it is.
 example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_nodoc : sc.inFlow = false → GStar SLDocumentPrefix sp_start sp)
-    (h_block : sc.inFlow = false) :
+    (h_block : sc.inFlow = false)
+    (h_col0 : sp.col = 0) :
     (∀ sp_m, SSLComments sp sp_m → GStar SLDocumentPrefix sp_start sp_m) ∨ True :=
-  Or.inl (fun _ h_ssl => ssl_comments_extend_prefixes (h_nodoc h_block) h_ssl)
+  Or.inl (fun _ h_ssl => ssl_comments_extend_prefixes (h_nodoc h_block) h_col0 h_ssl)
 
 -- The flow OPEN's own route, which needs no landing: the park is the line
 -- start, and the separation preprocessing crossed rides in the document.
