@@ -362,8 +362,11 @@ def main():
     for d, n in sorted(by.items()):
         print(f"  {n:3d}  {d}")
     kinds = Counter(c[3] for c in census)
-    elim_sites = [c for c in census if c[3] == "DECLINE" and not LEAF.match(c[6]) and ELIM_LEAF.search(c[6])]
-    leaf = sum(1 for c in census if c[3] == "DECLINE" and LEAF.match(c[6])) + len(elim_sites)
+    # the class is read off the WHOLE original line (the census tuple keeps a 110-char prefix for
+    # the TSV only): `slot_ride`'s `h_alt.elim …` closes past the prefix (#110 review)
+    def src(c): return orig_lines[c[1] - 1].strip()
+    elim_sites = [c for c in census if c[3] == "DECLINE" and not LEAF.match(src(c)) and ELIM_LEAF.search(src(c))]
+    leaf = sum(1 for c in census if c[3] == "DECLINE" and LEAF.match(src(c))) + len(elim_sites)
     uncond = kinds["DECLINE"] - leaf
     for c in elim_sites:
         print(f"  nested-? {c[4]}:{c[1]}")
