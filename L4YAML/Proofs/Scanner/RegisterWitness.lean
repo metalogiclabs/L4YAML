@@ -750,6 +750,20 @@ lemma scanValue_refused_of_outer {s s' : ScannerState} {nv : Nat}
     have := hm0' j l' c hj hc
     simp at this
 
+/-- **An EMPTY marked domain is the dead register** (item 361, the flow lane's payer): with no
+    marked slot at all (`MarkedColsIn s []` under `SlotsOk`, which gives every marked slot a column)
+    the innermost pending key is `(none, -1)`, and `Sound.reg` reads it back as `explicitKeyLine`.
+    Capstone chain (Rule 1): Group 7.2 `scan_content_gives_stream_v2` ← `scanNextToken_accum_step`
+    ← `accum_step_flow` ← `accum_flow_open_depth0`, whose `PackAlt sc` faces over the block state at
+    a `[`/`{` pay `PackAlt.ofRefused` from this lemma when the enclosing park's domain is empty. -/
+lemma refused_of_markedCols_nil {s : ScannerState} (hs : Sound s) (hfl : s.flowLevel = 0)
+    (hm : MarkedColsIn s []) : s.explicitKeyLine = none := by
+  apply explicitKeyLine_none_of_noMarks hs hfl
+  intro j l' hj
+  obtain ⟨c, hc, -⟩ := hs.slots.2 j l' hj
+  have := hm j l' c hj hc
+  simp at this
+
 lemma scanBlockEntry_markedCols {s s' : ScannerState} {ns : List Nat}
     (hnf : s.inFlow = false) (hok : scanBlockEntry s = .ok s')
     (h : MarkedColsIn s ns) (hs : SlotsOk s) : MarkedColsIn s' ns :=
