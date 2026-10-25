@@ -4468,6 +4468,63 @@ def walkSavedKeyAtCursor (input : String) : Nat × Nat := Id.run do
     | _ => fuel := 0
   return (steps, bad)
 
+/-- Priority 29 (item 360, #108 review): INSTANTIATE `refused_of_outer_disp` itself.  At every
+    `:` preprocess step build the lemma's own dispatch state — the directive-reset twin of
+    `s_prep` when `allowDirectives` is up, `s_prep` otherwise — read the decidable premises on
+    it (no flow, `MarkedColsIn s_prep [s_prep.col]`, the simple key, if possible, at the cursor)
+    and run `scanNextToken_dispatchBlockIndicators … ':'` on THAT state, checking the
+    conclusion `explicitKeyLine = none` on its output.  Returns
+    `(payable, bad, reset, nested, nestedLive)`: `payable` = steps where every premise holds and
+    the dispatch answers `.ok (some _)`, `bad` = those whose register stays live (a refutation;
+    pinned 0), `reset` = the payable steps that went through the reset twin (the lemma's first
+    branch; pinned ≥ 1 across the inputs), `nested` = `:` steps with a marked slot at another
+    column (the `MarkedColsIn` premise withdrawn), `nestedLive` = those whose register stays
+    live (the premise is load-bearing; pinned = `nested`). -/
+def walkRefusedDisp (input : String) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 32
+  let mut payable := 0
+  let mut bad := 0
+  let mut reset := 0
+  let mut nested := 0
+  let mut nestedLive := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if c == ':' then
+        let sd := if sp.allowDirectives then
+          { sp with allowDirectives := false, documentEverStarted := true } else sp
+        let cols := sp.indentColumns
+        let marksAt (col : Nat) : Bool := Id.run do
+          let mut ok := true
+          for i in [0:sp.pendingKeys.size] do
+            match sp.pendingKeys[i]? with
+            | some (some _) =>
+              match cols[i]? with
+              | some ci => if ci.toNat != col then ok := false
+              | none => ok := false
+            | _ => pure ()
+          return ok
+        let keyOk := !sp.simpleKey.possible || sp.simpleKey.pos.col == sp.col
+        if !sd.inFlow then
+          match scanNextToken_dispatchBlockIndicators sd ':' with
+          | .ok (some s') =>
+            if marksAt sp.col && keyOk then
+              payable := payable + 1
+              if sp.allowDirectives then reset := reset + 1
+              if s'.explicitKeyLine.isSome then bad := bad + 1
+            else if !marksAt sp.col then
+              nested := nested + 1
+              if s'.explicitKeyLine.isSome then nestedLive := nestedLive + 1
+          | _ => pure ()
+      match scanNextToken s with
+      | .ok (some s') => s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (payable, bad, reset, nested, nestedLive)
+
+
 def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 28: register after the explicit `:` (item 359)"
   let walks : List (String × List (Nat × Option Nat × List (Option Nat))) :=
@@ -4542,6 +4599,31 @@ def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
       s!"got {steps}, expected {expSteps}"
     checkM state s!"savedKey/{repr input}: every flagged step's key is at the cursor" (bad == 0)
       s!"{bad} refutation(s)"
+  -- Priority 29 (item 360, #108 review): the dispatch bridge on its own state scope.  Rows:
+  -- `(input, payable, reset, nested)`, pinned from the run; `bad` 0 and `nestedLive = nested`
+  -- on every row.  Empty marks (`: b`, the reset twin: the document's first token), the
+  -- singleton (`? a⏎: b`), nested (`?⏎  ? a⏎  : b⏎: c`), compact and after-`---`.
+  let dispInputs : List (String × Nat × Nat × Nat) :=
+    [(": b", 1, 1, 0), (": b\n: c", 2, 1, 0), ("? a\n: b", 1, 0, 0), ("?\n  ? a\n  : b\n: c", 1, 0, 1),
+     ("? a: b\n: c", 1, 0, 1), ("- ? a\n  : b", 1, 0, 0), ("---\n? a\n: b", 1, 0, 0),
+     ("---\n: b", 1, 0, 0), ("%YAML 1.2\n---\n: b", 1, 0, 0), ("? ? a\n  : b\n: c", 1, 0, 1),
+     ("a: 1\n? b\n: 2", 1, 0, 0), ("? a\n:", 1, 0, 0), ("? [a]\n: b", 1, 0, 0), ("k:\n  ? a\n: v", 1, 0, 0)]
+  let mut resetTotal := 0
+  for (input, expPay, expReset, expNested) in dispInputs do
+    let (payable, bad, reset, nested, nestedLive) := walkRefusedDisp input
+    resetTotal := resetTotal + reset
+    checkM state s!"refusedDisp/{repr input}: payable `:` dispatches" (payable == expPay)
+      s!"got {payable}, expected {expPay}"
+    checkM state s!"refusedDisp/{repr input}: no payable dispatch keeps the register" (bad == 0)
+      s!"{bad} refutation(s)"
+    checkM state s!"refusedDisp/{repr input}: reset-twin dispatches" (reset == expReset)
+      s!"got {reset}, expected {expReset}"
+    checkM state s!"refusedDisp/{repr input}: nested `:` dispatches" (nested == expNested)
+      s!"got {nested}, expected {expNested}"
+    checkM state s!"refusedDisp/{repr input}: every nested dispatch keeps the register live"
+      (nestedLive == nested) s!"{nestedLive}/{nested}"
+  checkM state "refusedDisp: the reset branch is exercised (`: b`, `: b⏎: c`)" (resetTotal == 2)
+    s!"got {resetTotal}"
 
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
