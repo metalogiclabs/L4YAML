@@ -624,6 +624,127 @@ lemma scanValue_markedCols {s s' : ScannerState} {ns : List Nat}
     · exact hw_adv.transport rfl rfl
     · exact hw_adv.closeAt_eq _ rfl rfl
 
+/-- Marks only at column `nv` and the register live ⇒ the register's column IS `nv`. -/
+lemma explicitKeyCol_of_marked {s : ScannerState} {nv i l : Nat} (hs : Sound s) (hfl : s.flowLevel = 0)
+    (hm : MarkedColsIn s [nv]) (hi : s.pendingKeys[i]? = some (some l)) :
+    s.explicitKeyLine.isSome = true ∧ s.explicitKeyCol = (nv : Int) := by
+  have hr := hs.reg hfl
+  rw [innermostPendingKey_eq, innermost_eq_go] at hr
+  have hi' : i < s.pendingKeys.size := by
+    rcases Nat.lt_or_ge i s.pendingKeys.size with hlt | hge
+    · exact hlt
+    · simp [Array.getElem?_eq_none_iff.mpr hge] at hi
+  have hne := go_fst_some_of_marked s.indentColumns s.pendingKeys _ i l hi' hi
+  cases hgo : go s.indentColumns s.pendingKeys s.pendingKeys.size with
+  | mk ol c =>
+    rw [hgo] at hr hne
+    cases ol with
+    | none => exact absurd rfl hne
+    | some l' =>
+      obtain ⟨j, -, hj, hcj⟩ := go_some_mem _ _ _ _ _ hgo
+      obtain ⟨cj, hcj', hcj0⟩ := hs.slots.2 j l' hj
+      have hmem := hm j l' cj hj hcj'
+      simp only [List.mem_singleton] at hmem
+      rw [hcj'] at hcj; simp only [Option.getD_some] at hcj
+      have hprod := Prod.mk.inj hr
+      refine ⟨by rw [hprod.1]; rfl, ?_⟩
+      rw [hprod.2, ← hcj]; omega
+
+
+
+/-- **The explicit `:` under an OUTERMOST `?` kills the register** (item 359, K7's payer): when
+    every marked slot sits at the `:`'s own column `nv` and the only simple key possible is the
+    cursor's, the `:` is the explicit value ([197]), closes the level and re-reads an empty stack. -/
+lemma scanValue_refused_of_outer {s s' : ScannerState} {nv : Nat}
+    (hok : scanValue s = .ok s') (hs : Sound s) (hfl : s.flowLevel = 0)
+    (hm : MarkedColsIn s [nv]) (hcol : s.col = nv)
+    (hkey : s.simpleKey.possible = true → s.simpleKey.pos.col = s.col) :
+    s'.explicitKeyLine = none := by
+  have hs' : Sound s' := scanValue_sound hok hs
+  have hfl' : s'.flowLevel = 0 := by
+    rw [L4YAML.Proofs.ScannerCorrectness.scanValue_preserves_flowLevel s s' hok]; exact hfl
+  by_cases hmk : ∃ (i l : Nat), (s.pendingKeys[i]? : Option (Option Nat)) = some (some l)
+  · obtain ⟨i, l, hi⟩ := hmk
+    obtain ⟨hsome, hekc⟩ := explicitKeyCol_of_marked hs hfl hm hi
+    have h_noflow : s.inFlow = false := (inFlow_false_iff s).2 hfl
+    have h_kc : (scanValueClearKey s).explicitKeyCol = s.explicitKeyCol :=
+      L4YAML.Proofs.ExplicitKeyCoupling.scanValueClearKey_preserves_explicitKeyCol s
+    have h_kl : (scanValueClearKey s).explicitKeyLine = s.explicitKeyLine :=
+      L4YAML.Proofs.ExplicitKeyCoupling.scanValueClearKey_preserves_explicitKeyLine s
+    have h_sk := L4YAML.Proofs.PreprocessIndentStable.scanValueClearKey_simpleKey s
+    obtain ⟨hck1, hck2, hck3, hck4, hck5, hck6⟩ := scanValueClearKey_core s
+    have hs_kc : SlotsOk (scanValueClearKey s) := by
+      refine ⟨by rw [hck1, hck2]; exact hs.slots.1, ?_⟩
+      intro j l' hj; rw [hck2] at hj
+      have hcols : (scanValueClearKey s).indentColumns = s.indentColumns := by
+        simp [ScannerState.indentColumns, hck1]
+      rw [hcols]; exact hs.slots.2 j l' hj
+    have hsz_kc : (scanValueClearKey s).pendingKeys.size = (scanValueClearKey s).indents.size := by
+      rw [hck2, hck1]; exact hs.slots.1
+    obtain ⟨hp1, -, -, -, -, -⟩ := scanValuePrepare_core _ hs_kc
+    have hw_p : MarkedColsIn (scanValuePrepare (scanValueClearKey s)) [nv] :=
+      scanValuePrepare_markedCols (scanValueClearKey_markedCols hm) hsz_kc
+    have hadv_pk : (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).pendingKeys
+        = (scanValuePrepare (scanValueClearKey s)).pendingKeys := by
+      rw [advance_preserves_pendingKeys, emit_pendingKeys]
+    have hadv_ind : (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).indents
+        = (scanValuePrepare (scanValueClearKey s)).indents := by
+      rw [L4YAML.Proofs.EmitterScannability.advance_preserves_indents]; rfl
+    have hadv_cols : (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).indentColumns
+        = (scanValuePrepare (scanValueClearKey s)).indentColumns := by
+      simp [ScannerState.indentColumns, hadv_ind]
+    have hw_adv : MarkedColsIn (((scanValuePrepare (scanValueClearKey s)).emit .value).advance) [nv] :=
+      hw_p.transport hadv_pk hadv_ind
+    have hadv_slots : SlotsOk (((scanValuePrepare (scanValueClearKey s)).emit .value).advance) := by
+      refine ⟨by rw [hadv_pk, hadv_ind]; exact hp1.1, ?_⟩
+      intro j l' hj; rw [hadv_pk] at hj; rw [hadv_cols]; exact hp1.2 j l' hj
+    unfold scanValue at hok
+    simp only [bind, Except.bind] at hok
+    split at hok <;> try contradiction
+    split at hok <;> try contradiction
+    split at hok <;> try contradiction
+    simp only [Except.ok.injEq] at hok
+    subst hok
+    show (if s.inFlow = true then _
+        else if _ then (_, (scanValueClearKey s).explicitKeyLine, _)
+        else PendingKeys.close _ _ (scanValueClearKey s).explicitKeyCol).2.1 = none
+    rw [ite_eq_right (by simp [h_noflow])]
+    by_cases hsv : scanValueKeySurvives s (scanValueClearKey s) = true
+    · rw [ite_eq_left hsv]
+      exfalso
+      unfold scanValueKeySurvives at hsv
+      simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hsv
+      rcases hsv with ⟨-, h0 | ⟨-, hgt⟩⟩
+      · rw [h_kl] at h0; simp [hsome] at h0
+      · rw [h_kc, hekc] at hgt
+        split at hgt
+        · rename_i h_poss_kc
+          rcases h_sk with h_eq | h_false
+          · rw [h_eq] at hgt h_poss_kc
+            rw [hkey h_poss_kc, hcol] at hgt
+            exact absurd hgt (Int.lt_irrefl _)
+          · rw [h_false] at h_poss_kc; cases h_poss_kc
+        · rw [hcol] at hgt; exact absurd hgt (Int.lt_irrefl _)
+    · rw [ite_eq_right hsv]
+      show (PendingKeys.innermost _ (PendingKeys.closeAt _ _ _)).1 = none
+      apply innermost_fst_none_of_noMarks
+      intro j l' hj
+      obtain ⟨hmark, hne⟩ := closeAt_marked _ _ _ _ _ hj
+      obtain ⟨cj, hcj, hcj0⟩ := hadv_slots.2 j l' hmark
+      have hmem := hw_adv j l' cj hmark hcj
+      simp only [List.mem_singleton] at hmem
+      apply hne
+      rw [hcj, h_kc, hekc]
+      congr 1; omega
+  · have hm0 : MarkedColsIn s [] := by
+      intro j l' c hj _; exact absurd ⟨j, l', hj⟩ hmk
+    have hm0' := scanValue_markedCols hok hm0 hs.slots
+    apply explicitKeyLine_none_of_noMarks hs' hfl'
+    intro j l' hj
+    obtain ⟨c, hc, -⟩ := hs'.slots.2 j l' hj
+    have := hm0' j l' c hj hc
+    simp at this
+
 lemma scanBlockEntry_markedCols {s s' : ScannerState} {ns : List Nat}
     (hnf : s.inFlow = false) (hok : scanBlockEntry s = .ok s')
     (h : MarkedColsIn s ns) (hs : SlotsOk s) : MarkedColsIn s' ns :=

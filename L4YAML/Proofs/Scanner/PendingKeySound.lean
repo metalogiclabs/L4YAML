@@ -648,6 +648,53 @@ lemma innermost_none_snd (cols : Array Int) (pks : Array (Option Nat))
     (h : (PendingKeys.innermost cols pks).1 = none) : (PendingKeys.innermost cols pks).2 = -1 := by
   rw [innermost_eq_go] at h ⊢; exact go_none_snd cols pks _ h
 
+/-- Item 359: no marked slot ⇒ the innermost pending key is empty, and under `Sound` in
+    block context the register is `none` — `ExplicitValueRefused`'s scanner side. -/
+lemma go_fst_none_of_noMarks (cols : Array Int) (pks : Array (Option Nat)) (n : Nat)
+    (h : ∀ (i l : Nat), (pks[i]? : Option (Option Nat)) ≠ some (some l)) : (go cols pks n).1 = none := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    simp only [go]
+    split
+    · rename_i l hl
+      exfalso
+      cases hp : pks[n]? with
+      | none => simp [hp] at hl
+      | some o =>
+        cases o with
+        | none => simp [hp] at hl
+        | some l' => exact h n l' hp
+    · exact ih
+
+lemma go_fst_some_of_marked (cols : Array Int) (pks : Array (Option Nat)) (n i l : Nat)
+    (hi : i < n) (h : pks[i]? = some (some l)) : (go cols pks n).1 ≠ none := by
+  induction n with
+  | zero => omega
+  | succ n ih =>
+    simp only [go]
+    split
+    · simp
+    · rename_i hnone
+      apply ih
+      rcases Nat.lt_succ_iff_lt_or_eq.1 hi with hlt | heq
+      · exact hlt
+      · subst heq; simp [h] at hnone
+
+lemma innermost_fst_none_of_noMarks (cols : Array Int) (pks : Array (Option Nat))
+    (h : ∀ (i l : Nat), (pks[i]? : Option (Option Nat)) ≠ some (some l)) :
+    (PendingKeys.innermost cols pks).1 = none := by
+  rw [innermost_eq_go]; exact go_fst_none_of_noMarks cols pks _ h
+
+lemma explicitKeyLine_none_of_noMarks {s : ScannerState} (hs : Sound s) (hfl : s.flowLevel = 0)
+    (h : ∀ (i l : Nat), (s.pendingKeys[i]? : Option (Option Nat)) ≠ some (some l)) :
+    s.explicitKeyLine = none := by
+  have hr := hs.reg hfl
+  have := congrArg Prod.fst hr
+  simp only at this
+  rw [this, innermostPendingKey_eq]
+  exact innermost_fst_none_of_noMarks _ _ h
+
 lemma scanValue_sound {s s' : ScannerState} (hok : scanValue s = .ok s') (h : Sound s) :
     Sound s' := by
   unfold scanValue at hok

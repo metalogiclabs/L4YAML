@@ -4349,6 +4349,166 @@ def walkK1LemmaInstances (input : String) : Nat × Nat × Nat × Nat × Nat := I
     | _ => fuel := 0
   return (memBad, floorFail, dropFail, seqMiss, freshMiss)
 
+/-- Priority 28 (item 359): the register after an EXPLICIT `:`.  After every successful
+    `scanNextToken`, read `(tokens.size, explicitKeyLine, pendingKeys)`; the K7 faces at the
+    `:`/compact producers are payable by `ExplicitValueRefused` exactly when the `?` they close
+    is the OUTERMOST marked slot (`? a⏎: b` → `none`), and not when an enclosing `?` is still
+    marked (`?⏎  ? a⏎  : b⏎: c` → `some 0` at `: b`). -/
+def walkExplicitColonRegister (input : String) : List (Nat × Option Nat × List (Option Nat)) :=
+  Id.run do
+    let mut s := ScannerState.mk' input
+    let mut out := []
+    let mut fuel := 32
+    while fuel > 0 do
+      fuel := fuel - 1
+      match scanNextToken s with
+      | .ok (some s') =>
+        out := out ++ [(s'.tokens.size, s'.explicitKeyLine, s'.pendingKeys.toList)]
+        s := s'
+      | _ => fuel := 0
+    return out
+
+/-- Priority 28 (item 359): INSTANTIATE `scanValue_refused_of_outer` at every `:` step.  On the
+    dispatch state read its decidable premises — block context, `MarkedColsIn s [col]` (every
+    marked slot's column is the `:`'s), and the simple key, if possible, at the cursor's column —
+    and the conclusion on the scanned state (`explicitKeyLine = none`).  Returns
+    `(payable, bad, nested, nestedLive)`: `payable` = steps where every premise holds, `bad` =
+    those whose conclusion fails (a refutation; pinned 0), `nested` = `:` steps with a marked
+    slot at another column (the `MarkedColsIn` premise withdrawn), `nestedLive` = those whose
+    register stays live (the premise is load-bearing; pinned = `nested` on the inputs below). -/
+def walkOuterColon (input : String) : Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 32
+  let mut payable := 0
+  let mut bad := 0
+  let mut nested := 0
+  let mut nestedLive := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if c == ':' && sp.flowLevel == 0 then
+          let cols := sp.indentColumns
+          let marksAt (col : Nat) : Bool := Id.run do
+            let mut ok := true
+            for i in [0:sp.pendingKeys.size] do
+              match sp.pendingKeys[i]? with
+              | some (some _) =>
+                match cols[i]? with
+                | some ci => if ci.toNat != col then ok := false
+                | none => ok := false
+              | _ => pure ()
+            return ok
+          let keyOk := !sp.simpleKey.possible || sp.simpleKey.pos.col == sp.col
+          if marksAt sp.col && keyOk then
+            payable := payable + 1
+            if s'.explicitKeyLine.isSome then bad := bad + 1
+          else if !marksAt sp.col then
+            nested := nested + 1
+            if s'.explicitKeyLine.isSome then nestedLive := nestedLive + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (payable, bad, nested, nestedLive)
+
+/-- Priority 28 (item 359, #106 review): the ARRAY lemmas behind the payer, instantiated on arrays
+    the scanner never builds.  `go cols pks n` reads only `pks[i]` for `i < n`, and
+    `PendingKeys.innermost cols pks = go cols pks pks.size` (`innermost_eq_go`), so
+    `innermost cols (pks.extract 0 n)` IS `go cols pks n` on the prefix: for every `(cols, pks, n)`
+    below, the premise of `go_fst_none_of_noMarks` (no `some (some l)` below `n`) must give `.1 = none`
+    (and `.2 = -1`, `go_none_snd`), and the premise of `go_fst_some_of_marked` (some `i < n` marked)
+    must give `.1 ≠ none`.  Returns `(cases, noneBad, someBad)`. -/
+def walkInnermostArrays : Nat × Nat × Nat := Id.run do
+  let colsA : List (Array Int) := [#[], #[0], #[0, 2], #[0, 2, 4], #[-1, 0, 2], #[0, 0]]
+  let pksA : List (Array (Option Nat)) :=
+    [#[], #[none], #[some 1], #[none, none], #[none, some 0], #[some 0, none], #[some 1, some 3],
+     #[none, some 2, none], #[some 0, none, some 5], #[none, none, some 2], #[some 7, some 0, none],
+     #[none, none, none, some 1], #[some 1, none, none, none]]
+  let mut cases := 0
+  let mut noneBad := 0
+  let mut someBad := 0
+  for cols in colsA do
+    for pks in pksA do
+      for n in [0, 1, 2, 3, 4] do
+        cases := cases + 1
+        let pre := pks.extract 0 n
+        let r := PendingKeys.innermost cols pre
+        let marked := (List.range n).any fun i =>
+          match pks[i]? with
+          | some (some _) => true
+          | _ => false
+        if !marked then
+          if r.1.isSome || r.2 != -1 then noneBad := noneBad + 1
+        else
+          if r.1.isNone then someBad := someBad + 1
+  return (cases, noneBad, someBad)
+
+def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 28: register after the explicit `:` (item 359)"
+  let walks : List (String × List (Nat × Option Nat × List (Option Nat))) :=
+    [("? a\n: b",
+      [(4, some 0, [none, some 0]), (7, some 0, [none, some 0]), (10, none, [none, none]),
+       (13, none, [none, none])]),
+     ("?\n  ? a\n  : b\n: c",
+      [(4, some 0, [none, some 0]), (8, some 1, [none, some 0, some 1]),
+       (11, some 1, [none, some 0, some 1]), (14, some 0, [none, some 0, none]),
+       (17, some 0, [none, some 0, none]), (21, none, [none, none]), (24, none, [none, none])]),
+     ("? a: b\n: c",
+      [(4, some 0, [none, some 0]), (7, some 0, [none, some 0]), (8, some 0, [none, some 0, none]),
+       (11, some 0, [none, some 0, none]), (15, none, [none, none]), (18, none, [none, none])]),
+     ("- ? a\n  : b",
+      [(4, none, [none, none]), (8, some 0, [none, none, some 0]), (11, some 0, [none, none, some 0]),
+       (14, none, [none, none, none]), (17, none, [none, none, none])]),
+     ("---\n? a\n: b",
+      [(3, none, [none]), (7, some 1, [none, some 1]), (10, some 1, [none, some 1]),
+       (13, none, [none, none]), (16, none, [none, none])]),
+     ("? ? a\n  : b\n: c",
+      [(4, some 0, [none, some 0]), (8, some 0, [none, some 0, some 0]),
+       (11, some 0, [none, some 0, some 0]), (14, some 0, [none, some 0, none]),
+       (17, some 0, [none, some 0, none]), (21, none, [none, none]), (24, none, [none, none])]),
+     ("a: 1\n? b\n: 2",
+      [(3, none, [none]), (4, none, [none, none]), (7, none, [none, none]), (10, some 1, [none, some 1]),
+       (13, some 1, [none, some 1]), (16, none, [none, none]), (19, none, [none, none])])]
+  for (input, expected) in walks do
+    let got := walkExplicitColonRegister input
+    checkM state s!"explicitColon/{repr input}: (tokens, explicitKeyLine, pendingKeys) per step"
+      (got == expected) s!"got {repr got}"
+  -- The discriminator the K7 payment reads: after an explicit `:` the register is `none`
+  -- iff no slot stays marked.
+  for (input, _) in walks do
+    let bad := (walkExplicitColonRegister input).filter fun (_, ekl, pks) =>
+      (ekl.isNone) != (pks.all fun o => o.isNone)
+    checkM state s!"explicitColon/{repr input}: explicitKeyLine = none ⇔ no marked slot" (bad.isEmpty)
+      s!"{bad.length} step(s) disagree"
+  -- `scanValue_refused_of_outer` instantiated: every payable `:` kills the register; every
+  -- nested `:` (a mark at another column) keeps it live.
+  let outer : List (String × Nat × Nat) :=
+    [("? a\n: b", 1, 0), ("?\n  ? a\n  : b\n: c", 1, 1), ("? a: b\n: c", 1, 1),
+     ("- ? a\n  : b", 1, 0), ("---\n? a\n: b", 1, 0), ("? ? a\n  : b\n: c", 1, 1),
+     -- an implicit key's `:` (`a: 1`, `k:`) has its simple key BEFORE the cursor: neither premise
+     -- lane, so only the `?`'s `:` counts
+     ("a: 1\n? b\n: 2", 1, 0), ("? a\n:", 1, 0), ("? earth: blue\n  : x", 0, 2),
+     ("k:\n  ? a\n: v", 1, 0)]
+  for (input, expPay, expNested) in outer do
+    let (payable, bad, nested, nestedLive) := walkOuterColon input
+    checkM state s!"outerColon/{repr input}: payable `:` steps" (payable == expPay)
+      s!"got {payable}, expected {expPay}"
+    checkM state s!"outerColon/{repr input}: no payable `:` keeps the register" (bad == 0)
+      s!"{bad} refutation(s)"
+    checkM state s!"outerColon/{repr input}: nested `:` steps" (nested == expNested)
+      s!"got {nested}, expected {expNested}"
+    checkM state s!"outerColon/{repr input}: every nested `:` keeps the register live"
+      (nestedLive == nested) s!"{nestedLive}/{nested}"
+  -- The array lemmas on arbitrary arrays and bounds (6 column arrays × 13 slot arrays × n ∈ 0..4).
+  let (cases, noneBad, someBad) := walkInnermostArrays
+  checkM state "innermostArrays: 390 (cols, pks, n) cases" (cases == 390) s!"got {cases}"
+  checkM state "innermostArrays: no mark below n ⇒ innermost (none, -1) (go_fst_none_of_noMarks, go_none_snd)"
+    (noneBad == 0) s!"{noneBad} refutation(s)"
+  checkM state "innermostArrays: a mark below n ⇒ innermost.1 ≠ none (go_fst_some_of_marked)"
+    (someBad == 0) s!"{someBad} refutation(s)"
+
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
   -- `(input, (payable, fresh, other))`, pinned from the run.
@@ -4414,6 +4574,7 @@ def collectTests : IO VerifiedSuiteResult := do
 
   testQuestionMarkColumn state
   testK1Lanes state
+  testExplicitColonRegister state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",

@@ -26367,7 +26367,7 @@ lemma accum_block_on_noPending
           -- indicator over.
           (dash_dispatch_floor h_base
             (by have := h_ntop h_scflow; omega) h_preprocess)
-            (Or.inr trivial) h_mcstep
+            (Or.inr (PackAlt.ofRefused (h_noek (noflow_park_of_noflow h_preprocess h_noflow)))) h_mcstep
       -- ═══ Item 186: the `:`'s stamp source is DECIDED here, not split on.
       -- A virgin block-context park is the stream's seed (item 116 counted the
       -- constructor's producers and the other seven are flow-interior), so its
