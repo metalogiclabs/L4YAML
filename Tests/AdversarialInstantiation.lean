@@ -4413,6 +4413,38 @@ def walkOuterColon (input : String) : Nat × Nat × Nat × Nat := Id.run do
     | _ => fuel := 0
   return (payable, bad, nested, nestedLive)
 
+/-- Priority 28 (item 359, #106 review): the ARRAY lemmas behind the payer, instantiated on arrays
+    the scanner never builds.  `go cols pks n` reads only `pks[i]` for `i < n`, and
+    `PendingKeys.innermost cols pks = go cols pks pks.size` (`innermost_eq_go`), so
+    `innermost cols (pks.extract 0 n)` IS `go cols pks n` on the prefix: for every `(cols, pks, n)`
+    below, the premise of `go_fst_none_of_noMarks` (no `some (some l)` below `n`) must give `.1 = none`
+    (and `.2 = -1`, `go_none_snd`), and the premise of `go_fst_some_of_marked` (some `i < n` marked)
+    must give `.1 ≠ none`.  Returns `(cases, noneBad, someBad)`. -/
+def walkInnermostArrays : Nat × Nat × Nat := Id.run do
+  let colsA : List (Array Int) := [#[], #[0], #[0, 2], #[0, 2, 4], #[-1, 0, 2], #[0, 0]]
+  let pksA : List (Array (Option Nat)) :=
+    [#[], #[none], #[some 1], #[none, none], #[none, some 0], #[some 0, none], #[some 1, some 3],
+     #[none, some 2, none], #[some 0, none, some 5], #[none, none, some 2], #[some 7, some 0, none],
+     #[none, none, none, some 1], #[some 1, none, none, none]]
+  let mut cases := 0
+  let mut noneBad := 0
+  let mut someBad := 0
+  for cols in colsA do
+    for pks in pksA do
+      for n in [0, 1, 2, 3, 4] do
+        cases := cases + 1
+        let pre := pks.extract 0 n
+        let r := PendingKeys.innermost cols pre
+        let marked := (List.range n).any fun i =>
+          match pks[i]? with
+          | some (some _) => true
+          | _ => false
+        if !marked then
+          if r.1.isSome || r.2 != -1 then noneBad := noneBad + 1
+        else
+          if r.1.isNone then someBad := someBad + 1
+  return (cases, noneBad, someBad)
+
 def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 28: register after the explicit `:` (item 359)"
   let walks : List (String × List (Nat × Option Nat × List (Option Nat))) :=
@@ -4469,6 +4501,13 @@ def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
       s!"got {nested}, expected {expNested}"
     checkM state s!"outerColon/{repr input}: every nested `:` keeps the register live"
       (nestedLive == nested) s!"{nestedLive}/{nested}"
+  -- The array lemmas on arbitrary arrays and bounds (6 column arrays × 13 slot arrays × n ∈ 0..4).
+  let (cases, noneBad, someBad) := walkInnermostArrays
+  checkM state "innermostArrays: 390 (cols, pks, n) cases" (cases == 390) s!"got {cases}"
+  checkM state "innermostArrays: no mark below n ⇒ innermost (none, -1) (go_fst_none_of_noMarks, go_none_snd)"
+    (noneBad == 0) s!"{noneBad} refutation(s)"
+  checkM state "innermostArrays: a mark below n ⇒ innermost.1 ≠ none (go_fst_some_of_marked)"
+    (someBad == 0) s!"{someBad} refutation(s)"
 
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
