@@ -28631,7 +28631,11 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
                 (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess)
                 h_dispatch)
               -- Item 360: K7's carrier — paid from `h_kslotUp`'s domain when only the `?`'s column is marked.
-              (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => h_park.elim (fun hp => if hns : ∀ x ∈ ns, x = k then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono, (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)), fun _ => (preprocess_saved_key_col hp.1 h_noflow h_preprocess).2⟩ else Or.inr trivial) (fun _ => Or.inr trivial)) (fun _ => Or.inr trivial))
+              (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => h_park.elim (fun hp => if hns : ∀ x ∈ ns, x = k
+                then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                  (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)),
+                  fun _ => (preprocess_saved_key_col hp.1 h_noflow h_preprocess).2⟩
+                else Or.inr trivial) (fun _ => Or.inr trivial)) (fun _ => Or.inr trivial))
           -- ═══ **Item 190: the frame ONE LEVEL UP, read at the landing's
           -- own column.**  `h_kslot` above is the frame this park's collection
           -- FILLS; this is the frame that one stands inside, and a park nested
@@ -29264,7 +29268,11 @@ lemma accum_block_on_pendingBlock
               (landing_floor_of_arm h_noflow h_larm (by omega) h_base h_preprocess)
               h_dispatch)
             -- Item 360: K7's carrier — paid from `h_kslotUp`'s domain when only the `?`'s column is marked.
-            (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => if hns : ∀ x ∈ ns, x = k then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono, (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)), fun _ => (preprocess_saved_key_col h_sk h_noflow h_preprocess).2⟩ else Or.inr trivial) (fun _ => Or.inr trivial))
+            (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => if hns : ∀ x ∈ ns, x = k
+              then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)),
+                fun _ => (preprocess_saved_key_col h_sk h_noflow h_preprocess).2⟩
+              else Or.inr trivial) (fun _ => Or.inr trivial))
         -- ═══ **Item 190: the frame ONE LEVEL UP, read at the landing's own
         -- column** — as at `accum_block_on_pendingBlockContent`, with the
         -- awaited entry in the parked content's place (`?⏎  ? -⏎: w`). ═══
@@ -29520,7 +29528,11 @@ lemma accum_block_on_pendingBlock
             -- resume stack the opener's park covers from them.
             h_mono h_top_old
             -- Item 360: K7's carrier — paid from `h_kslotUp`'s domain when only the `?`'s column is marked.
-            (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => if hns : ∀ x ∈ ns, x = n + 1 + m then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono, (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)), fun _ => (preprocess_saved_key_col h_sk h_noflow h_preprocess).2⟩ else Or.inr trivial) (fun _ => Or.inr trivial))
+            (h_kslotUp.elim (fun ⟨ns, hdom, _⟩ => if hns : ∀ x ∈ ns, x = n + 1 + m
+              then Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                (RegisterWitness.preprocess_markedCols h_preprocess hdom).mono (fun x hx => List.mem_singleton.2 (hns x hx)),
+                fun _ => (preprocess_saved_key_col h_sk h_noflow h_preprocess).2⟩
+              else Or.inr trivial) (fun _ => Or.inr trivial))
         -- Item 125: the compact `:`'s own stamp source, decided here; the
         -- undecided shape stays the deferral, and the `?` never reads it.
         refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
