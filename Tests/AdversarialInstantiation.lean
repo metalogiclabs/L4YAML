@@ -4297,6 +4297,58 @@ def walkK1Lanes (input : String) : Nat × Nat × Nat × Nat := Id.run do
     | _ => fuel := 0
   return (payable, fresh, other, bad)
 
+open L4YAML.Proofs.IndentStackCover in
+/-- Priority 27 (item 358, #104 review): INSTANTIATE `landing_frame_of_cover` rather than
+    read its lanes.  At every step of `walkK1Lanes`'s population, build the lemma's `lo`/`ks`
+    on the preprocessed state (the dispatch state differs only in `allowDirectives`):
+    `ks lo` = the MAPPING levels of `sp.indents` at column ≥ `lo`, as `FrameLevel.map`, so
+    `Covered lo ks sp` holds by construction.  Reads, per step:
+    `memBad` — every premise holds (`lo ∈ {0, col}`, sibling, `?`/mapping top) but
+    `FrameLevel.map col ∉ ks` (a refutation of the lemma; pinned 0);
+    `floorFail` — `lo := col + 1` (the floor premise fails) and the conclusion fails;
+    `dropFail` — `ks := (ks col).erase (map col)` (`Covered` fails) and the conclusion fails;
+    `seqMiss` — a sibling `-`/`:` on a SEQUENCE top (the lane premise fails) and the
+    conclusion fails on `ks 0`; `freshMiss` — a non-sibling step whose landing is not a
+    mapping frame of `ks 0` (the sibling premise fails and the conclusion fails; reads
+    `= fresh`: a fresh landing's column is never on the stack).  Returns `(memBad, floorFail, dropFail, seqMiss, freshMiss)`. -/
+def walkK1LemmaInstances (input : String) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut memBad := 0
+  let mut floorFail := 0
+  let mut dropFail := 0
+  let mut seqMiss := 0
+  let mut freshMiss := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if (c == '-' || c == ':' || c == '?') && !sp.inFlow && s'.tokens.size > s.tokens.size then
+          let col := sp.col
+          let ks (lo : Nat) : List FrameLevel :=
+            sp.indents.toList.filterMap fun e =>
+              if !e.isSequence && (lo : Int) ≤ e.column then some (FrameLevel.map e.column.toNat)
+              else none
+          let hit (l : List FrameLevel) : Bool := l.contains (FrameLevel.map col)
+          let sibling := sp.currentIndent == (col : Int)
+          let mapTop := match sp.indents.back? with
+            | some top => !top.isSequence
+            | none => false
+          if !sibling then
+            if !hit (ks 0) then freshMiss := freshMiss + 1
+          else if c == '?' || mapTop then
+            if !hit (ks 0) || !hit (ks col) then memBad := memBad + 1
+            if !hit (ks (col + 1)) then floorFail := floorFail + 1
+            if !hit ((ks col).erase (FrameLevel.map col)) then dropFail := dropFail + 1
+          else
+            if !hit (ks 0) then seqMiss := seqMiss + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (memBad, floorFail, dropFail, seqMiss, freshMiss)
+
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
   -- `(input, (payable, fresh, other))`, pinned from the run.
@@ -4315,6 +4367,17 @@ def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
       s!"got ({p}, {f}, {o}) expected ({eP}, {eF}, {eO})"
     checkM state s!"k1Lanes/{repr input}: no sibling `?` on a sequence top" (bad == 0)
       s!"bad {bad}"
+    let (memBad, floorFail, dropFail, seqMiss, freshMiss) := walkK1LemmaInstances input
+    checkM state s!"k1Lanes/{repr input}: landing_frame_of_cover holds on ks 0 and ks col" (memBad == 0)
+      s!"{memBad} payable step(s) with FrameLevel.map col ∉ ks"
+    checkM state s!"k1Lanes/{repr input}: the floor premise is load-bearing (lo := col + 1)"
+      (floorFail == p) s!"got {floorFail} expected {p}"
+    checkM state s!"k1Lanes/{repr input}: the Covered premise is load-bearing (frame erased)"
+      (dropFail == p) s!"got {dropFail} expected {p}"
+    checkM state s!"k1Lanes/{repr input}: the lane premise is load-bearing (sequence top)"
+      (seqMiss == o) s!"got {seqMiss} expected {o}"
+    checkM state s!"k1Lanes/{repr input}: the sibling premise is load-bearing (fresh landing)"
+      (freshMiss == f) s!"got {freshMiss} expected {f}"
 
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
