@@ -4349,6 +4349,63 @@ def walkK1LemmaInstances (input : String) : Nat × Nat × Nat × Nat × Nat := I
     | _ => fuel := 0
   return (memBad, floorFail, dropFail, seqMiss, freshMiss)
 
+/-- Priority 28 (item 359): the register after an EXPLICIT `:`.  After every successful
+    `scanNextToken`, read `(tokens.size, explicitKeyLine, pendingKeys)`; the K7 faces at the
+    `:`/compact producers are payable by `ExplicitValueRefused` exactly when the `?` they close
+    is the OUTERMOST marked slot (`? a⏎: b` → `none`), and not when an enclosing `?` is still
+    marked (`?⏎  ? a⏎  : b⏎: c` → `some 0` at `: b`). -/
+def walkExplicitColonRegister (input : String) : List (Nat × Option Nat × List (Option Nat)) :=
+  Id.run do
+    let mut s := ScannerState.mk' input
+    let mut out := []
+    let mut fuel := 32
+    while fuel > 0 do
+      fuel := fuel - 1
+      match scanNextToken s with
+      | .ok (some s') =>
+        out := out ++ [(s'.tokens.size, s'.explicitKeyLine, s'.pendingKeys.toList)]
+        s := s'
+      | _ => fuel := 0
+    return out
+
+def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 28: register after the explicit `:` (item 359)"
+  let walks : List (String × List (Nat × Option Nat × List (Option Nat))) :=
+    [("? a\n: b",
+      [(4, some 0, [none, some 0]), (7, some 0, [none, some 0]), (10, none, [none, none]),
+       (13, none, [none, none])]),
+     ("?\n  ? a\n  : b\n: c",
+      [(4, some 0, [none, some 0]), (8, some 1, [none, some 0, some 1]),
+       (11, some 1, [none, some 0, some 1]), (14, some 0, [none, some 0, none]),
+       (17, some 0, [none, some 0, none]), (21, none, [none, none]), (24, none, [none, none])]),
+     ("? a: b\n: c",
+      [(4, some 0, [none, some 0]), (7, some 0, [none, some 0]), (8, some 0, [none, some 0, none]),
+       (11, some 0, [none, some 0, none]), (15, none, [none, none]), (18, none, [none, none])]),
+     ("- ? a\n  : b",
+      [(4, none, [none, none]), (8, some 0, [none, none, some 0]), (11, some 0, [none, none, some 0]),
+       (14, none, [none, none, none]), (17, none, [none, none, none])]),
+     ("---\n? a\n: b",
+      [(3, none, [none]), (7, some 1, [none, some 1]), (10, some 1, [none, some 1]),
+       (13, none, [none, none]), (16, none, [none, none])]),
+     ("? ? a\n  : b\n: c",
+      [(4, some 0, [none, some 0]), (8, some 0, [none, some 0, some 0]),
+       (11, some 0, [none, some 0, some 0]), (14, some 0, [none, some 0, none]),
+       (17, some 0, [none, some 0, none]), (21, none, [none, none]), (24, none, [none, none])]),
+     ("a: 1\n? b\n: 2",
+      [(3, none, [none]), (4, none, [none, none]), (7, none, [none, none]), (10, some 1, [none, some 1]),
+       (13, some 1, [none, some 1]), (16, none, [none, none]), (19, none, [none, none])])]
+  for (input, expected) in walks do
+    let got := walkExplicitColonRegister input
+    checkM state s!"explicitColon/{repr input}: (tokens, explicitKeyLine, pendingKeys) per step"
+      (got == expected) s!"got {repr got}"
+  -- The discriminator the K7 payment reads: after an explicit `:` the register is `none`
+  -- iff no slot stays marked.
+  for (input, _) in walks do
+    let bad := (walkExplicitColonRegister input).filter fun (_, ekl, pks) =>
+      (ekl.isNone) != (pks.all fun o => o.isNone)
+    checkM state s!"explicitColon/{repr input}: explicitKeyLine = none ⇔ no marked slot" (bad.isEmpty)
+      s!"{bad.length} step(s) disagree"
+
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
   -- `(input, (payable, fresh, other))`, pinned from the run.
@@ -4414,6 +4471,7 @@ def collectTests : IO VerifiedSuiteResult := do
 
   testQuestionMarkColumn state
   testK1Lanes state
+  testExplicitColonRegister state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
