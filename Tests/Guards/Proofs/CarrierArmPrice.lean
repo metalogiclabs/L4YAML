@@ -274,8 +274,9 @@ def expectedAbsorbReaders : List String :=
 -- on 2026-10-24: `SCFlowJsonContent`/`SCFlowJsonNode` ([148]/[149] JSON-key adjacent value); all 8 arms direct.
 -- 2026-10-24 (B3): prods/ctors/direct/surfArms/surfDirect each +2 — the explicit JSON-key adjacent-value
 -- twins in Surface/Node.lean (both direct, no anchor).
+-- 2026-10-25 (#99 review): prods 164 → 163 — the dead `FlowLead` duplicate of `leadFree` is deleted.
 def expectedLine : String :=
-  "prods=164 ctors=306 same=25 direct=292 anchoredOnly=12 broken=2 surfArms=182 \
+  "prods=163 ctors=306 same=25 direct=292 anchoredOnly=12 broken=2 surfArms=182 \
 surfDirect=181 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=41 producers=21 absorbReaders=5 absorbPlainReaders=0"
 

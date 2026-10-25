@@ -4278,16 +4278,16 @@ inductive FrameTail where
 /-- Whether the next token may follow the frame with NO separation: optional
     `s-separate?` after `[`/`{`/`,` and after a completed node; mandatory after `?`;
     after `:` only when the key is JSON-like (`[149]`). -/
-def FrameTail.leadFree : FrameTail → Prop
-  | .sep => True
-  | .value _ => True
-  | .colon kj => kj = true
-  | .question => False
+def FrameTail.leadFree : FrameTail → Bool
+  | .sep => true
+  | .value _ => true
+  | .colon kj => kj
+  | .question => false
 
 /-- The lead before `,` `]` `}` may be empty after any tail but `?` ([147]'s `e-node`). -/
-def FrameTail.closeFree : FrameTail → Prop
-  | .question => False
-  | _ => True
+def FrameTail.closeFree : FrameTail → Bool
+  | .question => false
+  | _ => true
 
 /-- The frame tail a token dictates. The three `.sep` tokens are exactly the ones
     `scanFlowEntry` rejects a following `,` after; `.value` is exactly
@@ -11121,7 +11121,7 @@ lemma SeqFrame.closeLead {n : Nat} {c_out : YamlContext} {tl : FrameTail}
     · rename_i pre hcolon
       exact PartialFlowSeq.closeSeq h_open h_sep
         (pre.appendEntry (.emptyKeyEmpty _ _ _ _ hcolon) (GOpt.none _)) h_close
-    · exact hfree.elim
+    · exact absurd hfree Bool.false_ne_true
     · rename_i hq hqsep pre hcolon
       exact PartialFlowSeq.closeSeq h_open h_sep
         (pre.appendEntry (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
@@ -11216,7 +11216,7 @@ lemma MapFrame.closeLead {n : Nat} {c_out : YamlContext} {tl : FrameTail}
     · rename_i pre hcolon
       exact PartialFlowMap.closeMap h_open h_sep
         (PendingFlowMapEntry.finishEmptyKeyEmpty pre hcolon (GOpt.none _)) h_close
-    · exact hfree.elim
+    · exact absurd hfree Bool.false_ne_true
     · rename_i hq hqsep pre hcolon
       exact PartialFlowMap.closeMap h_open h_sep
         (pre.appendEntry (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
@@ -11420,7 +11420,7 @@ lemma SeqFrame.holdCommaLead {n : Nat} {c : YamlContext} {tl : FrameTail}
     · rename_i pre hcolon
       exact appendSeqEntryHeldFrame pre (.emptyKeyEmpty _ _ _ _ hcolon)
         (GOpt.none _) hcomma (GOpt.none sp_tok)
-    · exact hfree.elim
+    · exact absurd hfree Bool.false_ne_true
     · rename_i hq hqsep pre hcolon
       exact appendSeqEntryHeldFrame pre (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
         (GOpt.none _) hcomma (GOpt.none sp_tok)
@@ -11455,7 +11455,7 @@ lemma MapFrame.holdCommaLead {n : Nat} {c : YamlContext} {tl : FrameTail}
     · rename_i pre hcolon
       exact appendMapEntryHeldFrame pre (.emptyKeyEmpty _ _ _ _ hcolon)
         (GOpt.none _) hcomma (GOpt.none sp_tok)
-    · exact hfree.elim
+    · exact absurd hfree Bool.false_ne_true
     · rename_i hq hqsep pre hcolon
       exact appendMapEntryHeldFrame pre (.explicitEmptyKeyEmpty _ _ _ _ _ _ hq hqsep hcolon)
         (GOpt.none _) hcomma (GOpt.none sp_tok)
@@ -11481,30 +11481,6 @@ lemma GOpt_SSeparate_extend_free {n : Nat} {c : YamlContext} {a b d : SurfPos} {
 lemma lead_of_not_free {A : Prop} {b d : SurfPos} {P : Prop}
     (h : A ∨ (d = b ∧ P)) (hP : ¬ P) : A :=
   h.resolve_right (fun h => hP h.2)
-
-/-- Item 3 (`[66]` at col 0): the lead a frame spends before its next node.  After
-    `[`, `{`, `,` ([137]/[138]/[140]/[141]) and after a JSON key's `:` ([149]) the slot is
-    `s-separate?`; after a yaml key's `:` ([147]) and after `?` ([142]) it is mandatory. -/
-def FlowLead (n : Nat) : FrameTail → SurfPos → SurfPos → Prop
-  | .sep, sp, sp' => GOpt (SSeparateLines n) sp sp'
-  | .colon true, sp, sp' => GOpt (SSeparateLines n) sp sp'
-  | _, sp, sp' => SSeparateLines n sp sp'
-
-lemma FlowLead.ofLines {n : Nat} {tl : FrameTail} {sp sp' : SurfPos}
-    (h : SSeparateLines n sp sp') : FlowLead n tl sp sp' := by
-  cases tl with
-  | sep => exact .some _ _ h
-  | colon kj => cases kj
-                · exact h
-                · exact .some _ _ h
-  | question => exact h
-  | value _ => exact h
-
-/-- The empty lead: only where the slot is optional. -/
-lemma FlowLead.eps {n : Nat} {tl : FrameTail} {sp : SurfPos}
-    (h : tl = .sep ∨ tl = .colon true) : FlowLead n tl sp sp := by
-  rcases h with rfl | rfl <;> exact .none _
-
 
 /-- Fold a completed `.flowIn` node (starting after this step's leading
     separation) into the SAME-depth open stack: the top frame transitions
@@ -11562,19 +11538,19 @@ lemma FlowOpenStack.receiveNode {g : Option ScannerState} {sp_start : SurfPos} {
     · -- midEmptyColon: `[: a]` — the node is the empty-key pair's VALUE (9l).
       rename_i pre hcolon
       exact .seqBase _ _ _ _ _ _ _ resume h_open h_sep
-        (appendSeqEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+        (appendSeqEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
     · -- midQuestion: `[? a` — the node is the EXPLICIT KEY, and `[150]`'s
       -- mandatory `s-separate` is this step's leading separation (9l).
       rename_i pre hq
       exact .seqBase _ _ _ _ _ _ _ resume h_open h_sep
-        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson)
+        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson)
     · -- midQuestionEmptyColon: `[? : a` — the node is the empty-key pair's
       -- VALUE (item 9n).
       rename_i hq hqsep pre hcolon
       exact .seqBase _ _ _ _ _ _ _ resume h_open h_sep
         (appendSeqEntryFrame pre
-          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
   · -- mapBase
     rename_i resume h_open h_sep st
@@ -11610,17 +11586,17 @@ lemma FlowOpenStack.receiveNode {g : Option ScannerState} {sp_start : SurfPos} {
             (GOpt.none sp_ne))
     · rename_i pre hcolon
       exact .mapBase _ _ _ _ _ _ _ resume h_open h_sep
-        (appendMapEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+        (appendMapEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
     · -- midQuestion: `{? a` — the node is the EXPLICIT KEY (9l).
       rename_i pre hq
       exact .mapBase _ _ _ _ _ _ _ resume h_open h_sep
-        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson)
+        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson)
     · -- midQuestionEmptyColon: `{? : a` (item 9n).
       rename_i hq hqsep pre hcolon
       exact .mapBase _ _ _ _ _ _ _ resume h_open h_sep
         (appendMapEntryFrame pre
-          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
   · -- seqNest (NB: `cases` floats the recursive `inject` closure to
     -- second-to-last — the context order is h_open, h_sep, inject, st)
@@ -11657,17 +11633,17 @@ lemma FlowOpenStack.receiveNode {g : Option ScannerState} {sp_start : SurfPos} {
     · -- midEmptyColon (9l)
       rename_i pre hcolon
       exact .seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (appendSeqEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+        (appendSeqEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
     · -- midQuestion (9l)
       rename_i pre hq
       exact .seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson)
+        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson)
     · -- midQuestionEmptyColon (item 9n)
       rename_i hq hqsep pre hcolon
       exact .seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
         (appendSeqEntryFrame pre
-          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
   · -- mapNest (same field reorder as seqNest)
     rename_i h_open h_sep promise inject st
@@ -11702,17 +11678,17 @@ lemma FlowOpenStack.receiveNode {g : Option ScannerState} {sp_start : SurfPos} {
             (GOpt.none sp_ne))
     · rename_i pre hcolon
       exact .mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (appendMapEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+        (appendMapEntryFrame pre (.emptyKeyValue _ _ _ _ _ _ hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
     · -- midQuestion (9l)
       rename_i pre hq
       exact .mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson)
+        (.midExplicitKey kj _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson)
     · -- midQuestionEmptyColon (item 9n)
       rename_i hq hqsep pre hcolon
       exact .mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
         (appendMapEntryFrame pre
-          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead (fun h => nomatch h)) h_node)
+          (.explicitEmptyKeyValue _ _ _ _ _ _ _ _ hq hqsep hcolon (lead_of_not_free h_lead Bool.false_ne_true) h_node)
           (GOpt.none sp_ne))
 
 /-! The two receivers a HELD property run needs (β.3). Both are `receiveNode` with
@@ -11900,25 +11876,25 @@ lemma FlowOpenStack.receiveColonQuestion {g : Option ScannerState} {sp_start : S
     cases st
     · rename_i pre hq
       exact .seqBase _ _ _ _ _ _ _ resume h_open h_sep
-        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) hcolon)
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) hcolon)
   · -- mapBase: `{? : `
     rename_i resume h_open h_sep st
     cases st
     · rename_i pre hq
       exact .mapBase _ _ _ _ _ _ _ resume h_open h_sep
-        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) hcolon)
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) hcolon)
   · -- seqNest
     rename_i h_open h_sep promise inject st
     cases st
     · rename_i pre hq
       exact .seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) hcolon)
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) hcolon)
   · -- mapNest
     rename_i h_open h_sep promise inject st
     cases st
     · rename_i pre hq
       exact .mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) hcolon)
+        (.midQuestionEmptyColon _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) hcolon)
 
 /-! ### §1c''c'' The `:` step with a property run HELD in the gap (item 9o)
 
@@ -12035,28 +12011,28 @@ lemma FlowOpenStack.receiveColonPropsQuestion {g : Option ScannerState} {sp_star
     cases st
     · rename_i pre hq
       exact .seqBase _ _ _ _ _ _ _ resume h_open h_sep
-        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h))
+        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true)
           (.propsEmpty _ _ _ _ h_run.toProperties) (fun h => nomatch h) h_gap hcolon)
   · -- mapBase: `{? &a : `
     rename_i resume h_open h_sep st
     cases st
     · rename_i pre hq
       exact .mapBase _ _ _ _ _ _ _ resume h_open h_sep
-        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h))
+        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true)
           (.propsEmpty _ _ _ _ h_run.toProperties) (fun h => nomatch h) h_gap hcolon)
   · -- seqNest
     rename_i h_open h_sep promise inject st
     cases st
     · rename_i pre hq
       exact .seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h))
+        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true)
           (.propsEmpty _ _ _ _ h_run.toProperties) (fun h => nomatch h) h_gap hcolon)
   · -- mapNest
     rename_i h_open h_sep promise inject st
     cases st
     · rename_i pre hq
       exact .mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h))
+        (.midExplicitColon false _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true)
           (.propsEmpty _ _ _ _ h_run.toProperties) (fun h => nomatch h) h_gap hcolon)
 
 /-- **Receive a node AND a following `:` in one step (item 10) — the
@@ -12136,28 +12112,28 @@ lemma FlowOpenStack.receiveNodeColon {g : Option ScannerState} {sp_start : SurfP
       cases st
       · rename_i pre hq
         exact .seqBase _ _ _ _ _ _ _ resume h_open h_sep
-          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson
+          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson
             (GOpt_of_lead (Q := True) (h_lead₂.imp id (fun h => ⟨h, trivial⟩))) hcolon)
     · -- mapBase: `{? a : `
       rename_i resume h_open h_sep st
       cases st
       · rename_i pre hq
         exact .mapBase _ _ _ _ _ _ _ resume h_open h_sep
-          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson
+          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson
             (GOpt_of_lead (Q := True) (h_lead₂.imp id (fun h => ⟨h, trivial⟩))) hcolon)
     · -- seqNest
       rename_i h_open h_sep promise inject st
       cases st
       · rename_i pre hq
         exact .seqNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson
+          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson
             (GOpt_of_lead (Q := True) (h_lead₂.imp id (fun h => ⟨h, trivial⟩))) hcolon)
     · -- mapNest
       rename_i h_open h_sep promise inject st
       cases st
       · rename_i pre hq
         exact .mapNest _ _ _ _ _ _ _ _ _ _ promise inject h_open h_sep
-          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead (fun h => h)) h_node hjson
+          (.midExplicitColon _ _ _ _ _ _ _ _ pre hq (lead_of_not_free h_lead Bool.false_ne_true) h_node hjson
             (GOpt_of_lead (Q := True) (h_lead₂.imp id (fun h => ⟨h, trivial⟩))) hcolon)
 
 /-- The props-held twin: the run decorates the received node (`[a, &x b : `
@@ -19860,7 +19836,7 @@ lemma accum_step_flow (sc : ScannerState)
           (fun _ h => nomatch (tailOf_scanFlowSequenceStart _).1.symm.trans h)
           (fun _ h => nomatch (tailOf_scanFlowSequenceStart _).1.symm.trans h)
           (park_gate_of_peekBack (scanFlowSequenceStart_peekBack (corr_of_allowDirectives_update hcorr_prep) hpeek_disp) (by decide))
-          (((tailOf_scanFlowSequenceStart _).1).symm ▸ trivial)
+          (((tailOf_scanFlowSequenceStart _).1).symm ▸ rfl)
           (fun h => nomatch (tailOf_scanFlowSequenceStart _).1.symm.trans h)
           (by unfold scanFlowSequenceStart
               simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
@@ -19922,7 +19898,7 @@ lemma accum_step_flow (sc : ScannerState)
               (fun _ h => nomatch (tailOf_scanFlowMappingStart _).1.symm.trans h)
               (fun _ h => nomatch (tailOf_scanFlowMappingStart _).1.symm.trans h)
               (park_gate_of_peekBack (scanFlowMappingStart_peekBack (corr_of_allowDirectives_update hcorr_prep) hpeek_disp) (by decide))
-              (((tailOf_scanFlowMappingStart _).1).symm ▸ trivial)
+              (((tailOf_scanFlowMappingStart _).1).symm ▸ rfl)
               (fun h => nomatch (tailOf_scanFlowMappingStart _).1.symm.trans h)
               (by unfold scanFlowMappingStart
                   simp only [ScannerCorrectness.emit_preserves_simpleKeyStack,
@@ -20159,7 +20135,7 @@ lemma accum_step_flow (sc : ScannerState)
                     hc h.1)
               exact ⟨.value false, sp_scan,
                 h_fos.receivePropsEmpty h_tail h_lead_p' h_run',
-                (h_lead0'.imp id (fun h => ⟨h.1, trivial⟩)),
+                (h_lead0'.imp id (fun h => ⟨h.1, rfl⟩)),
                 (fun hc _ kj sp_ne h_c hj =>
                   h_fos.receivePropsContent h_tail h_lead_p' h_run' (h_sep0 hc) h_c (hjson := hj)),
                 (fun _ => h_tail), (fun _ => by decide),
@@ -30280,7 +30256,7 @@ lemma accum_step_block (sc : ScannerState)
                 (fun _ => park_gate_of_peekBack (scanValue_peekBack hcorr_ad (hpeek_ad.trans (preprocess_some_peek h_preprocess)) hsv) (by decide))
                 (fun _ ch hch hnb => by
                   rw [h_tails.1]
-                  refine ⟨trivial, fun hnc => ?_⟩
+                  refine ⟨rfl, fun hnc => ?_⟩
                   show jsonKeyBefore s_v.tokens = true
                   rw [h_kj_read, ← preprocess_preserves_jsonKeyOfLast_inFlow h_sc_inflow h_preprocess,
                     ← h_ad_tk]
@@ -30392,7 +30368,7 @@ lemma accum_step_block (sc : ScannerState)
                               (by rw [← h.1]; exact hcorr_prep) (preprocess_some_peek h_preprocess))
                               (by decide)).1
                             rw [h_tl_case] at hcf
-                            exact hcf.elim⟩)) h_colon_lit)
+                            exact absurd hcf Bool.false_ne_true⟩)) h_colon_lit)
                     · exact absurd h_floorK h_nofloor
                 exact ⟨sp_gram, sp_block, sp_tok, sp_tok, h_stream, h_stack,
                   ⟨nn, kc, km, gt, h_stk, h_ksz', h_floorK',
@@ -39689,7 +39665,7 @@ lemma accum_step_content (sc : ScannerState)
             fun _ => ⟨.white (tl := .value kj) h_ws h_sync' (fun _ h => nomatch h)
                    (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc
                      h_dispatch hcorr_res)
-                   h_gate_c (fun _ _ _ _ => ⟨trivial, fun _ => trivial⟩) nofun, h_real', h_ad'⟩⟩
+                   h_gate_c (fun _ _ _ _ => ⟨rfl, fun _ => rfl⟩) nofun, h_real', h_ad'⟩⟩
     | props ha ht sp_p h_tail h_lead_p h_run h_anchor h_tag h_colon_sc h_gate_p h_next =>
       have h_lead_at := h_lead_from (GStar.nil _) (fun _ => h_gate_p)
       -- B3: a second property glued to the run is refuted by `propertyFollowerOk`.
@@ -40072,7 +40048,7 @@ lemma accum_step_content (sc : ScannerState)
               fun _ => ⟨.white (tl := .value kj) h_ws h_sync' (fun _ h => nomatch h)
                    (dispatchContent_flowIn_col_pos hcorr_ad hpeek h_ad_inflow h_not_doc
                      h_dispatch hcorr_res)
-                   h_gate_c (fun _ _ _ _ => ⟨trivial, fun _ => trivial⟩) nofun, h_real', h_ad'⟩⟩
+                   h_gate_c (fun _ _ _ _ => ⟨rfl, fun _ => rfl⟩) nofun, h_real', h_ad'⟩⟩
 
 /-! ### §1f Composition: Per-Dispatch → Full accum_step
 

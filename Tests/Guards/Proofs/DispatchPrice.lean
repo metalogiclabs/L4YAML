@@ -235,7 +235,8 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `prodTyped` 160 → 162, `prodSurf` 94 → 96, `prodSpec` 56 → 58 —
 -- `SCFlowJsonContent` [154] and `SCFlowJsonNode` [160] enter the surface alphabet.
 -- 2026-10-24 (B3): prodTyped 162 → 164 — the explicit JSON-key adjacent-value twins in Surface/Node.lean.
-def expectedAlphabet : String := "prodTyped=164 prodSurf=96 prodSpec=58"
+-- 2026-10-25 (#99 review): prodTyped 164 → 163 — the dead `FlowLead` (a `FrameTail`-indexed duplicate of `leadFree`) is deleted.
+def expectedAlphabet : String := "prodTyped=163 prodSurf=96 prodSpec=58"
 -- 133 → 137 on 2026-10-23: the four narrowed relations of `Proofs.Production.Acceptance.Quoted`
 -- (`DQCharOk`, `SQCharOk`, `SCDoubleQuotedOk`, `SCSingleQuotedOk`); not under `Surface`, no rule tag.
 
