@@ -4368,6 +4368,51 @@ def walkExplicitColonRegister (input : String) : List (Nat × Option Nat × List
       | _ => fuel := 0
     return out
 
+/-- Priority 28 (item 359): INSTANTIATE `scanValue_refused_of_outer` at every `:` step.  On the
+    dispatch state read its decidable premises — block context, `MarkedColsIn s [col]` (every
+    marked slot's column is the `:`'s), and the simple key, if possible, at the cursor's column —
+    and the conclusion on the scanned state (`explicitKeyLine = none`).  Returns
+    `(payable, bad, nested, nestedLive)`: `payable` = steps where every premise holds, `bad` =
+    those whose conclusion fails (a refutation; pinned 0), `nested` = `:` steps with a marked
+    slot at another column (the `MarkedColsIn` premise withdrawn), `nestedLive` = those whose
+    register stays live (the premise is load-bearing; pinned = `nested` on the inputs below). -/
+def walkOuterColon (input : String) : Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 32
+  let mut payable := 0
+  let mut bad := 0
+  let mut nested := 0
+  let mut nestedLive := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if c == ':' && sp.flowLevel == 0 then
+          let cols := sp.indentColumns
+          let marksAt (col : Nat) : Bool := Id.run do
+            let mut ok := true
+            for i in [0:sp.pendingKeys.size] do
+              match sp.pendingKeys[i]? with
+              | some (some _) =>
+                match cols[i]? with
+                | some ci => if ci.toNat != col then ok := false
+                | none => ok := false
+              | _ => pure ()
+            return ok
+          let keyOk := !sp.simpleKey.possible || sp.simpleKey.pos.col == sp.col
+          if marksAt sp.col && keyOk then
+            payable := payable + 1
+            if s'.explicitKeyLine.isSome then bad := bad + 1
+          else if !marksAt sp.col then
+            nested := nested + 1
+            if s'.explicitKeyLine.isSome then nestedLive := nestedLive + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (payable, bad, nested, nestedLive)
+
 def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 28: register after the explicit `:` (item 359)"
   let walks : List (String × List (Nat × Option Nat × List (Option Nat))) :=
@@ -4405,6 +4450,25 @@ def testExplicitColonRegister (state : IO.Ref TestCollector) : IO Unit := do
       (ekl.isNone) != (pks.all fun o => o.isNone)
     checkM state s!"explicitColon/{repr input}: explicitKeyLine = none ⇔ no marked slot" (bad.isEmpty)
       s!"{bad.length} step(s) disagree"
+  -- `scanValue_refused_of_outer` instantiated: every payable `:` kills the register; every
+  -- nested `:` (a mark at another column) keeps it live.
+  let outer : List (String × Nat × Nat) :=
+    [("? a\n: b", 1, 0), ("?\n  ? a\n  : b\n: c", 1, 1), ("? a: b\n: c", 1, 1),
+     ("- ? a\n  : b", 1, 0), ("---\n? a\n: b", 1, 0), ("? ? a\n  : b\n: c", 1, 1),
+     -- an implicit key's `:` (`a: 1`, `k:`) has its simple key BEFORE the cursor: neither premise
+     -- lane, so only the `?`'s `:` counts
+     ("a: 1\n? b\n: 2", 1, 0), ("? a\n:", 1, 0), ("? earth: blue\n  : x", 0, 2),
+     ("k:\n  ? a\n: v", 1, 0)]
+  for (input, expPay, expNested) in outer do
+    let (payable, bad, nested, nestedLive) := walkOuterColon input
+    checkM state s!"outerColon/{repr input}: payable `:` steps" (payable == expPay)
+      s!"got {payable}, expected {expPay}"
+    checkM state s!"outerColon/{repr input}: no payable `:` keeps the register" (bad == 0)
+      s!"{bad} refutation(s)"
+    checkM state s!"outerColon/{repr input}: nested `:` steps" (nested == expNested)
+      s!"got {nested}, expected {expNested}"
+    checkM state s!"outerColon/{repr input}: every nested `:` keeps the register live"
+      (nestedLive == nested) s!"{nestedLive}/{nested}"
 
 def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 27: K1 lanes — landing_frame_of_cover (item 358)"
