@@ -12251,6 +12251,34 @@ lemma preprocess_saved_key_possible_post {sc s_prep : ScannerState} {c : Char}
       exact absurd h_a (by simp)
   rw [h_save, closeStaleExplicitKey_simpleKey]; exact (saveSimpleKey_fresh_block h_al h_fl).1
 
+/-- Item 360: with the flag up and no flow, `saveSimpleKey` writes the key AT the cursor. -/
+lemma saveSimpleKey_pos_col_of_allowed {s : ScannerState}
+    (h_a : s.simpleKeyAllowed = true) (h_flow : s.inFlow = false) :
+    (saveSimpleKey s).simpleKey.pos.col = s.col ∧ (saveSimpleKey s).col = s.col := by
+  unfold saveSimpleKey
+  rw [ite_eq_right (by simp [h_flow]), ite_eq_left h_a]
+  exact ⟨rfl, rfl⟩
+
+/-- **Preprocessing's only possible simple key sits at the cursor** (item 360): the save is the
+    last writer of `simpleKey` before the dispatch, and it saves `currentPos` — so a block `:`
+    whose prepared state allows a key never has a key RIGHT of it, which is what
+    `scanValue_refused_of_outer` needs to read the `:` as the explicit value. -/
+lemma preprocess_saved_key_pos {sc s_prep : ScannerState} {c : Char}
+    (h_a : s_prep.simpleKeyAllowed = true) (h_noflow : s_prep.inFlow = false)
+    (h : scanNextToken_preprocess sc = .ok (some (s_prep, c))) :
+    s_prep.simpleKey.pos.col = s_prep.col := by
+  obtain ⟨s_u, s_skip, _, h_save, _⟩ := preprocess_save_elim h
+  have h_fl : s_u.inFlow = false := by
+    rw [← saveSimpleKey_inFlow s_u, ← closeStaleExplicitKey_inFlow, ← h_save]; exact h_noflow
+  have h_al : s_u.simpleKeyAllowed = true := by
+    cases h_s : s_u.simpleKeyAllowed with
+    | true => rfl
+    | false =>
+      rw [h_save, closeStaleExplicitKey_simpleKeyAllowed, saveSimpleKey_id_of_not_allowed h_s, h_s] at h_a
+      exact absurd h_a (by simp)
+  obtain ⟨h1, h2⟩ := saveSimpleKey_pos_col_of_allowed h_al h_fl
+  rw [h_save, closeStaleExplicitKey_simpleKey, closeStaleExplicitKey_col, h1, h2]
+
 /-- **The prepared state's key is live, from either half of a park's
     `flag ∨ live` reading** (item 293): with the flag up the save is fresh;
     with it down preprocessing saves nothing and moves no key
@@ -22809,6 +22837,30 @@ lemma dispatchBlock_colon_scanValue {s s' : ScannerState}
       subst h2
       exact hv
   · cases h
+
+/-- **K7's payer at the dispatch** (item 360): the `:` producers hold their dispatch over the
+    directive-reset twin of `s_prep`; the reset moves none of the six fields `Sound` reads, no
+    slot and no frame, so `scanValue_refused_of_outer` applies as is. -/
+lemma refused_of_outer_disp {s_prep s' : ScannerState} {nv : Nat}
+    (hs : PendingKeySound.Sound s_prep) (hm : RegisterWitness.MarkedColsIn s_prep [nv])
+    (hcol : s_prep.col = nv)
+    (hkey : s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)
+    (h_noflow_disp : (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).inFlow = false)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) ':' = .ok (some s')) :
+    s'.explicitKeyLine = none := by
+  by_cases had : s_prep.allowDirectives = true
+  · simp only [had, ↓reduceIte] at h_noflow_disp h_dispatch
+    exact RegisterWitness.scanValue_refused_of_outer (dispatchBlock_colon_scanValue h_dispatch)
+      (hs.of_eq rfl rfl rfl rfl rfl rfl) ((PendingKeySound.inFlow_false_iff _).1 h_noflow_disp)
+      (hm.transport rfl rfl) hcol hkey
+  · simp only [had, Bool.false_eq_true, ↓reduceIte] at h_noflow_disp h_dispatch
+    exact RegisterWitness.scanValue_refused_of_outer (dispatchBlock_colon_scanValue h_dispatch)
+      hs ((PendingKeySound.inFlow_false_iff _).1 h_noflow_disp) hm hcol hkey
 
 /-- **…and its `-` branch is `scanBlockEntry`** (item 204).  A `-` reaches no
     other branch of the dispatcher, so `.ok (some _)` forces the first one. -/
