@@ -26029,14 +26029,14 @@ lemma block_dispatch_deferred_inline
     (nodir_of_block_dispatch h_dispatch) (nic0_of_block_dispatch h_preprocess h_dispatch hcorr)
     (Or.inl (block_indicator_arm h_dispatch)) h_gate
 
-/-- **Item 358 — the K1 bridge.**  A `?`, or a `:` with a live simple key at the
-    landing and no explicit key open, that lands on a SIBLING level (the landing column is
-    the stack's top) under a cover whose floor is at or left of it is a frame of the
-    cover's list: the `?` pushes nothing new (`landing_mem_of_key`), the `:` validates
-    against a mapping top (`landing_mem_of_value`).  Stated on the DISPATCH state, so the
-    caller bridges the `allowDirectives` reset with `split <;> exact`.  Everything else a
-    K1 arm sees — a `-` (the seq lane), a fresh deeper level, a landing left of the floor,
-    an explicit `:` — is the arm's genuine `inr`. -/
+/-- **Item 358 — the K1 bridge.**  An indicator landing on a SIBLING level (the landing
+    column is the stack's top) under a cover whose floor is at or left of it is a frame of
+    the cover's list whenever that top is a MAPPING level: `Covered` says exactly that, and
+    a `?` proves its top is one (`landing_mem_of_key`).  Stated on the DISPATCH state, so
+    the caller bridges the `allowDirectives` reset with `split <;> exact`.  What a K1 arm
+    sees otherwise — a fresh deeper level (the first key of a level, whose top is the
+    enclosing one), a landing left of the floor, a `-`/`:` on a sequence top — is the
+    arm's genuine `inr`. -/
 lemma landing_frame_of_cover {s_dis s' : ScannerState} {c : Char} {lo col : Nat}
     {ks : List FrameLevel}
     (h_dispatch : scanNextToken_dispatchBlockIndicators s_dis c = .ok (some s'))
@@ -26045,8 +26045,7 @@ lemma landing_frame_of_cover {s_dis s' : ScannerState} {c : Char} {lo col : Nat}
     (h_col : s_dis.col = col)
     (h_lo : lo ≤ s_dis.col)
     (h_sib : s_dis.currentIndent = (s_dis.col : Int))
-    (h_lane : c = '?' ∨ (c = ':' ∧ s_dis.explicitKeyLine = none ∧
-      s_dis.simpleKey.possible = true ∧ s_dis.simpleKey.pos.col = s_dis.col)) :
+    (h_lane : c = '?' ∨ ∀ top, s_dis.indents.back? = some top → top.isSequence = false) :
     FrameLevel.map col ∈ ks := by
   subst h_col
   obtain ⟨top, h_top, h_at⟩ : ∃ top, s_dis.indents.back? = some top ∧
@@ -26055,19 +26054,15 @@ lemma landing_frame_of_cover {s_dis s' : ScannerState} {c : Char} {lo col : Nat}
     cases h_top : s_dis.indents.back? with
     | none => rw [h_top] at h_sib; simp at h_sib
     | some top => rw [h_top] at h_sib; exact ⟨top, rfl, h_sib.symm⟩
-  rcases h_lane with hq | ⟨hc, h_ekl, h_poss, h_kcol⟩
+  rcases h_lane with hq | h_map
   · subst hq
     exact IndentStackCover.landing_mem_of_key (dispatchBlock_question_scanKey h_dispatch)
       h_noflow h_top h_at h_lo h_cov
-  · subst hc
-    have hval := scanValue_ok_validate_ok (dispatchBlock_colon_scanValue h_dispatch)
-    have h_id : scanValueClearKey s_dis = s_dis := by
-      unfold scanValueClearKey; simp [h_ekl]
-    rw [h_id] at hval
-    rw [← h_kcol]
-    exact IndentStackCover.landing_mem_of_value hval h_poss h_noflow h_top
-      (by rw [h_kcol]; exact h_at) (by rw [h_kcol, h_sib]; exact Int.le_refl _)
-      (by rw [h_kcol]; exact h_lo) h_cov
+  · have h_mem : top ∈ s_dis.indents :=
+      Array.mem_of_getElem? (by rw [← Array.back?_eq_getElem?]; exact h_top)
+    have h_nn : (lo : Int) ≤ top.column := by rw [← h_at]; exact Int.ofNat_le.mpr h_lo
+    have := h_cov top h_mem (h_map top h_top) h_nn
+    rwa [← h_at, Int.toNat_natCast] at this
 
 /-- **The COMPACT class is FALSE, and this is the refutation** (item 204,
     PROVED there; spent here at item 209).
@@ -26989,8 +26984,8 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
         -- the floor IS a frame — the negative arm is refuted; the rest is K1's residue.
         rcases hcov with ⟨lo, _, _, hC⟩ | _
         · by_cases h_pay : lo ≤ s_prep.col ∧ s_prep.currentIndent = (s_prep.col : Int) ∧
-              s_prep.col = k ∧ (c = '?' ∨ (c = ':' ∧ s_prep.explicitKeyLine = none ∧
-                s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col))
+              s_prep.col = k ∧ (c = '?' ∨
+                ∀ top, s_prep.indents.back? = some top → top.isSequence = false)
           · obtain ⟨h_lo, h_sib, h_k, h_lane⟩ := h_pay
             exact absurd (landing_frame_of_cover h_dispatch (noflow_disp_of_noflow h_noflow)
               ((IndentStackCover.preprocess_cover h_preprocess hC).of_indents_eq
@@ -28536,8 +28531,8 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
                   -- the floor IS a frame — the negative arm is refuted; the rest is K1's residue.
                   rcases hcov with ⟨lo, _, hC⟩ | _
                   · by_cases h_pay : lo ≤ s_prep.col ∧ s_prep.currentIndent = (s_prep.col : Int) ∧
-                        s_prep.col = k ∧ (c = '?' ∨ (c = ':' ∧ s_prep.explicitKeyLine = none ∧
-                          s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col))
+                        s_prep.col = k ∧ (c = '?' ∨
+                          ∀ top, s_prep.indents.back? = some top → top.isSequence = false)
                     · obtain ⟨h_lo, h_sib, h_k, h_lane⟩ := h_pay
                       exact absurd (landing_frame_of_cover h_dispatch (noflow_disp_of_noflow h_noflow)
                         ((IndentStackCover.preprocess_cover h_preprocess hC).of_indents_eq
@@ -29160,8 +29155,8 @@ lemma accum_block_on_pendingBlock
                 -- the floor IS a frame — the negative arm is refuted; the rest is K1's residue.
                 rcases hcov with ⟨lo, _, hC⟩ | _
                 · by_cases h_pay : lo ≤ s_prep.col ∧ s_prep.currentIndent = (s_prep.col : Int) ∧
-                      s_prep.col = k ∧ (c = '?' ∨ (c = ':' ∧ s_prep.explicitKeyLine = none ∧
-                        s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos.col = s_prep.col))
+                      s_prep.col = k ∧ (c = '?' ∨
+                        ∀ top, s_prep.indents.back? = some top → top.isSequence = false)
                   · obtain ⟨h_lo, h_sib, h_k, h_lane⟩ := h_pay
                     exact absurd (landing_frame_of_cover h_dispatch (noflow_disp_of_noflow h_noflow)
                       ((IndentStackCover.preprocess_cover h_preprocess hC).of_indents_eq
