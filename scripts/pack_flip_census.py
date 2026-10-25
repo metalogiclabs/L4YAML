@@ -151,6 +151,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tsv", type=Path, default=None)
     ap.add_argument("--max-rounds", type=int, default=40)
+    ap.add_argument("--dump-dir", type=Path, default=None,
+                    help="item 356: write the patched StreamAccum of every round here (round-N.lean), to read a mis-rewrite")
     ap.add_argument("--alt", choices=sorted(MODES), default="false",
                     help="false: the declines (PACK-FLIP); refused: the residue under the predicate (PACK-RESIDUE)")
     args = ap.parse_args()
@@ -218,6 +220,9 @@ def main():
         for rnd in range(1, args.max_rounds + 1):
             rounds = rnd
             T.write_text("\n".join(L))
+            if args.dump_dir:
+                args.dump_dir.mkdir(parents=True, exist_ok=True)
+                (args.dump_dir / f"round-{rnd}.lean").write_text("\n".join(L))
             r = subprocess.run(["lake", "env", "lean", *LEAN_ARGS, str(T.relative_to(ROOT))], cwd=ROOT,
                                capture_output=True, text=True)
             if args.tsv:
@@ -281,12 +286,17 @@ def main():
                         (alt_has is not None and alt_has != "True") or (alt_has is None and "PackAlt" in has))
                     if text.startswith("("):
                         el, ec = balanced_end(L, ln, col)
-                        if state_relay:
-                            L[el] = L[el][:ec + 1] + ".imp id alt_probe)" + L[el][ec + 1:]
-                            L[ln] = s[:col] + "(" + s[col:]
+                        head, tail = ("(", ".imp id alt_probe)") if state_relay else ("ofTrue_probe (", ")")
+                        # item 356: when the group closes on its own line, the two edits must compose —
+                        # writing `L[ln]` from the stale `s` after editing `L[el]` dropped the tail
+                        # (`(Or.inr ((PackAlt.ofRefused h)))` lost its `.imp id alt_probe)`, and the
+                        # parse error cascaded into `cases` alternatives two rounds running)
+                        if el == ln:
+                            s2 = s[:ec + 1] + tail + s[ec + 1:]
+                            L[ln] = s2[:col] + head + s2[col:]
                         else:
-                            L[el] = L[el][:ec + 1] + ")" + L[el][ec + 1:]
-                            L[ln] = s[:col] + "ofTrue_probe (" + s[col:]
+                            L[el] = L[el][:ec + 1] + tail + L[el][ec + 1:]
+                            L[ln] = s[:col] + head + s[col:]
                     else:
                         ident = m.group(0)
                         if state_relay and ident == "id":
