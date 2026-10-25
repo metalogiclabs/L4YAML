@@ -286,7 +286,7 @@ def isSurfFace (env : Environment) (lhs : Expr) : MetaM Bool := do
 -- 302's stack (`ResumeFrames` 12 → 3, `KeyFrames` 9 in the head census below).
 -- 2026-10-24 (item 350): binders 163 → 159, faces 61 → 59, heads 19 → 18 — `h_expl`/`h_explUp`
 -- stopped being optional faces (their alternative is `NotQuestionPark sc`, paid by the `:` producers).
-def expectedFaceTally : String := "binders=161 faces=63 heads=19"
+def expectedFaceTally : String := "binders=163 faces=62 heads=19"
 
 /-- The conclusion head of every left disjunct.  `FVAR 2` is `frameChainUnion`,
     whose face is schematic in `P` — the two rows no census of any kind can
@@ -311,12 +311,12 @@ def expectedHeadCensus : List String :=
    "GStar 4",
    "IndentFloor 2",
    "KeyFrames 3",
-   "MarkedColsIn 9",
+   "MarkedColsIn 15",
    "MarkerNodeRoute 5",
    "Mono 4",
    "PropsNodeRoute 4",
    "ResumeFrames 3",
-   "SLYamlStream 24",
+   "SLYamlStream 20",
    "SeqEntryTail 7",
    "SuffixRun 6",
    "le 11",
@@ -342,13 +342,11 @@ those heads and `expectedChainFaces` not naming a single one of them. -/
 -- 2026-10-24 (B3 [66] col-0 threading): binder indices shift with the park's new `sp_gram`/run/gate fields; faces unchanged.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (binder indices).
 def expectedChainFaces : List String :=
+  -- Item 357: the marked-column domain reaches the `:`/`?` producers (`h_kslotD`, `h_explUp_chainD`) and the
+  -- block-step `h_kslotUp` twins; the rung-1 faces read off the build.
   ["FlowBaseRoutes.mk#7 (vslot)",
    "accum_block_on_closeThenBlock#10 (h_vpack)",
-   "accum_block_on_pendingBlock#29 (h_kslotUp)",
-   "accum_block_on_pendingBlockContent#34 (h_kslotUp)",
    "accum_block_on_pendingContent#16 (h_vpack)",
-   "colon_open_map_implicit#12 (h_kslot)",  -- item 311: `{alt : Prop}` precedes it
-   "colon_open_map_props#11 (h_kslot)",
    "entryKeyPack_of_dispatch#11 (h_nodeV)",
    "entryPropsKeyPack_of_dispatch#11 (h_nodeV)",
    "explFrameValueLine#6 (h_kslot)",
@@ -369,7 +367,7 @@ which of four reasons applies. -/
 -- Item 300: the two faces that join (`content_dispatch_routed.h_markerline`,
 -- `flowOpen_marker.h_doc`) name scanner state alone, so `state` 25 → 27.
 -- 2026-10-24 (item 350): binders 163 → 159, surf 136 → 132 — `h_expl`/`h_explUp` left the optional population.
-def expectedFidelity : String := "binders=161 surf=132 state=29"
+def expectedFidelity : String := "binders=163 surf=134 state=29"
 
 /-- The 25 faces a state census COULD evaluate — 27 since item 300 — which is
     the population the mandate's instrument is actually defined over.  Two of them
@@ -515,7 +513,7 @@ def chainKeySet : Std.HashSet String :=
 -- 2026-10-24 (item 355): pairs 34 → 30, splits 104 → 96, sup 97 → 93, chainPairs 6 → 0, chainSplits 12 → 0 — the five
 -- `MarkedColsIn`-domained ctor faces and the two domained content twins are no longer provable by the empty chain.
 def expectedWorthTally : String :=
-  "pairs=30 splits=96 sup=93 chainPairs=0 chainSplits=0 innerPairs=8 \
+  "pairs=35 splits=103 sup=98 chainPairs=0 chainSplits=0 innerPairs=8 \
 innerSplits=32"
 
 /-- The ledger, worth-first.  `chain` is §3's verdict — a narrowing here lands
@@ -557,25 +555,30 @@ def expectedWorthLedger : List String :=
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
    "splits=3 sup=1 - h_kslot :: accum_block_on_pendingBlock#13",
    "splits=3 sup=1 - h_kslot :: accum_content_on_pendingMapValue_indented#17",
+   "splits=3 sup=1 - h_kslotUp :: accum_block_on_pendingBlock#29",
    "splits=3 sup=1 - h_kslotUp_old :: accum_content_on_pendingBlock_indented#29",
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
    "splits=2 sup=1 - h_resV_land :: colon_open_map#26",
    "splits=2 sup=1 inner h_closeF_old :: accum_block_on_pendingBlockContent#35",
-   "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#13",
-   "splits=2 sup=1 inner h_routeF :: colon_open_map_props#12",
-   "splits=2 sup=1 inner h_routeFV :: colon_open_map_implicit#14",
-   "splits=2 sup=1 inner h_routeFV :: colon_open_map_props#13",
+   "splits=2 sup=1 inner h_routeF :: colon_open_map_implicit#12",
+   "splits=2 sup=1 inner h_routeF :: colon_open_map_props#11",
+   "splits=2 sup=1 inner h_routeFV :: colon_open_map_implicit#13",
+   "splits=2 sup=1 inner h_routeFV :: colon_open_map_props#12",
    "splits=1 sup=11 - h_mapF :: accum_block_on_closeThenBlock#29",
    "splits=1 sup=11 - h_mapFV :: accum_block_on_closeThenBlock#31",
    "splits=1 sup=11 - h_mk :: accum_block_on_closeThenBlock#20",
    "splits=1 sup=11 - h_pr :: accum_block_on_closeThenBlock#30",
    "splits=1 sup=11 - h_sfx :: accum_block_on_closeThenBlock#19",
    "splits=1 sup=11 - h_valFV :: accum_block_on_closeThenBlock#32",
+   "splits=1 sup=1 - h_explUp_chainD :: question_open_map#29",
    "splits=1 sup=1 - h_kslot :: accum_block_on_pendingBlockContent#15",
+   "splits=1 sup=1 - h_kslotD :: colon_open_map_implicit#29",
+   "splits=1 sup=1 - h_kslotD :: colon_open_map_props#29",
+   "splits=1 sup=1 - h_kslotUp :: accum_block_on_pendingBlockContent#34",
    "splits=1 sup=1 - h_mapFV108 :: accum_block_on_pendingContent#35",
    "splits=1 sup=1 - h_resV_land :: question_open_map#27",
-   "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#28"]
+   "splits=1 sup=1 - h_routeS :: colon_open_map_implicit#27"]
 
 /-- **What the mandate's instrument could have answered.**  Of the 36 pairs a
     narrowing would target, this many have a face a scanner-state census can
@@ -588,7 +591,7 @@ def expectedWorthLedger : List String :=
 -- 2026-10-23 (item 344): splits 106 → 107 — the relayed `h_valFV`'s split on `h_closeFV_old`.
 -- 2026-10-23 (item 345): splits 107 → 108 — the twin relay's split on `h_closeFV_old`.
 -- 2026-10-24 (item 350): branchPairs 36 → 34, splits 108 → 104 — the two `h_expl` pairs left.
-def expectedBranchReach : String := "branchPairs=30 stateReachable=1 splits=96 stateSplits=3"
+def expectedBranchReach : String := "branchPairs=35 stateReachable=1 splits=103 stateSplits=3"
 
 open Meta in
 run_cmd do
@@ -657,7 +660,7 @@ rather than as a count. -/
 -- 2026-10-21 (item 311): `syntactic` 158 → 156, `population` 160 → 158 — `colon_open_map_implicit`'s two `∨ alt` premises are no
 -- `∨ True` to the syntactic count (the lemma states the family's alternative generically).
 -- 2026-10-24 (item 350): syntactic 156 → 153, population 158 → 155 — as the face tally.
-def expectedHiddenTally : String := "hiddenDefs=1 syntactic=153 hiddenOnly=2 population=155"
+def expectedHiddenTally : String := "hiddenDefs=1 syntactic=155 hiddenOnly=2 population=157"
 
 def expectedHiddenDefs : List String := ["ResumeKeyCtx"]
 
@@ -832,7 +835,7 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- the restated `closeStale_getElem?`, `not_blockEntryCandidate_of_dispatch_none`, `indicatorAt_false_of_dispatch_none`; none is a no-op conclusion.
 -- 2026-10-24 (item 350): theorems 6073 → 6076 — `notQuestion_push_top`, `scanValue_notQuestion`,
 -- `dispatchBlock_colon_notQuestion`.
-def expectedNoopTally : String := "theorems=6288 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+def expectedNoopTally : String := "theorems=6299 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries
