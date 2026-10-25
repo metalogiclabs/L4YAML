@@ -356,7 +356,7 @@ declarations' own binders and not by a rescoring of an existing one.
 def expectedModuleTallyP : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
-  "constants=1681 decls=1320 eta=441 FIELD=190 READ=1384 RELAY=2632 RETURN=167 UNUSED=27"
+  "constants=1683 decls=1322 eta=441 FIELD=190 READ=1386 RELAY=2641 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and

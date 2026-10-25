@@ -262,7 +262,7 @@ it may only shrink. -/
 -- 2026-10-25 (#99 review): `FrameTail.leadFree`/`closeFree` are `Bool` projections of the tail
 -- (consumers state `tl.leadFree = true`), not `Prop` carriers over it, and the dead `FlowLead`
 -- duplicate is deleted — the eight `FrameTail` ghost rows they added are gone; ghost is back at 72.
-def expectedSummary : String := "carriers=59 snapshot=9 ghost=72 or=98"
+def expectedSummary : String := "carriers=59 snapshot=9 ghost=72 or=99"
 
 -- 2026-10-24 (B3 [66] col-0 threading): carriers 61 → 62 — `SSLCommentsFrom` (the separator-less comment product).
 -- 2026-10-25 (#99 landed): the `FlowLead`/`leadFree`/`closeFree` tally rows go with the deleted carrier and
@@ -282,7 +282,7 @@ def expectedTally : List String :=
    "FlowOpenStack: surface=31 state=0 prop=28 scalar=9 snapshot=1 ghost=11 or=2",
    "FlowStack: surface=2 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
    "FlowStackB: surface=6 state=0 prop=1 scalar=4 snapshot=1 ghost=7 or=0",
-   "FlowStackK: surface=5 state=1 prop=4 scalar=5 snapshot=1 ghost=3 or=2",
+   "FlowStackK: surface=5 state=1 prop=4 scalar=5 snapshot=1 ghost=3 or=3",
    "GateOf: surface=0 state=1 prop=0 scalar=1 snapshot=2 ghost=0 or=0",
    "ImplicitKeyHead: surface=2 state=0 prop=2 scalar=0 snapshot=0 ghost=0 or=0",
    "ImplicitKeyPack: surface=16 state=1 prop=16 scalar=9 snapshot=0 ghost=4 or=6",
@@ -433,6 +433,7 @@ def expectedDisjuncts : List String :=
     "FlowOpenStack.mapNest[14].promise ∨ sp_prep = sp_ne",
     "FlowStackK.body ∨ ∀ (sp_prep sp_tok : SurfPos), SSeparateLines n sp_flow sp_prep ∨ sp_prep = sp_flow → GLit ':' sp_prep sp_tok → FlowStackB sp_start n kc g fl ks km (FrameTail.colon kj) sp_block sp_tok",
     "FlowStackK.body ∨ sp_prep = sp_flow",
+    "FlowStackK.body ∨ True",
     "ImplicitKeyPack.body ∨ PackAlt sc",
     "ImplicitKeyPack.body ∨ True",
     "ImplicitKeyPack.body ∨ True",
