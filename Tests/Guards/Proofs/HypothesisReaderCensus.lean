@@ -605,7 +605,7 @@ def expectedModuleTally : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1169 → 1171,
   -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
-  "constants=1667 decls=1304 eta=441 FIELD=169 READ=1274 RELAY=2800 RETURN=54 \
+  "constants=1662 decls=1301 eta=441 FIELD=169 READ=1272 RELAY=2799 RETURN=54 \
 UNUSED=27"
 
 -- 2026-10-21 (item 311): `flowKeyPack_of_close`'s unused `_` is binder #11 (`{g}` precedes it); the three conversion stubs

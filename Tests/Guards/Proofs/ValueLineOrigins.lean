@@ -1130,13 +1130,14 @@ def expectedUnborn : List String := [
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
+-- 2026-10-25 (#99 review): liteNodes=598322 → liteNodes=598322 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
 def expectedLine : String :=
   "positions=47 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=177 ctorRows=98 \
 paramRows=79 packagedRows=29 punt=8 stamp=45 built=124 origins=66 originRows=31 \
 route=20 frames=28 tail=0 other=6 concl=8 invariant=4 heldOrigins=20 allHeld=9 \
 someHeld=6 noneHeld=67 unbornRows=27 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 \
 relayedFact=0 deadRows=0 unbornPos=9 rounds=4 follows=336 lets=620 lapps=793 alts=4955 \
-nodes=13509 liteNodes=597868"
+nodes=13509 liteNodes=598322"
 
 /-! ## §4 The reading -/
 

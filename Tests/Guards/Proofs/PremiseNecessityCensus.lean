@@ -352,10 +352,11 @@ declarations' own binders and not by a rescoring of an existing one.
 -- 2026-10-24 (B3 [66] col-0 threading): +160 decls (JSON-key carry, reservation transport, gate lemmas).
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (constants 1650 → 1660, decls 1290 → 1297).
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
+-- 2026-10-25 (#99 review): PEELED constants 1667 → 1662, decls 1304 → 1301, FIELD 191 → 190, READ 1333 → 1331 — the dead `FlowLead` (+ its two lemmas) deleted; `leadFree`/`closeFree` are `Bool`.
 def expectedModuleTallyP : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
-  "constants=1667 decls=1304 eta=441 FIELD=191 READ=1333 RELAY=2607 RETURN=166 UNUSED=27"
+  "constants=1662 decls=1301 eta=441 FIELD=190 READ=1331 RELAY=2607 RETURN=166 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and

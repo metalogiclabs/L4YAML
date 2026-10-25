@@ -257,11 +257,16 @@ it may only shrink. -/
     carriers are every `Prop`-valued declaration of `StreamAccum` (see `carriersOf`). -/
 -- Item 350: carriers 52 → 53 — `NotQuestionPark sc` joins the carrier list (the two
 -- `?`-entry faces' `PackAlt` arm became it); the 92 disjuncts are unchanged in number.
--- 2026-10-24: B3 ([66] col-0 threading) adds the JSON-key carry (`FrameTail.colon kj`/`.value kj`,
--- `closeFree`/`leadFree`), the `ResvOk` reservation carriers and the `InteriorGap` h_q/h_some gap fields.
-def expectedSummary : String := "carriers=62 snapshot=9 ghost=80 or=98"
+-- 2026-10-24: B3 ([66] col-0 threading) adds the JSON-key carry (`FrameTail.colon kj`/`.value kj`),
+-- the `ResvOk` reservation carriers and the `InteriorGap` h_q/h_some gap fields.
+-- 2026-10-25 (#99 review): `FrameTail.leadFree`/`closeFree` are `Bool` projections of the tail
+-- (consumers state `tl.leadFree = true`), not `Prop` carriers over it, and the dead `FlowLead`
+-- duplicate is deleted — the eight `FrameTail` ghost rows they added are gone; ghost is back at 72.
+def expectedSummary : String := "carriers=59 snapshot=9 ghost=72 or=98"
 
 -- 2026-10-24 (B3 [66] col-0 threading): carriers 61 → 62 — `SSLCommentsFrom` (the separator-less comment product).
+-- 2026-10-25 (#99 landed): the `FlowLead`/`leadFree`/`closeFree` tally rows go with the deleted carrier and
+-- the two `Bool` projections (the summary above was already re-read; the tally was not).
 def expectedTally : List String :=
   ["BareLandingFacts: surface=0 state=2 prop=0 scalar=1 snapshot=0 ghost=0 or=0",
    "BlockStack: surface=2 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
@@ -273,14 +278,11 @@ def expectedTally : List String :=
    "ExplicitValueRefused: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
    "FlowBaseAnchor: surface=0 state=5 prop=0 scalar=4 snapshot=2 ghost=0 or=0",
    "FlowBaseRoutes: surface=21 state=0 prop=26 scalar=8 snapshot=1 ghost=4 or=6",
-   "FlowLead: surface=10 state=0 prop=0 scalar=1 snapshot=0 ghost=3 or=0",
    "FlowOpenHeld: surface=0 state=0 prop=0 scalar=3 snapshot=0 ghost=2 or=0",
    "FlowOpenStack: surface=31 state=0 prop=28 scalar=9 snapshot=1 ghost=11 or=2",
    "FlowStack: surface=2 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
    "FlowStackB: surface=6 state=0 prop=1 scalar=4 snapshot=1 ghost=7 or=0",
    "FlowStackK: surface=5 state=1 prop=4 scalar=5 snapshot=1 ghost=3 or=2",
-   "closeFree: surface=0 state=0 prop=0 scalar=1 snapshot=0 ghost=3 or=0",
-   "leadFree: surface=0 state=0 prop=0 scalar=4 snapshot=0 ghost=2 or=0",
    "GateOf: surface=0 state=1 prop=0 scalar=1 snapshot=2 ghost=0 or=0",
    "ImplicitKeyHead: surface=2 state=0 prop=2 scalar=0 snapshot=0 ghost=0 or=0",
    "ImplicitKeyPack: surface=16 state=1 prop=16 scalar=9 snapshot=0 ghost=4 or=6",
@@ -339,9 +341,6 @@ def expectedGhost : List String :=
     "FlowBaseRoutes.mk[6].key ks : List IndentStackCover.FrameLevel",
     "FlowBaseRoutes.mk[6].key ks : List IndentStackCover.FrameLevel",
     "FlowBaseRoutes.mk[7].vslot ns : List Nat",
-    "FlowLead.type[1].a a : FrameTail",
-    "FlowLead.body x : FrameTail",
-    "FlowLead.body x : FrameTail",
     "FlowOpenHeld.type[3].S S : List Nat",
     "FlowOpenHeld.body T : List Nat",
     "FlowOpenStack.type[3].g g : Option ScannerState",
@@ -368,11 +367,6 @@ def expectedGhost : List String :=
     "FlowStackK.type[4].tl tl : FrameTail",
     "FlowStackK.body km : Array Bool",
     "FlowStackK.body g : Option ScannerState",
-    "closeFree.type[0].a a : FrameTail",
-    "closeFree.body x : FrameTail",
-    "closeFree.body x : FrameTail",
-    "leadFree.type[0].a a : FrameTail",
-    "leadFree.body x : FrameTail",
     "GateOf.type[0].a a : Option ScannerState",
     "GateOf.body x : Option ScannerState",
     "ImplicitKeyPack.body ns : List Nat",
@@ -425,6 +419,7 @@ def expectedGhost : List String :=
 /-- Every `∨` inside a carrier's statements, keyed by field (Devin Review on
     PR #7: a binder-free alternative added to a field moved no binder row).  Like
     `expectedGhost`, a row joining this list is Rule 8's question. -/
+-- 2026-10-25 (#99 review): `leadFree`/`closeFree` made `Bool` — still 98 disjuncts; `InteriorGap.props[8].h_lead` now reads `tl.leadFree = true` (the coercion is explicit) and the rows re-order with the carrier roster (read off the environment, `FlowLead` gone).
 def expectedDisjuncts : List String :=
   [ "CommentStop.body ∨ c = '\\n' ∨ c = '\\x0d'",
     "CommentStop.body ∨ c = '\\x0d'",
@@ -445,7 +440,7 @@ def expectedDisjuncts : List String :=
     "ImplicitKeyPack.body ∨ True",
     "ImplicitKeyPack.body ∨ True",
     "InteriorGap.props[8].h_lead ∨ ¬m ≤ PreprocessIndentStable.minContentIndentOf sc",
-    "InteriorGap.props[8].h_lead ∨ sp_p = sp_flow ∧ tl.leadFree",
+    "InteriorGap.props[8].h_lead ∨ sp_p = sp_flow ∧ tl.leadFree = true",
     "InteriorGap.props[9].h_run ∨ ¬m ≤ PreprocessIndentStable.minContentIndentOf sc",
     "InteriorGap.props[16].h_some ∨ ht = true",
     "KmSound.body ∨ True",
@@ -523,7 +518,7 @@ def expectedDisjuncts : List String :=
     "ResumeKeyCtx.body ∨ True",
     "SlotFace.body ∨ ∃ j, prevRealIdx? ts (propsRunStart ts ts.size) = some j ∧ ts[j]!.val.offersNodeSlot = true",
     "SlotGateAt.body ∨ SlotFace t.tokens",
-    "SlotResv.body ∨ p.val = YamlToken.key" ]
+    "SlotResv.body ∨ p.val = YamlToken.key"]
 
 run_cmd liftTermElabM do
   let mut tally : Array String := #[]
