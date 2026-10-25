@@ -4198,6 +4198,32 @@ def walkQuestionMark (input : String) : Nat × Nat × Nat := Id.run do
     | _ => fuel := 0
   return (q, bad, own)
 
+/-- Walk `scanNextToken` from `mk'`; at every block step whose preprocessed char is `-` or `:`
+    outside flow and that emitted a token (`dispatchBlockIndicators_markedCols_of_ne`'s domain:
+    the dispatcher succeeded on a non-`?` indicator), check that the marks after the step are
+    EXACTLY a subset of the marks before — no new mark, not even the top level's column (the
+    Priority 24 walk allows that column; this one refutes it).  Returns `(steps, bad)`. -/
+def walkNonQuestionNoMark (input : String) : Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut n := 0
+  let mut bad := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if (c == '-' || c == ':') && !sp.inFlow && s'.tokens.size > s.tokens.size then
+          n := n + 1
+          let before := markedColsOf sp.pendingKeys sp.indentColumns
+          let after := markedColsOf s'.pendingKeys s'.indentColumns
+          if !(after.all fun x => before.contains x) then bad := bad + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (n, bad)
+
 def testQuestionMarkColumn (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 26: the `?`'s own mark — scanKey_markedCols (item 357)"
   -- `(input, block `?` steps expected)`; flow `?` and the `?` after `: ` on one line are not
@@ -4216,6 +4242,23 @@ def testQuestionMarkColumn (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"questionMark/{repr input}: the `?` column is marked" (own == 0)
       s!"own {own}"
 
+  -- The non-`?` transports (`dispatchBlockIndicators_markedCols_of_ne`, via `scanBlockEntry_markedCols`
+  -- and `scanValue_markedCols`): `(input, non-`?` block indicator steps expected)` — no marks (empty),
+  -- one enclosing `?` (singleton), nested `?`s, the indicator first/middle/last, after `---`, after a
+  -- dedent, compact forms.  At every such step the marks after are a subset of the marks before.
+  let noMarkWalks : List (String × Nat) :=
+    [("- a", 1), ("a: b", 1), ("- a\n- b", 2), ("a: b\nc: d", 2), ("? a\n: b", 1),
+     ("?\n  - a\n: b", 2), ("?\n  a: b\n: c", 2), ("?\n  ? a\n  : b\n: c", 2),
+     ("?\n  ?\n    - a\n  : b\n: c", 3), ("- ? a\n  : b", 2), ("? - a\n: - b", 3),
+     ("- - a\n- b", 3), ("---\n- a", 2), ("---\n? a\n: b", 2), ("k:\n  - a\nb: 2", 3),
+     ("?\n  k:\n    - a\n: v", 3), ("? a: b\n: c", 2), ("- a\n? b\n: c", 1), ("{ a: b }", 0),
+     ("[- a]", 0)]
+  for (input, expectedN) in noMarkWalks do
+    let (n, bad) := walkNonQuestionNoMark input
+    checkM state s!"noMark/{repr input}: non-`?` block indicator steps" (n == expectedN)
+      s!"n {n} expected {expectedN}"
+    checkM state s!"noMark/{repr input}: marks after ⊆ before (no new mark)" (bad == 0)
+      s!"bad {bad}"
 
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
