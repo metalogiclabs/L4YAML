@@ -848,7 +848,9 @@ def expectedRows : List String :=
     "accum_block_on_closeThenBlock #3 param:slotChainMap.up := relay/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O71] ⊢ none-held 0/1",
     "accum_block_on_closeThenBlock #1 param:colon_open_map_explicit.hvp := relay/built pos=[param:accum_block_on_closeThenBlock.h_vpack] origins=[O0,O1,O2,O3,O65,O66,O67,O68,O69,O70,O71] ⊢ some-held 7/11",
     "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_kslot := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O71] none=[stamp] ⊢ none-held 0/1",
-    "accum_block_on_noPending #1 param:indicator_open_map.h_explUp_chainD := punt/punt pos=[] origins=[] none=[punt] ⊢ —",
+    -- 2026-10-25 (item 359): punt/punt → punt/stamp — the value-park face beside this parameter pays
+    -- `PackAlt.ofRefused (h_noek …)`, which the walker reads as a stamp origin.
+    "accum_block_on_noPending #1 param:indicator_open_map.h_explUp_chainD := punt/stamp pos=[] origins=[] none=[stamp] ⊢ —",
     "accum_block_on_pendingBlock #1 ctor:pendingBlock.h_kslot := paid:chain/built pos=[param:accum_block_on_pendingBlock.h_kslot] origins=[O71] none=[stamp] ⊢ none-held 0/1",
     "accum_block_on_pendingBlock #1 ctor:pendingBlock.h_kslotUp := paid:chain/built pos=[param:accum_block_on_pendingBlock.h_kslotUp] origins=[] none=[stamp] ⊢ unborn",
     "accum_block_on_pendingBlock #2 ctor:pendingBlock.h_kslot := paid:chain/built pos=[param:accum_block_on_pendingBlock.h_kslot] origins=[O71] none=[stamp] ⊢ none-held 0/1",
@@ -996,7 +998,8 @@ def expectedPerPos : List String := [
   "param:explFrameValueLine.h_kslot writers=3 punt=0 stamp=0 built=3 unborn=0 dead=0 allHeld=0 someHeld=3 noneHeld=0 origins=[O65,O66,O67,O68,O69,O70,O71] ⊢ 6/7 held",
   "param:flowKeyRoute_of_open.h_compact_pair writers=3 punt=0 stamp=1 built=2 unborn=0 dead=0 allHeld=1 someHeld=0 noneHeld=1 origins=[O44,O71] ⊢ 1/2 held",
   "param:indicator_open_map.h_explUp_chain writers=4 punt=1 stamp=1 built=2 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=2 origins=[O71] ⊢ 0/1 held",
-  "param:indicator_open_map.h_explUp_chainD writers=4 punt=3 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O71] ⊢ 0/1 held",
+    -- 2026-10-25 (item 359): punt 3 → 2, stamp 0 → 1 — the same `noPending` pay as the rows pin above.
+  "param:indicator_open_map.h_explUp_chainD writers=4 punt=2 stamp=1 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O71] ⊢ 0/1 held",
   "param:question_open_map.h_explUp_chain writers=1 punt=0 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O71] ⊢ 0/1 held",
   "param:question_open_map.h_explUp_chainD writers=1 punt=0 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=1 origins=[O71] ⊢ 0/1 held",
   "param:slotChainMap.up writers=3 punt=0 stamp=0 built=3 unborn=0 dead=0 allHeld=0 someHeld=0 noneHeld=3 origins=[O71] ⊢ 0/1 held"]
@@ -1144,7 +1147,9 @@ def expectedUnborn : List String := [
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): liteNodes=598322 → liteNodes=598322 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
 def expectedLine : String :=
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=12 stamp=39 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=349 lets=635 lapps=806 alts=5031 nodes=13672 liteNodes=607398"
+  -- 2026-10-25 (item 359): punt 12 → 11, stamp 39 → 40 — the `noPending` value-park face pays `PackAlt.ofRefused (h_noek …)`;
+  -- lapps 806 → 807, liteNodes 607398 → 607407 — that one application and its term.
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=11 stamp=40 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=349 lets=635 lapps=807 alts=5031 nodes=13672 liteNodes=607407"
 
 /-! ## §4 The reading -/
 

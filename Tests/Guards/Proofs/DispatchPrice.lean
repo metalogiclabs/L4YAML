@@ -330,7 +330,9 @@ def expectedSteps : String :=
 -- 2026-10-24 (B3 [66] col-0 threading): stepHolders 1819 → 1874, dispHolders 332 → 348, dispTwoCorr 29 → 31 —
 -- the gate/JSON-key/reservation lemmas hold the preprocess and dispatch step equations (1878/351 on the
 -- item-354 base).
-  "stepHolders=1887 dispHolders=356 dispTwoCorr=31 fns=73 fnsIx=26"
+-- 2026-10-25 (item 359): stepHolders 1887 → 1888 — `scanValue_refused_of_outer` (RegisterWitness) holds the
+-- `scanValue s = .ok s'` step equation.
+  "stepHolders=1888 dispHolders=356 dispTwoCorr=31 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another

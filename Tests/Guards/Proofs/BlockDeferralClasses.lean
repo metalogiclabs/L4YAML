@@ -4543,7 +4543,7 @@ def expectedPackFlip : String :=
   -- from a real refused fact — nothing is left of that once the alternative is `False`, so the census now stubs them
   -- as declines (+2) instead of wrapping them as relays and cascading on its own wrap; the two former relays were
   -- those same sites.
-  -- 2026-10-26 (item 359): sites 94 → 93, decls 21 → 20, decline 92 → 91, uncond 49 → 48: `accum_block_on_noPending`'s
+  -- 2026-10-25 (item 359): sites 94 → 93, decls 21 → 20, decline 92 → 91, uncond 49 → 48: `accum_block_on_noPending`'s
   -- last `Or.inr trivial` (the `pendingBlock` constructor's value-park face at the `-` root arm) pays from `h_noek`,
   -- so the lemma leaves the roster.
   "sites=93 decls=20 rounds=2 decline=91 relay=0 leaf=43 uncond=48 stubs=8"
@@ -4597,7 +4597,7 @@ def expectedPackResidue : String :=
   -- 2026-10-25 (item 358): decline 68 → 71, sites 74 → 75 — the three paid K1 arms each decline in TWO named
   -- sub-sites (cover `inr`, `¬h_pay`) where they declined in one; `cascade`/`unhandled` gone: the census now reads
   -- the pattern of an already-probed `.imp … (fun h => alt_probe h)` relay as settled (rounds 3 → 2).
-  -- 2026-10-26 (item 359): sites 75 → 74, decls 19 → 18, decline 71 → 70, uncond 38 → 37: the same `noPending` face,
+  -- 2026-10-25 (item 359): sites 75 → 74, decls 19 → 18, decline 71 → 70, uncond 38 → 37: the same `noPending` face,
   -- paid by `PackAlt.ofRefused (h_noek …)` (K7's one unconditional site); the six `colon_open_map_explicit`/
   -- `compact_open_map` K7 faces stay declined — their payer `scanValue_refused_of_outer` is proved, its five-conjunct
   -- carrier is not threaded (item 360).
