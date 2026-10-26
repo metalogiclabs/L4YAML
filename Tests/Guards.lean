@@ -271,3 +271,4 @@ import Tests.Guards.Proofs.RefLexCensus
 import Tests.Guards.Proofs.RefLexShape
 import Tests.Guards.Proofs.TokenEventsCensus
 import Tests.Guards.Proofs.TraceOfFlowAmbiguity
+import Tests.Guards.Proofs.TraceOfBlockAmbiguity

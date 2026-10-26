@@ -4799,6 +4799,54 @@ def testTraceOfLeafEvents (state : IO.Ref TestCollector) : IO Unit := do
   checkM state "traceOf/[&x *y]: anchor then alias, in span order"
     (anc ++ ali == [.defineAnchor "x", .useAlias "y"]) s!"got {repr (anc ++ ali)}"
 
+/-- Priority 33 (EVENTSOF §10 slice 3): the Rule-2 ledger of `traceOf_unique` on the
+block/document fragment — the PARSER's side of each row.  The grammar side lives in
+`Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean`: `a⏎&x` has the traces `[]` and
+`[defineAnchor x]` (`implicitContinue`, row 19) and `a: |⏎   x⏎  &x b: *x` has `[]` and
+`[defineAnchor x, useAlias x]` (`[173]`'s `SIndentLe` tail).  Each row pins what
+`parseYaml` does with the informative input: `some k` = accepted with `k` documents,
+`none` = refused.  The two refuted rows show the parser taking ONE reading (grammar
+laxity) and NEITHER (scanner/grammar disagreement) respectively. -/
+def testTraceOfBlockLedger (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 33: traceOf_unique block/document Rule-2 ledger, parser side (EVENTSOF §10)"
+  let rows : List (String × String × Option Nat) :=
+    [ ("R1 a⏎&x (REFUTED: [] vs [defineAnchor x]; parser: one doc, plain `a &x`)", "a\n&x", some 1),
+      ("R2 a: |⏎   x⏎  &x b: *x (REFUTED: [] vs [defineAnchor x, useAlias x]; parser: neither)",
+        "a: |\n   x\n  &x b: *x", none),
+      ("R2 cousin a: |⏎   x⏎  y: z (no event; parser refuses the dedent too)", "a: |\n   x\n  y: z", none),
+      ("a⏎...⏎&x (unique: the `...` route, two docs)", "a\n...\n&x", some 2),
+      ("a: &x b", "a: &x b", some 1),
+      ("&x a: b", "&x a: b", some 1),
+      ("a:⏎  &x b", "a:\n  &x b", some 1),
+      ("a:⏎&x b (grammar: one trace via implicitContinue; parser refuses)", "a:\n&x b", none),
+      ("- a⏎  &x (plain continuation, trace [])", "- a\n  &x", some 1),
+      ("- a⏎- &x b", "- a\n- &x b", some 1),
+      ("? a⏎: &x b", "? a\n: &x b", some 1),
+      ("a: *x⏎b: c (parser: undefinedAlias — the row-13 layer, not syntax)", "a: *x\nb: c", none),
+      ("&x⏎a: b", "&x\na: b", some 1),
+      ("!!str⏎a", "!!str\na", some 1),
+      ("&x !!str⏎a: b", "&x !!str\na: b", some 1),
+      ("a: |⏎  &x b: *x (literal body is text, trace [])", "a: |\n  &x b: *x", some 1),
+      ("a: >⏎  *x (folded body is text, trace [])", "a: >\n  *x", some 1),
+      ("a: \"x\"⏎&y b: c", "a: \"x\"\n&y b: c", some 1),
+      ("--- &x⏎a", "--- &x\na", some 1),
+      ("%TAG !e! tag:x⏎---⏎!e!a b", "%TAG !e! tag:x\n---\n!e!a b", some 1),
+      ("--- a⏎--- &x b (two explicit docs)", "--- a\n--- &x b", some 2),
+      ("a #c⏎&x: b (grammar: one trace via implicitContinue; parser refuses)", "a #c\n&x: b", none),
+      ("a: b # &x (comment, no event)", "a: b # &x", some 1),
+      ("- &x⏎  - *x", "- &x\n  - *x", some 1),
+      ("&x [*x] in block context", "&x [*x]", some 1),
+      ("a: &x⏎  b: *x", "a: &x\n  b: *x", some 1),
+      ("BOM &x a", "\uFEFF&x a", some 1),
+      ("CRLF a␍⏎&x (R1 with CRLF: parser still one doc)", "a\r\n&x", some 1),
+      ("CRLF a: &x b␍⏎", "a: &x b\r\n", some 1) ]
+  for (label, src, expected) in rows do
+    let got : Option Nat := match L4YAML.TokenParser.parseYaml src with
+      | .ok docs => some docs.size
+      | .error _ => none
+    checkM state s!"traceOf/block ledger {label}" (got == expected)
+      s!"parseYaml: {repr got} (docs), expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -4838,6 +4886,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testFlowCloseRegister state
   testExplicitColonRegister state
   testTraceOfLeafEvents state
+  testTraceOfBlockLedger state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
