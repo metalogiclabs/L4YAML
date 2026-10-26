@@ -4905,6 +4905,67 @@ def testTraceOfLeafEvents (state : IO.Ref TestCollector) : IO Unit := do
   checkM state "traceOf/[&x *y]: anchor then alias, in span order"
     (anc ++ ali == [.defineAnchor "x", .useAlias "y"]) s!"got {repr (anc ++ ali)}"
 
+/-- Priority 34 (item 365): the CONTENT lane's K7 fact — the eleven `h_alt := trivial`
+    sites of `accum_content_pending`/`…_on_pendingBlock_indented`/`…_on_pendingMapValue_indented`
+    (and `content_dispatch_after_close`'s stepped alternative) now pay `PackAlt.ofRefused` from
+    `refused_of_markedCols_nil` on the PARK's own state `sc`, decided there by `Classical.em
+    (MarkedColsIn sc [])`.  At every content dispatch taken from block context (`sc.flowLevel = 0`,
+    a token that is not a block/flow indicator, comment or document marker) read the marked
+    columns of `sc`; none ⇒ `explicitKeyLine = none` must hold (`bad`, a refutation; pinned 0);
+    some ⇒ the premise is withdrawn — the step is the named `nested-?` decline (K8c-b) and the
+    register is expected live (`markedLive`, pinned = `marked`: load-bearing).  Returns
+    `(contents, bad, marked, markedLive)`. -/
+def walkContentRegister (input : String) : Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut contents := 0
+  let mut bad := 0
+  let mut marked := 0
+  let mut markedLive := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      let indicator := c == '-' || c == ':' || c == '?' || c == '[' || c == '{' || c == ']' ||
+        c == '}' || c == ',' || c == '#' || c == '%'
+      let marker := sp.col == 0 && (c == '-' || c == '.')
+      if !indicator && !marker && s.flowLevel == 0 then
+        if markedColsOf s.pendingKeys s.indentColumns == [] then
+          contents := contents + 1
+          if s.explicitKeyLine.isSome then bad := bad + 1
+        else
+          marked := marked + 1
+          if s.explicitKeyLine.isSome then markedLive := markedLive + 1
+      match scanNextToken s with
+      | .ok (some s') => s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (contents, bad, marked, markedLive)
+
+def testContentRegister (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 34: content dispatch under an empty marked domain (item 365)"
+  -- `(input, contents, marked)`, pinned from the run; `bad` 0 and `markedLive = marked` on every row.
+  let rows : List (String × Nat × Nat) :=
+    [("a", 1, 0), ("a: b", 2, 0), ("- a", 1, 0), ("- a\n- b", 2, 0), ("k:\n  a: b", 3, 0),
+     ("k:\n- a\n- b", 3, 0), ("- a: b\n  c: d", 4, 0), ("k: |\n  text", 2, 0), ("k: &x a", 3, 0),
+     ("k: !!str a", 3, 0), ("k: 'q'", 2, 0), ("k: \"q\"", 2, 0), ("k: *x", 2, 0),
+     -- The `?` KEY's content is marked (the `nested-?` decline); the explicit `:`'s VALUE is not —
+     -- the `:` closes the entry and the register is dead again (item 359's K7), so `b` in `? a⏎: b`
+     -- is an UNMARKED step.  First pinned (0, 2)-style, refuted by the run: the value lane pays.
+     ("? a\n: b", 1, 1), ("? a", 0, 1), ("? a\n: b\nc: d", 3, 1), ("- ? a\n  : b", 1, 1),
+     ("? - a\n  - b\n: c", 1, 2), ("?\n  a: b\n: c", 1, 2), ("? a\n: - b\n  - c", 2, 1),
+     ("k:\n  ? a\n  : b", 2, 1), ("? &x a\n: b", 1, 2), ("---\na\n...", 1, 0), ("a\n---\nb", 2, 0)]
+  for (input, expContents, expMarked) in rows do
+    let (contents, bad, marked, markedLive) := walkContentRegister input
+    checkM state s!"contentReg/{repr input}: unmarked block content steps" (contents == expContents)
+      s!"got {contents}, expected {expContents}"
+    checkM state s!"contentReg/{repr input}: every unmarked content step has a dead register" (bad == 0)
+      s!"{bad} refutation(s)"
+    checkM state s!"contentReg/{repr input}: marked block content steps" (marked == expMarked)
+      s!"got {marked}, expected {expMarked}"
+    checkM state s!"contentReg/{repr input}: every marked content step keeps the register live"
+      (markedLive == marked) s!"{markedLive}/{marked}"
+
 /-- Priority 33 (EVENTSOF §10 slice 3): the Rule-2 ledger of `traceOf_unique` on the
 block/document fragment — the PARSER's side of each row.  The grammar side lives in
 `Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean`: `a⏎&x` has the traces `[]` and
@@ -5035,6 +5096,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testCloseFVCover state
   testFlowOpenRegister state
   testFlowCloseRegister state
+  testContentRegister state
   testExplicitColonRegister state
   testTraceOfLeafEvents state
   testTraceOfBlockLedger state

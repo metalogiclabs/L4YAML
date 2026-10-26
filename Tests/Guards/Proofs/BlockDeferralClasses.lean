@@ -4549,7 +4549,11 @@ def expectedPackFlip : String :=
   -- 2026-10-25 (item 362): leaf 51 → 55, uncond 40 → 36 (sites/decline unchanged): the four flow CLOSE faces
   -- (`accum_step_flow`'s `h_vpack`/`h_framesV` after `]`/`}`) pay `PackAlt.ofRefused` under `h_markedF.elim`
   -- from the carried marked domain; `ELIM_LEAF` widened to a bridge application.
-  "sites=93 decls=20 rounds=2 decline=91 relay=0 leaf=56 uncond=35 stubs=8"
+  -- 2026-10-26 (item 365): sites 93 → 95, decls 20 → 19, decline 91 → 93, leaf 56 → 69, uncond 35 → 24: the eleven
+  -- content producers' `h_alt := trivial` pay `PackAlt.ofRefused` under `h_refused.elim` (`ELIM_ARG`, the argument
+  -- shape); `content_dispatch_after_close`'s relay becomes a premise stepped at its three callers (−1 +3 sites, the
+  -- lemma leaves the roster).
+  "sites=95 decls=19 rounds=2 decline=93 relay=0 leaf=69 uncond=24 stubs=8"
 
 /-- **The RESIDUE** (item 312): the same census with `PackAlt sc := ExplicitValueRefused sc` — the
     predicate the family will carry — in place of `False`.  A bare `trivial` still fails (an unpaid
@@ -4605,7 +4609,9 @@ def expectedPackResidue : String :=
   -- `compact_open_map` K7 faces stay declined — their payer `scanValue_refused_of_outer` is proved, its five-conjunct
   -- carrier is not threaded (item 360).
   -- 2026-10-25 (item 362): leaf 41 → 45, uncond 29 → 25 — the same four CLOSE faces, read as `nested-?` declines.
-  "sites=74 decls=18 rounds=2 decline=70 relayTrue=0 relayState=4 leaf=46 uncond=24 stubs=1 promised=6"
+  -- 2026-10-26 (item 365): sites 74 → 76, decls 18 → 17, decline 70 → 72, leaf 46 → 59, uncond 24 → 13 — the same
+  -- eleven sites and the three stepped `content_dispatch_after_close` arguments, read as `nested-?` leaves (K8c-b).
+  "sites=76 decls=17 rounds=2 decline=72 relayTrue=0 relayState=4 leaf=59 uncond=13 stubs=1 promised=6"
 
 /-! **The 32 roots (29 since item 307), by what the register does there** — a READING of each site
 (the compiler prices it when the construction is attempted, §1):
