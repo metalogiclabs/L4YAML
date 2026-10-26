@@ -4791,9 +4791,9 @@ open L4YAML.Proofs.IndentStackCover in
     sequence width the field bounds `ks` by, `fr.width < n`), `ks` := the mapping levels of
     the birth state strictly left of `n`, `lo := 0` — the shape the producers transport —
     plus the compact arm's literal lane `lo := n + 1`, `ks := []` (`covered_nil_of_top_le`)
-    when `currentIndent ≤ n`.  The park stays open while the stack holds its sequence level;
+    when `currentIndent ≤ n`.  The park stays open while the stack holds its sequence level.
     A park whose cover fails at birth (`k:⏎- a`: `n = 0`, no frame left of the entry) is
-    `unborn` — the producers decline it; at every later non-flow `-`/content/`:`/`?` step the
+    `unborn` — the producers decline it.  At every later non-flow `-`/content/`:`/`?` step the
     carried `Covered lo ks` is read on the POST-step state, a `:`/`?` adding the frame it
     opens to `ks` for good (`scanValue_cover_key` / the `?`'s `[187]` level, then the key-line
     park's `h_closeF`):
