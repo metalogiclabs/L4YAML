@@ -29,17 +29,46 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\.md$")
 NUM_RE = re.compile(r"^-?\d+(\.\d+)?$")
 
 
-PIPE_RE = re.compile(r"(?<!\\)\|")
-
-
 def split_row(line: str) -> list[str]:
-    r"""Split a Markdown table row on unescaped pipes; `\|` inside a cell is a literal pipe."""
+    r"""Split a Markdown table row on unescaped pipes.
+
+    A pipe is escaped when an odd number of backslashes precedes it; `\|` decodes
+    to `|`, any other backslash run is kept as written."""
     body = line.strip()
     if body.startswith("|"):
         body = body[1:]
-    if body.endswith("|") and not body.endswith("\\|"):
-        body = body[:-1]
-    return [c.strip().replace("\\|", "|") for c in PIPE_RE.split(body)]
+    cells: list[str] = []
+    cur: list[str] = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == "\\":
+            j = i
+            while j < len(body) and body[j] == "\\":
+                j += 1
+            run = j - i
+            if j < len(body) and body[j] == "|" and run % 2 == 1:
+                cur.append("\\" * (run - 1) + "|")
+                i = j + 1
+            else:
+                cur.append("\\" * run)
+                i = j
+            continue
+        if ch == "|":
+            cells.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+        i += 1
+    tail = "".join(cur)
+    if tail.strip() != "" or not cells:
+        cells.append(tail)
+    return [c.strip() for c in cells]
+
+
+def esc(cell: str) -> str:
+    """Encode a cell for a Markdown table in the report."""
+    return cell.replace("|", "\\|")
 
 
 def is_rule(cells: list[str]) -> bool:
@@ -116,7 +145,7 @@ def diff_instruments(old: dict, new: dict, out: list[str]) -> None:
     out.append("| key | old | new | Δ |")
     out.append("|---|---|---|---|")
     for k, ov, nv, d in moved:
-        out.append(f"| `{k}` | {ov} | {nv} | {d} |")
+        out.append(f"| `{esc(k)}` | {esc(ov)} | {esc(nv)} | {d} |")
     out.append(f"\n{len(moved)} moved, {same} unchanged.\n")
 
 
