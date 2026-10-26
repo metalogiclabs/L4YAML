@@ -10,6 +10,7 @@ public import L4YAML.Proofs.Production.StreamAccum
 public import L4YAML.Proofs.Scanner.RegisterWitness
 public import L4YAML.Proofs.Scanner.FlowAdjacency
 public import L4YAML.Proofs.Scanner.FlowAdjacencyIx
+public import L4YAML.Proofs.Serialization.TraceOf.Leaves
 public import Tests.VerifiedResult
 
 @[expose] public section Blanket
@@ -4781,6 +4782,23 @@ def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"k1Lanes/{repr input}: the sibling premise is load-bearing (fresh landing)"
       (freshMiss == f) s!"got {freshMiss} expected {f}"
 
+
+def testTraceOfLeafEvents (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 32: TraceOf leaf trace functions on the slice-2 spans (EVENTSOF §10)"
+  -- The only decidable part of `tFlowNode_unique`'s Rule-2 ledger: each leaf trace is a
+  -- function of the consumed span, so two derivations of one span agree by `rfl`.
+  let tagRows : List (String × List L4YAML.Proofs.Serialization.SerializationWellFormed.Event) :=
+    [("!!str", [.useTag "!!"]), ("!<a>", []), ("!t", [.useTag "!"]), ("!", [.useTag "!"])]
+  for (span, expected) in tagRows do
+    let got := L4YAML.Proofs.Serialization.TraceOf.tagEvents span.toList
+    checkM state s!"traceOf/tagEvents {repr span}" (got == expected) s!"got {repr got}"
+  let anc := L4YAML.Proofs.Serialization.TraceOf.anchorEvents "&x".toList
+  checkM state "traceOf/anchorEvents &x" (anc == [.defineAnchor "x"]) s!"got {repr anc}"
+  let ali := L4YAML.Proofs.Serialization.TraceOf.aliasEvents "*y".toList
+  checkM state "traceOf/aliasEvents *y" (ali == [.useAlias "y"]) s!"got {repr ali}"
+  checkM state "traceOf/[&x *y]: anchor then alias, in span order"
+    (anc ++ ali == [.defineAnchor "x", .useAlias "y"]) s!"got {repr (anc ++ ali)}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -4819,6 +4837,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testFlowOpenRegister state
   testFlowCloseRegister state
   testExplicitColonRegister state
+  testTraceOfLeafEvents state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
