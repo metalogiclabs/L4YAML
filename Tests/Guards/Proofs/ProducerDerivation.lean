@@ -256,12 +256,13 @@ def readDecl (n : Name) : MetaM Readings := do
     converses, the header indicator and tail readers, `blockScalarTabStop_false_of_stop`,
     the auto-detect loop and `scanBlockScalar_accepts`, each taking a correspondence
     (Stream E). -/
+-- 2026-10-26 (item 367, `[82]`): `directiveStop_of_validated` (StructureProduction) reads two `ScannerSurfCorr` hypotheses: `corrHyp` 583 → 584; the stream-conclusion counts are unchanged.
 def expectedCensus : String :=
 -- 2026-10-23 ([147] glued value): corrHyp 545 → 546 — `flowGluedCollectionValue_false_of_corr_colon_blank` reads
 -- the `": "` surface through a `ScannerSurfCorr` hypothesis; the thread, held and pair rows are unchanged.
 -- 2026-10-24 (B3 [66] col-0 threading): corrHyp 546 → 583, streamConcl 90 → 91, both 40 → 41 — the
 -- gate/JSON-key/reservation lemmas read the surface through `ScannerSurfCorr`; `close_with_sslFrom` concludes a stream.
-  "corrHyp=583 streamConcl=91 both=41 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=584 streamConcl=91 both=41 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

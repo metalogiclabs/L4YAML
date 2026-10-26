@@ -843,7 +843,8 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- `dispatchBlock_colon_notQuestion`.
 -- 2026-10-26 (`[173]` tail confined to EOF): theorems 6308 → 6309 — `collectLineContentLoop_fst_nonempty`
 -- (the non-printable stop keeps `s_after_line` only for a non-empty line run); not a no-op conclusion.
-def expectedNoopTally : String := "theorems=6309 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 2026-10-26 (item 367, `[82]`): +17 lemmas (directive loop/char bridges in StructureProduction, the three `s-l-comments` composition lemmas in StreamAccum): theorems 6309 → 6326; the elab/whnf tallies are unchanged.
+def expectedNoopTally : String := "theorems=6326 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

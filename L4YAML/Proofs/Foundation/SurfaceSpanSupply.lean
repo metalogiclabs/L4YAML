@@ -89,9 +89,25 @@ lemma gseq3_suffix {P Q R : SurfPos → SurfPos → Prop} {a b : SurfPos}
 lemma slDirective_suffix {a b : SurfPos} (h : SLDirective a b) :
     b.chars <:+ a.chars := by
   match h with
-  | .mk rest _ _ _ hg hc =>
-    exact ((sslComments_suffix hc).trans
-      (gstar_suffix (fun _ _ => gchar_suffix) hg)).trans (List.suffix_cons '%' rest)
+  | .yaml rest _ _ _ _ _ _ _ hw hd1 hdot hd2 hc =>
+    exact (((((sslComments_suffix hc).trans
+      (gplus_suffix (fun _ _ => gchar_suffix) hd2)).trans
+      (glit_suffix hdot)).trans
+      (gplus_suffix (fun _ _ => gchar_suffix) hd1)).trans
+      (gstar_suffix (fun _ _ => sswhite_suffix) hw)).trans
+      ⟨['%', 'Y', 'A', 'M', 'L'], rfl⟩
+  | .tag rest _ _ _ _ _ _ _ hw hh hw2 hp hc =>
+    exact (((((sslComments_suffix hc).trans
+      (gstar_suffix (fun _ _ => gchar_suffix) hp)).trans
+      (gstar_suffix (fun _ _ => sswhite_suffix) hw2)).trans
+      (gstar_suffix (fun _ _ => gchar_suffix) hh)).trans
+      (gstar_suffix (fun _ _ => sswhite_suffix) hw)).trans
+      ⟨['%', 'T', 'A', 'G'], rfl⟩
+  | .reserved rest _ _ _ _ hg _ _ _ hsk hc =>
+    exact (((sslComments_suffix hc).trans
+      (gstar_suffix (fun _ _ => gchar_suffix) hsk)).trans
+      (gstar_suffix (fun _ _ => gchar_suffix) hg)).trans
+      (List.suffix_cons '%' rest)
 
 /-- **`[175] s-nb-folded-text(n)` consumes a prefix.** -/
 lemma ssNbFoldedText_suffix {n : Nat} {a b : SurfPos} (h : SSNbFoldedText n a b) :

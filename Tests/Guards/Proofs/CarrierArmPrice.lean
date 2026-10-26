@@ -277,9 +277,10 @@ def expectedAbsorbReaders : List String :=
 -- 2026-10-25 (#99 review): prods 164 → 163 — the dead `FlowLead` duplicate of `leadFree` is deleted.
 -- 2026-10-25 (slice 2, `TraceOf/UniqueFlow.lean`): prods 163 → 165, ctors 306 → 308, direct 292 → 294 — the proof-layer
 -- relations `PStep` (2 arms, both direct) and `Follow`; nothing in Surface, no anchor.
+-- 2026-10-26 (item 367, `[82]`): `SLDirective` 1 → 3 arms (surfArms 182 → 184, surfDirect 181 → 183) and the four scanner-cut relations in StructureProduction: prods 165 → 169, ctors 308 → 313, direct 294 → 299; the carrier readers are unchanged.
 def expectedLine : String :=
-  "prods=165 ctors=308 same=25 direct=294 anchoredOnly=12 broken=2 surfArms=182 \
-surfDirect=181 candidate=direct candidateNil=direct readers=3 libReaders=2 \
+  "prods=169 ctors=313 same=25 direct=299 anchoredOnly=12 broken=2 surfArms=184 \
+surfDirect=183 candidate=direct candidateNil=direct readers=3 libReaders=2 \
 guardReaders=1 mentions=41 producers=21 absorbReaders=5 absorbPlainReaders=0"
 
 /-- Non-circularity, items 242–245's check: the closing lemma spends item 244's

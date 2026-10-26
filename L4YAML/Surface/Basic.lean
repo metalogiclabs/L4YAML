@@ -228,15 +228,42 @@ starts with '%' at the beginning of a line, followed by non-break content,
 and ends with comments. The detailed directive validation is handled by
 the scanner/parser — the surface syntax just needs to recognize the shape. -/
 
-/-- [82] l-directive: directive line starting with '%'.
-    Simplified encoding: '%' + non-break characters + s-l-comments.
-    Uses `SCommentChar` (any non-break; see `isCommentTextChar`) rather
-    than SNsChar (non-space) because directive content includes spaces
-    (e.g., `%YAML 1.2`, `%TAG !e! prefix`), and rather than strict
-    nb-char [27] because the trailing content is stripped unvalidated. -/
+/-- [82] l-directive, stated as the scanner reads it (`scanDirective`, item 367).
+    `'%'` then the directive NAME (a maximal run of ns-chars, `collectDirectiveNameLoop`),
+    then one of three bodies:
+    * `yaml` — name `YAML`: whites, `[86] ns-yaml-version` = digits `.` digits (both runs
+      non-empty), then `[79] s-l-comments` (a `#` needs a white before it: the scanner's
+      `directiveTrailingContent` check);
+    * `tag` — name `TAG`: whites, `[89] c-tag-handle` chars (word chars and `!`), whites, the
+      prefix (`[39] ns-uri-char`s), then `s-l-comments`;
+    * `reserved` — any other name (`[83]`; the empty name included, as the scanner accepts
+      `%` alone), stated as the maximal ns-char run that is neither `YAML` nor `TAG`: the rest
+      of the line unvalidated (`skipToEndOfLine`), then `s-l-comments`.
+    Before item 367 the production was `'%'` + any non-break run + `s-l-comments`, wider than
+    the scanner on every `%YAML`/`%TAG` line. -/
 inductive SLDirective : SurfPos → SurfPos → Prop where
-  | mk (rest : List Char) (col : Nat) (s₁ s' : SurfPos) :
-      GStar SCommentChar ⟨rest, col + 1⟩ s₁ →
+  | yaml (rest : List Char) (col : Nat) (s₁ s₂ s₃ s₄ s' : SurfPos) :
+      GNot (GChar isNsChar) ⟨rest, col + 5⟩ →
+      GStar SSWhite ⟨rest, col + 5⟩ s₁ →
+      GPlus (GChar isNsDecDigit) s₁ s₂ →
+      GLit '.' s₂ s₃ →
+      GPlus (GChar isNsDecDigit) s₃ s₄ →
+      SSLComments s₄ s' →
+      SLDirective ⟨'%' :: 'Y' :: 'A' :: 'M' :: 'L' :: rest, col⟩ s'
+  | tag (rest : List Char) (col : Nat) (s₁ s₂ s₃ s₄ s' : SurfPos) :
+      GNot (GChar isNsChar) ⟨rest, col + 4⟩ →
+      GStar SSWhite ⟨rest, col + 4⟩ s₁ →
+      GStar (GChar (fun c => isWordCharProp c ∨ c = '!')) s₁ s₂ →
+      GStar SSWhite s₂ s₃ →
+      GStar (GChar isUriCharProp) s₃ s₄ →
+      SSLComments s₄ s' →
+      SLDirective ⟨'%' :: 'T' :: 'A' :: 'G' :: rest, col⟩ s'
+  | reserved (rest : List Char) (col : Nat) (s₀ s₁ s' : SurfPos) :
+      GStar (GChar isNsChar) ⟨rest, col + 1⟩ s₀ →
+      GNot (GChar isNsChar) s₀ →
+      rest ≠ 'Y' :: 'A' :: 'M' :: 'L' :: s₀.chars →
+      rest ≠ 'T' :: 'A' :: 'G' :: s₀.chars →
+      GStar SCommentChar s₀ s₁ →
       SSLComments s₁ s' →
       SLDirective ⟨'%' :: rest, col⟩ s'
 

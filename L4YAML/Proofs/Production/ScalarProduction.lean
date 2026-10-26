@@ -5011,7 +5011,7 @@ private lemma collectCommentTextLoop_inputEnd' (fuel : Nat) :
       · exact (ih s.advance _).trans (advance_inputEnd s)
     · rfl
 
-private lemma skipWhitespaceLoop_inputEnd' (fuel : Nat) :
+lemma skipWhitespaceLoop_inputEnd' (fuel : Nat) :
     ∀ (s : ScannerState), (skipWhitespaceLoop s fuel).inputEnd = s.inputEnd := by
   induction fuel with
   | zero => intro s; simp [skipWhitespaceLoop]
@@ -5024,7 +5024,7 @@ private lemma skipWhitespaceLoop_inputEnd' (fuel : Nat) :
       · rfl
     · rfl
 
-private lemma skipWhitespace_inputEnd' (s : ScannerState) :
+lemma skipWhitespace_inputEnd' (s : ScannerState) :
     (skipWhitespace s).inputEnd = s.inputEnd :=
   skipWhitespaceLoop_inputEnd' _ s
 

@@ -1146,6 +1146,7 @@ def expectedUnborn : List String := [
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): liteNodes=598322 → liteNodes=598322 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
+-- 2026-10-26 (item 367, `[82]`): module-wide tallies only (StreamAccum directive sites apply `scannedDirective_toSL`; three `s-l-comments` lemmas added); origins/routes unchanged: alts 5209 → 5203, nodes 13722 → 13686, liteNodes 621993 → 621478.
 def expectedLine : String :=
   -- 2026-10-25 (item 359): punt 12 → 11, stamp 39 → 40 — the `noPending` value-park face pays `PackAlt.ofRefused (h_noek …)`;
   -- lapps 806 → 807, liteNodes 607398 → 607407 — that one application and its term.
@@ -1156,7 +1157,7 @@ def expectedLine : String :=
   -- content lemmas; no origin class moved (stamp/ride/none unchanged).
   -- 2026-10-26 (item 366): alts 5205 → 5209, nodes 13708 → 13722, liteNodes 621328 → 621993 — the two `h_outer` pays at
   -- closeThenBlock (`Classical.em` alternatives and their lets); no origin class moved.
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=641 lapps=813 alts=5209 nodes=13722 liteNodes=621993"
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=641 lapps=813 alts=5203 nodes=13686 liteNodes=621478"
 
 /-! ## §4 The reading -/
 

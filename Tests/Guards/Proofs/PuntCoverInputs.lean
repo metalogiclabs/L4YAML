@@ -800,6 +800,7 @@ def expectedNamed : String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): nodes=115233 → nodes=115369 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
+-- 2026-10-26 (item 367, `[82]`): module-wide tallies only (the two directive sites apply `scannedDirective_toSL`; three `s-l-comments` lemmas join StreamAccum): nodes 117899 → 117863; the five punt sites and their cover reading are unchanged.
 def expectedLine : String :=
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); nodes 117690 → 117529 (walked-term total).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`); the three `match h_kslot_* with` blocks go — nodes 117529 → 117431 (walked-term total).
@@ -807,7 +808,7 @@ def expectedLine : String :=
   -- `h_alt := h_refused.elim …` arguments); no punt-cover row moved.
   -- 2026-10-26 (item 366): nodes 117885 → 117899 — the two `Classical.em` pays of `h_outer` in
   -- `accum_block_on_closeThenBlock`; no row of this guard moved.
-  "sites=5 pb=1 pmv=1 props=3 idx0=2 mono=2 monoOpt=0 base=2 baseOpt=0 prep=2 dispB=2 dispC=3 hc=2 chr=3 dash=1 corr=5 noflow=5 save=1 fl=0 top=2 larm=1 floor=2 nic=5 armed=0 col0=3 ids=0 coverSites=2 coverBinders=5 coverFnSites=3 full=1 fullB=1 missMono=3 missBase=3 missPrep=3 missFloorSrc=3 own=2 empty=0 relay=2 relayEntries=5 bounds=2 below=0 belowSyn=0 belowArm=0 at=2 atSyn=1 atArm=1 undecided=0 bOwn=1 bOld=1 landedBelow=0 inlineBelow=0 payable=0 lack=3 lackCallers=19 lackSupplied=0 lackSuppliedB=3 lackLow=0 lackPayable=0 vacuous=2 bottomBelow=0 paidRows=14 bottomPaidBelow=5 bottomPaidRelay=8 named=8 rows=198 nodes=117899"
+  "sites=5 pb=1 pmv=1 props=3 idx0=2 mono=2 monoOpt=0 base=2 baseOpt=0 prep=2 dispB=2 dispC=3 hc=2 chr=3 dash=1 corr=5 noflow=5 save=1 fl=0 top=2 larm=1 floor=2 nic=5 armed=0 col0=3 ids=0 coverSites=2 coverBinders=5 coverFnSites=3 full=1 fullB=1 missMono=3 missBase=3 missPrep=3 missFloorSrc=3 own=2 empty=0 relay=2 relayEntries=5 bounds=2 below=0 belowSyn=0 belowArm=0 at=2 atSyn=1 atArm=1 undecided=0 bOwn=1 bOld=1 landedBelow=0 inlineBelow=0 payable=0 lack=3 lackCallers=19 lackSupplied=0 lackSuppliedB=3 lackLow=0 lackPayable=0 vacuous=2 bottomBelow=0 paidRows=14 bottomPaidBelow=5 bottomPaidRelay=8 named=8 rows=198 nodes=117863"
 
 /-! ## §3 The reading -/
 

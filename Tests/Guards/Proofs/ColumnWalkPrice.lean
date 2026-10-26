@@ -291,8 +291,9 @@ composition node is a link that is not the first of its arm. -/
 -- 2026-10-23 ([162]): +5 arms / +3 links — the `[163]`/`[164]` indicator leaves under `SCBBlockHeader`.
 -- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
 -- `explicitPairJsonAdjacentValue`) add two flow arms.
+-- 2026-10-26 (item 367, `[82]`): `SLDirective` 1 → 3 arms (`yaml`/`tag`/`reserved`), each with its own literal-prefix and digit/handle/uri links: arms 182 → 184, links 356 → 367, twoWalks 886 → 917.
 def expectedPrice : String :=
-  "arms=182 links=356 oneWalk=356 twoWalks=886 defProds=9 defCitations=42"
+  "arms=184 links=367 oneWalk=367 twoWalks=917 defProds=9 defCitations=42"
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `arms` 172 → 180, `links`/`oneWalk` 324 → 342, `twoWalks` 800 → 846, `defCitations` 39 → 40.
 
 /-- The two cycles, priced the same way.  `flow` is the one the compiled

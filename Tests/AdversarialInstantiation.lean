@@ -5025,6 +5025,128 @@ def testCloseColonOuter (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"closeColon/{repr input}: nested marks keep the register live"
       (markedLive == marked) s!"{markedLive}/{marked}"
 
+/-! ### Priority 36 (item 367): `[82]` as the scanner cuts it.
+
+`scanDirective_prod` now concludes `ScannedDirective` (three bodies, `%YAML` / `%TAG` /
+reserved), and `SLDirective` has the same three constructors.  `directiveLineB` is a Bool
+mirror of that relation on the directive's own line — the character classes are the scanner's
+Bool predicates, the shapes are the constructors' — returning the characters it derives
+through (to the break or EOF) or `none`. -/
+namespace DirectiveMirror
+
+def nsCharB (c : Char) : Bool :=
+  !CharPredicates.isWhiteSpaceBool c && !CharPredicates.isLineBreakBool c &&
+    CharPredicates.isPrintableBool c && c != '﻿'
+
+def whiteB (c : Char) : Bool := c == ' ' || c == '\t'
+def breakB (c : Char) : Bool := CharPredicates.isLineBreakBool c
+def digitB (c : Char) : Bool := c.isDigit
+def handleB (c : Char) : Bool := CharPredicates.isWordCharBool c || c == '!'
+def uriB (c : Char) : Bool := CharPredicates.isUriCharBool c
+
+/-- The `DirectiveTail` of the lemma: whites, then EOF | break | a separated `#` and its text. -/
+def tailB (l : List Char) : Option (List Char) :=
+  let ws := l.takeWhile whiteB
+  let r := l.dropWhile whiteB
+  match r with
+  | [] => some []
+  | c :: _ =>
+    if breakB c then some r
+    else if c == '#' && !ws.isEmpty then some (r.dropWhile (fun c => !breakB c))
+    else none
+
+/-- `some rest` iff the line from `%` derives one body of `ScannedDirective`; `rest` is the
+    remainder at the break/EOF.  The name is maximal by construction (`takeWhile`). -/
+def directiveLineB (l : List Char) : Option (String × List Char) :=
+  match l with
+  | '%' :: r =>
+    let name := r.takeWhile nsCharB
+    let r := r.dropWhile nsCharB
+    if name = ['Y', 'A', 'M', 'L'] then
+      let r := r.dropWhile whiteB
+      let d1 := r.takeWhile digitB
+      let r := r.dropWhile digitB
+      match r with
+      | '.' :: r =>
+        let d2 := r.takeWhile digitB
+        let r := r.dropWhile digitB
+        if d1.isEmpty || d2.isEmpty then none
+        else (tailB r).map (fun t => ("yaml", t))
+      | _ => none
+    else if name = ['T', 'A', 'G'] then
+      let r := r.dropWhile whiteB
+      let r := r.dropWhile handleB
+      let r := r.dropWhile whiteB
+      let r := r.dropWhile uriB
+      (tailB r).map (fun t => ("tag", t))
+    else
+      some ("reserved", r.dropWhile (fun c => !breakB c))
+  | _ => none
+
+end DirectiveMirror
+
+/-- Priority 36 (item 367): instantiate `scanDirective_prod` — `scanDirective` accepts the line ⇒
+    `ScannedDirective` derives it and ends where the scanner ends.  For each input: scanner ok ∧
+    mirror derives, ends agree ⇒ `paid`; scanner ok ∧ mirror refuses or ends elsewhere ⇒ `bad` (a
+    refutation of the lemma, pinned 0 per row); scanner refuses ∧ mirror derives ⇒ `wider` (the
+    relation admits a line the scanner refuses — not a refutation, but the item pins it 0: the
+    narrowing is exact on these rows); both refuse ⇒ `refused`.  Returns
+    `(paid, bad, wider, refused, body)` with `body` the derived constructor's name. -/
+def walkDirectiveLine (input : String) : Nat × Nat × Nat × Nat × String := Id.run do
+  let s := ScannerState.mk' input
+  let chars := input.toList
+  let mirror := DirectiveMirror.directiveLineB chars
+  let body := match mirror with | some (b, _) => b | none => "-"
+  match scanDirective s, mirror with
+  | .ok s', some (_, rest) =>
+    let consumed := chars.take (chars.length - rest.length)
+    if s'.offset == (String.ofList consumed).utf8ByteSize then (1, 0, 0, 0, body)
+    else (0, 1, 0, 0, body)
+  | .ok _, none => (0, 1, 0, 0, body)
+  | .error _, some _ => (0, 0, 1, 0, body)
+  | .error _, none => (0, 0, 0, 1, body)
+
+def testDirectiveLine (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 36: `[82]` l-directive as the scanner cuts it (item 367)"
+  -- `(input, expected body, expected (paid, wider, refused))`; `bad` is 0 on every row.
+  let rows : List (String × String × Nat × Nat × Nat) :=
+    [ -- %YAML: accepted shapes
+      ("%YAML 1.2", "yaml", 1, 0, 0), ("%YAML 1.2\n", "yaml", 1, 0, 0),
+      ("%YAML 1.2\n---\n", "yaml", 1, 0, 0), ("%YAML 1.2 # c\n", "yaml", 1, 0, 0),
+      ("%YAML 1.2\t#c", "yaml", 1, 0, 0), ("%YAML\t12.34 \t\r\n", "yaml", 1, 0, 0),
+      ("%YAML 1.2 # é\n", "yaml", 1, 0, 0), ("%YAML     0.0", "yaml", 1, 0, 0),
+      -- %YAML: refused shapes (both sides)
+      ("%YAML 1.2#c", "-", 0, 0, 1), ("%YAML 1.2 x", "-", 0, 0, 1), ("%YAML 1.", "-", 0, 0, 1),
+      ("%YAML .2", "-", 0, 0, 1), ("%YAML", "-", 0, 0, 1), ("%YAML 1", "-", 0, 0, 1),
+      ("%YAML 1.2.3", "-", 0, 0, 1), ("%YAML 1.2 1.2", "-", 0, 0, 1), ("%YAML a.b", "-", 0, 0, 1),
+      -- a name that only starts with YAML is a reserved directive
+      ("%YAML1.2", "reserved", 1, 0, 0), ("%YAMLX 1.2", "reserved", 1, 0, 0),
+      -- %TAG: accepted shapes
+      ("%TAG ! tag:x,2000:", "tag", 1, 0, 0), ("%TAG !e! http://x/y\n", "tag", 1, 0, 0),
+      ("%TAG !e!", "tag", 1, 0, 0), ("%TAG", "tag", 1, 0, 0), ("%TAG\n", "tag", 1, 0, 0),
+      ("%TAG !e! x # c", "tag", 1, 0, 0), ("%TAG !! !x\n", "tag", 1, 0, 0),
+      ("%TAG !e!\t!a,b%20c", "tag", 1, 0, 0),
+      -- `#` is a `[39] ns-uri-char`: `x#c` is the prefix, not a comment (first written as refused; REFUTED by the run)
+      ("%TAG !e! x#c", "tag", 1, 0, 0),
+      -- %TAG: refused shapes (both sides)
+      ("%TAG !e! x y", "-", 0, 0, 1), ("%TAG !e! x [", "-", 0, 0, 1),
+      ("%TAG é", "-", 0, 0, 1),
+      -- reserved: anything to the line end
+      ("%", "reserved", 1, 0, 0), ("%\n---", "reserved", 1, 0, 0), ("% x", "reserved", 1, 0, 0),
+      ("%FOO bar baz#c", "reserved", 1, 0, 0), ("%TAGS !e! x y", "reserved", 1, 0, 0),
+      ("%yaml 1.2", "reserved", 1, 0, 0), ("%FOO\u0001\n", "reserved", 1, 0, 0),
+      ("%\u00A0x", "reserved", 1, 0, 0), ("%FOO\tbar\r\nx", "reserved", 1, 0, 0) ]
+  for (input, expBody, expPaid, expWider, expRefused) in rows do
+    let (paid, bad, wider, refused, body) := walkDirectiveLine input
+    checkM state s!"directive/{repr input}: body" (body == expBody) s!"got {body}, expected {expBody}"
+    checkM state s!"directive/{repr input}: scanner ok ⇒ ScannedDirective derives to the scanner's end"
+      (bad == 0) s!"{bad} refutation(s)"
+    checkM state s!"directive/{repr input}: paid" (paid == expPaid) s!"got {paid}, expected {expPaid}"
+    checkM state s!"directive/{repr input}: relation no wider than the scanner" (wider == expWider)
+      s!"got {wider}, expected {expWider}"
+    checkM state s!"directive/{repr input}: refused by both" (refused == expRefused)
+      s!"got {refused}, expected {expRefused}"
+
 /-- Priority 33 (EVENTSOF §10 slice 3): the Rule-2 ledger of `traceOf_unique` on the
 block/document fragment — the PARSER's side of each row.  The grammar side lives in
 `Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean`: `a⏎&x` has the traces `[]` and
@@ -5157,6 +5279,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testFlowCloseRegister state
   testContentRegister state
   testCloseColonOuter state
+  testDirectiveLine state
   testExplicitColonRegister state
   testTraceOfLeafEvents state
   testTraceOfBlockLedger state

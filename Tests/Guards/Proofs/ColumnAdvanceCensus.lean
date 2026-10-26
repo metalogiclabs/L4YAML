@@ -196,8 +196,9 @@ def isSurfRel (t : Expr) : MetaM Bool :=
 -- column 0 at both ends (eats 0, col 0→0) instead of transporting a variable position.
 -- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
 -- `explicitPairJsonAdjacentValue`) add two flow arms.
+-- 2026-10-26 (item 367, `[82]`): `SLDirective.yaml`/`.tag` advance by their literal names (`col + 5`, `col + 4`): arms 182 → 184, advance 25 → 27; violations unchanged.
 def expectedSplit : String :=
-  "types=81 arms=182 advance=25 pred=11 reset=3 carried=142 violations=1"
+  "types=81 arms=184 advance=27 pred=11 reset=3 carried=142 violations=1"
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 79 → 81, `arms` 172 → 180, `carried` 133 → 141 —
 -- `SCFlowJsonContent` (4 arms) + `SCFlowJsonNode` (2) + `jsonKeyAdjacentValue` + `pairJsonAdjacentValue`; all carry the column.
 
@@ -207,7 +208,8 @@ def expectedSplit : String :=
     that are not two-position relations. -/
 -- 2026-10-24 (B3 [66] col-0 threading): the explicit JSON-key twins (`explicitJsonKeyAdjacentValue`,
 -- `explicitPairJsonAdjacentValue`) add two flow arms.
-def expectedCoverage : String := "lits=81 pairs=42 blind=0 skippedTypes=1"
+-- 2026-10-26 (item 367, `[82]`): the `yaml`/`tag` arms add the literal prefixes `%YAML`/`%TAG` (`lits` 81 → 87, `pairs` 42 → 48).
+def expectedCoverage : String := "lits=87 pairs=48 blind=0 skippedTypes=1"
 
 /-- The arm, and it is the one §1 refutes the law with. -/
 def expectedViolation : String :=
