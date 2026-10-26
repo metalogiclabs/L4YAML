@@ -29,9 +29,17 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\.md$")
 NUM_RE = re.compile(r"^-?\d+(\.\d+)?$")
 
 
+PIPE_RE = re.compile(r"(?<!\\)\|")
+
+
 def split_row(line: str) -> list[str]:
-    cells = [c.strip() for c in line.strip().strip("|").split("|")]
-    return cells
+    r"""Split a Markdown table row on unescaped pipes; `\|` inside a cell is a literal pipe."""
+    body = line.strip()
+    if body.startswith("|"):
+        body = body[1:]
+    if body.endswith("|") and not body.endswith("\\|"):
+        body = body[:-1]
+    return [c.strip().replace("\\|", "|") for c in PIPE_RE.split(body)]
 
 
 def is_rule(cells: list[str]) -> bool:
@@ -44,7 +52,7 @@ def parse(path: Path) -> dict[str, dict]:
     section = "(preamble)"
     header: list[str] | None = None
     in_code = False
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if raw.startswith("```"):
             in_code = not in_code
             continue
@@ -63,6 +71,9 @@ def parse(path: Path) -> dict[str, dict]:
                 header = cells
                 sec["header"] = cells
                 continue
+            if len(cells) != len(header):
+                print(f"{path.name}:{lineno}: {len(cells)} cells, header has {len(header)}",
+                      file=sys.stderr)
             key = cells[0]
             sec["rows"][key] = cells
             sec["order"].append(key)
