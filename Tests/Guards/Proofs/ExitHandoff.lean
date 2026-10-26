@@ -333,7 +333,7 @@ def expectedLines : List String :=
    -- Item 285: one more exit, `slot_ride`'s frame — `nil` at the input, over the
    -- bound `h_stream_block`, parking `noPending` — which the three live arms
    -- spend where they spent `drop_ride`'s.
-   "accum_flow_open_depth0 input=sp_block slots=8 nil=5 carrier=3 forward=0 other=0 loose=0 at=[bound(sp_mid):1,input(sp_block):4] stream=[bound:h_stream_block:=L4YAML.Proofs.StreamAccum.absorb_stacksB:4,bound:h_stream_mid:=bound:h_close:1,param:h_stream:3] flow=[bound:h_kpkg0:=bound:h_kpkg:=Exists.intro:5,bound:h_kpkg1:=bound:h_kpkg:=Exists.intro:3] parks=[noPending:8]",
+   "accum_flow_open_depth0 input=sp_block slots=8 nil=5 carrier=3 forward=0 other=0 loose=0 at=[bound(sp_mid):1,input(sp_block):4] stream=[bound:h_stream_block:=L4YAML.Proofs.StreamAccum.absorb_stacksB:4,bound:h_stream_mid:=bound:h_close:1,param:h_stream:3] flow=[bound:h_kpkg:=Exists.intro:8] parks=[noPending:8]",
    "accum_step_block input=sp_block slots=7 nil=0 carrier=6 forward=1 other=0 loose=0 at=[] stream=[bound:q1:1,param:h_stream:6] flow=[K:7] parks=[bound:q4:1,vacuous:6]",
    "accum_step_content input=sp_block slots=7 nil=0 carrier=6 forward=1 other=0 loose=0 at=[] stream=[bound:q1:1,param:h_stream:6] flow=[K:7] parks=[bound:q4:1,vacuous:6]",
    "accum_step_structural input=sp_block slots=1 nil=0 carrier=0 forward=1 other=0 loose=0 at=[] stream=[bound:q1:1] flow=[K:1] parks=[bound:q4:1]",

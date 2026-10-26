@@ -4677,12 +4677,13 @@ def testFlowOpenRegister (state : IO.Ref TestCollector) : IO Unit := do
       (markedLive == marked) s!"{markedLive}/{marked}"
 
 /-- Priority 31 (item 362): the flow CLOSE lane — the marked-column domain the enclosing block
-    park had at the `[`/`{` is still the domain at the `]`/`}` (marks never move inside flow:
-    `drift`, pinned 0), and when it was empty the register is dead on the block state after the
-    close, which is what `refused_of_markedCols_nil` pays `accum_step_flow`'s four CLOSE faces
-    with (`bad`, a refutation; pinned 0).  A non-empty domain at the open is the withdrawn
-    premise: the register is expected live after the close (`markedLive`, pinned = `marked`).
-    Returns `(closes, bad, drift, marked, markedLive)`. -/
+    park had at the `[`/`{` is still the domain at the `]`/`}` (marks never move inside flow,
+    whatever content the node holds — plain/quoted scalars, anchors, aliases, tags: `drift`,
+    pinned 0), and when it is empty the register is dead on the block state after the close,
+    which is what `refused_of_markedCols_nil` pays `accum_step_flow`'s four CLOSE faces with,
+    read off the closed state itself (`bad`, a refutation; pinned 0).  A non-empty domain is
+    the withdrawn premise: the register is expected live after the close (`markedLive`,
+    pinned = `marked`).  Returns `(closes, bad, drift, marked, markedLive)`. -/
 def walkFlowCloseRegister (input : String) : Nat × Nat × Nat × Nat × Nat := Id.run do
   let mut s := ScannerState.mk' input
   let mut fuel := 64
@@ -4726,7 +4727,14 @@ def testFlowCloseRegister (state : IO.Ref TestCollector) : IO Unit := do
      ("[a]", 1, 0), ("{}", 1, 0), ("---\n[a]: b", 1, 0), ("a: 1\n[1]: b", 1, 0),
      ("? [a]\n: b", 0, 1), ("? {a: 1}\n: b", 0, 1), ("?\n  [a]: b\n: c", 0, 1), ("? a\n: [b]", 1, 0),
      ("- ? [a]\n  : b", 0, 1), ("[[a]]: b", 1, 0), ("{a: [1, 2]}: c", 1, 0), ("? [a, {b: c}]\n: d", 0, 1),
-     ("k: [a]\nj: b", 1, 0), ("? [a]\n: [b]", 1, 1), ("[a, [b, {c: d}], e]", 1, 0), ("{a: {b: [1]}}", 1, 0)]
+     ("k: [a]\nj: b", 1, 0), ("? [a]\n: [b]", 1, 1), ("[a, [b, {c: d}], e]", 1, 0), ("{a: {b: [1]}}", 1, 0),
+     -- every content token kind inside the node (PR #112 review): quoted scalars, anchors,
+     -- aliases, tags — alone, as flow keys, and under a `?` park.
+     ("[\"a\", 'b']: c", 1, 0), ("[&x a, *x]: b", 1, 0), ("[!!str a, !t b]: c", 1, 0),
+     ("{\"a\": 'b', &y c: *y, !!int 1: d}: e", 1, 0), ("k: [\"a\", 'b', &x c, *x, !!str d]", 1, 0),
+     ("? [\"a\", &x b, *x, !t c]\n: d", 0, 1), ("? {&a k: \"v\", 'q': !!null ~}\n: *a", 0, 1),
+     ("- {\"k\": [&z 'v', *z]}: w", 1, 0), ("? a\n: [\"b\", &c d, *c, !!bool true]", 1, 0),
+     ("[? \"a\" : 'b', ? &c d : *c]: e", 1, 0)]
   for (input, expCloses, expMarked) in rows do
     let (closes, bad, drift, marked, markedLive) := walkFlowCloseRegister input
     checkM state s!"flowClose/{repr input}: closes to block under an empty domain" (closes == expCloses)
