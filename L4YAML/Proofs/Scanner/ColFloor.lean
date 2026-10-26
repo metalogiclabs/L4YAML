@@ -1121,7 +1121,9 @@ lemma collectBlockScalarLoop_forward (fuel : Nat) :
             split
             · split
               · exact h1.trans (h2.trans ((consumeNewline_forward _).trans (ih _ _ _ _)))
-              · exact h1.trans h2
+              · split
+                · exact Forward.refl s
+                · exact h1.trans h2
             · (try dsimp only)
               (try split) <;> exact h1.trans h2
 

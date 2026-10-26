@@ -923,8 +923,9 @@ lemma collectBlockScalarLoop_preserves_pendingKeys (s : ScannerState) (rawConten
               · rw [ih, consumeNewline_preserves_pendingKeys,
                     collectLineContentLoop_preserves_pendingKeys,
                     consumeExactSpaces_preserves_pendingKeys]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_pendingKeys,
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_pendingKeys,
                     consumeExactSpaces_preserves_pendingKeys]
             · rw [collectLineContentLoop_preserves_pendingKeys,
                   consumeExactSpaces_preserves_pendingKeys]

@@ -2172,8 +2172,9 @@ lemma collectBlockScalarLoop_preserves_tokens (s : ScannerState) (rawContent : S
             · split
               · rw [ih, consumeNewline_preserves_tokens,
                     collectLineContentLoop_preserves_tokens, consumeExactSpaces_preserves_tokens]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_tokens, consumeExactSpaces_preserves_tokens]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_tokens, consumeExactSpaces_preserves_tokens]
             · rw [collectLineContentLoop_preserves_tokens, consumeExactSpaces_preserves_tokens]
 
 /-! ### scanBlockScalar sub-function preservation lemmas -/
@@ -4871,8 +4872,9 @@ lemma collectBlockScalarLoop_preserves_implicitValueLine (s : ScannerState) (raw
             · split
               · rw [ih, consumeNewline_preserves_implicitValueLine,
                     collectLineContentLoop_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
             · rw [collectLineContentLoop_preserves_implicitValueLine, consumeExactSpaces_preserves_implicitValueLine]
 
 /-- `docStartLine` twin of `collectBlockScalarLoop_preserves_implicitValueLine` (item 299): the field has one writer, `scanDocumentStart`. -/
@@ -4896,8 +4898,9 @@ lemma collectBlockScalarLoop_preserves_docStartLine (s : ScannerState) (rawConte
             · split
               · rw [ih, consumeNewline_preserves_docStartLine,
                     collectLineContentLoop_preserves_docStartLine, consumeExactSpaces_preserves_docStartLine]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_docStartLine, consumeExactSpaces_preserves_docStartLine]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_docStartLine, consumeExactSpaces_preserves_docStartLine]
             · rw [collectLineContentLoop_preserves_docStartLine, consumeExactSpaces_preserves_docStartLine]
 
 lemma scanBlockScalarSkipComment_preserves_implicitValueLine (s : ScannerState) :
@@ -5466,8 +5469,9 @@ lemma collectBlockScalarLoop_preserves_simpleKey (s : ScannerState) (rawContent 
             · split
               · rw [ih, consumeNewline_preserves_simpleKey,
                     collectLineContentLoop_preserves_simpleKey, consumeExactSpaces_preserves_simpleKey]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_simpleKey, consumeExactSpaces_preserves_simpleKey]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_simpleKey, consumeExactSpaces_preserves_simpleKey]
             · rw [collectLineContentLoop_preserves_simpleKey, consumeExactSpaces_preserves_simpleKey]
 
 
@@ -6143,8 +6147,9 @@ lemma collectBlockScalarLoop_preserves_simpleKeyStack (s : ScannerState) (rawCon
             · split
               · rw [ih, consumeNewline_preserves_simpleKeyStack,
                     collectLineContentLoop_preserves_simpleKeyStack, consumeExactSpaces_preserves_simpleKeyStack]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_simpleKeyStack, consumeExactSpaces_preserves_simpleKeyStack]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_simpleKeyStack, consumeExactSpaces_preserves_simpleKeyStack]
             · rw [collectLineContentLoop_preserves_simpleKeyStack, consumeExactSpaces_preserves_simpleKeyStack]
 
 
@@ -7436,8 +7441,9 @@ lemma collectBlockScalarLoop_preserves_flowLevel (s : ScannerState) (rawContent 
             · split
               · rw [ih, consumeNewline_preserves_flowLevel,
                     collectLineContentLoop_preserves_flowLevel, consumeExactSpaces_preserves_flowLevel]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_flowLevel, consumeExactSpaces_preserves_flowLevel]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_flowLevel, consumeExactSpaces_preserves_flowLevel]
             · rw [collectLineContentLoop_preserves_flowLevel, consumeExactSpaces_preserves_flowLevel]
 
 lemma scanBlockScalarSkipComment_preserves_flowLevel (s : ScannerState) :
@@ -9546,9 +9552,11 @@ lemma collectBlockScalarLoop_offset_ge (s : ScannerState) (rawContent : String)
                     (Nat.le_trans (collectLineContentLoop_offset_ge _ _ _)
                       (consumeNewline_offset_ge _)))
                   (ih _ _)
-              · -- not isLineBreak c': loop stops at s_after_line
-                exact Nat.le_trans (consumeExactSpaces_offset_ge s _)
-                  (collectLineContentLoop_offset_ge _ _ _)
+              · -- not isLineBreak c': empty run → `s`, else s_after_line
+                split
+                · exact Nat.le_refl _
+                · exact Nat.le_trans (consumeExactSpaces_offset_ge s _)
+                    (collectLineContentLoop_offset_ge _ _ _)
             · -- none: return s_after_line
               exact Nat.le_trans (consumeExactSpaces_offset_ge s _)
                 (collectLineContentLoop_offset_ge _ _ _)

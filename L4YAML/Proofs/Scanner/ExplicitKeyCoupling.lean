@@ -760,8 +760,9 @@ lemma collectBlockScalarLoop_preserves_explicitKeyLine (s : ScannerState) (rawCo
             · split
               · rw [ih, consumeNewline_preserves_explicitKeyLine,
                     collectLineContentLoop_preserves_explicitKeyLine, consumeExactSpaces_preserves_explicitKeyLine]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_explicitKeyLine, consumeExactSpaces_preserves_explicitKeyLine]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_explicitKeyLine, consumeExactSpaces_preserves_explicitKeyLine]
             · rw [collectLineContentLoop_preserves_explicitKeyLine, consumeExactSpaces_preserves_explicitKeyLine]
 
 lemma scanBlockScalarSkipComment_preserves_explicitKeyLine (s : ScannerState) :
@@ -1621,8 +1622,9 @@ lemma collectBlockScalarLoop_preserves_explicitKeyCol (s : ScannerState) (rawCon
             · split
               · rw [ih, consumeNewline_preserves_explicitKeyCol,
                     collectLineContentLoop_preserves_explicitKeyCol, consumeExactSpaces_preserves_explicitKeyCol]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_explicitKeyCol, consumeExactSpaces_preserves_explicitKeyCol]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_explicitKeyCol, consumeExactSpaces_preserves_explicitKeyCol]
             · rw [collectLineContentLoop_preserves_explicitKeyCol, consumeExactSpaces_preserves_explicitKeyCol]
 
 lemma scanBlockScalarSkipComment_preserves_explicitKeyCol (s : ScannerState) :

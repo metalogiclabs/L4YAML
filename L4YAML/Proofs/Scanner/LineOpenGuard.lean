@@ -1520,6 +1520,14 @@ private lemma collectBlockScalarLoop_end (fuel : Nat) :
                   (Or.inl (consumeNewline_col0 hpk' hbr')) (by omega) (by omega)
               · -- non-break stop mid-line: a non-printable or BOM
                 rename_i hnbr
+                split
+                · -- empty line run: the scanner stays at `s`
+                  rcases ‹s.col = 0 ∨ s.peek? = none› with h0 | hnone
+                  · exact Or.inl h0
+                  · refine Or.inr (fun c hc => ?_)
+                    have hc' : s.peek? = some c := hc
+                    rw [hnone] at hc'; cases hc'
+                dsimp only
                 refine Or.inr (fun c hc => ?_)
                 rw [hpk'] at hc
                 injection hc with hce
@@ -1837,8 +1845,9 @@ lemma collectBlockScalarLoop_nic_mono (s : ScannerState) (raw : String)
               · exact ih _ _ (consumeNewline_nic_mono
                   (by rw [collectLineContentLoop_preserves_nic,
                           consumeExactSpaces_preserves_nic]; exact h))
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_nic,
+              · split
+                · exact h
+                · rw [collectLineContentLoop_preserves_nic,
                     consumeExactSpaces_preserves_nic]; exact h
             · rw [collectLineContentLoop_preserves_nic,
                   consumeExactSpaces_preserves_nic]; exact h

@@ -494,7 +494,7 @@ lemma slLiteralContent_suffix {n : Nat} {a b : SurfPos} (h : SLLiteralContent n 
     b.chars <:+ a.chars := by
   match h with
   | .mk _ _ _ _ _ _ _ ho hbr he htc hie =>
-    exact ((((gopt_suffix (fun _ _ => sIndentLe_suffix) hie).trans
+    exact ((((gopt_suffix (fun _ _ h => sIndentLe_suffix h.1) hie).trans
       (gopt_suffix (fun _ _ => slTrailComments_suffix) htc)).trans
         (gstar_suffix (fun _ _ => sLEmpty_suffix) he)).trans
           (gopt_suffix (fun _ _ => sbBreak_suffix) hbr)).trans

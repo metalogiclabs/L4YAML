@@ -407,7 +407,9 @@ inductive SLTrailComments : Nat → SurfPos → SurfPos → Prop where
 /-- [173] l-literal-content(n,t): full literal scalar content.
     Optional first line + continuation lines + optional trailing break,
     plus l-chomped-empty(n,t) ([166]–[168]): trailing empty lines, an optional
-    `[169] l-trail-comments` run, and an optional partial indent at EOF. -/
+    `[169] l-trail-comments` run, and an optional partial indent AT EOF — the
+    tail is confined to end of input: a partially indented line followed by
+    content is not the scalar's, it belongs to the enclosing collection. -/
 @[yaml_spec "8.1.2" 173 "l-literal-content(n,t)"]
 inductive SLLiteralContent : Nat → SurfPos → SurfPos → Prop where
   | mk (n : Nat) (s s₁ s₂ s₃ s₄ s' : SurfPos) :
@@ -415,7 +417,7 @@ inductive SLLiteralContent : Nat → SurfPos → SurfPos → Prop where
       GOpt SBBreak s₁ s₂ →
       GStar (SLEmpty n .blockIn) s₂ s₃ →
       GOpt (SLTrailComments n) s₃ s₄ →
-      GOpt (SIndentLe n) s₄ s' →
+      GOpt (fun a b => SIndentLe n a b ∧ b.chars = []) s₄ s' →
       SLLiteralContent n s s'
 
 /-- [170] c-l+literal(n): complete literal block scalar.

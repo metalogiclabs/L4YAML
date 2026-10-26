@@ -922,8 +922,10 @@ def collectBlockScalarLoop (s : ScannerState) (rawContent : String) (fuel : Nat)
               collectBlockScalarLoop s' rawContent'' fuel' contentIndent inputEnd
             else
               -- Line stopped at a non-printable/BOM char (not nb-char [27]):
-              -- end the block scalar here; dispatch rejects the char.
-              (rawContent', s_after_line)
+              -- end the block scalar here; dispatch rejects the char.  An empty
+              -- line run leaves the line's indent to the enclosing collection
+              -- (`[173]`'s partial-indent tail is EOF-only).
+              if lineContent.isEmpty then (rawContent, s) else (rawContent', s_after_line)
           -- Line terminated by end-of-input.  Add the implicit final b-break
           -- only for a trailing *whitespace-only* line (e.g. `   ` beyond the
           -- indent → a lone space, as in L24T/01): a real content line at EOF

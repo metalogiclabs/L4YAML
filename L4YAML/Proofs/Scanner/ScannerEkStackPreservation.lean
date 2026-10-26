@@ -706,8 +706,9 @@ lemma collectBlockScalarLoop_preserves_explicitKeyStack (s : ScannerState) (rawC
             · split
               · rw [ih, consumeNewline_preserves_explicitKeyStack,
                     collectLineContentLoop_preserves_explicitKeyStack, consumeExactSpaces_preserves_explicitKeyStack]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_explicitKeyStack, consumeExactSpaces_preserves_explicitKeyStack]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_explicitKeyStack, consumeExactSpaces_preserves_explicitKeyStack]
             · rw [collectLineContentLoop_preserves_explicitKeyStack, consumeExactSpaces_preserves_explicitKeyStack]
 
 -- Cloned from `ScannerCorrectness` lines 4164-4174 (`_preserves_explicitKeyStack` twin).
