@@ -4783,6 +4783,66 @@ def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
       (freshMiss == f) s!"got {freshMiss} expected {f}"
 
 
+open L4YAML.Proofs.IndentStackCover in
+/-- Priority 33 (item 364): the K1-fresh cover on `pendingBlock.h_closeFV`/
+    `pendingBlockContent.h_closeFV`.  The two parks now carry `Covered lo ks sc` on the
+    value-line twin, TRANSPORTED across the `-` step (`scanBlockEntry_cover`) and the
+    content step (`h_cov_step`), and DECLINED where the frame list is consed (`seq n :: ks`,
+    K1-seq) or born coverless (props lane, `ks = []`).  Reads, at every non-flow `-`/content
+    dispatch standing INSIDE a sequence level: `ks` := the stack's mapping levels at or right
+    of `lo := 0` (so `Covered 0 ks s` is literal), then whether the step keeps the cover —
+    `grew` counts a post-step mapping level the pre-step `ks` does not name (a refutation of
+    the transports' statement), `consed` the steps that push a sequence level (the K1-seq
+    decline's population), `steps` the dispatches read. -/
+def walkCloseFVCover (input : String) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut steps := 0
+  let mut grew := 0
+  let mut consed := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        let inSeq := match sp.indents.back? with
+          | some top => top.isSequence
+          | none => false
+        if inSeq && !sp.inFlow && c != ':' && c != '?' && c != '#' && s'.tokens.size > s.tokens.size then
+          steps := steps + 1
+          let ks : List FrameLevel := sp.indents.toList.filterMap fun e =>
+            if !e.isSequence && (0 : Int) ≤ e.column then some (FrameLevel.map e.column.toNat) else none
+          let keeps := s'.indents.toList.all fun e =>
+            e.isSequence || e.column < 0 || ks.contains (FrameLevel.map e.column.toNat)
+          if !keeps then grew := grew + 1
+          if s'.indents.size > sp.indents.size then
+            match s'.indents.back? with
+            | some top => if top.isSequence then consed := consed + 1
+            | none => pure ()
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (steps, grew, consed)
+
+def testCloseFVCover (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 33: the K1-fresh cover rides pendingBlock/pendingBlockContent.h_closeFV (item 364)"
+  -- `(input, (steps, consed))`, pinned from the run (17 of 20 read steps > 0; `k:⏎- a⏎- b`,
+  -- `k:⏎- ? a⏎  : b`, `k: |⏎  x⏎- a` stand on a mapping top, 0 steps); `grew` must be 0 everywhere.
+  let walks : List (String × (Nat × Nat)) :=
+    [("- a", (1, 0)), ("- a\n- b", (3, 0)), ("k:\n- a\n- b", (0, 0)), ("k:\n  - a\n  - b", (3, 0)),
+     ("k:\n  - a\nm: 2", (1, 0)), ("- - a\n  - b\n- c", (6, 1)), ("? - a\n: - b", (2, 0)),
+     ("?\n  - a\n  - b\n: c", (3, 0)), ("- a: 1\n  b: 2", (1, 0)), ("k:\n  - a: 1\n    b: 2\n  - c", (3, 0)),
+     ("a:\n  b:\n    - c\n    - d\n  e: f", (3, 0)), ("- &x a\n- *x", (4, 0)), ("- \"a\"\n- 'b'", (3, 0)),
+     ("- !!str a\n- [b]", (4, 0)), ("-\n- b", (2, 0)), ("- - - a", (3, 2)), ("k:\n- ? a\n  : b", (0, 0)),
+     ("? a\n: - b\n  - c", (3, 0)), ("- a # c\n- b", (3, 0)), ("k: |\n  x\n- a", (0, 0))]
+  for (input, (eS, eC)) in walks do
+    let (st, grew, consed) := walkCloseFVCover input
+    checkM state s!"closeFVCover/{repr input}: the `-`/content step keeps the mapping cover" (grew == 0)
+      s!"{grew} step(s) opened a mapping level the carried ks does not name"
+    checkM state s!"closeFVCover/{repr input}: (steps, consed)" (st == eS && consed == eC)
+      s!"got ({st}, {consed}) expected ({eS}, {eC})"
+
 def testTraceOfLeafEvents (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 32: TraceOf leaf trace functions on the slice-2 spans (EVENTSOF §10)"
   -- The only decidable part of `tFlowNode_unique`'s Rule-2 ledger: each leaf trace is a
@@ -4926,6 +4986,7 @@ def collectTests : IO VerifiedSuiteResult := do
 
   testQuestionMarkColumn state
   testK1Lanes state
+  testCloseFVCover state
   testFlowOpenRegister state
   testFlowCloseRegister state
   testExplicitColonRegister state

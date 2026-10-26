@@ -359,7 +359,7 @@ def expectedModuleTallyP : String :=
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); as HypothesisReaderCensus (constants 1683 → 1681, decls 1322 → 1320, READ 1386 → 1384, RELAY 2641 → 2633).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): as HypothesisReaderCensus (constants 1681 → 1676, decls 1320 → 1315; READ from the build).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): READ=1384 → 1367
-  "constants=1676 decls=1315 eta=441 FIELD=190 READ=1367 RELAY=2633 RETURN=167 UNUSED=27"
+  "constants=1678 decls=1317 eta=441 FIELD=190 READ=1371 RELAY=2633 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
