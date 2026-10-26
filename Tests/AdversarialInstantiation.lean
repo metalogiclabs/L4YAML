@@ -4847,6 +4847,50 @@ def testTraceOfBlockLedger (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"traceOf/block ledger {label}" (got == expected)
       s!"parseYaml: {repr got} (docs), expected {repr expected}"
 
+
+/-- Priority 34 (`[173]` tail confined to EOF): the executable side of
+`collectLineContentLoop_fst_nonempty` and of `BlockStopOk.badChar`'s non-empty run
+(`lineRunPlus_toBodyTail`).  An `nb-char` first and fuel ≥ 1 give non-empty content; the
+hypothesis fails at fuel 0 and on a BOM-first line, and there `collectBlockScalarLoop`'s
+non-`nb-char` exit now returns the LINE START (the partial indent is left to the enclosing
+collection) instead of the position after the indent. -/
+def testBlockScalarTailEof (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 34: [173] partial-indent tail EOF-only — collectLineContentLoop non-emptiness, empty-run exit"
+  -- nb-char first, fuel 1/2/5, empty and non-empty accumulator: content non-empty.
+  for (label, input) in [("plain", "abc\n"), ("nb-then-bom", "a\uFEFFb"), ("single", "x")] do
+    let s := ScannerState.mk' input
+    for n in [1, 2, 5] do
+      for acc in ["", "pre"] do
+        checkM state s!"fst_nonempty/{label}/fuel {n}/acc '{acc}'"
+          ((collectLineContentLoop s acc n).1.isEmpty == false) ""
+  -- Hypothesis fails: fuel 0 (content stays as given), BOM first, line break first.
+  checkM state "fst_nonempty/fuel 0 returns the accumulator unchanged"
+    ((collectLineContentLoop (ScannerState.mk' "abc") "" 0).1.isEmpty == true) ""
+  checkM state "fst_nonempty/BOM first: empty run"
+    ((collectLineContentLoop (ScannerState.mk' "\uFEFFx") "" 3).1.isEmpty == true) ""
+  checkM state "fst_nonempty/break first: empty run"
+    ((collectLineContentLoop (ScannerState.mk' "\nx") "" 3).1.isEmpty == true) ""
+  -- nb-char then BOM: the run stops AT the BOM with one char collected.
+  let sb := ScannerState.mk' "a\uFEFFb"
+  checkM state "fst_nonempty/nb-then-bom stops at the BOM"
+    ((collectLineContentLoop sb "" 5).1 == "a" && (collectLineContentLoop sb "" 5).2.offset == 1) ""
+  -- The block-scalar loop at content indent 2: an empty run before a BOM leaves the
+  -- scanner at the line start (offset 0); a non-empty run keeps the after-line position.
+  let sEmpty := ScannerState.mk' "  \uFEFF"
+  let rEmpty := collectBlockScalarLoop sEmpty "" 8 2 sEmpty.inputEnd
+  checkM state "badChar/empty run: scanner returns the line start" (rEmpty.2.offset == 0) ""
+  checkM state "badChar/empty run: no content collected" (rEmpty.1 == "") ""
+  let sRun := ScannerState.mk' "  ab\uFEFF"
+  let rRun := collectBlockScalarLoop sRun "" 8 2 sRun.inputEnd
+  checkM state "badChar/non-empty run: scanner stops at the BOM" (rRun.2.offset == 4) ""
+  checkM state "badChar/non-empty run: content is the run" (rRun.1 == "ab") ""
+  -- Parser side: both inputs are refused (dispatch rejects the BOM) — same verdict as before.
+  for (label, src) in [("empty run", "a: |\n  \uFEFF"), ("run", "a: |\n  ab\uFEFF")] do
+    let refused := match L4YAML.TokenParser.parseYaml src with
+      | .ok _ => false
+      | .error _ => true
+    checkM state s!"badChar/parser refuses ({label})" refused ""
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -4887,6 +4931,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testExplicitColonRegister state
   testTraceOfLeafEvents state
   testTraceOfBlockLedger state
+  testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",
            label := "Adversarial Instantiation Tests (sorry audit)",
