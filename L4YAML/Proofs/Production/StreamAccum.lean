@@ -13833,6 +13833,14 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
         InteriorGap s' (tailOf s'.tokens) sp_flow' sp_scan' ∧
           LastTokenReal s'.tokens ∧ s'.allowDirectives = false) := by
   rw [h_fl1]
+  -- Item 363: every `PackAlt sc` face of the open is typed over the BLOCK state `sc`
+  -- (`h_fl0`), so the flow lane's K7 fact is a projection of that state, decided once
+  -- here (Rule 8: no park domain, no carrier) — dead register when no slot is marked,
+  -- the named decline when a `?` encloses the collection.
+  have h_refused : ExplicitValueRefused sc ∨ True :=
+    (Classical.em (RegisterWitness.MarkedColsIn sc [])).elim
+      (fun h => Or.inl (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 h))
+      (fun _ => Or.inr trivial)
   -- The value-only open (item 56): a site that has no entry route to hand
   -- opens through this and says so once, rather than spelling two `Or.inr`s.
   have mkv : ∀ (g : Option ScannerState) (n : Nat) (sp_before : SurfPos),
@@ -14338,7 +14346,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
     exact main h_gateF.choose_spec.1 h_gateF.choose_spec.2 (fun _ _ => dropClose h_stream_block h_gateF.choose)
       (opaque_resume (preprocess_possible_of_live0 h_live0F h_noflow_prep h_preprocess))
       (Or.inr trivial) (Or.inr trivial)
-      (Or.inr trivial) (Or.inr trivial)
+      -- Item 363: B — the escape park's value-line face, read off the block state.
+      (Or.inr trivial) (h_refused.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
   | pendingProps _ _ _ ha ht sp_node sp_p n h_sep_run h_run h_nic_p h_real_p h_anchor_p h_tag_p
       h_route h_pkey h_floor_p h_col0_p h_ncol_p h_ska_p h_kslot_p _ _ _ _ _ _ _ h_slot_p h_possP0 h_gateP =>
     -- Items 9h/10, site 5's legal inhabitant: the held `[96]` run rides INTO
@@ -14461,14 +14470,10 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                 | _, _ => flowKeyRoute_of_root (Or.inr trivial) h_noflow_prep h_park
                     h_close_pending h_dn h_fv h_corr hcorr_prep h_preprocess (GStar.nil _) (fun _ _ => (h_gateP (noflow_of_fl0 h_fl0)).gate) (Or.inr trivial)
                     (Or.inr trivial) h_bare h_base (Or.inr trivial) (Or.inr trivial)
-                    -- Item 361: the flow lane's K7 face — no marked slot at the open ⇒ the
-                    -- register is dead (`refused_of_markedCols_nil`); a marked one (a `?`
-                    -- encloses the collection) declines, named.
-                    (match h_kslot_p with
-                     | Or.inl ⟨[], hdom, _⟩ =>
-                       Or.inr (PackAlt.ofRefused (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom))
-                     | Or.inl ⟨_ :: _, _, _⟩ => Or.inr trivial
-                     | Or.inr h => Or.inr h)),
+                    -- Item 361/363: the flow lane's K7 face — no marked slot at the open ⇒ the
+                    -- register is dead (`refused_of_markedCols_nil`, read off `sc` itself); a
+                    -- marked one (a `?` encloses the collection) declines, named.
+                    (h_refused.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))),
                -- Item 96: the run's value line — the collection completes the
                -- props-headed KEY of an open `[188]` entry and the landed `:`
                -- closes it (`? &p [1]⏎: - w`); the twin item 91 installed
@@ -14500,9 +14505,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       -- The TAB half is §6.1's own refusal and stands (item 68).
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       · exact slot_ride
-          (match h_kslot_p with
-            | Or.inl ⟨[], hdom, _⟩ => Or.inl (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom)
-            | _ => Or.inr trivial)
+          h_refused
           (fun _ => (h_gateP (noflow_of_fl0 h_fl0)).gate)
           (underRunEnd_landing_on_stack h_preprocess h_base h_floor_p h_col02 hj h_ind h_end
             hcorr_prep (h_landed_ur (Nat.ne_of_gt h_col0_p) h_noflow_prep))
@@ -14642,9 +14645,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       · -- Item 172: the deferred floor — the open step scans; nothing to spend.
         exact slot_ride
-          (match h_kslotUp_old with
-            | Or.inl ⟨[], hdom, _⟩ => Or.inl (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom)
-            | _ => Or.inr trivial)
+          h_refused
           (fun _ => (h_gateB (noflow_of_fl0 h_fl0)).gate)
           (underRunEnd_landing_on_stack h_preprocess h_base h_floor_old h_col02 hj h_ind h_end
             hcorr_prep (h_landed_ur (h_col59 ▸ Nat.succ_ne_zero n_old) h_noflow_prep))
@@ -14698,14 +14699,9 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                         (fun sp h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
                           route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp sp_i sp_c sp_v
                             h_qlit h_bo h_iv h_lit h_sbi))⟩
-                  -- Item 361: no `?` park at the tail — the face is paid from the park's
-                  -- marked domain when it is empty, and declines, named, when a `?` encloses.
-                  | Or.inr _ =>
-                    match h_kslot_mv with
-                    | Or.inl ⟨[], hdom, _⟩ =>
-                      Or.inr (PackAlt.ofRefused (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom))
-                    | Or.inl ⟨_ :: _, _, _⟩ => Or.inr trivial
-                    | Or.inr h => Or.inr h)
+                  -- Item 361/363: no `?` park at the tail — the face is paid off the block
+                  -- state when no slot is marked, and declines, named, when a `?` encloses.
+                  | Or.inr _ => (h_refused.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial)))
                  -- Item 295: the park's own FLAG, as at `pendingBlock`.
                  h_noflow_prep (Or.inl h_sk_mv) h_corr hcorr_prep h_preprocess (fun _ => (h_gateMV (noflow_of_fl0 h_fl0)).gate),
                -- …and under an open `?` the collection is the KEY half of the
@@ -14774,9 +14770,7 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
       rcases h_ur with ⟨j, sx, hj, h_ind, _h_ws2, h_end | h_tab⟩
       · -- Item 172: the deferred floor — the open step scans; nothing to spend.
         exact slot_ride
-          (match h_kslot_mv with
-            | Or.inl ⟨[], hdom, _⟩ => Or.inl (RegisterWitness.refused_of_markedCols_nil h_sound h_fl0 hdom)
-            | _ => Or.inr trivial)
+          h_refused
           (fun _ => (h_gateMV (noflow_of_fl0 h_fl0)).gate)
           (underRunEnd_landing_on_stack h_preprocess h_base h_floor_mv h_col02 hj h_ind h_end
             hcorr_prep (h_landed_ur (Nat.ne_of_gt h_col0_mv) h_noflow_prep))

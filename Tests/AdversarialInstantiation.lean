@@ -4663,7 +4663,11 @@ def testFlowOpenRegister (state : IO.Ref TestCollector) : IO Unit := do
     [("[a]: b", 1, 0), ("{a: 1}: c", 1, 0), ("- [a]: b", 1, 0), ("k: [a]", 1, 0), ("k:\n  - [a, b]", 1, 0),
      ("[a]", 1, 0), ("{}", 1, 0), ("---\n[a]: b", 1, 0), ("a: 1\n[1]: b", 1, 0),
      ("? [a]\n: b", 0, 1), ("? {a: 1}\n: b", 0, 1), ("?\n  [a]: b\n: c", 0, 1), ("? a\n: [b]", 1, 0),
-     ("- ? [a]\n  : b", 0, 1), ("[[a]]: b", 1, 0)]
+     ("- ? [a]\n  : b", 0, 1), ("[[a]]: b", 1, 0),
+     -- Item 363: the escape park's opens (`pendingFlow` after `-`/`?`/`:` with nothing between),
+     -- read on the block state the open faces are typed over.
+     ("- [a]", 1, 0), ("- {a: b}", 1, 0), ("k: {a: b}", 1, 0), ("? [a]", 0, 1), ("- ? [a]\n  : b", 0, 1),
+     ("? - [a]\n: b", 0, 1), ("k:\n- [a]\n- {b: c}", 2, 0), ("? a\n: - [b]", 1, 0)]
   for (input, expOpens, expMarked) in rows do
     let (opens, bad, marked, markedLive) := walkFlowOpenRegister input
     checkM state s!"flowOpen/{repr input}: unmarked block opens" (opens == expOpens)
