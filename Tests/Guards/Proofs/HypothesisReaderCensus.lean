@@ -604,6 +604,8 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- 2026-10-26 (item 367, `[82]`): `SSLComments_prepend_comment`, `directiveTail_prepend_SSLComments`, `scannedDirective_toSL` join StreamAccum: decls 1317 → 1320, READ +3, RELAY +6, FIELD +1.
 -- 2026-10-26 (item 369): READ 1313 → 1314 — `accum_block_on_pendingBlock` reads `h_closeF_old` (the `-` park's frames)
 -- at the `:`/`?` landing for `indicator_open_map`'s `h_res_land`.
+-- 2026-10-26 (item 370): constants 1681 → 1682, decls 1320 → 1321 (the sibling `-` arm's `match h_closeF_old` auxiliary),
+-- READ 1314 → 1317 — `h_closeF_old`, `h_node_old` and the cover read once more at the re-park.
 def expectedModuleTally : String :=
   -- 2026-10-26 (item 365): RELAY 2830 → 2836 — `h_sound` ×3, `h_fl0` ×2 and `h_alt` ×1 passed whole from
   -- `accum_step_content`/`accum_content_pending`/the `_indented` pair to the content lane's payers.
@@ -611,7 +613,7 @@ def expectedModuleTally : String :=
   -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
   -- 2026-10-26 (item 366): RELAY 2836 → 2838 — `h_sound` passed whole into the two new `Sound sc` binders.
-  "constants=1681 decls=1320 eta=441 FIELD=168 READ=1314 RELAY=2844 RETURN=54 \
+  "constants=1682 decls=1321 eta=441 FIELD=168 READ=1317 RELAY=2844 RETURN=54 \
 UNUSED=27"
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); the two transport helpers and `h_pk'` go (constants 1683 → 1681, decls 1322 → 1320, READ 1325 → 1323, RELAY 2838 → 2830); `Mono sc` stays on `accum_step_flow`.
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): the five deleted `match` auxiliaries: constants 1681 → 1676, decls 1320 → 1315, READ 1323 → 1306.

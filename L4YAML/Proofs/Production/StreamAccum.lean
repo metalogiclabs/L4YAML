@@ -29069,7 +29069,23 @@ lemma accum_block_on_pendingBlock
                 -- Item 318: the sibling `-` carries the park's alternative through `step_blockEntry`
                 -- (the block lane's transport; item 319 pays the other dash and colon arms this way).
                 | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
-             (Or.inr trivial)
+             -- Item 370: the sibling `-` carries the park's own frames (item 369's
+             -- `h_closeF_old`) with its entry consed onto the tail, exactly as
+             -- `h_close_entry` above; the cover rides the same two steps the
+             -- literal covers of the nested arms take.
+             (match h_closeF_old with
+              | Or.inl ⟨ks, h_lt, h_cov, closeF⟩ => Or.inl ⟨ks, h_lt,
+                  h_cov.imp (fun ⟨lo, h_floor, cov⟩ => ⟨lo, h_floor,
+                    IndentStackCover.scanBlockEntry_cover
+                      (dispatchBlockIndicators_dash_scan h_dispatch).1
+                      (dispatchBlockIndicators_dash_scan h_dispatch).2
+                      ((IndentStackCover.preprocess_cover h_preprocess cov).of_indents_eq
+                        (by split <;> rfl))⟩) id,
+                  fun sp_m h_bi sp_e h_tail =>
+                    closeF sp_mid h_node_old sp_e
+                      (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
+                        h_ind h_dash2 h_gnot2 h_bi h_tail)⟩
+              | Or.inr _ => Or.inr trivial)
                (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
                -- Item 190: the empty sibling carries the second frame too.
                (match h_kslotUp with
