@@ -4086,6 +4086,102 @@ lemma white_prepend_SSLComments {sp sp' sp_mid : SurfPos}
       simp at h2
       omega
 
+private lemma not_lineStop_cons {c : Char} {r : List Char} {col : Nat}
+    (hnb : isLineBreakBool c = false)
+    (hc : ({ chars := c :: r, col := col } : SurfPos).chars = [] ∨
+      ∃ ch r', ({ chars := c :: r, col := col } : SurfPos).chars = ch :: r' ∧
+        isLineBreakBool ch = true) : False := by
+  rcases hc with hc | ⟨ch, r', hc, hlb⟩
+  · simp at hc
+  · simp only at hc
+    obtain ⟨rfl, _⟩ := List.cons.inj hc
+    rw [hnb] at hlb; exact Bool.noConfusion hlb
+
+/-- A separated comment, handed back to `[79]`: whites, `# text`, then the
+    `s-l-comments` that stands at the text's break or EOF.  Only `s-b-comment`'s
+    `withSep` shape can open at `c`, since neither a white nor a `#` stands there. -/
+lemma SSLComments_prepend_comment {a b c d : SurfPos}
+    (h_ws : GPlus SSWhite a b) (h_cmt : SCNbCommentText b c)
+    (hc : c.chars = [] ∨ ∃ ch r, c.chars = ch :: r ∧ isLineBreakBool ch = true)
+    (hssl : SSLComments c d) : SSLComments a d := by
+  cases hssl
+  case withComment s₁ hsbc hlc =>
+    have hbc : SBComment c s₁ := by
+      cases hsbc
+      case withSep t₁ t₂ hsep hopt hbc =>
+        have ht₁ : t₁ = c := by
+          cases hsep
+          case whites hp =>
+            exfalso
+            cases hp
+            rename_i hw _
+            cases hw
+            · exact not_lineStop_cons (by decide) hc
+            · exact not_lineStop_cons (by decide) hc
+          case startOfLine => rfl
+        rw [ht₁] at hopt
+        have ht₂ : t₂ = c := by
+          cases hopt
+          case none => rfl
+          case some h =>
+            exfalso; cases h
+            exact not_lineStop_cons (by decide) hc
+        rw [ht₂] at hbc; exact hbc
+      case noSep hbc => exact hbc
+    exact .withComment a s₁ d (.withSep a b c s₁ (.whites a b h_ws) (.some b c h_cmt) hbc) hlc
+  case startOfLine chars hlc =>
+    exfalso
+    cases h_cmt
+    rename_i hg
+    have := gstar_gchar_col_le hg; simp at this
+
+/-- The swallowed tail of a `%YAML`/`%TAG` line, handed back to `[79]`: the
+    whites and the comment text the scanner consumed are the `s-b-comment` that
+    `s-l-comments` opens with.  An unseparated `#` never reaches here — the
+    scanner refused it (`DirectiveStop` carries the moved column). -/
+lemma directiveTail_prepend_SSLComments {a c d : SurfPos}
+    (h_tail : L4YAML.Proofs.StructureProduction.DirectiveTail a c)
+    (hc : c.chars = [] ∨ ∃ ch r, c.chars = ch :: r ∧ isLineBreakBool ch = true)
+    (hssl : SSLComments c d) : SSLComments a d := by
+  obtain ⟨b, h_ws, h_stop, h_sk⟩ := h_tail
+  obtain ⟨bc, bcol⟩ := b
+  rcases h_stop with hb | ⟨ch, r, hb, hlb⟩ | ⟨r, hb, hcol⟩
+  · simp only at hb; subst hb
+    cases h_sk
+    · exact white_prepend_SSLComments h_ws hssl
+    · rename_i hg _; cases hg
+  · simp only at hb; subst hb
+    cases h_sk
+    · exact white_prepend_SSLComments h_ws hssl
+    · rename_i hg hrest
+      cases hg
+      rename_i hp
+      exact absurd ((isLineBreak_iff ch).mp hlb) hp
+  · simp only at hb hcol; subst hb
+    have h_plus : GPlus SSWhite a ⟨'#' :: r, bcol⟩ :=
+      GStar_to_GPlus h_ws (fun heq => hcol (by rw [heq]))
+    cases h_sk
+    · exact absurd hc (fun hc => not_lineStop_cons (by decide) hc)
+    · rename_i hg hrest
+      cases hg
+      exact SSLComments_prepend_comment h_plus (SCNbCommentText.mk r bcol c hrest) hc hssl
+
+/-- `[82]` from the scanner's cut (item 367): attach the `s-l-comments` the next
+    step supplies at the directive's break or EOF. -/
+lemma scannedDirective_toSL {sp sp_dir sp_mid : SurfPos}
+    (h : L4YAML.Proofs.StructureProduction.ScannedDirective sp sp_dir)
+    (hstop : sp_dir.chars = [] ∨ ∃ ch r, sp_dir.chars = ch :: r ∧ isLineBreakBool ch = true)
+    (hssl : SSLComments sp_dir sp_mid) : SLDirective sp sp_mid := by
+  cases h
+  case yaml rest col s₁ s₂ s₃ s₄ hnot h_ws hd1 hdot hd2 h_tail =>
+    exact .yaml rest col s₁ s₂ s₃ s₄ sp_mid hnot h_ws hd1 hdot hd2
+      (directiveTail_prepend_SSLComments h_tail hstop hssl)
+  case tag rest col s₁ s₂ s₃ s₄ hnot h_ws h_hdl h_ws2 h_pfx h_tail =>
+    exact .tag rest col s₁ s₂ s₃ s₄ sp_mid hnot h_ws h_hdl h_ws2 h_pfx
+      (directiveTail_prepend_SSLComments h_tail hstop hssl)
+  case reserved rest col s₀ hg hnot hY hT hsk =>
+    exact .reserved rest col s₀ sp_dir sp_mid hg hnot hY hT hsk hssl
+
 /-- Extend `SLYamlStream` with `SSLComments`.
 
     `SSLComments` → `GStar SLComment` → `SLDocumentPrefix.comments`
@@ -10280,7 +10376,7 @@ lemma structural_dispatch_to_pending
                   have hcol : sp.col = 0 := by rw [hcorr.col_eq]; exact beq_iff_eq.mp h_dir.2
                   have hpeek_pct : s_prep.peek? = some '%' := by
                     rw [show c = '%' from beq_iff_eq.mp h_dir.1] at hpeek; exact hpeek
-                  obtain ⟨rest, sp_dir, hchars, hgstar, hcorr_dir, h_at_break⟩ :=
+                  obtain ⟨sp_dir, h_scanned, hcorr_dir, h_at_break⟩ :=
                     scanDirective_prod s_prep sp hcorr hpeek_pct s_dir h_dir_ok
                   refine ⟨sp_dir, true, hcol,
                     PendingNode.pendingDirective (h_next := fun _ => scanDirective_next h_dir_ok) sp_start sp sp_dir
@@ -10290,10 +10386,8 @@ lemma structural_dispatch_to_pending
                         (ScannerAllowDirectives.scanDirective_allowDirectives h_dir_ok)),
                     fun _ => scanDirective_directivesPresent h_dir_ok,
                     hcorr_dir⟩
-                  obtain ⟨sp_chars, sp_col⟩ := sp
-                  subst hchars
                   exact GPlus.mk _ sp_mid sp_mid
-                    (SLDirective.mk rest sp_col sp_dir sp_mid hgstar hssl) (GStar.nil _)
+                    (scannedDirective_toSL h_scanned h_at_break hssl) (GStar.nil _)
               · rw [ite_eq_right h_dir] at h_dispatch
                 simp at h_dispatch
     -- Proof of doc_end_tac
@@ -10474,7 +10568,7 @@ lemma structural_dispatch_after_directives
                   simp at h_dispatch
       -- dir_tac: extend the directive run
       intro s_dir h_dir_ok h_eq hpeek_pct; subst h_eq
-      obtain ⟨rest, sp_dir, hchars, hgstar, hcorr_dir, _⟩ :=
+      obtain ⟨sp_dir, h_scanned, hcorr_dir, h_at_break⟩ :=
         scanDirective_prod s_prep sp_prep hcorr hpeek_pct _ h_dir_ok
       refine ⟨sp_dir, true,
         PendingNode.pendingDirective (h_next := fun _ => scanDirective_next h_dir_ok) sp_start sp_block sp_dir
@@ -10482,9 +10576,7 @@ lemma structural_dispatch_after_directives
           h_stream h_dir_route,
         fun _ => scanDirective_directivesPresent h_dir_ok,
         hcorr_dir⟩
-      obtain ⟨sp_chars, sp_col⟩ := sp_prep
-      subst hchars
-      exact SLDirective.mk rest sp_col sp_dir sp_mid hgstar hssl
+      exact scannedDirective_toSL h_scanned h_at_break hssl
     -- doc_end_tac: vacuous under Fix B (scanDocumentEnd errors on pending directives)
     intro s_de hde _
     exact absurd h_dp (by simp [scanDocumentEnd_ok_directivesPresent hde])

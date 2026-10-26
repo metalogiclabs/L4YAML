@@ -287,13 +287,16 @@ L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND"]
 
 /-- **How far a `GLit` is below the stream's own alphabet.**  A stream's right
     endpoint moves by `SLDocumentPrefix`, `SLAnyDocument` or `SLDocumentSuffix`;
-    only the middle one can contain the combinator, and it is four productions
-    up.  The two `UNREACHABLE` readings are about `GLit` and not about
+    only the middle one can contain the combinator, and it is three productions
+    up (item 367; four before `SLDirective.yaml`'s `GLit '.'`).  The two `UNREACHABLE` readings are about `GLit` and not about
     characters: `SCDocumentEnd.mk` matches `'.' :: '.' :: '.' :: rest` in its
     own constructor pattern. -/
+-- 2026-10-26 (item 367, `[82]`): `SLDirective.yaml` matches `[86] ns-yaml-version`'s `.` with
+-- `GLit '.'`, so the nearest `GLit` below the stream is now three productions up, through the
+-- directive document; the block-sequence chain (depth 4) still stands behind it.
 def expectedAlphabet : List String :=
-  ["L4YAML.Surface.SLAnyDocument -> GLit depth=4 \
-chain=SLAnyDocument > SLBareDocument > SBlockNode > SBlockSeqEntries > GLit",
+  ["L4YAML.Surface.SLAnyDocument -> GLit depth=3 \
+chain=SLAnyDocument > SLDirectiveDocument > SLDirective > GLit",
    "L4YAML.Surface.SLDocumentPrefix -> GLit UNREACHABLE",
    "L4YAML.Surface.SLDocumentSuffix -> GLit UNREACHABLE"]
 
@@ -381,9 +384,10 @@ def expectedEndsLit : List String :=
 -- 2026-10-25 (#99 review): prods 164 → 163 — the dead `FlowLead` duplicate of `leadFree` is deleted.
 -- 2026-10-25 (slice 2, `TraceOf/UniqueFlow.lean`): prods 163 → 165, ctors 306 → 308 — the proof-layer relations
 -- `PStep` (2 arms) and `Follow` (a def); neither ends at a literal the park reads.
+-- 2026-10-26 (item 367, `[82]`): `SLDirective` 1 → 3 arms and the four scanner-cut relations in StructureProduction (`DigitRun`, `DirectiveStop`, `DirectiveTail`, `ScannedDirective`): prods 165 → 169, ctors 308 → 313; the `GLit` depth below the stream 4 → 3 (`SLDirective.yaml`'s `GLit '.'`).
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=165 ctors=308 \
+depth=3 prods=169 ctors=313 \
 endsLit=39 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 

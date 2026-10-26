@@ -112,7 +112,8 @@ partial def peelsTo (a b : Expr) : Nat → Bool
 
 -- 2026-10-23 ([162]): +2 types / +5 connected arms — `SCIndentationIndicator` and `SCChompingIndicator`.
 -- 2026-10-24 ([148]/[149] JSON-key adjacent value): `types` 79 → 81, `arms` 172 → 180, `connected` 171 → 179 — the 8 new arms are suffix-connected.
-def expectedChain : String := "types=81 arms=182 connected=181 broken=1 paramOnly=7"
+-- 2026-10-26 (item 367, `[82]`): `SLDirective` 1 → 3 arms; all three connected (the `reserved` name is a `GStar (GChar isNsChar)` run, not a list variable): arms 182 → 184, connected 181 → 183.
+def expectedChain : String := "types=81 arms=184 connected=183 broken=1 paramOnly=7"
 
 /-- The one arm of the surface grammar that connects nothing to nothing. -/
 def expectedBroken : List String := ["L4YAML.Surface.SLYamlStream.scannerDrop"]
@@ -280,7 +281,8 @@ example : SCommentChar ⟨['a'], 0⟩ ⟨[], 1⟩ := GChar.mk 'a' [] 0 ct_a
 example : SENode ⟨['a'], 0⟩ ⟨['a'], 0⟩ := GEps.mk _
 
 example : SLDirective ⟨['%'], 0⟩ ⟨[], 1⟩ :=
-  SLDirective.mk [] 0 ⟨[], 1⟩ ⟨[], 1⟩ (GStar.nil _) (comments_eof 1)
+  SLDirective.reserved [] 0 ⟨[], 1⟩ ⟨[], 1⟩ ⟨[], 1⟩ (GStar.nil _) (fun _ h => by cases h)
+    (by decide) (by decide) (GStar.nil _) (comments_eof 1)
 example : SSNbFoldedText 0 ⟨['a'], 0⟩ ⟨[], 1⟩ :=
   SSNbFoldedText.mk 0 _ ⟨['a'], 0⟩ _ (SIndent.zero _)
     (GPlus.mk _ ⟨[], 1⟩ _ (GChar.mk 'a' [] 0 ns_a) (GStar.nil _))
@@ -310,7 +312,11 @@ example : SLAnyDocument ⟨['a'], 0⟩ ⟨['a'], 0⟩ :=
 example : SLDirectiveDocument ⟨['%', '\n', '-', '-', '-'], 0⟩ ⟨[], 3⟩ :=
   SLDirectiveDocument.mk _ ⟨['-', '-', '-'], 0⟩ _
     (GPlus.mk _ ⟨['-', '-', '-'], 0⟩ _
-      (SLDirective.mk _ 0 ⟨['\n', '-', '-', '-'], 1⟩ ⟨['-', '-', '-'], 0⟩ (GStar.nil _)
+      (SLDirective.reserved ['\n', '-', '-', '-'] 0 ⟨['\n', '-', '-', '-'], 1⟩
+        ⟨['\n', '-', '-', '-'], 1⟩ ⟨['-', '-', '-'], 0⟩ (GStar.nil _)
+        (fun _ h => by cases h with
+          | mk _ _ _ hp => exact hp.1 ((isLineBreak_iff '\n').mp rfl))
+        (by decide) (by decide) (GStar.nil _)
         (SSLComments.withComment _ ⟨['-', '-', '-'], 0⟩ _
           (SSBComment.noSep _ _ (SBComment.break _ _ (SBBreak.lf _ 1))) (GStar.nil _)))
       (GStar.nil _))
