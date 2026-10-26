@@ -4549,7 +4549,7 @@ def expectedPackFlip : String :=
   -- 2026-10-25 (item 362): leaf 51 → 55, uncond 40 → 36 (sites/decline unchanged): the four flow CLOSE faces
   -- (`accum_step_flow`'s `h_vpack`/`h_framesV` after `]`/`}`) pay `PackAlt.ofRefused` under `h_markedF.elim`
   -- from the carried marked domain; `ELIM_LEAF` widened to a bridge application.
-  "sites=93 decls=20 rounds=2 decline=91 relay=0 leaf=55 uncond=36 stubs=8"
+  "sites=93 decls=20 rounds=2 decline=91 relay=0 leaf=56 uncond=35 stubs=8"
 
 /-- **The RESIDUE** (item 312): the same census with `PackAlt sc := ExplicitValueRefused sc` — the
     predicate the family will carry — in place of `False`.  A bare `trivial` still fails (an unpaid
@@ -4605,7 +4605,7 @@ def expectedPackResidue : String :=
   -- `compact_open_map` K7 faces stay declined — their payer `scanValue_refused_of_outer` is proved, its five-conjunct
   -- carrier is not threaded (item 360).
   -- 2026-10-25 (item 362): leaf 41 → 45, uncond 29 → 25 — the same four CLOSE faces, read as `nested-?` declines.
-  "sites=74 decls=18 rounds=2 decline=70 relayTrue=0 relayState=4 leaf=45 uncond=25 stubs=1 promised=6"
+  "sites=74 decls=18 rounds=2 decline=70 relayTrue=0 relayState=4 leaf=46 uncond=24 stubs=1 promised=6"
 
 /-! **The 32 roots (29 since item 307), by what the register does there** — a READING of each site
 (the compiler prices it when the construction is attempted, §1):

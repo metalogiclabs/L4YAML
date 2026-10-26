@@ -918,8 +918,8 @@ def hopName (env : Environment) (e : Edge) : String :=
 -- 2026-10-24 (B3 [66] col-0 threading): edges 674 → 657 (DECLINE 260 → 251, SPLIT 174 → 166, PAY 50 → 55, RELAY 68 → 64,
 -- FIELD 58 → 57) — the content parks read the run + gate fields instead of splitting a landing disjunction.
 def expectedTally : String :=
-  "edges=664 skipped=38 [DECLINE=259, FIELD=55, LOCAL=27, PAY=52, RELAY=65, \
-SPLIT=160, VIA=46]"
+  "edges=664 skipped=38 [DECLINE=258, FIELD=55, LOCAL=27, PAY=52, RELAY=65, \
+SPLIT=160, VIA=47]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
     eight of these print `h_keyctx` when the premise is narrowed; six of them
@@ -959,7 +959,7 @@ def expectedSeed : List String :=
 -- (`flowVPack_of_close resume.vslot`, `FlowBaseRoutes.vslot`) and one `explFrameValueLine` pipe now
 -- decline (`Or.inr trivial`), three `frameChainUnion`s became the domained `frameChainUnionD`.
 def expectedProducers : List String :=
-  ["14 VIA Or.elim",
+  ["15 VIA Or.elim",
    "2 VIA FlowBaseRoutes.key",
    "2 VIA markerctx_of_landing",
    "2 VIA nodocctx_of_preprocess",
@@ -1067,13 +1067,14 @@ Or.imp⇒SPLIT=4, dite⇒SPLIT=5]"
 -- 2026-10-23 (item 344): survived 166 → 170, leaves 359 → 367, DECLINE|PAY 153 → 157 — the four relayed
 -- block-park sites split on the park's `∨ PackAlt` field.
 -- 2026-10-23 (item 345): survived 170 → 174, leaves 367 → 375, DECLINE|PAY 157 → 161 — the same four splits.
+-- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; the three `match h_kslot_* with` blocks and the two direct matches go): tally DECLINE 259 → 258 / VIA 46 → 47, `14 → 15 VIA Or.elim`, SPLIT landing collapsed 15 → 14 / elsewhere 4 → 5, SPLIT BRANCH, SITE-DECIDED `accum_flow_open_depth0.match_1_24 → match_1_22`, COLLAPSED edge.
 def expectedSplitLanding : String :=
-  "survived=160 collapsed=15 leaves=353 elsewhere=4 [DECLINE=177, PAY=172, \
-VIA=4] [DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
+  "survived=160 collapsed=14 leaves=353 elsewhere=5 [DECLINE=176, PAY=172, \
+VIA=5] [DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
 DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
 DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=2, \
-DECLINE|DECLINE|PAY|PAY=1, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=147, \
-DECLINE|PAY|PAY=1, PAY|VIA=1]"
+DECLINE|DECLINE|PAY|PAY=1, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=146, \
+DECLINE|PAY|PAY=1, PAY|VIA=2]"
 
 /-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
     WRITES — both answers, one per arm.  What it could not say was which arm the
@@ -1160,7 +1161,10 @@ DECLINE|PAY|PAY=1, PAY|VIA=1]"
 -- PAY-free 177 → 181 — the four block-park relays.
 -- 2026-10-23 (item 345): splits 170 → 174, leaves 367 → 375, relayRooted 160 → 164, optionalRoot 107 → 108, plainRoot 53 → 56, agree 111/111 → 112/112, DECLINE-free 104 → 108, PAY-free 181 → 185 — the same four splits.
 def expectedSplitBranch : String :=
-  "splits=160 leaves=353 relayRooted=151 siteDecided=9 optionalRoot=103 plainRoot=48 agree=105/105 disagree=0 [DECLINE-closed=83, DECLINE-free=94, PAY-free=172, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA absurd-=3]"
+  "splits=160 leaves=353 relayRooted=151 siteDecided=9 optionalRoot=103 \
+plainRoot=48 agree=105/105 disagree=0 [DECLINE-closed=83, DECLINE-free=93, \
+PAY-free=172, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA \
+Or.elim-=1, VIA absurd-=3]"
 
 /-- **The ten splits the site decides for itself**, which is the whole residue
     of the branch question after `expectedSplitBranch`.  Four are a `dite` on a
@@ -1180,7 +1184,7 @@ def expectedSiteDecided : List String :=
    "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|DECLINE|PAY|PAY|PAY",
    "1 accum_block_on_pendingBlockContent :: dite on VIA Eq ⇒ DECLINE|PAY",
    "1 accum_content_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|DECLINE|DECLINE|PAY",
-   "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_24 on SPLIT Or.casesOn on VIA preprocess_some_savedKey_shape ⇒ PAY|VIA",
+   "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_22 on SPLIT Or.casesOn on VIA preprocess_some_savedKey_shape ⇒ PAY|VIA",
    "2 accum_block_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|PAY"]
 
 /-- **The premises the branch is taken on**, by binder NAME, for the 99 splits
@@ -1411,7 +1415,43 @@ def expectedDeclineWriters : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 def expectedCollapsedEdge : String :=
-  "accum_flow_open_depth0 → flowKeyRoute_of_root#26 (h_mapFV) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_flow_open_depth0.match_1_22; accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; accum_block_pending → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_21; accum_block_pending → frameChainUnion#3 (h₂) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_23; accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; explFrameValueLine → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.explFrameValueLine.match_1_1; accum_content_on_pendingBlock_indented → PendingNode.pendingProps#21 (h_kslot) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented.match_1_2; colon_open_map → PendingNode.pendingMapValue#15 (h_kslot) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.colon_open_map.match_1_5; accum_block_on_closeThenBlock → PendingNode.pendingBlock#11 (h_closeF) = PAY via Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→dite; accum_block_on_closeThenBlock → PendingNode.pendingBlock#14 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock.match_1_27→dite; accum_block_on_closeThenBlock → PendingNode.pendingBlock#14 (h_kslotUp) = DECLINE via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock.match_1_3"
+  "accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; \
+accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; \
+accum_content_pending → PendingNode.pendingBlockContent#17 (h_kslotUp) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_pending.match_1_55; \
+accum_block_pending → frameChainUnion#2 (h₁) = PAY via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_21; \
+accum_block_pending → frameChainUnion#3 (h₂) = PAY via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_23; \
+accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; \
+accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; \
+accum_content_on_pendingMapValue_indented → frameChainUnionD#3 (h₁) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented.match_1_1; \
+explFrameValueLine → frameChainUnion#2 (h₁) = PAY via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.explFrameValueLine.match_1_1; \
+accum_content_on_pendingBlock_indented → PendingNode.pendingProps#21 \
+(h_kslot) = DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented.match_1_2; \
+colon_open_map → PendingNode.pendingMapValue#15 (h_kslot) = DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.colon_open_map.match_1_5; \
+accum_block_on_closeThenBlock → PendingNode.pendingBlock#11 (h_closeF) = PAY \
+via Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→dite; \
+accum_block_on_closeThenBlock → PendingNode.pendingBlock#14 (h_kslotUp) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock.match_1_27→dite; \
+accum_block_on_closeThenBlock → PendingNode.pendingBlock#14 (h_kslotUp) = \
+DECLINE via \
+_private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock.match_1_3"
 
 /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
     enumerated five optional contexts of `content_dispatch_routed` by hand;
