@@ -4783,6 +4783,112 @@ def testK1Lanes (state : IO.Ref TestCollector) : IO Unit := do
       (freshMiss == f) s!"got {freshMiss} expected {f}"
 
 
+open L4YAML.Proofs.IndentStackCover in
+/-- Priority 33 (item 364; #123 review): INSTANTIATE the K1-fresh cover on
+    `pendingBlock.h_closeFV`/`pendingBlockContent.h_closeFV` with the PARK's own witnesses,
+    not a frame list rebuilt at each step.  A park is born at every non-flow `-` dispatch
+    (first entry or sibling, under a sequence OR a mapping top): `n` := the `-`'s column (the
+    sequence width the field bounds `ks` by, `fr.width < n`), `ks` := the mapping levels of
+    the birth state strictly left of `n`, `lo := 0` — the shape the producers transport —
+    plus the compact arm's literal lane `lo := n + 1`, `ks := []` (`covered_nil_of_top_le`)
+    when `currentIndent ≤ n`.  The park stays open while the stack holds its sequence level.
+    A park whose cover fails at birth (`k:⏎- a`: `n = 0`, no frame left of the entry) is
+    `unborn` — the producers decline it.  At every later non-flow `-`/content/`:`/`?` step the
+    carried `Covered lo ks` is read on the POST-step state, a `:`/`?` adding the frame it
+    opens to `ks` for good (`scanValue_cover_key` / the `?`'s `[187]` level, then the key-line
+    park's `h_closeF`):
+    `miss` — a mapping level at or right of `lo` the park's `ks` does not name (a refutation
+    of the transports; pinned 0); `framed` — park-steps where a frame of `ks` is still a
+    mapping level on the stack, and `erasedFail` — those where `Covered` fails once that frame
+    is erased (the premise is load-bearing; must equal `framed`); `consed` — steps that push a sequence level under an
+    open park (the K1-seq decline's population); `steps` — the dispatches read. -/
+def walkCloseFVCover (input : String) : Nat × Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut steps := 0
+  let mut miss := 0
+  let mut framed := 0
+  let mut erasedFail := 0
+  let mut consed := 0
+  let mut unborn := 0
+  -- open parks: `(lo, n, ks)`
+  let mut parks : List (Nat × Nat × List FrameLevel) := []
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if !sp.inFlow && c != '#' && s'.tokens.size > s.tokens.size then
+          steps := steps + 1
+          let covered (lo : Nat) (ks : List FrameLevel) : Bool :=
+            s'.indents.toList.all fun e =>
+              e.isSequence || e.column < (lo : Int) || ks.contains (FrameLevel.map e.column.toNat)
+          let newMapTop : List FrameLevel := match s'.indents.back? with
+            | some top =>
+              if !top.isSequence && s'.indents.size > sp.indents.size && (0 : Int) ≤ top.column
+              then [FrameLevel.map top.column.toNat] else []
+            | none => []
+          let mut parks' : List (Nat × Nat × List FrameLevel) := []
+          for (lo, n, ks) in parks do
+            let ks' := if c == ':' || c == '?' then newMapTop ++ ks else ks
+            if !covered lo ks' then miss := miss + 1
+            -- a frame of `ks'` the post-step stack still holds at or right of `lo`
+            let live := ks'.find? fun k => s'.indents.toList.any fun e =>
+              !e.isSequence && (lo : Int) ≤ e.column && e.column == (k.width : Int)
+            match live with
+            | some k =>
+              framed := framed + 1
+              if !covered lo (ks'.erase k) then erasedFail := erasedFail + 1
+            | none => pure ()
+            parks' := (lo, n, ks') :: parks'
+          parks := parks'.reverse
+          if !parks.isEmpty && s'.indents.size > sp.indents.size then
+            match s'.indents.back? with
+            | some top => if top.isSequence then consed := consed + 1
+            | none => pure ()
+          -- parks whose sequence level the step popped are closed
+          parks := parks.filter fun (_, n, _) =>
+            s'.indents.toList.any fun e => e.isSequence && e.column == (n : Int)
+          if c == '-' then
+            let n := sp.col
+            let ks : List FrameLevel := sp.indents.toList.filterMap fun e =>
+              if !e.isSequence && (0 : Int) ≤ e.column && e.column < (n : Int)
+              then some (FrameLevel.map e.column.toNat) else none
+            let bornCovered (lo : Nat) (ks : List FrameLevel) : Bool :=
+              sp.indents.toList.all fun e =>
+                e.isSequence || e.column < (lo : Int) || ks.contains (FrameLevel.map e.column.toNat)
+            if bornCovered 0 ks then parks := (0, n, ks) :: parks else unborn := unborn + 1
+            if sp.currentIndent ≤ (n : Int) then
+              if bornCovered (n + 1) [] then parks := (n + 1, n, []) :: parks else unborn := unborn + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (steps, miss, framed, erasedFail, consed, unborn)
+
+def testCloseFVCover (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 33: the K1-fresh cover rides pendingBlock/pendingBlockContent.h_closeFV (item 364)"
+  -- `(input, (steps, framed, consed, unborn))`, pinned from the run (22 inputs, 139 steps, 70 framed park-steps); `miss` must be 0 and
+  -- `erasedFail = framed` everywhere.  `unborn` = parks whose cover fails at birth (a `-` at a
+  -- mapping key's own column: `k:⏎- a` — `n = 0` leaves no frame left of the entry).
+  let walks : List (String × (Nat × Nat × Nat × Nat)) :=
+    [("- a", (2, 0, 0, 0)), ("- a\n- b", (4, 0, 0, 0)), ("k:\n- a\n- b", (6, 0, 0, 2)), ("k:\n  - a\n  - b", (6, 4, 0, 0)),
+     ("k:\n  - a\nm: 2", (7, 2, 0, 0)), ("- - a\n  - b\n- c", (7, 0, 1, 0)), ("? - a\n: - b", (6, 3, 0, 0)),
+     ("?\n  - a\n  - b\n: c", (7, 6, 0, 0)), ("- a: 1\n  b: 2", (7, 10, 0, 0)), ("k:\n  - a: 1\n    b: 2\n  - c", (11, 14, 0, 0)),
+     ("a:\n  b:\n    - c\n    - d\n  e: f", (11, 6, 0, 0)), ("- &x a\n- *x", (5, 0, 0, 0)), ("- \"a\"\n- 'b'", (4, 0, 0, 0)),
+     ("- !!str a\n- [b]", (5, 0, 0, 0)), ("-\n- b", (3, 0, 0, 0)), ("- - - a", (4, 0, 2, 0)), ("k:\n- ? a\n  : b", (7, 1, 0, 1)),
+     ("? a\n: - b\n  - c", (7, 4, 0, 0)), ("- a # c\n- b", (4, 0, 0, 0)), ("k: |\n  x\n- a", (3, 0, 0, 0)),
+     ("- a\n-\n  k: v\n  m: w", (9, 20, 0, 0)), ("a:\n- b\n- c: d\n  e: f\nz: y", (14, 0, 0, 2))]
+  for (input, (eS, eF, eC, eU)) in walks do
+    let (st, miss, framed, erasedFail, consed, unborn) := walkCloseFVCover input
+    checkM state s!"closeFVCover/{repr input}: every open park's cover survives the `-`/content/`:`/`?` step" (miss == 0)
+      s!"{miss} park-step(s) saw a mapping level at or right of lo the park's ks does not name"
+    checkM state s!"closeFVCover/{repr input}: the carried frame list is load-bearing" (erasedFail == framed)
+      s!"erasing the head frame failed Covered {erasedFail} of {framed} framed park-steps"
+    checkM state s!"closeFVCover/{repr input}: (steps, framed, consed, unborn)"
+      (st == eS && framed == eF && consed == eC && unborn == eU)
+      s!"got ({st}, {framed}, {consed}, {unborn}) expected ({eS}, {eF}, {eC}, {eU})"
+
 def testTraceOfLeafEvents (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 32: TraceOf leaf trace functions on the slice-2 spans (EVENTSOF §10)"
   -- The only decidable part of `tFlowNode_unique`'s Rule-2 ledger: each leaf trace is a
@@ -4926,6 +5032,7 @@ def collectTests : IO VerifiedSuiteResult := do
 
   testQuestionMarkColumn state
   testK1Lanes state
+  testCloseFVCover state
   testFlowOpenRegister state
   testFlowCloseRegister state
   testExplicitColonRegister state

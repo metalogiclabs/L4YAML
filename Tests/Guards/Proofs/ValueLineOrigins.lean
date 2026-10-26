@@ -1151,7 +1151,7 @@ def expectedLine : String :=
   -- lapps 806 → 807, liteNodes 607398 → 607407 — that one application and its term.
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); lets 640 → 637, lapps 813 → 810, alts 5345 → 5154, nodes 13720 → 13689 (walked-term totals; the faces' punt/stamp rows unchanged).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): follows=355 → 354, lets=637 → 638, alts=5154 → 5153, nodes=13689 → 13691, liteNodes=616435 → 616369
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=354 lets=638 lapps=810 alts=5153 nodes=13691 liteNodes=616369"
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=354 lets=638 lapps=813 alts=5189 nodes=13691 liteNodes=621021"
 
 /-! ## §4 The reading -/
 

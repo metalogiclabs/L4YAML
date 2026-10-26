@@ -286,7 +286,7 @@ def isSurfFace (env : Environment) (lhs : Expr) : MetaM Bool := do
 -- 302's stack (`ResumeFrames` 12 → 3, `KeyFrames` 9 in the head census below).
 -- 2026-10-24 (item 350): binders 163 → 159, faces 61 → 59, heads 19 → 18 — `h_expl`/`h_explUp`
 -- stopped being optional faces (their alternative is `NotQuestionPark sc`, paid by the `:` producers).
-def expectedFaceTally : String := "binders=165 faces=63 heads=20"
+def expectedFaceTally : String := "binders=165 faces=62 heads=20"
 
 /-- The conclusion head of every left disjunct.  `FVAR 2` is `frameChainUnion`,
     whose face is schematic in `P` — the two rows no census of any kind can

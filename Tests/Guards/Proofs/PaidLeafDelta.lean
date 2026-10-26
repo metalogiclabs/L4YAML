@@ -226,12 +226,15 @@ def expectedPayments : List String :=
 -- relays into `closeThenBlock.h_mapFV` read as `Floor lo n ks` literals.
 def expectedFloorLits : List String :=
   ["accum_block_on_closeThenBlock lo=lo idx=k ks=map(…) :: ksv var ×1",
-   "accum_block_on_closeThenBlock lo=nv + 1 idx=nv + 1 + m ks=[] lit ×1",
+   "accum_block_on_closeThenBlock lo=nv + 1 idx=nv + 1 + m ks=[] lit ×2",
    "accum_block_on_noPending lo=0 idx=k ks=[] lit ×1",
    "accum_block_on_pendingBlock lo=n + 1 idx=k ks=[] lit ×1",
    "accum_block_on_pendingBlock lo=n + 1 idx=n + 1 + m ks=[] lit ×1",
-   "accum_block_on_pendingBlockContent lo=lo idx=k ks=ks var ×1",
-   "accum_content_on_pendingBlock_indented lo=lo idx=n ks=ks var ×5",
+   "accum_block_on_pendingBlock lo=lo idx=k ks=ks var ×1",
+   -- Item 364: the K1-fresh cover's transports on the `h_closeFV` twins (var) and the
+   -- compact-fill pay (lit ×2).
+   "accum_block_on_pendingBlockContent lo=lo idx=k ks=ks var ×2",
+   "accum_content_on_pendingBlock_indented lo=lo idx=n ks=ks var ×8",
    "accum_content_on_pendingMapValue_indented lo=lo idx=n + 1 ks=ks var ×5",
    "accum_content_on_pendingMapValue_indented lo=lo idx=n ks=ks var ×1",
    "accum_content_on_pendingMapValue_indented lo=lo idx=n ks=map(…) :: ks var ×4",
@@ -351,7 +354,7 @@ def expectedLine : String :=
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); nodes 117690 → 117529, floorNodes 28226 → 28222 (walked-term totals).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`); the three `match h_kslot_* with` blocks go — nodes 117529 → 117431 (walked-term total; floorNodes read from the build).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): floorNodes 28222 → 28223.
-  "rows=185 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/6/15/2/2 allContent=18/6/16/2/2 baseEntry=16/6/15/2/2 allEntry=18/6/16/2/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=+1 puntEntry=+1 coverPuntContent=+0 coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=90 own=12 lit=5 var=73 ownLemmas=2 scanned=34 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=117431 floorNodes=28223"
+  "rows=198 payments=1 literal=0 relay=1 scenarios=2 baseContent=16/6/15/2/2 allContent=18/6/16/2/2 baseEntry=16/6/15/2/2 allEntry=18/6/16/2/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=+1 puntEntry=+1 coverPuntContent=+0 coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=96 own=12 lit=6 var=78 ownLemmas=2 scanned=34 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=117848 floorNodes=29557"
 
 /-! ## §4 The reading -/
 
