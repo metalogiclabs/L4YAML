@@ -5172,10 +5172,12 @@ def directiveLoopMirror (cls : Char → Bool) (dot : Bool) (chars : List Char) (
     disagree with the mirror, or a budgeted run is not maximal); `withdrawn` = the hypothesis does
     not hold at this fuel (the loop still equals the fuel-cut mirror); `short` = a withdrawn row on
     which maximality FAILS — the lane that shows the fuel hypothesis is load-bearing. -/
-def walkDirectiveLoop (which : String) (input : String) (fuel : Nat) : Nat × Nat × Nat × Nat :=
+def walkDirectiveLoop (which : String) (input : String) (start fuel : Nat) : Nat × Nat × Nat × Nat :=
   Id.run do
-  let s := ScannerState.mk' input
-  let chars := input.toList
+  -- `start` characters consumed first: the lemmas quantify over ANY `sc`, and `hfuel` counts the
+  -- bytes REMAINING from `sc.offset`, so mid-input starts are their own rows
+  let s := (ScannerState.mk' input).advanceN start
+  let chars := input.toList.drop start
   let budget := s.inputEnd - s.offset
   let (cls, dot, out) : (Char → Bool) × Bool × (String × ScannerState) :=
     match which with
@@ -5186,7 +5188,7 @@ def walkDirectiveLoop (which : String) (input : String) (fuel : Nat) : Nat × Na
     | _        => (DirectiveMirror.uriB, false, collectTagPrefixLoop s "" fuel)
   let (run, s') := out
   let (mRun, mOff) := directiveLoopMirror cls dot chars fuel
-  let agree := run == mRun && s'.offset == mOff
+  let agree := run == mRun && s'.offset - s.offset == mOff
   let maxLen := (chars.takeWhile cls).length
   -- the stop character, read off the scanner state: outside the class or EOF (the major loop
   -- past its `.` has already left the digit run; that row's maximality is `run.length == maxLen`)
@@ -5232,22 +5234,28 @@ def testDirectiveLoops (state : IO.Ref TestCollector) : IO Unit := do
   let mut short := 0
   for which in ["name", "major", "minor", "handle", "prefix"] do
     for input in inputs do
-      let full := input.utf8ByteSize
-      for fuel in [0, 1, 2, full, full + 1] do
+      let n := input.length
+      -- first / second / third / middle / last character as the start (deduplicated)
+      let starts := [0, 1, 2, n / 2, n - 1].filter (· ≤ n) |>.eraseDups
+      for start in starts do
+       let full := (String.ofList (input.toList.drop start)).utf8ByteSize
+       for fuel in [0, 1, 2, full, full + 1] do
         rows := rows + 1
-        let (b, bad, w, sh) := walkDirectiveLoop which input fuel
-        checkM state s!"loop/{which}/{repr input}/fuel {fuel}: loop = fuel-cut mirror; budgeted ⇒ maximal run, stop outside the class"
+        let (b, bad, w, sh) := walkDirectiveLoop which input start fuel
+        checkM state s!"loop/{which}/{repr input}/start {start}/fuel {fuel}: loop = fuel-cut mirror; budgeted ⇒ maximal run, stop outside the class"
           (bad == 0) "refuted"
         budgeted := budgeted + b
         withdrawn := withdrawn + w
         short := short + sh
-  -- pinned off the first run (5 loops × 28 inputs × 5 fuels); no `bad` row on the first run
-  checkM state "loop rows" (rows == 700) s!"got {rows}"
-  checkM state "loop budgeted rows (hypothesis holds; GStar + GNot + corr read)" (budgeted == 395)
+  -- pinned off the first run (5 loops × 28 inputs × ≤ 5 starts × 5 fuels); no `bad` row on the
+  -- first run.  The `start ≥ 1` rows are the mid-input states the lemmas quantify over: `hfuel`
+  -- counts the bytes REMAINING from `sc.offset`, so a full-input fuel at offset 0 never visits them
+  checkM state "loop rows" (rows == 2125) s!"got {rows}"
+  checkM state "loop budgeted rows (hypothesis holds; GStar + GNot + corr read)" (budgeted == 1400)
     s!"got {budgeted}"
-  checkM state "loop withdrawn rows (fuel below the budget)" (withdrawn == 305) s!"got {withdrawn}"
+  checkM state "loop withdrawn rows (fuel below the budget)" (withdrawn == 725) s!"got {withdrawn}"
   checkM state "loop short rows (withdrawn fuel breaks maximality — hypothesis load-bearing)"
-    (short == 150) s!"got {short}"
+    (short == 344) s!"got {short}"
   -- partition: the scanner's token fields against the constructor's spine.  `none` = refused.
   let partRows : List (String × Option (String × String)) :=
     [ ("%TAG !e!x", some ("!e!x", "")), ("%TAG !e! x", some ("!e!", "x")),
