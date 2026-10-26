@@ -4176,8 +4176,8 @@ lemma scannedDirective_toSL {sp sp_dir sp_mid : SurfPos}
   case yaml rest col s₁ s₂ s₃ s₄ hnot h_ws hd1 hdot hd2 h_tail =>
     exact .yaml rest col s₁ s₂ s₃ s₄ sp_mid hnot h_ws hd1 hdot hd2
       (directiveTail_prepend_SSLComments h_tail hstop hssl)
-  case tag rest col s₁ s₂ s₃ s₄ hnot h_ws h_hdl h_ws2 h_pfx h_tail =>
-    exact .tag rest col s₁ s₂ s₃ s₄ sp_mid hnot h_ws h_hdl h_ws2 h_pfx
+  case tag rest col s₁ s₂ s₃ s₄ hnot h_ws h_hdl h_hnot h_ws2 h_pfx h_tail =>
+    exact .tag rest col s₁ s₂ s₃ s₄ sp_mid hnot h_ws h_hdl h_hnot h_ws2 h_pfx
       (directiveTail_prepend_SSLComments h_tail hstop hssl)
   case reserved rest col s₀ hg hnot hY hT hsk =>
     exact .reserved rest col s₀ sp_dir sp_mid hg hnot hY hT hsk hssl

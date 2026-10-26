@@ -5147,6 +5147,130 @@ def testDirectiveLine (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"directive/{repr input}: refused by both" (refused == expRefused)
       s!"got {refused}, expected {expRefused}"
 
+/-! ### Priority 36b (item 367, review follow-up): the five directive loops at fuel 0/1/2, and the
+TAG handle/prefix partition.  Priority 36 compares `scanDirective` with a whole-line mirror; the
+review asked for the loop lemmas (`collectDirectiveNameLoop_prod`, `collectVersionMajorLoop_prod`,
+`collectVersionMinorLoop_prod`, `collectTagHandleDirectiveLoop_prod`, `collectTagPrefixLoop_prod`)
+to be instantiated on their own, at fuel 0, 1, 2, the exact budget and one past it, and for the
+`%TAG !e!x` partition (handle `!e!x`, prefix empty — the maximal handle run, not `!e!` / `x`) to be
+read off the scanner's token rather than its final offset. -/
+
+/-- The mirror of one loop at `fuel`: the class run cut at `fuel` characters, plus (major loop only)
+    the `.` the loop consumes when fuel remains after the digits.  Returns `(run, consumed bytes)`. -/
+def directiveLoopMirror (cls : Char → Bool) (dot : Bool) (chars : List Char) (fuel : Nat) :
+    String × Nat :=
+  let maxRun := chars.takeWhile cls
+  let run := maxRun.take fuel
+  let dotTaken := dot && fuel > maxRun.length && (chars.drop maxRun.length).head? == some '.'
+  let consumed := run ++ (if dotTaken then ['.'] else [])
+  (String.ofList run, (String.ofList consumed).utf8ByteSize)
+
+/-- Run one directive loop on `input` at `fuel` and read it against the mirror.  Returns
+    `(budgeted, bad, withdrawn, short)`: `budgeted` = the lemma's hypothesis `fuel ≥ inputEnd -
+    offset` holds and the loop returned the MAXIMAL class run with the stop character outside the
+    class (the `GStar`/`GNot`/`ScannerSurfCorr` conclusion); `bad` = a refutation (run or offset
+    disagree with the mirror, or a budgeted run is not maximal); `withdrawn` = the hypothesis does
+    not hold at this fuel (the loop still equals the fuel-cut mirror); `short` = a withdrawn row on
+    which maximality FAILS — the lane that shows the fuel hypothesis is load-bearing. -/
+def walkDirectiveLoop (which : String) (input : String) (fuel : Nat) : Nat × Nat × Nat × Nat :=
+  Id.run do
+  let s := ScannerState.mk' input
+  let chars := input.toList
+  let budget := s.inputEnd - s.offset
+  let (cls, dot, out) : (Char → Bool) × Bool × (String × ScannerState) :=
+    match which with
+    | "name"   => (DirectiveMirror.nsCharB, false, collectDirectiveNameLoop s "" fuel)
+    | "major"  => (DirectiveMirror.digitB, true, collectVersionMajorLoop s "" fuel)
+    | "minor"  => (DirectiveMirror.digitB, false, collectVersionMinorLoop s "" fuel)
+    | "handle" => (DirectiveMirror.handleB, false, collectTagHandleDirectiveLoop s "" fuel)
+    | _        => (DirectiveMirror.uriB, false, collectTagPrefixLoop s "" fuel)
+  let (run, s') := out
+  let (mRun, mOff) := directiveLoopMirror cls dot chars fuel
+  let agree := run == mRun && s'.offset == mOff
+  let maxLen := (chars.takeWhile cls).length
+  -- the stop character, read off the scanner state: outside the class or EOF (the major loop
+  -- past its `.` has already left the digit run; that row's maximality is `run.length == maxLen`)
+  let stopOut := (dot && s'.offset > run.utf8ByteSize) ||
+    (match s'.peek? with | some c => !cls c | none => true)
+  if fuel ≥ budget then
+    if agree && stopOut && run.length == maxLen then (1, 0, 0, 0) else (0, 1, 0, 0)
+  else
+    let short := if run.length < maxLen && !stopOut then 1 else 0
+    if agree then (0, 0, 1, short) else (0, 1, 1, short)
+
+/-- The `%TAG` partition the scanner emitted: the `.tagDirective handle prefix` token, if any. -/
+def scannerTagPartition (input : String) : Option (String × String) :=
+  match scanDirective (ScannerState.mk' input) with
+  | .ok s' =>
+    match s'.tokens.back? with
+    | some tok =>
+      match tok.val with
+      | .tagDirective h p => some (h, p)
+      | _ => none
+    | none => none
+  | .error _ => none
+
+/-- The `%TAG` partition `SLDirective.tag` derives: whites, a MAXIMAL handle run, whites, a prefix
+    run (the mirror of the `GStar`/`GNot`/`GStar`/`GStar` spine of the constructor). -/
+def mirrorTagPartition (input : String) : String × String :=
+  let rest := (input.toList.drop 4).dropWhile DirectiveMirror.whiteB
+  let handle := rest.takeWhile DirectiveMirror.handleB
+  let afterH := (rest.drop handle.length).dropWhile DirectiveMirror.whiteB
+  let pfx := afterH.takeWhile DirectiveMirror.uriB
+  (String.ofList handle, String.ofList pfx)
+
+def testDirectiveLoops (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 36b: directive loops at fuel 0/1/2 + TAG handle/prefix partition (item 367 review)"
+  -- empty, singleton, class-run-then-stop, stop-first, `.` after 0/1/2 digits, multi-byte, break
+  let inputs : List String :=
+    [ "", "Y", "YAML 1.2", "TAG !e! x", "1", "1.", "1.2", "12.34", ".2", "a.b", "!", "!e!",
+      "!e!x", "!e! x", "!!", "x", "é", " x", "\n", "%20", "tag:x,2000:", "a b", "#c", "[",
+      "!e!%20", "1.\n", "..", "\u00A0" ]
+  let mut rows := 0
+  let mut budgeted := 0
+  let mut withdrawn := 0
+  let mut short := 0
+  for which in ["name", "major", "minor", "handle", "prefix"] do
+    for input in inputs do
+      let full := input.utf8ByteSize
+      for fuel in [0, 1, 2, full, full + 1] do
+        rows := rows + 1
+        let (b, bad, w, sh) := walkDirectiveLoop which input fuel
+        checkM state s!"loop/{which}/{repr input}/fuel {fuel}: loop = fuel-cut mirror; budgeted ⇒ maximal run, stop outside the class"
+          (bad == 0) "refuted"
+        budgeted := budgeted + b
+        withdrawn := withdrawn + w
+        short := short + sh
+  -- pinned off the first run (5 loops × 28 inputs × 5 fuels); no `bad` row on the first run
+  checkM state "loop rows" (rows == 700) s!"got {rows}"
+  checkM state "loop budgeted rows (hypothesis holds; GStar + GNot + corr read)" (budgeted == 395)
+    s!"got {budgeted}"
+  checkM state "loop withdrawn rows (fuel below the budget)" (withdrawn == 305) s!"got {withdrawn}"
+  checkM state "loop short rows (withdrawn fuel breaks maximality — hypothesis load-bearing)"
+    (short == 150) s!"got {short}"
+  -- partition: the scanner's token fields against the constructor's spine.  `none` = refused.
+  let partRows : List (String × Option (String × String)) :=
+    [ ("%TAG !e!x", some ("!e!x", "")), ("%TAG !e! x", some ("!e!", "x")),
+      ("%TAG !e!x!", some ("!e!x!", "")), ("%TAG ! !", some ("!", "!")),
+      ("%TAG !a!!b! c", some ("!a!!b!", "c")), ("%TAG !e!%20", some ("!e!", "%20")),
+      -- the reviewer's shape: the handle run is MAXIMAL, so `!e!x` is the handle and `y` the prefix
+      -- (first written as refused; REFUTED by the run — the scanner accepts it)
+      ("%TAG !e!x y", some ("!e!x", "y")), ("%TAG !e!\tx\n", some ("!e!", "x")),
+      ("%TAG", some ("", "")), ("%TAG x", some ("x", "")),
+      -- `[` is a `[39] ns-uri-char`: a prefix, not trailing content (first written as refused; REFUTED)
+      ("%TAG !e! [", some ("!e!", "[")),
+      ("%TAG !e!,x", some ("!e!", ",x")), ("%TAG !e!!x! y", some ("!e!!x!", "y")) ]
+  for (input, expected) in partRows do
+    let got := scannerTagPartition input
+    checkM state s!"partition/{repr input}: scanner token" (got == expected)
+      s!"got {repr got}, expected {repr expected}"
+    match got with
+    | some hp =>
+      let m := mirrorTagPartition input
+      checkM state s!"partition/{repr input}: SLDirective.tag's maximal handle = the scanner's" (hp == m)
+        s!"scanner {repr hp}, relation {repr m}"
+    | none => pure ()
+
 /-- Priority 33 (EVENTSOF §10 slice 3): the Rule-2 ledger of `traceOf_unique` on the
 block/document fragment — the PARSER's side of each row.  The grammar side lives in
 `Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean`: `a⏎&x` has the traces `[]` and
@@ -5280,6 +5404,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testContentRegister state
   testCloseColonOuter state
   testDirectiveLine state
+  testDirectiveLoops state
   testExplicitColonRegister state
   testTraceOfLeafEvents state
   testTraceOfBlockLedger state

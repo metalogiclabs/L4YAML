@@ -96,7 +96,7 @@ lemma slDirective_suffix {a b : SurfPos} (h : SLDirective a b) :
       (gplus_suffix (fun _ _ => gchar_suffix) hd1)).trans
       (gstar_suffix (fun _ _ => sswhite_suffix) hw)).trans
       ⟨['%', 'Y', 'A', 'M', 'L'], rfl⟩
-  | .tag rest _ _ _ _ _ _ _ hw hh hw2 hp hc =>
+  | .tag rest _ _ _ _ _ _ _ hw hh _ hw2 hp hc =>
     exact (((((sslComments_suffix hc).trans
       (gstar_suffix (fun _ _ => gchar_suffix) hp)).trans
       (gstar_suffix (fun _ _ => sswhite_suffix) hw2)).trans
