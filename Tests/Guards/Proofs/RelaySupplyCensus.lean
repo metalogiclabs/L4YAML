@@ -918,8 +918,10 @@ def hopName (env : Environment) (e : Edge) : String :=
 -- 2026-10-24 (B3 [66] col-0 threading): edges 674 → 657 (DECLINE 260 → 251, SPLIT 174 → 166, PAY 50 → 55, RELAY 68 → 64,
 -- FIELD 58 → 57) — the content parks read the run + gate fields instead of splitting a landing disjunction.
 def expectedTally : String :=
-  "edges=664 skipped=38 [DECLINE=258, FIELD=55, LOCAL=27, PAY=52, RELAY=65, \
-SPLIT=160, VIA=47]"
+  -- 2026-10-26 (item 366): DECLINE 258 → 256, VIA 47 → 49 — the two `h_outer` arguments of
+  -- `accum_block_on_closeThenBlock` (compact and explicit `:`) pay under `Classical.em (MarkedColsIn sc [col])`.
+  "edges=664 skipped=38 [DECLINE=256, FIELD=55, LOCAL=27, PAY=52, RELAY=65, \
+SPLIT=160, VIA=49]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
     eight of these print `h_keyctx` when the premise is narrowed; six of them
@@ -958,8 +960,9 @@ def expectedSeed : List String :=
 -- 2026-10-24 (item 355): the five domained faces — the two `accum_step_flow` pipes
 -- (`flowVPack_of_close resume.vslot`, `FlowBaseRoutes.vslot`) and one `explFrameValueLine` pipe now
 -- decline (`Or.inr trivial`), three `frameChainUnion`s became the domained `frameChainUnionD`.
+  -- 2026-10-26 (item 366): VIA Or.elim 15 → 17 — the two `Classical.em … |>.elim` pays of `h_outer` at closeThenBlock.
 def expectedProducers : List String :=
-  ["15 VIA Or.elim",
+  ["17 VIA Or.elim",
    "2 VIA FlowBaseRoutes.key",
    "2 VIA markerctx_of_landing",
    "2 VIA nodocctx_of_preprocess",

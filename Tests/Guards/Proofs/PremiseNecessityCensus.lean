@@ -361,7 +361,8 @@ def expectedModuleTallyP : String :=
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): READ=1384 → 1367
   -- 2026-10-26 (item 365): RELAY 2633 → 2639 — the same six premises `HypothesisReaderCensus` counts
   -- (`h_sound` ×3, `h_fl0` ×2, `h_alt` ×1) passed whole along the content lane.
-  "constants=1678 decls=1317 eta=441 FIELD=190 READ=1371 RELAY=2639 RETURN=167 UNUSED=27"
+  -- 2026-10-26 (item 366): RELAY 2639 → 2641 — the same two `h_sound` relays (pre-pinned with `HypothesisReaderCensus`).
+  "constants=1678 decls=1317 eta=441 FIELD=190 READ=1371 RELAY=2641 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
