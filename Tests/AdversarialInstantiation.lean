@@ -4966,6 +4966,65 @@ def testContentRegister (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"contentReg/{repr input}: every marked content step keeps the register live"
       (markedLive == marked) s!"{markedLive}/{marked}"
 
+/-- Priority 35 (item 366): K7 at the landed `:` of `accum_block_on_closeThenBlock` — the two
+    `h_outer` faces (`compact_open_map` at `nv + 1 + m`, `colon_open_map_explicit` at the landing
+    column `k`) now pay when the PARK state's marked columns are exactly `[landing column]`, decided
+    in that lemma by `Classical.em` (a projection of its own state `sc`, Rule 8).  At every `:`
+    dispatched from block context read the marks of the pre-step state: exactly `[col of the ':']`
+    ⇒ `refused_of_outer_disp`'s conclusion `explicitKeyLine = none` must hold on the post-dispatch
+    state (`bad`, a refutation; pinned 0); empty ⇒ `other`; nested or elsewhere ⇒ the withdrawn
+    premise, the register expected live after the `:` (`markedLive`, pinned = `marked`).  Returns
+    `(paid, bad, other, marked, markedLive)`. -/
+def walkCloseColonOuter (input : String) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut fuel := 64
+  let mut paid := 0
+  let mut bad := 0
+  let mut other := 0
+  let mut marked := 0
+  let mut markedLive := 0
+  while fuel > 0 do
+    fuel := fuel - 1
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      match scanNextToken s with
+      | .ok (some s') =>
+        if c == ':' && s.flowLevel == 0 then
+          let ms := markedColsOf s.pendingKeys s.indentColumns
+          if ms == [sp.col] then
+            paid := paid + 1
+            if s'.explicitKeyLine.isSome then bad := bad + 1
+          else if ms == [] then other := other + 1
+          else
+            marked := marked + 1
+            if s'.explicitKeyLine.isSome then markedLive := markedLive + 1
+        s := s'
+      | _ => fuel := 0
+    | _ => fuel := 0
+  return (paid, bad, other, marked, markedLive)
+
+def testCloseColonOuter (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 35: the landed `:` under its own `?` mark (item 366)"
+  -- `(input, paid, other, marked)`, pinned from the run; `bad` 0 and `markedLive = marked` on every row.
+  let rows : List (String × Nat × Nat × Nat) :=
+    [("? a\n: b", 1, 0, 0), ("? a\n: b\n? c\n: d", 2, 0, 0), ("- ? a\n  : b", 1, 0, 0), ("k:\n  ? a\n  : b", 1, 1, 0),
+     ("? - a\n  - b\n: c", 1, 0, 0), ("?\n  a: b\n: c", 1, 0, 1), ("? a\n: - b\n  - c", 1, 0, 0),
+     ("? ? a\n  : b\n: c", 1, 0, 1), ("? a\n:\n  ? b\n  : c", 2, 0, 0), ("a: b", 0, 1, 0), ("- a: b\n  c: d", 0, 2, 0),
+     ("? a", 0, 0, 0), ("? a # c\n: b", 1, 0, 0), ("? &x a\n: !!str b", 1, 0, 0), ("? a\n: b\nc: d", 1, 1, 0),
+     ("? |\n  t\n: b", 1, 0, 0), ("? [a]\n: b", 1, 0, 0), ("? a\n: {b: c}", 1, 0, 0)]
+  for (input, expPaid, expOther, expMarked) in rows do
+    let (paid, bad, other, marked, markedLive) := walkCloseColonOuter input
+    checkM state s!"closeColon/{repr input}: `:` under exactly its own mark" (paid == expPaid)
+      s!"got {paid}, expected {expPaid}"
+    checkM state s!"closeColon/{repr input}: every such `:` leaves the register dead" (bad == 0)
+      s!"{bad} refutation(s)"
+    checkM state s!"closeColon/{repr input}: `:` under no mark" (other == expOther)
+      s!"got {other}, expected {expOther}"
+    checkM state s!"closeColon/{repr input}: `:` under other/nested marks" (marked == expMarked)
+      s!"got {marked}, expected {expMarked}"
+    checkM state s!"closeColon/{repr input}: nested marks keep the register live"
+      (markedLive == marked) s!"{markedLive}/{marked}"
+
 /-- Priority 33 (EVENTSOF §10 slice 3): the Rule-2 ledger of `traceOf_unique` on the
 block/document fragment — the PARSER's side of each row.  The grammar side lives in
 `Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean`: `a⏎&x` has the traces `[]` and
@@ -5097,6 +5156,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testFlowOpenRegister state
   testFlowCloseRegister state
   testContentRegister state
+  testCloseColonOuter state
   testExplicitColonRegister state
   testTraceOfLeafEvents state
   testTraceOfBlockLedger state

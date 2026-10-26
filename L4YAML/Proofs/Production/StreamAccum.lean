@@ -26726,7 +26726,9 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
     (h_run : GStar SSWhite sp_gram sp_scan)
     (h_gate : sp_gram = sp_scan → sc.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#'))
     (h_mcstep : ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
-      RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns)) :
+      RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns))
+    -- Item 366: the park state's soundness, for the K7 pay at the landed `:` (decided in this lemma).
+    (h_sound : PendingKeySound.Sound sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -26970,8 +26972,13 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
               -- Item 259: the stack's shape and the SLOT's own bound, for the
               -- resume stack the opener's park covers from them.
               h_mono h_top_slot
-              -- Item 360: K7's carrier — closeThenBlock has no domained park face (STARVED).
-              (Or.inr trivial)
+              -- Item 366: K7 at the landed `:` — the marked domain is a projection of THIS lemma's state
+              -- `sc` (Rule 8: decided here, no carrier); pays when only the landing column is marked.
+              ((Classical.em (RegisterWitness.MarkedColsIn sc [nv + 1 + m])).elim (fun hdom => h_park.elim (fun hp =>
+                  Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                    RegisterWitness.preprocess_markedCols h_preprocess hdom,
+                    fun _ => (preprocess_saved_key_col hp.1 h_noflow h_preprocess).2⟩)
+                (fun _ => Or.inr trivial)) (fun _ => Or.inr trivial))
           -- Item 125: the compact `:` decides its own stamp source; the one
           -- undecided shape (a live register at the `:`'s own column) stays
           -- the deferral it already was, and the `?` never reads it.
@@ -27494,8 +27501,13 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
               (noflow_disp_of_noflow h_noflow)
               (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess)
               h_dispatch)
-            -- Item 360: K7's carrier — closeThenBlock has no domained park face (STARVED).
-            (Or.inr trivial)
+            -- Item 366: K7 at the landed `:` — the marked domain is a projection of THIS lemma's state
+            -- `sc` (Rule 8: decided here, no carrier); pays when only the landing column is marked.
+            ((Classical.em (RegisterWitness.MarkedColsIn sc [k])).elim (fun hdom => h_park.elim (fun hp =>
+                Or.inl ⟨PendingKeySound.preprocess_sound h_preprocess h_sound h_mono,
+                  RegisterWitness.preprocess_markedCols h_preprocess hdom,
+                  fun _ => (preprocess_saved_key_col hp.1 h_noflow h_preprocess).2⟩)
+              (fun _ => Or.inr trivial)) (fun _ => Or.inr trivial))
         -- ═══ Item 125: the landed `:` decides its own stamp source by
         -- classical case split — both conjuncts are the dispatch state's own
         -- fields.  With a source the generic reopen's park carries a REAL
@@ -28126,7 +28138,9 @@ lemma accum_block_on_pendingContent
     -- Item 293: the park's `h_live`, for the `:` consumer's `¬ possible` arm.
     (h_live : InlineResidue sp_scan ':' → sc.simpleKey.possible = true)
     (h_mcstep : ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
-      RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns)) :
+      RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns))
+    -- Item 366: the park state's soundness, for the K7 pay at the landed `:` (decided in this lemma).
+    (h_sound : PendingKeySound.Sound sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -28152,7 +28166,7 @@ lemma accum_block_on_pendingContent
   · subst hc
     exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
       h_stream_block h_key h_stale h_park h_kbc h_scf h_live
-      (fun h_inl => accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' ':'
+      (fun h_inl => accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' ':'
         sp_prep sp_scan' h_close_pending h_vpack (Or.inr h_inl) hcorr_prep hcorr_result
         h_corr h_noflow h_park h_preprocess h_dispatch (Or.inr trivial)
         (Or.inr trivial) h_bare h_dn h_fv h_base h_mono (Or.inl h_tail139) (Or.inr trivial)
@@ -28175,7 +28189,7 @@ lemma accum_block_on_pendingContent
   · -- Item 37: `c ≠ ':'` at a park that follows a complete node — §7.5 left
     -- the rest of the line at `NodeStop`, and neither remaining indicator is
     -- in it.  The escape is REFUSED here, not paid (`"a" - b`, `[1] ? b`).
-    exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c
+    exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' c
       sp_prep sp_scan' h_close_pending
       -- Item 307: the pack is the park's own stack (`h_mapFV108`, handed on below),
       -- closed at the landing — the third γ root of item 301.
@@ -28495,7 +28509,7 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
         -- them: `nestedBlockSeq` has no node to fill and a dedent has no frame
         -- to resume.  Both take the `:`/`?` arm's route below, which the
         -- indicator siblings have used at every width since item 13.
-        exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' '-'
+        exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' '-'
           _ sp_scan' h_close_pending
           -- Item 307: the pack, from the stack — the entry is complete and the sequence
           -- at `n` ends at the landing (`accum_block_on_pendingBlock`'s note).
@@ -29141,7 +29155,7 @@ lemma accum_block_on_pendingBlock
         -- the sequence at `k` as `[211]`'s document continuation.  Item 287:
         -- the branch is a LANDED one, so the break it crossed refutes the
         -- inline residue.
-        exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' '-'
+        exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' '-'
           _ sp_scan' h_close_pending
           -- ═══ **Item 307: the pack, from the stack.**  The awaited entry closes EMPTY
           -- on the landing's comments and the sequence at `n` ends there (the landing
@@ -29767,7 +29781,7 @@ lemma accum_block_pending (sc : ScannerState)
     -- l-document-suffix`, exactly the content skeleton's payment (item 117),
     -- so `...⏎- y` and `...⏎? k` land their collection in `suffixContinue`'s
     -- own slot. ═══
-    exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+    exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending
       (Or.inr (PackAlt.ofRefused h_noekE)) (Or.inr (fun h_res _ => (docEnd_refutes_inline_residue h_line
         (block_indicator_char h_dispatch) h_res).elim)) hcorr_prep hcorr_result h_corr h_noflow
@@ -29793,7 +29807,7 @@ lemma accum_block_pending (sc : ScannerState)
     -- ═══ Item 48: the marker still on the line refutes all three indicators
     -- — B1/B2's `markerOnLine` for `-`/`?`, B4 for `:` — so the arm's
     -- inline residue is EMPTY and only the landed close remains. ═══
-    exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+    exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
       h_close_pending
       (Or.inr (PackAlt.ofRefused h_noekS)) (Or.inr (fun _ h_pay =>
         (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inr (Or.inl h_docline48))
@@ -29829,7 +29843,7 @@ lemma accum_block_pending (sc : ScannerState)
     -- Item 173: and it is one of the two that PAY the sibling resume — its
     -- `h_framesS` (the cover is forgotten at the door; the resume arm's park
     -- punts its own, the recorded residue).
-    exact accum_block_on_pendingContent sc sp_start sp_block sp_scan s_prep s' c
+    exact accum_block_on_pendingContent (h_sound := h_sound) sc sp_start sp_block sp_scan s_prep s' c
       sp_prep sp_scan' sp_gramO h_stream_block h_runO h_gateO
       h_closableO h_line h_key (h_vpack51.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id) hcorr_prep hcorr_result h_corr
       h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_mono
@@ -29870,7 +29884,7 @@ lemma accum_block_pending (sc : ScannerState)
     · subst hc48
       exact colon_fires_props_key sc sp_start sp_block sp_p sp_scan s_prep s'
         sp_prep sp_scan' h_stream_block h_nic48 h_ska79 h_real48 h_kbc h_key48
-        (fun h_inl => accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' ':'
+        (fun h_inl => accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' ':'
           sp_prep sp_scan' h_close_pending
           -- Item 91: the landed `:` is the frame's VALUE line — the run
           -- closes as `propsEmpty` into the `?`'s key, and the pack routes
@@ -29907,7 +29921,7 @@ lemma accum_block_pending (sc : ScannerState)
         rcases PropsRun.ha_or_ht h_run with hha | hht
         · exact lastTokenIsNodePropertyOnLine_of_run_any (h_anchor48 hha)
         · exact lastTokenIsNodePropertyOnLine_of_run_any (h_tag48 hht)
-      exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+      exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending
         (match h_kslot91 with
          | Or.inl ⟨ns, _, kslot⟩ => Or.inl ⟨ns, fun nv hmem =>
@@ -29938,7 +29952,7 @@ lemma accum_block_pending (sc : ScannerState)
         -- Item 208: a property run holds a column, so the premise is refuted.
         (nic0_of_col_pos h_col0_p) (GStar.nil _) (fun _ _ => (h_nextP (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep
   | pendingFlow _ _ _ _ h_arm77 _ h_nic0F _ h_gateF =>
-    exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+    exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
       (fun _ _ => dropClose h_stream_block h_gateF.choose) (Or.inr trivial) (Or.inr (fun h_res _ => block_dispatch_deferred_inline sp_start sp_block sp_scan' h_stream_block h_preprocess h_dispatch hcorr_result h_res ⟨sp_scan', GStar.nil _, fun _ _ => (dispatchBlock_next_of_some h_noflow (preprocess_some_peek h_preprocess) h_dispatch).gate⟩)) hcorr_prep
       hcorr_result h_corr h_noflow h_arm77 h_preprocess h_dispatch
       (Or.inr trivial)
@@ -29966,7 +29980,7 @@ lemma accum_block_pending (sc : ScannerState)
     -- the stamp (`pendingMapValue.h_vslot`'s right half), so its same-line
     -- indicator is the stamped branch's refusal again. ═══
     rcases h_ivl48 with h_ivl48 | _
-    · exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+    · exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending
         -- Item 93: an IMPLICIT `:` whose value never arrived — the landing
         -- closes the inner entry with `[72]`'s empty node, and the park's
@@ -30018,7 +30032,7 @@ lemma accum_block_pending (sc : ScannerState)
         (h_closeFV108.imp (fun ⟨nv, ks, h_le, _, fV⟩ => ⟨nmv, nv, ks, h_le, fV⟩) id)
         -- Item 208: refuted from the park's own column, as above.
         (nic0_of_col_pos h_col0_mv) (GStar.nil _) (fun _ _ => (h_nextM (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep
-    · exact accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+    · exact accum_block_on_closeThenBlock (h_sound := h_sound) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
         h_close_pending
         -- ═══ **Item 192: this park's OWN frame and the one above it, in ONE
         -- list.**  Item 189 handed the second to a parameter of its own

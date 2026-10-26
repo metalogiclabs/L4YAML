@@ -1076,7 +1076,8 @@ def expectedLine : String :=
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); nodes 13689 → 13658 (walked-term total; rows unchanged).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): nodes 13658 → 13660 (walked-term total).
   -- 2026-10-26 (item 365): nodes 13660 → 13677 — the three `h_refused` decisions in the content lemmas; no pack row moved.
-  "packs=11 framesOn=7 params=31 paramLemmas=19 apps=51 rows=155 ctorRows=74 paramRows=81 punt=30 stamp=21 empty=0 relay=25 step=10 via=10 chain=45 route=4 frames=3 tail=0 other=0 alt=7 held=6 levelVar=37 none=26 spendTail=2 lemmas=21 helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion,frameChainUnionD] touched=125 nodes=13677"
+  -- 2026-10-26 (item 366): nodes 13677 → 13691 — the two `h_outer` pays at closeThenBlock; no pack row moved.
+  "packs=11 framesOn=7 params=31 paramLemmas=19 apps=51 rows=155 ctorRows=74 paramRows=81 punt=30 stamp=21 empty=0 relay=25 step=10 via=10 chain=45 route=4 frames=3 tail=0 other=0 alt=7 held=6 levelVar=37 none=26 spendTail=2 lemmas=21 helpers=[explFrameValueLine,frameChainCons,frameChainOne,frameChainUnion,frameChainUnionD] touched=125 nodes=13691"
 
 /-! ## §4 The reading -/
 

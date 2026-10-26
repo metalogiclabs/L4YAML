@@ -747,7 +747,9 @@ def expectedDoor : List String :=
 -- 2026-10-23 (item 344): decisions 138 → 139 — the relayed `h_valFV` adds a `match` on `h_closeFV_old`.
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 def expectedLine : String :=
-  "asked=6 both=4 lemmas=1 walked=4 feedFunnel=1 feedExplicit=1 feedDeferred=2 feedTuple=0 entry=4 entrySBI=4 kslot=4 kslotUp=4 closeF=0 closeFV=4 seqF=4 top=4 floor=0 cover=4 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=1 aboveKEx=1 hands=1 besideKN=1 besideKMem=1 besideKNv=0 puntKN=1 puntKMem=0 besideNone=0 decisions=114 decOnK=22 decKN=10 decKMem=9 decKNv=3 apps=42 funnelArgs=1 doorDropped=4/1 closeSites=5 params=5"
+  -- 2026-10-26 (item 366): decisions 114 → 115 — the `Classical.em (MarkedColsIn sc [k])` decision at
+  -- `accum_block_on_closeThenBlock`'s explicit `:` face; no frame row moved.
+  "asked=6 both=4 lemmas=1 walked=4 feedFunnel=1 feedExplicit=1 feedDeferred=2 feedTuple=0 entry=4 entrySBI=4 kslot=4 kslotUp=4 closeF=0 closeFV=4 seqF=4 top=4 floor=0 cover=4 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=1 aboveKEx=1 hands=1 besideKN=1 besideKMem=1 besideKNv=0 puntKN=1 puntKMem=0 besideNone=0 decisions=115 decOnK=22 decKN=10 decKMem=9 decKNv=3 apps=42 funnelArgs=1 doorDropped=4/1 closeSites=5 params=5"
 
 /-! ## §5 The reading -/
 
