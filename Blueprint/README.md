@@ -66,6 +66,10 @@ Read in order on first visit:
    forward: blueprint-first theorem proposals, adversarial
    instantiation before proof, sorry policy, and the
    `theorem`-keyword reservation for capstones (Rule 7).
+6. [`ledgers/`](ledgers/README.md) — dated snapshots of where a
+   long-running target stands (`parse_iff_grammar/YYYY-MM-DD.md`), with
+   `scripts/ledger_diff.py --latest` to show the progress between the two
+   newest dates. Old snapshots are never edited; corrections go in the next one.
 
 ## Relationship to existing documentation
 
