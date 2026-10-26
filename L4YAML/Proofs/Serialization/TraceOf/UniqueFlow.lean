@@ -3404,9 +3404,11 @@ lemma tFlowMapping_unique {n : Nat} {c : YamlContext} {s s' : SurfPos} {ev₁ ev
     TFlowMapping n c s s' ev₁ → TFlowMapping n c s s' ev₂ → ev₁ = ev₂ :=
   fun h₁ h₂ => ((allDet n _ s (Nat.le_refl _) c).1.2.2.2.2.2 h₁ h₂).2
 
-/-- Entry lists are unique once the closing bracket is in view. Without the follow this is
-false: inside `[a:b]` the span `a:` is both the plain node `a:` and the key `a` with an empty
-value, with different traces. -/
+/-- Entry lists are unique once the closing bracket is in view. The follow is what the proof
+needs, not a refutation of the unconditional statement: entries are not prefix-free (inside
+`[a:b]` the span `a:` is both the plain node `a:` and the key `a` with an empty value — same
+trace `[]`, different split), so the induction cannot align the two derivations' intermediate
+positions without knowing what comes next. -/
 lemma tFlowSeqEntries_unique {n : Nat} {c : YamlContext} (hc : FlowCtx c) {s s' : SurfPos}
     {ev₁ ev₂ : List Event} (h₁ : TFlowSeqEntries n c s s' ev₁) (h₂ : TFlowSeqEntries n c s s' ev₂)
     (hs : CloseStop s') : ev₁ = ev₂ :=
