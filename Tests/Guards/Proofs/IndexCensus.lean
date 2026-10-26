@@ -282,7 +282,9 @@ def expected : List String :=
    "stream/frames/occ=1  ×3",
    "stream/frames/occ=2  ×8",
    "stream/frames/occ=3  ×7",
-   "stream/frames/occ=4  ×11",
+   -- item 369: `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames,
+   -- `pendingBlock.h_closeF` threaded) is one more stream-bottom frames carrier
+   "stream/frames/occ=4  ×12",
    "stream/other/occ=4  ×4",
    "stream/other/occ=6  ×1",
    "valueline/bottom/occ=1  ×34",

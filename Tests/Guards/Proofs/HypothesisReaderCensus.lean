@@ -602,6 +602,8 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
 -- 2026-10-24 (B3 [66] col-0 threading): +160 decls (JSON-key carry, reservation transport, gate
 -- lemmas); UNUSED 26 → 27 (`gate_of_peek#3`, `park_gate_of_peek#2`; `question_open_map`'s `_h_noflow_disp` is now spent), see `expectedUnused`.
 -- 2026-10-26 (item 367, `[82]`): `SSLComments_prepend_comment`, `directiveTail_prepend_SSLComments`, `scannedDirective_toSL` join StreamAccum: decls 1317 → 1320, READ +3, RELAY +6, FIELD +1.
+-- 2026-10-26 (item 369): READ 1313 → 1314 — `accum_block_on_pendingBlock` reads `h_closeF_old` (the `-` park's frames)
+-- at the `:`/`?` landing for `indicator_open_map`'s `h_res_land`.
 def expectedModuleTally : String :=
   -- 2026-10-26 (item 365): RELAY 2830 → 2836 — `h_sound` ×3, `h_fl0` ×2 and `h_alt` ×1 passed whole from
   -- `accum_step_content`/`accum_content_pending`/the `_indented` pair to the content lane's payers.
@@ -609,7 +611,7 @@ def expectedModuleTally : String :=
   -- RELAY 2383 → 2388 — `NotQuestionPark`, `notQuestion_push_top`, `scanValue_notQuestion`,
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
   -- 2026-10-26 (item 366): RELAY 2836 → 2838 — `h_sound` passed whole into the two new `Sound sc` binders.
-  "constants=1681 decls=1320 eta=441 FIELD=168 READ=1313 RELAY=2844 RETURN=54 \
+  "constants=1681 decls=1320 eta=441 FIELD=168 READ=1314 RELAY=2844 RETURN=54 \
 UNUSED=27"
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); the two transport helpers and `h_pk'` go (constants 1683 → 1681, decls 1322 → 1320, READ 1325 → 1323, RELAY 2838 → 2830); `Mono sc` stays on `accum_step_flow`.
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): the five deleted `match` auxiliaries: constants 1681 → 1676, decls 1320 → 1315, READ 1323 → 1306.
@@ -718,7 +720,9 @@ inherit their parents' binders filtered out so the denominator is declarations. 
 -- (a `match`) where it was RELAYed.
 -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp`
 -- `inr` arms no longer read their alternative (they pay an empty chain instead).
-def expectedOptTally : String := "total=165 ETA=31 READ=88 RELAY=46"
+-- 2026-10-26 (item 369): total=165 → total=166, READ=88 → READ=89 — `accum_block_on_pendingBlock.h_closeF_old`
+-- (the `-` park's frames, read by the `:`/`?` landing for `h_res_land`).
+def expectedOptTally : String := "total=166 ETA=31 READ=89 RELAY=46"
 
 /-- The six item 212 enumerated, by verdict — seven since item 300.  Six are
     read in `content_dispatch_routed`'s own term (`h_markerline`, the marker

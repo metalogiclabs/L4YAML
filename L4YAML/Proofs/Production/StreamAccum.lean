@@ -28968,6 +28968,15 @@ lemma accum_block_on_pendingBlock
     -- landing arms below re-derive their own from the walk's unwind; this is
     -- what the INLINE arm has instead, where no unwind ran and the stack the
     -- dispatch reads IS this park's.
+    -- **Item 369 (lane A): the park's own frames** (`pendingBlock.h_closeF`) —
+    -- a `:`/`?` landing left of the awaited entry resumes the enclosing mapping
+    -- level the frames name, instead of keying a fresh bare document.
+    (h_closeF_old : (∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < n) ∧
+      ((∃ lo : Nat, IndentStackCover.Floor lo n ks ∧
+        IndentStackCover.Covered lo ks sc) ∨ True) ∧
+      ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
+      ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
+      ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True)
     (h_top_old : sc.currentIndent ≤ (n : Int))
     -- **Item 209 (LAST): the park's own INDENT CHECK, down.**  `pendingBlock`'s
     -- `h_floor` has carried it since item 21 (`IndentFloor`'s first conjunct);
@@ -29321,10 +29330,20 @@ lemma accum_block_on_pendingBlock
           (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
           h_dispatch h_preprocess h_src (Or.inr trivial) (Or.inr trivial)
           (Or.inr trivial)
-          -- Item 173: this park awaits its entry's node under no mapping
-          -- level of its own; the sequence lane's faces serve the `-` and
-          -- the mapping resume has no carrier here — the arm punts.
-          (Or.inr trivial)
+          -- Item 369: the mapping resume is read off the park's own frames —
+          -- the awaited entry closes EMPTY (`[185]`'s `e-node`, `h_ssl`) and
+          -- the landing's level `k` is one the frames name, so the entry
+          -- conses onto that level's tail (item 173's punt, paid as
+          -- `accum_block_on_pendingBlockContent` pays its own).
+          (by
+            rcases h_closeF_old with ⟨ks, _, _, closeF⟩ | _
+            · by_cases hmem : FrameLevel.map k ∈ ks
+              · obtain ⟨ks', hw, cont⟩ :=
+                  (closeF sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl)
+                    sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt hmem
+                exact Or.inl ⟨ks', hw.lt, cont⟩
+              · exact Or.inr trivial
+            · exact Or.inr trivial)
           -- Item 142: this park's tail is the `-` that opened the entry, so
           -- `completesFlowValue` is FALSE there and the check stands aside by
           -- its own reading rather than by this arm.
@@ -30241,8 +30260,8 @@ lemma accum_block_pending (sc : ScannerState)
       -- Item 208: the park's own indent check, read at the block landing.
       h_nic0B h_live290 h_runBC h_gateBC h_mcstep h_mcstep_ne
   | pendingBlock _ _ _ n_old _h_close h_close_entry_old h_floor208 h_sk_old h_col_old h_kslot92
-      _ _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 _ h_nextB =>
-    exact accum_block_on_pendingBlock sc sp_start sp_block sp_scan s_prep s' c sp_prep
+      h_closeF369 _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 _ h_nextB =>
+    exact accum_block_on_pendingBlock (h_closeF_old := h_closeF369) sc sp_start sp_block sp_scan s_prep s' c sp_prep
       sp_scan' n_old h_stream_block h_close_pending h_close_entry_old h_kslot92
       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_nextB h_preprocess h_dispatch h_bare
       h_dn h_fv h_base h_sound h_mono h_seqF167
