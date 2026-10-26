@@ -466,3 +466,42 @@ plain continuation (`SNsPlainMultiLine` in `blockIn`/`blockOut`) against a
 property, a `- `/`? `/`: ` indicator or a less-indented line at the start of the
 next line is the open boundary lemma, and the block follow-set (`b-l-folded`
 then indentation) replaces `FStop`.
+
+### Slice 3 stopped (block/document fragment): refuted, not proved
+
+The Rule-2 grid for the block/document fragment was built BEFORE any proof, and
+two of its pairs have two derivations of the same span with DIFFERENT traces,
+so `traceOf_unique` is false as stated and no `UniqueBlock.lean` exists.  Both
+pairs are elaborated as term-level derivations in
+`Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean` (`traceOf_unique_refuted`,
+`tBlockNode_unique_refuted`):
+
+1. `a⏎&x` — trace `[]` (one bare document whose plain scalar `a &x` folds over
+   the break: `[69]` grants the continuation line indent 0 at `n = 0`) or
+   `[defineAnchor x]` (bare document `a`, then `TLYamlStream.implicitContinue`
+   opens a SECOND bare document `&x`).  The parser takes the first reading
+   (`=VAL :a &x`, one document): grammar laxity, and exactly action row 19 —
+   `implicitContinue` requires no `l-document-suffix+` and takes any document,
+   the union of `[211]`'s two alternatives rather than either.  The §10 long
+   pole (multi-line plain continuation vs a property at the start of the next
+   line) is therefore not merely hard: at `n = 0` it is AMBIGUOUS, and the
+   disjointness lemma cannot exist until the document layer is `[211]`-exact.
+2. `a: |⏎   x⏎  &x b: *x` — trace `[]` (autodetected `m = 0`, content indent 1:
+   both following lines are literal text, their extra spaces `nb-char`s) or
+   `[defineAnchor x, useAlias x]` (`m = 2`, content indent 3: the third line is
+   under-indented, so the content ends and `[173]`'s trailing
+   `GOpt (SIndentLe n)` — meant for a partial indent at EOF, but not confined
+   to EOF — swallows its two spaces; `TBlockMapEntries 0` resumes with the
+   entry `&x b: *x`).  This refutes same-end uniqueness of `TBlockNode`
+   itself.  The parser refuses the input (and its event-free cousin
+   `a: |⏎   x⏎  y: z`): neither reading, scanner/grammar disagreement, the
+   grammar the lax side.
+
+Both repairs are Surface edits: `[211]` explicit-only continuation (row 19,
+whose constructor DOCS records as StreamAccum-load-bearing and last to pay),
+and `[173]`'s tail confined to EOF.  The second alone does not close pair 2:
+with the tail removed the `m = 2` reading re-enters through pair 1's hole as a
+bare document `  &x b: *x` at indent 2.  Until both land, the honest statement
+of 7.7's ← has no `traceOf_unique` behind it; nothing in the flow fragment
+(slice 2) is affected, and the leaf/trace machinery of slices 1–2 is reused
+unchanged by the refutation terms.
