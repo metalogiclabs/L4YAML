@@ -33,7 +33,7 @@ PIPE_RE = re.compile(r"(?<!\\)\|")
 
 
 def split_row(line: str) -> list[str]:
-    """Split a Markdown table row on unescaped pipes; `\|` inside a cell is a literal pipe."""
+    r"""Split a Markdown table row on unescaped pipes; `\|` inside a cell is a literal pipe."""
     body = line.strip()
     if body.startswith("|"):
         body = body[1:]
