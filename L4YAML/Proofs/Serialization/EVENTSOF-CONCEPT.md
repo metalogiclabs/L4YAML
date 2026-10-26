@@ -453,8 +453,11 @@ the leaf facts are maximal separators, anchors, aliases and tags, self-delimitin
 quoted scalars, and plain scalars (one-line and multi-line flow continuation)
 maximal before a flow stop.  Two honest residues, both forced by the grammar
 rather than the proof: entries and entry lists are not prefix-free (inside
-`[a:b]` the span `a:` is the plain node `a:` or the key `a` with an empty value,
-different traces), so `tFlowSeqEntry_unique`/`tFlowMapEntry_unique` carry the
+`[a:b]` the span `a:` is the plain node `a:` or the key `a` with an empty value —
+the same trace `[]`, but a different split, so the induction cannot align the two
+derivations' intermediate positions without the follow; the unconditional
+same-end statement for entries is neither proved nor refuted), so
+`tFlowSeqEntry_unique`/`tFlowMapEntry_unique` carry the
 entry follow (`EFollow`: optional separator then `,` `]` `}`) and the entry-list
 lemmas carry the closing bracket (`CloseStop`), which the enclosing collection
 always supplies.  The block fragment is what remains for `traceOf_unique`: block
