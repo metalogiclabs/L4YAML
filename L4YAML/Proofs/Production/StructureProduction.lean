@@ -1242,17 +1242,6 @@ lemma collectVersionMajorLoop_inputEnd (sc : ScannerState) (major : String) (fue
       · rfl
     · rfl
 
-lemma collectTagHandleDirectiveLoop_inputEnd (sc : ScannerState) (handle : String) (fuel : Nat) :
-    (collectTagHandleDirectiveLoop sc handle fuel).snd.inputEnd = sc.inputEnd := by
-  induction fuel generalizing sc handle with
-  | zero => simp [collectTagHandleDirectiveLoop]
-  | succ fuel' ih =>
-    unfold collectTagHandleDirectiveLoop; split
-    · split
-      · exact (ih _ _).trans (advance_inputEnd sc)
-      · rfl
-    · rfl
-
 /-- The directive name: a maximal run of ns-chars after the `%`, returned as the
     characters the scanner pushed (so `name == "YAML"` can be read off it) with
     the stop position's maximality. -/
@@ -1462,13 +1451,18 @@ lemma isWordCharOrBang_not_isLineBreak (c : Char)
   simp [isWordCharBool, isWordCharProp, isAsciiLetterProp] at h
   rcases hlb with rfl | rfl <;> simp_all
 
-/-- `[89]` c-tag-handle characters: `[38] ns-word-char` or `!`. -/
+/-- `[89]` c-tag-handle characters: `[38] ns-word-char` or `!`, a maximal run (the stop off
+    the fuel budget, as for the name). -/
 lemma collectTagHandleDirectiveLoop_prod (sc : ScannerState) (sp : SurfPos)
-    (hcorr : ScannerSurfCorr sc sp) (handle : String) (fuel : Nat) :
+    (hcorr : ScannerSurfCorr sc sp) (handle : String) (fuel : Nat)
+    (hfuel : fuel ≥ sc.inputEnd - sc.offset) :
     ∃ sp', GStar (GChar (fun c => isWordCharProp c ∨ c = '!')) sp sp' ∧
+      GNot (GChar (fun c => isWordCharProp c ∨ c = '!')) sp' ∧
       ScannerSurfCorr (collectTagHandleDirectiveLoop sc handle fuel).snd sp' := by
   induction fuel generalizing sc sp handle with
-  | zero => simp [collectTagHandleDirectiveLoop]; exact ⟨sp, GStar.nil _, hcorr⟩
+  | zero =>
+    simp only [collectTagHandleDirectiveLoop]
+    exact ⟨sp, GStar.nil _, gnot_gchar_of_peek_none hcorr (peek_none_of_fuel_zero hfuel), hcorr⟩
   | succ fuel' ih =>
     unfold collectTagHandleDirectiveLoop; split
     · rename_i c hpeek; split
@@ -1478,11 +1472,15 @@ lemma collectTagHandleDirectiveLoop_prod (sc : ScannerState) (sp : SurfPos)
         have hmore := corr_nonempty_has_more hcorr
         have hadv := advance_non_newline_corr sc c rest hcorr hmore
           (not_isLineBreak_not_newline c h_nlb) (not_isLineBreak_not_cr c h_nlb)
-        obtain ⟨sp', hstar, hcorr'⟩ := ih sc.advance ⟨rest, sc.col + 1⟩ hadv (handle.push c)
+        obtain ⟨sp', hstar, hnot, hcorr'⟩ := ih sc.advance ⟨rest, sc.col + 1⟩ hadv (handle.push c)
+          (advance_fuel_budget sc fuel' hmore hfuel)
         exact ⟨sp', GStar.cons _ _ _
-          (GChar.mk c rest sc.col ((isTagHandleChar_iff_bool c).mp h_pred)) hstar, hcorr'⟩
-      · exact ⟨sp, GStar.nil _, hcorr⟩
-    · exact ⟨sp, GStar.nil _, hcorr⟩
+          (GChar.mk c rest sc.col ((isTagHandleChar_iff_bool c).mp h_pred)) hstar, hnot, hcorr'⟩
+      · rename_i h_pred
+        obtain ⟨rest, rfl⟩ := peek_some_sp hcorr hpeek
+        exact ⟨_, GStar.nil _, gnot_gchar_head (fun h => h_pred ((isTagHandleChar_iff_bool c).mpr h)), hcorr⟩
+    · rename_i hpeek
+      exact ⟨sp, GStar.nil _, gnot_gchar_of_peek_none hcorr hpeek, hcorr⟩
 
 lemma isUriChar_not_isLineBreak (c : Char)
     (h : isUriCharBool c = true) :
@@ -1554,6 +1552,7 @@ inductive ScannedDirective : SurfPos → SurfPos → Prop where
       GNot (GChar isNsChar) ⟨rest, col + 4⟩ →
       GStar SSWhite ⟨rest, col + 4⟩ s₁ →
       GStar (GChar (fun c => isWordCharProp c ∨ c = '!')) s₁ s₂ →
+      GNot (GChar (fun c => isWordCharProp c ∨ c = '!')) s₂ →
       GStar SSWhite s₂ s₃ →
       GStar (GChar isUriCharProp) s₃ s₄ →
       DirectiveTail s₄ s' →
@@ -1682,16 +1681,19 @@ lemma scanYamlDirective_prod (sc : ScannerState)
 lemma scanTagDirective_prod
     (s_after_ws : ScannerState) (sp_ws : SurfPos)
     (hcorr_ws : ScannerSurfCorr s_after_ws sp_ws)
-    (sc : ScannerState) (startPos : YamlPos) (s' : ScannerState)
+    (sc : ScannerState) (hend : s_after_ws.inputEnd = sc.inputEnd)
+    (startPos : YamlPos) (s' : ScannerState)
     (hok : scanTagDirective sc s_after_ws startPos = .ok s') :
     ∃ s₂ s₃ s₄ sp_v, GStar (GChar (fun c => isWordCharProp c ∨ c = '!')) sp_ws s₂ ∧
+      GNot (GChar (fun c => isWordCharProp c ∨ c = '!')) s₂ ∧
       GStar SSWhite s₂ s₃ ∧ GStar (GChar isUriCharProp) s₃ s₄ ∧
       GStar SSWhite s₄ sp_v ∧ DirectiveStop s₄ sp_v ∧
       ScannerSurfCorr s' sp_v := by
   unfold scanTagDirective at hok
   simp only [bind, Except.bind] at hok
-  obtain ⟨sp_hdl, h_hdl, hcorr_hdl⟩ :=
-    collectTagHandleDirectiveLoop_prod s_after_ws sp_ws hcorr_ws "" _
+  obtain ⟨sp_hdl, h_hdl, h_hnot, hcorr_hdl⟩ :=
+    collectTagHandleDirectiveLoop_prod s_after_ws sp_ws hcorr_ws "" (sc.inputEnd - s_after_ws.offset)
+      (Nat.le_of_eq (by rw [hend]))
   obtain ⟨sp_ws2, h_ws, hcorr_ws2⟩ := skipWhitespace_corr _ sp_hdl hcorr_hdl
   obtain ⟨sp_pfx, h_pfx, hcorr_pfx⟩ := collectTagPrefixLoop_prod _ sp_ws2 hcorr_ws2 "" _
   obtain ⟨sp_val, h_ws_val, hcorr_val⟩ := skipWhitespace_corr _ sp_pfx hcorr_pfx
@@ -1705,7 +1707,7 @@ lemma scanTagDirective_prod
     · exact absurd hok (by simp)
     · rename_i hcol
       have h := Except.ok.inj hok; subst h
-      exact ⟨sp_hdl, sp_ws2, sp_pfx, sp_val, h_hdl, h_ws, h_pfx, h_ws_val,
+      exact ⟨sp_hdl, sp_ws2, sp_pfx, sp_val, h_hdl, h_hnot, h_ws, h_pfx, h_ws_val,
         directiveStop_of_validated hcorr_pfx hcorr_val (Or.inr (Or.inr ⟨hpeek, hcol⟩)),
         lift _ _ hcorr_val _ _ _⟩
   · rename_i c _ hpeek
@@ -1713,12 +1715,12 @@ lemma scanTagDirective_prod
     · exact absurd hok (by simp)
     · rename_i hlb
       have h := Except.ok.inj hok; subst h
-      exact ⟨sp_hdl, sp_ws2, sp_pfx, sp_val, h_hdl, h_ws, h_pfx, h_ws_val,
+      exact ⟨sp_hdl, sp_ws2, sp_pfx, sp_val, h_hdl, h_hnot, h_ws, h_pfx, h_ws_val,
         directiveStop_of_validated hcorr_pfx hcorr_val (Or.inr (Or.inl ⟨c, hpeek, by simpa using hlb⟩)),
         lift _ _ hcorr_val _ _ _⟩
   · rename_i hpeek
     have h := Except.ok.inj hok; subst h
-    exact ⟨sp_hdl, sp_ws2, sp_pfx, sp_val, h_hdl, h_ws, h_pfx, h_ws_val,
+    exact ⟨sp_hdl, sp_ws2, sp_pfx, sp_val, h_hdl, h_hnot, h_ws, h_pfx, h_ws_val,
       directiveStop_of_validated hcorr_pfx hcorr_val (Or.inl hpeek),
       lift _ _ hcorr_val _ _ _⟩
 
@@ -1780,10 +1782,10 @@ lemma scanDirective_prod (sc : ScannerState) (sp : SurfPos)
         split at hok
         · rename_i s_tag h_tag_ok
           have h_eol := Except.ok.inj hok; subst h_eol
-          obtain ⟨s₂, s₃, s₄, sp_v, h_hdl, h_ws2, h_pfx, h_wsv, hstop, hcorr_v⟩ :=
-            scanTagDirective_prod _ sp_ws hcorr_ws sc _ s_tag h_tag_ok
+          obtain ⟨s₂, s₃, s₄, sp_v, h_hdl, h_hnot, h_ws2, h_pfx, h_wsv, hstop, hcorr_v⟩ :=
+            scanTagDirective_prod _ sp_ws hcorr_ws sc hend_ws _ s_tag h_tag_ok
           obtain ⟨sp', h_skip, hcorr'⟩ := skipToEndOfLine_corr _ sp_v hcorr_v
-          exact ⟨sp', .tag tail sc.col sp_ws s₂ s₃ s₄ sp' hnot h_ws h_hdl h_ws2 h_pfx ⟨sp_v, h_wsv, hstop, h_skip⟩,
+          exact ⟨sp', .tag tail sc.col sp_ws s₂ s₃ s₄ sp' hnot h_ws h_hdl h_hnot h_ws2 h_pfx ⟨sp_v, h_wsv, hstop, h_skip⟩,
             hcorr', skipToEndOfLine_at_break_or_eof_chars _ sp' hcorr'⟩
         · simp at hok
       · -- reserved: `skipToEndOfLine` + `directivesPresent` flag (Fix B)

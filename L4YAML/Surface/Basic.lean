@@ -234,8 +234,9 @@ the scanner/parser — the surface syntax just needs to recognize the shape. -/
     * `yaml` — name `YAML`: whites, `[86] ns-yaml-version` = digits `.` digits (both runs
       non-empty), then `[79] s-l-comments` (a `#` needs a white before it: the scanner's
       `directiveTrailingContent` check);
-    * `tag` — name `TAG`: whites, `[89] c-tag-handle` chars (word chars and `!`), whites, the
-      prefix (`[39] ns-uri-char`s), then `s-l-comments`;
+    * `tag` — name `TAG`: whites, `[89] c-tag-handle` chars (word chars and `!`, a maximal run —
+      the scanner's handle loop stops only at a non-handle character), whites, the prefix
+      (`[39] ns-uri-char`s), then `s-l-comments`;
     * `reserved` — any other name (`[83]`; the empty name included, as the scanner accepts
       `%` alone), stated as the maximal ns-char run that is neither `YAML` nor `TAG`: the rest
       of the line unvalidated (`skipToEndOfLine`), then `s-l-comments`.
@@ -254,6 +255,7 @@ inductive SLDirective : SurfPos → SurfPos → Prop where
       GNot (GChar isNsChar) ⟨rest, col + 4⟩ →
       GStar SSWhite ⟨rest, col + 4⟩ s₁ →
       GStar (GChar (fun c => isWordCharProp c ∨ c = '!')) s₁ s₂ →
+      GNot (GChar (fun c => isWordCharProp c ∨ c = '!')) s₂ →
       GStar SSWhite s₂ s₃ →
       GStar (GChar isUriCharProp) s₃ s₄ →
       SSLComments s₄ s' →
