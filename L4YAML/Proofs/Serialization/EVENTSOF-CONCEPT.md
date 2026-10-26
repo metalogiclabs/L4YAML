@@ -433,3 +433,25 @@ TraceOf input ev → SerializationWellFormed ev` — `∀`, so an out-of-languag
 input is vacuous (the surface conjunct rejects it) and an in-language input
 has, once `traceOf_unique` is proven, exactly one trace to check.  Next:
 `traceOf_unique` over the flow fragment.
+
+### Slice 2 landed (flow fragment)
+
+`TraceOf/UniqueFlow.lean` proves `tFlowNode_unique` and the same-end uniqueness of
+every member of the flow fragment (`TFlowContent`, `TCFlowJsonNode`,
+`TCFlowJsonContent`, `TFlowSequence`, `TFlowMapping`, `TCNsProperties` and the
+leaves).  The invariant is span determinism under the flow follow-set, proved by
+strong induction on the remaining input length over all eight members at once;
+the leaf facts are maximal separators, anchors, aliases and tags, self-delimiting
+quoted scalars, and plain scalars (one-line and multi-line flow continuation)
+maximal before a flow stop.  Two honest residues, both forced by the grammar
+rather than the proof: entries and entry lists are not prefix-free (inside
+`[a:b]` the span `a:` is the plain node `a:` or the key `a` with an empty value,
+different traces), so `tFlowSeqEntry_unique`/`tFlowMapEntry_unique` carry the
+entry follow (`EFollow`: optional separator then `,` `]` `}`) and the entry-list
+lemmas carry the closing bracket (`CloseStop`), which the enclosing collection
+always supplies.  The block fragment is what remains for `traceOf_unique`: block
+collections and the block-scalar headers are self-delimiting, but multi-line
+plain continuation (`SNsPlainMultiLine` in `blockIn`/`blockOut`) against a
+property, a `- `/`? `/`: ` indicator or a less-indented line at the start of the
+next line is the open boundary lemma, and the block follow-set (`b-l-folded`
+then indentation) replaces `FStop`.

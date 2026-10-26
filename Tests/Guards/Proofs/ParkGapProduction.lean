@@ -379,9 +379,11 @@ def expectedEndsLit : List String :=
 -- JSON-key adjacent value) and their 8 arms; no park reading moved.
 -- 2026-10-24 (B3): prods 162 → 164, ctors 304 → 306 — the explicit JSON-key adjacent-value twins in Surface/Node.lean.
 -- 2026-10-25 (#99 review): prods 164 → 163 — the dead `FlowLead` duplicate of `leadFree` is deleted.
+-- 2026-10-25 (slice 2, `TraceOf/UniqueFlow.lean`): prods 163 → 165, ctors 306 → 308 — the proof-layer relations
+-- `PStep` (2 arms) and `Follow` (a def); neither ends at a literal the park reads.
 def expectedLine : String :=
   "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
-depth=4 prods=163 ctors=306 \
+depth=4 prods=165 ctors=308 \
 endsLit=39 minus=1 question=2 colon=21 chainEnds=0 blockArms=1 seqArms=10 \
 mapArms=10 streamArms=4 streamHonest=3"
 
