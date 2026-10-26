@@ -1157,7 +1157,8 @@ def expectedLine : String :=
   -- content lemmas; no origin class moved (stamp/ride/none unchanged).
   -- 2026-10-26 (item 366): alts 5205 → 5209, nodes 13708 → 13722, liteNodes 621328 → 621993 — the two `h_outer` pays at
   -- closeThenBlock (`Classical.em` alternatives and their lets); no origin class moved.
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=641 lapps=813 alts=5203 nodes=13686 liteNodes=621478"
+  -- 2026-10-26 (item 369): lapps=813 → lapps=814, alts=5203 → alts=5210, nodes=13686 → nodes=13688, liteNodes=621478 → liteNodes=621947 — `h_closeF_old` (the `-` park's frames) held under `accum_block_on_pendingBlock`; no origin row moved.
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=72 originRows=32 route=21 frames=29 tail=0 other=6 concl=12 invariant=4 heldOrigins=26 allHeld=9 someHeld=36 noneHeld=60 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=641 lapps=814 alts=5210 nodes=13688 liteNodes=621947"
 
 /-! ## §4 The reading -/
 

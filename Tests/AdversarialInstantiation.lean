@@ -5371,6 +5371,48 @@ def testBlockScalarTailEof (state : IO.Ref TestCollector) : IO Unit := do
       | .error _ => true
     checkM state s!"badChar/parser refuses ({label})" refused ""
 
+/-- Priority 37 (item 369, lane A of the `[211]` landing): the parser's reading of a key that
+lands LEFT of an awaited block entry — `rootMapRoute_or_refused`'s fallback arms key it as a
+fresh bare document (`implicitContinue`), the parser reads it as a SIBLING of the enclosing
+mapping/sequence (one document, two root entries) or refuses the landing (`trailingContent`).
+`some (docs, n)` = accepted with `docs` documents and `n` entries in the first root collection;
+`none` = refused.  The rows are item 297's table plus the `...`-closed contrast (two documents,
+`suffixContinue`'s own slot). -/
+def testRootSiblingLedger (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 37: a key landing left of the awaited entry is a root SIBLING, not a bare document (item 369)"
+  let rootArity : YamlValue → Nat
+    | .mapping _ arr => arr.size
+    | .sequence _ arr => arr.size
+    | _ => 0
+  let rows : List (String × String × Option (Nat × Nat)) :=
+    [ ("? a⏎:⏎b: 1 (explicit `:` park, dedent to col 0)", "? a\n:\nb: 1", some (1, 2)),
+      ("? a⏎: v⏎b: 1", "? a\n: v\nb: 1", some (1, 2)),
+      ("a: 1⏎b: 2 (plain sibling)", "a: 1\nb: 2", some (1, 2)),
+      ("k:⏎  ? a⏎  :⏎  b:⏎d: 3 (item 297 coverless row)", "k:\n  ? a\n  :\n  b:\nd: 3", some (1, 2)),
+      ("k:⏎  ? a⏎  :⏎  b:⏎&p d: 3 (run-headed twin)", "k:\n  ? a\n  :\n  b:\n&p d: 3", some (1, 2)),
+      ("k:⏎  ? a⏎  :⏎  b:⏎!t d: 3", "k:\n  ? a\n  :\n  b:\n!t d: 3", some (1, 2)),
+      ("- ? a⏎  :⏎  b:⏎- c (sequence sibling)", "- ? a\n  :\n  b:\n- c", some (1, 2)),
+      ("k:⏎  - ?⏎    b:⏎d: 1", "k:\n  - ?\n    b:\nd: 1", some (1, 2)),
+      ("k:⏎  :⏎b: 2 (items 39/40/99's `dedent` input)", "k:\n  :\nb: 2", some (1, 2)),
+      ("k:⏎  -⏎b: 2 (empty `-` entry, then a root sibling: the `pendingBlock` landing)", "k:\n  -\nb: 2", some (1, 2)),
+      ("k:⏎  - a⏎b: 2", "k:\n  - a\nb: 2", some (1, 2)),
+      ("k:⏎  -⏎  ? x⏎b: 2 (`?` landing left of the `-`)", "k:\n  -\n  ? x\nb: 2", none),
+      ("k:⏎  -⏎? x (a `?` at the root after an empty `-`)", "k:\n  -\n? x", some (1, 2)),
+      ("k:⏎  -⏎: x (a `:` at the root after an empty `-`: `[189]` empty key)", "k:\n  -\n: x", some (1, 2)),
+      ("? a⏎:⏎...⏎b: 1 (`...` closes: two documents, suffixContinue's slot)", "? a\n:\n...\nb: 1", some (2, 1)),
+      ("k:⏎  a:⏎ b: 2 (covering frames: refused)", "k:\n  a:\n b: 2", none),
+      ("k:⏎    a:⏎  b: 2", "k:\n    a:\n  b: 2", none),
+      ("- k:⏎    a:⏎   b: 2", "- k:\n    a:\n   b: 2", none),
+      ("- a⏎b: 1 (a mapping key after a root sequence: refused)", "- a\nb: 1", none),
+      ("- - a⏎b: 1", "- - a\nb: 1", none),
+      ("a⏎&x (R1: plain folds, one scalar document)", "a\n&x", some (1, 0)) ]
+  for (label, src, expected) in rows do
+    let got : Option (Nat × Nat) := match L4YAML.TokenParser.parseYaml src with
+      | .ok docs => some (docs.size, (docs[0]?.map (fun d => rootArity d.value)).getD 0)
+      | .error _ => none
+    checkM state s!"root sibling {label}" (got == expected)
+      s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5416,6 +5458,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testExplicitColonRegister state
   testTraceOfLeafEvents state
   testTraceOfBlockLedger state
+  testRootSiblingLedger state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",

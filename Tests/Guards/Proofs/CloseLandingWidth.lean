@@ -544,6 +544,9 @@ def expectedEmpties : List String :=
    "accum_block_on_pendingBlock SBlockIndented.empty n=n @sp_m width=none cmp=no",
    "accum_block_on_pendingBlock SBlockIndented.empty n=n @sp_m width=none cmp=no",
    "accum_block_on_pendingBlock SBlockIndented.empty n=n @sp_mid width=ind[ws:hws,col:hcol_mid,ind:h_ind] cmp=no",
+   -- 2026-10-26 (item 369): the same empty close read once more — the `:`/`?` landing pays `h_res_land`
+   -- off `pendingBlock.h_closeF` with the awaited entry closed EMPTY (24 → 25).
+   "accum_block_on_pendingBlock SBlockIndented.empty n=n @sp_mid width=ind[ws:hws,col:hcol_mid,ind:h_ind] cmp=no",
    "accum_block_on_pendingBlock SBlockIndented.empty n=n @sp_m width=ind[ind:h_iv] cmp=no",
    "accum_block_pending SBlockNode.emptyNode n=nmv + 1 @sp_m width=ind[ind:h_ind] cmp=no",
    "accum_block_pending SBlockIndented.empty n=nmv @sp_m width=ind[ind:h_ind] cmp=yes[≡nmv]",
@@ -577,8 +580,10 @@ def expectedEmpties : List String :=
 -- 2026-10-23 (item 345): empties 23 → 24 — the EMPTY-entry twin relay in `accum_content_on_pendingBlock_indented`.
 -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
+-- 2026-10-26 (item 369): empties=24 → 25, emptyInd=11 → 12 — the `:`/`?` landing in
+-- `accum_block_on_pendingBlock` closes the awaited entry EMPTY once more to read `h_res_land` off `pendingBlock.h_closeF`.
 def expectedLine : String :=
-  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=18 spendsC=6 spendsE=0 spendsN=12 handoffs=4 carries=1 untyped=0 edges=2 paramsWalked=6 widthInd=5 widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 handInd=4 handDirect=4 handCmp=4 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=24 emptyLemmas=6 emptyInd=11 emptyCmp=4 emptySame=2 emptyClose=2 sites=20 pairs=20 pairs21=19 pairs18=17 nonANoDrop=8 reach=38"
+  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=18 spendsC=6 spendsE=0 spendsN=12 handoffs=4 carries=1 untyped=0 edges=2 paramsWalked=6 widthInd=5 widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 handInd=4 handDirect=4 handCmp=4 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=25 emptyLemmas=6 emptyInd=12 emptyCmp=4 emptySame=2 emptyClose=2 sites=20 pairs=20 pairs21=19 pairs18=17 nonANoDrop=8 reach=38"
 
 /-! ## §5 The reading -/
 

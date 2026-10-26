@@ -354,6 +354,7 @@ declarations' own binders and not by a rescoring of an existing one.
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
 -- 2026-10-25 (#99 review): PEELED constants 1667 → 1662, decls 1304 → 1301, FIELD 191 → 190, READ 1333 → 1331 — the dead `FlowLead` (+ its two lemmas) deleted; `leadFree`/`closeFree` are `Bool`.
 -- 2026-10-26 (item 367, `[82]`): the three `s-l-comments` composition lemmas join StreamAccum: decls 1317 → 1320, FIELD +2, READ +4, RELAY +4.
+-- 2026-10-26 (item 369): READ=1375 → READ=1376 — `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames, read at the `:`/`?` landing for `h_res_land`).
 def expectedModuleTallyP : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
@@ -363,7 +364,7 @@ def expectedModuleTallyP : String :=
   -- 2026-10-26 (item 365): RELAY 2633 → 2639 — the same six premises `HypothesisReaderCensus` counts
   -- (`h_sound` ×3, `h_fl0` ×2, `h_alt` ×1) passed whole along the content lane.
   -- 2026-10-26 (item 366): RELAY 2639 → 2641 — the same two `h_sound` relays (pre-pinned with `HypothesisReaderCensus`).
-  "constants=1681 decls=1320 eta=441 FIELD=192 READ=1375 RELAY=2645 RETURN=167 UNUSED=27"
+  "constants=1681 decls=1320 eta=441 FIELD=192 READ=1376 RELAY=2645 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -372,10 +373,11 @@ def expectedModuleTallyP : String :=
 -- read READ under this peel too.
 -- 2026-10-20 (item 307): `READ` 86 → 87, `RELAY` 38 → 37 — `accum_block_on_pendingContent`'s `h_mapFV108` is READ
 -- (a `match`) where it was RELAYed; as `HypothesisReaderCensus.expectedOptTally`.
+-- 2026-10-26 (item 369): total=165 → total=166, READ=88 → READ=89 — `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames, read at the `:`/`?` landing for `h_res_land`).
 def expectedOptTallyP : String :=
   -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp` `inr`
   -- arms pay an empty chain and no longer read their alternative.
-  "total=165 ETA=31 FIELD=4 READ=88 RELAY=40 RETURN=2"
+  "total=166 ETA=31 FIELD=4 READ=89 RELAY=40 RETURN=2"
 
 run_cmd do
   let env ← getEnv
@@ -846,9 +848,10 @@ lemma opt_premise_is_no_premise {A P : Prop} : (A ∨ True → P) ↔ P :=
 -- 2026-10-21 (item 311): `optTy` 158 → 156 — `colon_open_map_implicit` states the family's alternative generically
 -- (`{alt : Prop}`), so its two `∨ alt` premises leave the literal-optional population, as the three generic helpers'
 -- did at item 309; `total` stands at 163.
+-- 2026-10-26 (item 369): total=165 → total=166, optTy=157 → optTy=158 — `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames, read at the `:`/`?` landing for `h_res_land`).
 def expectedOptPopulation : String :=
   -- 2026-10-24 (item 350): total 163 → 159, optTy 156 → 153, ctorFields 33 → 31 — as above.
-  "total=165 optTy=157 ctorFields=31"
+  "total=166 optTy=158 ctorFields=31"
 
 run_cmd do
   let env ← getEnv

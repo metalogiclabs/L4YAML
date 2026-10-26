@@ -1030,7 +1030,9 @@ def expectedRows : List String :=
    "accum_content_pending #1 ctor:pendingBlockContent.h_closeFV := match[paid{cover=punt}|punt]",
    "accum_content_pending #2 ctor:pendingBlockContent.h_closeFV := match[paid{cover=punt}|punt]",
    "accum_content_pending #3 ctor:pendingBlockContent.h_closeFV := match[paid{cover=punt}|punt]",
-   "accum_content_pending #1 param:accum_content_on_pendingBlock_indented.h_closeFV_old := imp:door:pendingBlock.h_closeFV{relay(door:pendingBlock.h_closeFV)}"
+   "accum_content_pending #1 param:accum_content_on_pendingBlock_indented.h_closeFV_old := imp:door:pendingBlock.h_closeFV{relay(door:pendingBlock.h_closeFV)}",
+   -- 2026-10-26 (item 369): 198 → 199 — `accum_block_on_pendingBlock.h_closeF_old` relays `pendingBlock.h_closeF`
+   "accum_block_pending #1 param:accum_block_on_pendingBlock.h_closeF_old := relay(door:pendingBlock.h_closeF)"
   ]
 -- Item 259: the compact opener's payment of `pendingMapValue.h_closeF` is a
 -- leaf of ALL FOUR trees — the mapping value field is a position of the
@@ -1042,17 +1044,19 @@ def expectedTrees : List String :=
    "entry: positions=16 rows=47 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=6 punt=15] open=2",
    "valF: positions=9 rows=24 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=11] open=2",
    "mapValue: positions=8 rows=13 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=2] open=2"]
+-- 2026-10-26 (item 369): `accum_block_on_pendingBlock` row re-read — `h_closeF_old` (the `-` park's frames) joins its binders.
 def expectedEight : List String :=
-  ["accum_block_on_pendingBlock indicator_open_map.h_stream_land indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
-   "accum_block_on_pendingBlock colon_open_map_explicit.h_stream_mid indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
-   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_offcol.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
-   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_nopack.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=1(h_closeFV_old@2)",
+  ["accum_block_on_pendingBlock indicator_open_map.h_stream_land indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeFV_old@2,h_closeF_old@2)",
+   "accum_block_on_pendingBlock colon_open_map_explicit.h_stream_mid indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeFV_old@2,h_closeF_old@2)",
+   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_offcol.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeFV_old@2,h_closeF_old@2)",
+   "accum_block_on_pendingBlock block_dispatch_deferred_stamp_nopack.h_stream indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeFV_old@2,h_closeF_old@2)",
    "accum_block_on_pendingBlockContent indicator_open_map.h_stream_land indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)",
    "accum_block_on_pendingBlockContent colon_open_map_explicit.h_stream_mid indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)",
    "accum_block_on_pendingBlockContent block_dispatch_deferred_stamp_offcol.h_stream indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)",
    "accum_block_on_pendingBlockContent block_dispatch_deferred_stamp_nopack.h_stream indents=0 top=0 floor=0 minCI=0 nic=1(h_nic0) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeF_old@2,h_closeFV_old@2)"]
+-- 2026-10-26 (item 369): the `-` park's `h_closeF` now feeds `accum_block_on_pendingBlock` (was dropped).
 def expectedDoor : List String :=
-  ["accum_block_pending: door:pendingBlock.h_closeF dropped",
+  ["accum_block_pending: door:pendingBlock.h_closeF → accum_block_on_pendingBlock.h_closeF_old kept",
    "accum_block_pending: door:pendingBlockContent.h_closeF → accum_block_on_pendingBlockContent.h_closeF_old kept",
    "accum_block_pending: door:pendingContent.h_framesS → accum_block_on_pendingContent.h_mapF109 forgotten",
    "accum_block_pending: door:pendingContent.h_framesV → accum_block_on_pendingContent.h_mapFV108 forgotten",
@@ -1195,6 +1199,7 @@ def expectedDoor : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
 -- 2026-10-25 (#99 review): nodes=115233 → nodes=115369 — the dead `FlowLead` + two lemmas deleted; `leadFree`/`closeFree` are `Bool` (walked-term total).
 -- 2026-10-26 (item 367, `[82]`): nodes 117899 → 117863 (walked-term total) — the two directive sites in StreamAccum now apply `scannedDirective_toSL` instead of destructuring `scanDirective_prod`'s `rest`/`hchars` and rebuilding `SLDirective.mk`; the cover rows are unchanged.
+-- 2026-10-26 (item 369): lemParams=34 → lemParams=35, rows=198 → rows=199, lemRows=73 → lemRows=74, doorKept=16 → doorKept=17, doorDropped=25 → doorDropped=24, nodes=117863 → nodes=117865 — `pendingBlock.h_closeF` kept through the `accum_block_pending` door into `accum_block_on_pendingBlock.h_closeF_old`.
 def expectedLine : String :=
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); nodes 117690 → 117529 (walked-term total; the `elim[punt|punt]` face rows unchanged).
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`); the three `match h_kslot_* with` blocks go — nodes 117529 → 117431 (walked-term total).
@@ -1202,7 +1207,7 @@ def expectedLine : String :=
   -- lemmas and the eleven `h_alt := h_refused.elim …` arguments; no cover row moved.
   -- 2026-10-26 (item 366): nodes 117885 → 117899 — the two `Classical.em` pays of `h_outer` in
   -- `accum_block_on_closeThenBlock`; no row of this guard moved.
-  "positions=23 ctorFields=13 lemParams=34 lemmas=18 walked=25 doors=9 rows=198 ctorRows=92 lemRows=73 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=16 doorForgotten=8 doorDropped=25 doorsOther=5 nodes=117863"
+  "positions=23 ctorFields=13 lemParams=35 lemmas=18 walked=25 doors=9 rows=199 ctorRows=92 lemRows=74 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=2 pbPaid=4 pbPunt=1 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=15 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=16 entryPaid=6 entryPunt=15 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=16 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=17 doorForgotten=8 doorDropped=24 doorsOther=5 nodes=117865"
 
 /-! ## §6 The reading -/
 

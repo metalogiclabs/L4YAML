@@ -460,7 +460,9 @@ def expectedAPairs : List String :=
     "SBlockNode(_+1,blockIn) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream ⟶ SLYamlStream.implicitContinue[S,GStar.nil,GOpt.some(SLAnyDocument.bare(SLBareDocument.mk)),GStar.nil] ⟵ T1"]
 def expectedAvail : List String :=
   [ "accum_block_on_closeThenBlock: behind=[h_vslot:blockOut] ahead=[h_vpack:blockOut]",
-    "accum_block_on_pendingBlock: behind=[h_close_entry_old:blockIn, h_kslot:blockIn/blockOut, h_seqF_old:blockIn, h_kslotUp:blockIn/blockOut, h_closeFV_old:blockIn] ahead=[]",
+    -- 2026-10-26 (item 369): `h_closeF_old:blockIn` joins the binders behind the landing — `pendingBlock.h_closeF`
+    -- threaded so the `:`/`?` landing pays `indicator_open_map`'s `h_res_land` off the park's frames.
+    "accum_block_on_pendingBlock: behind=[h_close_entry_old:blockIn, h_kslot:blockIn/blockOut, h_seqF_old:blockIn, h_kslotUp:blockIn/blockOut, h_closeFV_old:blockIn, h_closeF_old:blockIn] ahead=[]",
     "accum_block_on_pendingBlockContent: behind=[] ahead=[h_kslot:blockOut, h_kslotUp:blockOut]",
     "accum_block_on_pendingContent: behind=[] ahead=[h_vpack:blockOut]",
     "accum_content_on_pendingBlock_indented: behind=[h_close_old:blockIn, h_close_entry_old:blockIn, h_kslot_old:blockIn/blockOut, h_closeF_old:blockIn, h_seqF_old:blockIn, h_kslotUp_old:blockIn/blockOut, h_closeFV_old:blockIn] ahead=[]",
