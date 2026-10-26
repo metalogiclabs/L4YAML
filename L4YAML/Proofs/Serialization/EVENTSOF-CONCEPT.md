@@ -474,7 +474,7 @@ two of its pairs have two derivations of the same span with DIFFERENT traces,
 so `traceOf_unique` is false as stated and no `UniqueBlock.lean` exists.  Both
 pairs are elaborated as term-level derivations in
 `Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean` (`traceOf_unique_refuted`,
-`tBlockNode_unique_refuted`):
+`traceOf_literalA`/`traceOf_literalB`):
 
 1. `a⏎&x` — trace `[]` (one bare document whose plain scalar `a &x` folds over
    the break: `[69]` grants the continuation line indent 0 at `n = 0`) or
@@ -505,3 +505,16 @@ bare document `  &x b: *x` at indent 2.  Until both land, the honest statement
 of 7.7's ← has no `traceOf_unique` behind it; nothing in the flow fragment
 (slice 2) is affected, and the leaf/trace machinery of slices 1–2 is reused
 unchanged by the refutation terms.
+
+**`[173]` half landed.**  `SLLiteralContent`'s partial-indent tail is now
+`GOpt (fun a b => SIndentLe n a b ∧ b.chars = [])`: a partial indent is the
+scalar's only at end of input; a partially indented line followed by content
+is left to the enclosing collection (`l-chomped-empty` has no such line).  The
+scanner agreed everywhere but one corner — `collectBlockScalarLoop` ended a
+scalar AFTER the indent of a line whose first character is not an `nb-char`;
+it now stops at that line's start (the parse is refused at that character
+either way).  `BlockStopOk.badChar` carries a non-empty run (`GPlus`), and the
+`TBlockNode`-level half of pair 2 (two entries in one mapping; its refutation lemma is gone) is CLOSED: the
+`m = 2` reading no longer fits in one mapping.  Pair 2 survives exactly as
+predicted — as two bare documents through `implicitContinue` (`readTwoDocs`) —
+so `traceOf_unique` stays refuted until `[211]` is explicit-only.

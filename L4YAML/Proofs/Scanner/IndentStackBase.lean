@@ -287,8 +287,9 @@ lemma collectBlockScalarLoop_preserves_indents (s : ScannerState) (rawContent : 
               · rw [ih, consumeNewline_preserves_indents,
                     collectLineContentLoop_preserves_indents,
                     consumeExactSpaces_preserves_indents]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_indents,
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_indents,
                     consumeExactSpaces_preserves_indents]
             · rw [collectLineContentLoop_preserves_indents,
                   consumeExactSpaces_preserves_indents]

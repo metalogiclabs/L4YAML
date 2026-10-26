@@ -1298,6 +1298,40 @@ lemma collectLineContentLoop_gplus_prod (sc : ScannerState) (sp : SurfPos)
     have h_first := not_isLineBreak_gives_SNbChar c rest sc.col hne_lb hpr hbom
     exact ⟨sp', gstar_to_gplus_from_first h_first h_tail, hcorr'⟩
 
+-- The line loop never shortens its accumulator.
+private lemma collectLineContentLoop_length_ge (sc : ScannerState) (content : String) (fuel : Nat) :
+    content.length ≤ (collectLineContentLoop sc content fuel).1.length := by
+  induction fuel generalizing sc content with
+  | zero => simp [collectLineContentLoop]
+  | succ fuel' ih =>
+    unfold collectLineContentLoop
+    split
+    · split
+      · exact Nat.le_refl _
+      · exact Nat.le_trans (by simp [String.length_push]) (ih sc.advance _)
+    · exact Nat.le_refl _
+
+-- With an nb-char first and fuel, the collected line is non-empty.
+lemma collectLineContentLoop_fst_nonempty (sc : ScannerState) (c : Char) (content : String)
+    (fuel : Nat) (hpeek : sc.peek? = some c) (hne_lb : ¬isLineBreakBool c = true)
+    (hpr : isPrintableBool c = true) (hbom : (c == '\uFEFF') = false) (hfuel : fuel ≥ 1) :
+    (collectLineContentLoop sc content fuel).1.isEmpty = false := by
+  have hlb_f : isLineBreakBool c = false := by
+    cases h : isLineBreakBool c with
+    | false => rfl
+    | true => exact absurd h hne_lb
+  match fuel, hfuel with
+  | fuel' + 1, _ =>
+    simp only [collectLineContentLoop]
+    rw [hpeek]
+    simp only [hlb_f, hpr, hbom, Bool.not_true, Bool.or_self,
+      Bool.false_eq_true, ↓reduceIte]
+    have h := collectLineContentLoop_length_ge sc.advance (content.push c) fuel'
+    rw [String.length_push] at h
+    cases hE : (collectLineContentLoop sc.advance (content.push c) fuel').1.isEmpty with
+    | false => rfl
+    | true => exact absurd h (by rw [String.isEmpty_iff.mp hE]; simp)
+
 /-! ## §7 Plain Scalar Production (Layer 4b)
 
   `scanPlainScalar` produces `SNsPlain 0 .blockIn` (= `SNsPlainMultiLine 0 .blockIn`).
@@ -3829,11 +3863,11 @@ lemma empty_literal_content {n : Nat} (sp : SurfPos) :
   SLLiteralContent.mk n sp sp sp sp sp sp
     (GOpt.none sp) (GOpt.none sp) (GStar.nil sp) (GOpt.none sp) (GOpt.none sp)
 
--- Trailing indent only: `SIndentLe n` at EOF.
+-- Trailing indent only: `SIndentLe n` at EOF (the tail is EOF-confined).
 lemma indent_only_literal_content {n : Nat} {sp sp' : SurfPos}
-    (h : SIndentLe n sp sp') : SLLiteralContent n sp sp' :=
+    (h : SIndentLe n sp sp') (hend : sp'.chars = []) : SLLiteralContent n sp sp' :=
   SLLiteralContent.mk n sp sp sp sp sp sp'
-    (GOpt.none sp) (GOpt.none sp) (GStar.nil sp) (GOpt.none sp) (GOpt.some sp sp' h)
+    (GOpt.none sp) (GOpt.none sp) (GStar.nil sp) (GOpt.none sp) (GOpt.some sp sp' ⟨h, hend⟩)
 
 -- Prepend an `SLEmpty n .blockIn` to `SLLiteralContent n`.
 -- The empty line either joins the first text line's prefix or the trailing empties.
@@ -3923,7 +3957,7 @@ lemma content_break_indent_to_literal {n : Nat}
     {sp sp₁ sp₂ sp' : SurfPos}
     (h_text : SLNbLiteralText n sp sp₁)
     (h_break : SBBreak sp₁ sp₂)
-    (h_indent : GOpt (SIndentLe n) sp₂ sp') :
+    (h_indent : GOpt (fun a b => SIndentLe n a b ∧ b.chars = []) sp₂ sp') :
     SLLiteralContent n sp sp' :=
   SLLiteralContent.mk n sp sp₁ sp₂ sp₂ sp₂ sp'
     (GOpt.some sp sp₁ (GSeq.mk sp sp₁ sp₁ h_text (GStar.nil sp₁)))
@@ -4580,11 +4614,11 @@ lemma collectBlockScalarLoop_literal_prod
         rename_i hpeek
         have hnil : sp_spaces.chars = [] := peek_none_chars_nil hcorr_spaces hpeek
         exact ⟨sp_spaces,
-               indent_only_literal_content ⟨_, hle, h_sindent⟩,
+               indent_only_literal_content ⟨_, hle, h_sindent⟩ hnil,
                hcorr_spaces,
                Or.inl fun sp_mid W => by
                  rw [sslcomments_at_eof hnil W]
-                 exact indent_only_literal_content ⟨_, hle, h_sindent⟩⟩
+                 exact indent_only_literal_content ⟨_, hle, h_sindent⟩ hnil⟩
       · rename_i c hpeek
         split
         · -- isLineBreakBool c = true: empty line
@@ -4719,6 +4753,11 @@ lemma collectBlockScalarLoop_literal_prod
                 · -- Line stopped at a non-nb-char: block scalar ends here,
                   -- and the stop character refuses every walk unit.
                   rename_i hlb'
+                  have hne_fst := collectLineContentLoop_fst_nonempty
+                    (consumeExactSpaces sc contentIndent).2 c ""
+                    (inputEnd - (consumeExactSpaces sc contentIndent).2.offset + 1) hpeek
+                    hne_lb_bool hpr hbom (by omega)
+                  simp only [hne_fst, Bool.false_eq_true, ↓reduceIte]
                   have hstop := collectLineContentLoop_stop_char (B := inputEnd)
                     (consumeExactSpaces sc contentIndent).2 ""
                     (inputEnd - (consumeExactSpaces sc contentIndent).2.offset + 1)
@@ -4764,9 +4803,10 @@ lemma collectBlockScalarLoop_literal_prod
                 unfold collectLineContentLoop
                 simp only [hpeek, hcond, ↓reduceIte]
               rw [hloop]
-              simp only [hpeek, hlb_f, Bool.false_eq_true, ↓reduceIte,
-                String.append_empty]
-              -- the stop character is non-printable or BOM: forced-trivial
+              simp only [hpeek, hlb_f, Bool.false_eq_true, ↓reduceIte, String.isEmpty_iff]
+              -- the stop character is non-printable or BOM: forced-trivial.
+              -- An empty line run leaves the scanner at the line start `sc`:
+              -- the line's indent belongs to the enclosing collection.
               have hnp : ¬ isPrintableBool c = true ∨ (c == '\uFEFF') = true := by
                 cases hp : isPrintableBool c with
                 | false => exact Or.inl (by simp)
@@ -4775,18 +4815,16 @@ lemma collectBlockScalarLoop_literal_prod
                   | true => exact Or.inr rfl
                   | false => exact absurd (by simp [hp, bne, hb]) hnb
               obtain ⟨rest, hsp_eq⟩ := peek_some_sp hcorr_spaces' hpeek
-              have hchars : sp_spaces.chars = List.replicate 0 ' ' ++ c :: rest := by
-                rw [hsp_eq]; simp
+              have hchars : sp.chars = List.replicate contentIndent ' ' ++ c :: rest := by
+                rw [sindent_chars' h_sindent_full, hsp_eq]
               have hcbp : ¬ isLineBreakProp c := fun hp => by
                 simp [(isLineBreak_iff c).mpr hp] at hlb_f
-              refine ⟨sp_spaces,
-                     indent_only_literal_content ⟨contentIndent, Nat.le_refl _, h_sindent_full⟩,
-                     hcorr_spaces', Or.inl fun sp_mid W => ?_⟩
+              refine ⟨sp, empty_literal_content sp, hcorr, Or.inl fun sp_mid W => ?_⟩
               rw [sslcomments_forced_trivial hchars
                     (nonprint_ne c ' ' (by decide) hnp)
                     (nonprint_ne c '\t' (by decide) hnp)
                     (nonprint_ne c '#' (by decide) hnp) hcbp W]
-              exact indent_only_literal_content ⟨contentIndent, Nat.le_refl _, h_sindent_full⟩
+              exact empty_literal_content sp
 
 /-! ## §8c Block Scalar Composition
 

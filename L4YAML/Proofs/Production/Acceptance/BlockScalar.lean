@@ -172,7 +172,7 @@ inductive BlockStopOk (n : Nat) : SurfPos → SurfPos → Prop where
       NotDocMarker s → k < n → SIndent k s s₁ → s₁.chars.head? = some c →
       isLineBreakBool c = false → c ≠ ' ' → c ≠ '\t' → BlockStopOk n s s
   | badChar (s s₁ s' : SurfPos) (c : Char) :
-      NotDocMarker s → SIndent n s s₁ → GStar (GChar LineCharOk) s₁ s' →
+      NotDocMarker s → SIndent n s s₁ → GPlus (GChar LineCharOk) s₁ s' →
       s'.chars.head? = some c → isLineBreakBool c = false → ¬ LineCharOk c →
       BlockStopOk n s s'
   | docMarker (s : SurfPos) : DocMarkerAt s → s.col = 0 → BlockStopOk n s s
@@ -255,28 +255,31 @@ lemma collectBlockScalarLoop_stops (sc : ScannerState) {n : Nat} {sp sp' : SurfP
     have hdb := atDocBoundary_false_of_corr hcorr hnd
     have hmax : ∀ d, sp'.chars.head? = some d → ¬ LineCharOk d := by
       intro d hd; rw [hhead] at hd; cases hd; exact hbad
+    have hrun' : GStar (GChar LineCharOk) s₁ sp' :=
+      match hrun with | .mk _ _ _ h₁ h₂ => .cons _ _ _ h₁ h₂
     obtain ⟨sc₂, content, heq₂, hc₂, hk₂⟩ :=
-      collectLineContentLoop_accepts hrun hmax sc₁ "" (ie - sc₁.offset + 1) hc₁
+      collectLineContentLoop_accepts hrun' hmax sc₁ "" (ie - sc₁.offset + 1) hc₁
         (by have := fuel_of_corr hc₁; rw [hk₁.2.1, hie] at this; omega)
+    obtain ⟨s₂, hstep, hrest⟩ :
+        ∃ s₂, GChar LineCharOk s₁ s₂ ∧ GStar (GChar LineCharOk) s₂ sp' :=
+      match hrun with | .mk _ s₂ _ h₁ h₂ => ⟨s₂, h₁, h₂⟩
     obtain ⟨chars, col⟩ := sp'
     cases chars with
     | nil => simp at hhead
     | cons d tl =>
       simp only [List.head?_cons, Option.some.injEq] at hhead; subst hhead
       have hpk₂ := (peek_of_corr hc₂).1
-      cases hrun with
-      | nil _ =>
+      cases hstep with
+      | mk e rest col₁ he =>
         have hpk := (peek_of_corr hc₁).1
+        -- the line run is non-empty, so the loop keeps `s_after_line`
+        have hne : content.isEmpty = false := by
+          have h := collectLineContentLoop_fst_nonempty sc₁ e "" (ie - sc₁.offset + 1) hpk
+            (by simp [he.1]) he.2.1 (by simpa using he.2.2) (by omega)
+          rw [heq₂] at h; exact h
         have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₂ := by
-          simp [collectBlockScalarLoop, hdb, heq, hpk, hnb, heq₂, hpk₂]
+          simp [collectBlockScalarLoop, hdb, heq, hpk, he.1, heq₂, hpk₂, hnb, hne]
         rw [hres]; exact ⟨hc₂, hk₁.trans hk₂⟩
-      | cons _ s₂ _ hstep hrest =>
-        cases hstep with
-        | mk e rest col₁ he =>
-          have hpk := (peek_of_corr hc₁).1
-          have hres : (collectBlockScalarLoop sc raw (fuel + 1) n ie).2 = sc₂ := by
-            simp [collectBlockScalarLoop, hdb, heq, hpk, he.1, heq₂, hpk₂, hnb]
-          rw [hres]; exact ⟨hc₂, hk₁.trans hk₂⟩
 
 lemma BlockLineOk.length_lt {n : Nat} {s s' : SurfPos} (h : BlockLineOk n s s') :
     s'.chars.length < s.chars.length := by
@@ -1021,11 +1024,11 @@ lemma blank_toSLEmpty {n k : Nat} {s s₁ s' : SurfPos} (hk : k ≤ n) (hind : S
 inductive BodyTail (n : Nat) : SurfPos → SurfPos → Prop where
   | blanks (s s₃ s₄ s' : SurfPos) :
       GStar (SLEmpty n .blockIn) s s₃ → GOpt (SLTrailComments n) s₃ s₄ →
-      GOpt (SIndentLe n) s₄ s' → BodyTail n s s'
+      GOpt (fun a b => SIndentLe n a b ∧ b.chars = []) s₄ s' → BodyTail n s s'
   | text (s s₁ s₂ s₃ s₄ s' : SurfPos) :
       GSeq (SLNbLiteralText n) (GStar (SBNbLiteralNext n)) s s₁ → GOpt SBBreak s₁ s₂ →
       GStar (SLEmpty n .blockIn) s₂ s₃ → GOpt (SLTrailComments n) s₃ s₄ →
-      GOpt (SIndentLe n) s₄ s' → BodyTail n s s'
+      GOpt (fun a b => SIndentLe n a b ∧ b.chars = []) s₄ s' → BodyTail n s s'
 
 lemma BodyTail.toSLLiteralContent {n : Nat} {s s' : SurfPos} (h : BodyTail n s s') :
     SLLiteralContent n s s' :=
@@ -1055,24 +1058,30 @@ lemma BodyTail.content {n : Nat} {s s₁ s₂ s₃ s' : SurfPos} (hind : SIndent
       (.mk s s₂ t₁ htext (.cons s₂ sm t₁ (.mk n s₂ s₃ sm hb.toSBBreak htext') hnext))
       hbr hes htc hi
 
+/-- A non-empty content line with no break after it (EOF or a bad character). -/
+lemma lineRunPlus_toBodyTail {n : Nat} {s s₁ s' : SurfPos} (hind : SIndent n s s₁)
+    (hrun : GPlus (GChar LineCharOk) s₁ s') : BodyTail n s s' :=
+  .text s s' s' s' s' s'
+    (.mk s s' s' (.mk n s s s' (.nil s) (.mk s s₁ s' hind (GPlus_lineChar_toNb hrun))) (.nil s'))
+    (.none s') (.nil s') (.none s') (.none s')
+
+/-- A possibly empty line run at end of input: the empty run is `[173]`'s EOF-only
+    partial-indent tail. -/
 lemma lineRun_toBodyTail {n : Nat} {s s₁ s' : SurfPos} (hind : SIndent n s s₁)
-    (hrun : GStar (GChar LineCharOk) s₁ s') : BodyTail n s s' :=
+    (hrun : GStar (GChar LineCharOk) s₁ s') (hend : s'.chars = []) : BodyTail n s s' :=
   match hrun with
-  | .nil _ => .blanks s s s s₁ (.nil s) (.none s) (.some _ _ (SIndentLe_of_le hind (Nat.le_refl n)))
-  | .cons _ sm _ hstep hrest =>
-    .text s s' s' s' s' s'
-      (.mk s s' s' (.mk n s s s' (.nil s)
-        (.mk s s₁ s' hind (GPlus_lineChar_toNb (.mk _ sm _ hstep hrest)))) (.nil s'))
-      (.none s') (.nil s') (.none s') (.none s')
+  | .nil _ =>
+    .blanks s s s s₁ (.nil s) (.none s) (.some _ _ ⟨SIndentLe_of_le hind (Nat.le_refl n), hend⟩)
+  | .cons _ sm _ hstep hrest => lineRunPlus_toBodyTail hind (.mk _ sm _ hstep hrest)
 
 lemma BlockStopOk.toBodyTail {n : Nat} {s s' : SurfPos} (h : BlockStopOk n s s') :
     BodyTail n s s' :=
   match h with
-  | .eofShort _ _ _ _ hk hind _ =>
-    .blanks s s s s' (.nil s) (.none s) (.some _ _ (SIndentLe_of_le hind (Nat.le_of_lt hk)))
-  | .eofLine _ _ _ _ hind hrun _ => lineRun_toBodyTail hind hrun
+  | .eofShort _ _ _ _ hk hind hend =>
+    .blanks s s s s' (.nil s) (.none s) (.some _ _ ⟨SIndentLe_of_le hind (Nat.le_of_lt hk), hend⟩)
+  | .eofLine _ _ _ _ hind hrun hend => lineRun_toBodyTail hind hrun hend
   | .outdent _ _ _ _ _ _ _ _ _ _ _ => .blanks s s s s (.nil s) (.none s) (.none s)
-  | .badChar _ _ _ _ _ hind hrun _ _ _ => lineRun_toBodyTail hind hrun
+  | .badChar _ _ _ _ _ hind hrun _ _ _ => lineRunPlus_toBodyTail hind hrun
   | .docMarker _ _ _ => .blanks s s s s (.nil s) (.none s) (.none s)
 
 /-- `BlockBodyOk n` is a sub-relation of `[173] l-literal-content(n)` (and so of `[176]`

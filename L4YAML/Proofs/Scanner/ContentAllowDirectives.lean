@@ -504,8 +504,9 @@ lemma collectBlockScalarLoop_preserves_allowDirectives (s : ScannerState) (rawCo
             · split
               · rw [ih, consumeNewline_preserves_allowDirectives,
                     collectLineContentLoop_preserves_allowDirectives, consumeExactSpaces_preserves_allowDirectives]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_allowDirectives, consumeExactSpaces_preserves_allowDirectives]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_allowDirectives, consumeExactSpaces_preserves_allowDirectives]
             · rw [collectLineContentLoop_preserves_allowDirectives, consumeExactSpaces_preserves_allowDirectives]
 
 lemma scanBlockScalarSkipComment_preserves_allowDirectives (s : ScannerState) :

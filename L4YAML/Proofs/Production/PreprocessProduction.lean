@@ -1984,6 +1984,14 @@ lemma collectBlockScalarLoop_park (fuel : Nat) :
                 · rw [consumeNewline_inputEnd]; omega
                 · exact Or.inl (consumeNewline_col_zero hpk' hbr')
               · rename_i hbr'
+                split
+                · -- empty line run: the scanner stays at `s`
+                  rcases ‹s.col = 0 ∨ s.peek? = none› with h0 | hnone
+                  · exact Or.inl h0
+                  · refine Or.inr (fun hhash => ?_)
+                    have hh : s.peek? = some '#' := hhash
+                    rw [hnone] at hh; cases hh
+                dsimp only
                 refine Or.inr ?_
                 rcases hstop with hn | ⟨c'', hpk'', hflag⟩
                 · rw [hn] at hpk'; cases hpk'

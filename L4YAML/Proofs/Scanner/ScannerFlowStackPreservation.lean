@@ -710,8 +710,9 @@ lemma collectBlockScalarLoop_preserves_flowStack (s : ScannerState) (rawContent 
             · split
               · rw [ih, consumeNewline_preserves_flowStack,
                     collectLineContentLoop_preserves_flowStack, consumeExactSpaces_preserves_flowStack]
-              · dsimp only []
-                rw [collectLineContentLoop_preserves_flowStack, consumeExactSpaces_preserves_flowStack]
+              · split
+                · rfl
+                · rw [collectLineContentLoop_preserves_flowStack, consumeExactSpaces_preserves_flowStack]
             · rw [collectLineContentLoop_preserves_flowStack, consumeExactSpaces_preserves_flowStack]
 
 -- Cloned from `ScannerCorrectness` lines 4164-4174 (`_preserves_flowStack` twin).

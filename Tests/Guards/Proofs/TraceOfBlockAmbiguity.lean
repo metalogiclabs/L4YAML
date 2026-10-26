@@ -92,7 +92,8 @@ lemma traceOf_unique_refuted :
 
 end ImplicitContinue
 
-/-! ## Refutation 2 (OPEN — `[173]`'s `SIndentLe` tail + autodetected `m`): `a: |⏎   x⏎  &x b: *x` -/
+/-! ## Refutation 2 (OPEN at the stream layer — row 19 `implicitContinue` + autodetected `m`;
+    the `[173]` tail half is CLOSED, see `literalB`): `a: |⏎   x⏎  &x b: *x` -/
 section LiteralTail
 
 private instance : DecidablePred isNbChar := fun c => by unfold isNbChar; infer_instance
@@ -180,18 +181,32 @@ lemma readOneEntry : TBlockNode 0 .blockIn v0 vEnd [] :=
           (.none _) literalA)))
 
 /-- Reading B: autodetected indent `m = 2`, content indent 3 — the second line is text, the
-third is not indented enough, so the content ENDS and `[173]`'s trailing `s-indent(≤n)`
-swallows its two spaces; the mapping then continues with the entry `&x b: *x`. -/
-lemma literalB : SCLLiteral 1 v3 v12 :=
-  .mk 1 2 _ 3 v5 v12 header
-    (SLLiteralContent.mk 3 v5 v9 v10 v10 v10 v12
+third is not indented enough, so the content ENDS after the break (at `v10`).
+
+`[173]`'s partial-indent tail is now confined to end of input, so the two spaces of line 3
+are NOT the scalar's: the enclosing mapping at indent 0 cannot resume at indent 2 either, and
+the `TBlockNode`-level half of this refutation (two entries in ONE mapping, formerly its own
+refutation lemma) is CLOSED.  What survives is the stream layer: `TLYamlStream.implicitContinue`
+(row 19, `[211]`) admits `  &x b: *x` as a second BARE document — a block mapping at indent 2
+— without a `...` suffix.  The traces still differ, so `traceOf_unique` stays refuted. -/
+lemma literalB : SCLLiteral 1 v3 v10 :=
+  .mk 1 2 _ 3 v5 v10 header
+    (SLLiteralContent.mk 3 v5 v9 v10 v10 v10 v10
       (.some _ _ (.mk v5 v9 v9
         (SLNbLiteralText.mk 3 v5 v5 v9 (.nil _)
           (.mk v5 v8 v9 (.succ 2 _ 0 v8 (.succ 1 _ 1 v8 (.succ 0 _ 2 v8 (.zero _))))
             (nbPlus 'x' [] tail3 3 (by decide) (by decide))))
         (.nil _)))
-      (.some _ _ (SBBreak.lf _ 4)) (.nil _) (.none _)
-      (.some _ _ ⟨2, by decide, .succ 1 _ 0 v12 (.succ 0 _ 1 v12 (.zero _))⟩))
+      (.some _ _ (SBBreak.lf _ 4)) (.nil _) (.none _) (.none _))
+
+/-- First document of reading B: the single entry `a: |⏎   x⏎` with the `m = 2` literal. -/
+lemma readOneEntryB : TBlockNode 0 .blockIn v0 v10 [] :=
+  .blockMap 0 .blockIn 0 v0 v0 v0 v10 [] [] (.none _) (.startOfLine _ _ (.nil _))
+    (.single 0 v0 v0 v10 [] (.zero _)
+      (.implicitKeyNode 0 v0 v1 v2 v10 [] [] keyA (GLit.mk _ 1)
+        (.blockLiteral 1 .blockOut v2 v3 v3 v10 []
+          (.inline 1 _ _ (.whites _ _ (.mk _ _ _ (.space _ 2) (.nil _))))
+          (.none _) literalB)))
 
 private lemma keyAnchoredB : TImplicitKey v12 v16 [Event.defineAnchor "x"] :=
   .jsonKey v12 v16 v16 _
@@ -209,10 +224,10 @@ private lemma keyAnchoredB : TImplicitKey v12 v16 [Event.defineAnchor "x"] :=
           (SNsPlainFirst.nonIndicator .blockKey 'b' _ 5 nsc_b notInd_b) (.nil _))))
     (.none _)
 
-private lemma aliasValue : TBlockNode 1 .blockOut v17 vEnd [Event.useAlias "x"] :=
-  .flowInBlock 1 .blockOut v17 v18 vEnd vEnd _
-    (.inline 1 _ _ (.whites _ _ (.mk _ _ _ (.space _ 7) (.nil _))))
-    (.alias 1 .flowOut v18 vEnd _
+private lemma aliasValue (n : Nat) : TBlockNode n .blockOut v17 vEnd [Event.useAlias "x"] :=
+  .flowInBlock n .blockOut v17 v18 vEnd vEnd _
+    (.inline n _ _ (.whites _ _ (.mk _ _ _ (.space _ 7) (.nil _))))
+    (.alias n .flowOut v18 vEnd _
       (And.intro
         (SCNsAliasNode.mk _ 8 vEnd
           (GPlus.mk _ _ _ (GChar.mk 'x' _ 9 ns_x) (.nil _))
@@ -220,22 +235,23 @@ private lemma aliasValue : TBlockNode 1 .blockOut v17 vEnd [Event.useAlias "x"] 
         (by decide)))
     (eofComments 10)
 
-lemma readTwoEntries : TBlockNode 0 .blockIn v0 vEnd [Event.defineAnchor "x", Event.useAlias "x"] :=
-  .blockMap 0 .blockIn 0 v0 v0 v0 vEnd [] _ (.none _) (.startOfLine _ _ (.nil _))
-    (.cons 0 v0 v0 v12 vEnd [] _ (.zero _)
-      (.implicitKeyNode 0 v0 v1 v2 v12 [] [] keyA (GLit.mk _ 1)
-        (.blockLiteral 1 .blockOut v2 v3 v3 v12 []
-          (.inline 1 _ _ (.whites _ _ (.mk _ _ _ (.space _ 2) (.nil _))))
-          (.none _) literalB))
-      (.single 0 v12 v12 vEnd _ (.zero _)
-        (.implicitKeyNode 0 v12 v16 v17 vEnd [Event.defineAnchor "x"] [Event.useAlias "x"]
-          keyAnchoredB (GLit.mk _ 6) aliasValue)))
+/-- Second document of reading B: the bare document `  &x b: *x`, a block mapping at indent 2. -/
+lemma secondDoc : TBlockNode 0 .blockIn v10 vEnd [Event.defineAnchor "x", Event.useAlias "x"] :=
+  .blockMap 0 .blockIn 2 v10 v10 v10 vEnd [] _ (.none _) (.startOfLine _ _ (.nil _))
+    (.single 2 v10 v12 vEnd _ (.succ 1 _ 0 v12 (.succ 0 _ 1 v12 (.zero _)))
+      (.implicitKeyNode 2 v12 v16 v17 vEnd [Event.defineAnchor "x"] [Event.useAlias "x"]
+        keyAnchoredB (GLit.mk _ 6) (aliasValue 3)))
 
-/-- Same-end uniqueness of `TBlockNode` is FALSE as stated. -/
-lemma tBlockNode_unique_refuted :
-    ¬ (∀ (n : Nat) (c : YamlContext) (s s' : SurfPos) (ev₁ ev₂ : List Event),
-        TBlockNode n c s s' ev₁ → TBlockNode n c s s' ev₂ → ev₁ = ev₂) :=
-  fun h => by cases h _ _ _ _ _ _ readOneEntry readTwoEntries
+/-- Reading B at the stream layer: two bare documents joined by `implicitContinue`. -/
+lemma readTwoDocs : TLYamlStream v0 vEnd [Event.defineAnchor "x", Event.useAlias "x"] := by
+  have := TLYamlStream.implicitContinue v0 v10 v10 vEnd vEnd
+    [] [Event.defineAnchor "x", Event.useAlias "x"] []
+    (.single v0 v0 v10 v10 [] [] (.nil _)
+      (.some _ _ _ (.bare _ _ _ (.mk _ _ _ readOneEntryB))) (.nil _))
+    (.nil _)
+    (.some _ _ _ (.bare _ _ _ (.mk _ _ _ secondDoc)))
+    (.nil _)
+  simpa using this
 
 private lemma streamOf {s' : SurfPos} {ev : List Event} (h : TBlockNode 0 .blockIn v0 s' ev) :
     TLYamlStream v0 s' ev := by
@@ -246,7 +262,7 @@ private lemma streamOf {s' : SurfPos} {ev : List Event} (h : TBlockNode 0 .block
 lemma traceOf_literalA : TraceOf "a: |\n   x\n  &x b: *x" [] := ⟨10, streamOf readOneEntry⟩
 lemma traceOf_literalB :
     TraceOf "a: |\n   x\n  &x b: *x" [Event.defineAnchor "x", Event.useAlias "x"] :=
-  ⟨10, streamOf readTwoEntries⟩
+  ⟨10, readTwoDocs⟩
 
 end LiteralTail
 
