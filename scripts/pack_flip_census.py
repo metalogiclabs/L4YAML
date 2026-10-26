@@ -88,6 +88,11 @@ LEAF = re.compile(r"^(\| .*=> (exact )?Or\.inr trivial|else Or\.inr trivial|· e
 # item 362: the paid side may be a bridge application rather than a bare name
 # (`PackAlt.ofRefused (RegisterWitness.refused_of_markedCols_nil …)` at the flow closes)
 ELIM_LEAF = re.compile(r"\.elim \(fun \w+ => Or\.inr \(PackAlt\.\w+ .+\)\) \(fun _ => Or\.inr trivial\)")
+# item 365: the same conditional pay handed as a lemma ARGUMENT rather than a face —
+# `(h_alt := h_refused.elim (fun h => PackAlt.ofRefused h) (fun _ => trivial))` at the eleven
+# content producers (and inside `PackAlt.step_preprocess … ( … )` at the three
+# `content_dispatch_after_close` callers); the decline is the same `nested-?` leaf
+ELIM_ARG = re.compile(r"\.elim \(fun \w+ => PackAlt\.\w+ \w+\) \(fun _ => trivial\)")
 ERR = re.compile(r"^L4YAML/Proofs/Production/StreamAccum\.lean:(\d+):(\d+): error: (.*)")
 HEADER = re.compile(r"^\S+\.lean:\d+:\d+: (error|warning|info)")
 # Lean stops at 100 errors by default (`maxErrors`); a round must see every site to converge honestly
@@ -367,7 +372,8 @@ def main():
     # the class is read off the WHOLE original line (the census tuple keeps a 110-char prefix for
     # the TSV only): `slot_ride`'s `h_alt.elim …` closes past the prefix (#110 review)
     def src(c): return orig_lines[c[1] - 1].strip()
-    elim_sites = [c for c in census if c[3] == "DECLINE" and not LEAF.match(src(c)) and ELIM_LEAF.search(src(c))]
+    elim_sites = [c for c in census if c[3] == "DECLINE" and not LEAF.match(src(c))
+                  and (ELIM_LEAF.search(src(c)) or ELIM_ARG.search(src(c)))]
     leaf = sum(1 for c in census if c[3] == "DECLINE" and LEAF.match(src(c))) + len(elim_sites)
     uncond = kinds["DECLINE"] - leaf
     for c in elim_sites:

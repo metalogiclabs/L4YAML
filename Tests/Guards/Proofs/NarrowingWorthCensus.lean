@@ -548,19 +548,20 @@ innerSplits=55"
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-354 base (binder indices).
 def expectedWorthLedger : List String :=
   [
-   "splits=11 sup=1 inner h_closeFV_old :: accum_content_on_pendingBlock_indented#30",
+   -- 2026-10-26 (item 365): binder index #30 → #32 (`h_sound`/`h_fl0` inserted after `h_dead`); worth unchanged.
+   "splits=11 sup=1 inner h_closeFV_old :: accum_content_on_pendingBlock_indented#32",
    "splits=11 sup=1 inner h_closeF_old :: accum_content_on_pendingBlock_indented#14",
    "splits=7 sup=1 - h_kslot_old :: accum_content_on_pendingBlock_indented#13",
    "splits=7 sup=1 inner h_closeF99 :: accum_content_on_pendingMapValue_indented#18",
    "splits=7 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlock#31",
-   "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#36",
+   "splits=5 sup=1 - h_seqF168 :: accum_content_on_pendingMapValue_indented#38",
    "splits=4 sup=1 inner h_closeFV108 :: accum_content_on_pendingMapValue_indented#20",
    "splits=4 sup=1 inner h_closeFV_old :: accum_block_on_pendingBlockContent#37",
    "splits=3 sup=4 - h_cov :: indicator_open_map#27",
    "splits=3 sup=1 - h_kslot :: accum_block_on_pendingBlock#13",
    "splits=3 sup=1 - h_kslot :: accum_content_on_pendingMapValue_indented#17",
    "splits=3 sup=1 - h_kslotUp :: accum_block_on_pendingBlock#30",
-   "splits=3 sup=1 - h_kslotUp_old :: accum_content_on_pendingBlock_indented#29",
+   "splits=3 sup=1 - h_kslotUp_old :: accum_content_on_pendingBlock_indented#31",
    "splits=3 sup=1 - h_seqF_old :: accum_content_on_pendingBlock_indented#15",
    "splits=3 sup=1 - h_vslot :: accum_content_on_pendingMapValue_indented#16",
    "splits=2 sup=1 - h_resV_land :: colon_open_map#26",
