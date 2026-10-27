@@ -5672,6 +5672,52 @@ def testSiblingArmDomain (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"sibling arm {label}" (got == expected && ok == accepted)
       s!"(openMap, seqTop, closed) = {repr got} accepted={ok}; expected {repr expected} accepted={accepted}"
 
+/-- **Priority 42 (item 374): the sequence-top face RIDES `ResumeKeyCtx`.**  Over the
+    break-crossing landings of `input` (the only ones `resumectx_of_landing` is built from),
+    `(face, level, closed)` = landings on a sequence top at the landing column (item 374's new
+    disjunct — the frames named no level there, so the context used to decline), landings on an
+    open NON-sequence level (the resume), landings at no level.  Scanner landings, read with the
+    context's own discriminators; reachability is the parser's verdict beside them. -/
+def seqTopResumeWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut face := 0
+  let mut level := 0
+  let mut closed := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, _)) =>
+      if sp.line != s.line then
+        let (op, st) := siblingArmRow sp
+        if st then face := face + 1
+        else if op then level := level + 1
+        else closed := closed + 1
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (face, level, closed)
+
+def testSeqTopResumeCtx (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 42: item 374 — the sequence-top face on ResumeKeyCtx: where the declined resume lands on a sequence top, and the parser's verdict"
+  -- (face, level, closed) over the break-crossing landings; every face row with a `:` key is
+  -- REFUSED (the `:` consumers refute `SeqTopKey`), every level row resumes and is accepted.
+  let rows : List (String × String × (Nat × Nat × Nat) × Bool) :=
+    [ ("- a⏎b: 1 (root sequence top: the face, refused at the `:`)", "- a\nb: 1", (1, 0, 0), false),
+      ("k:⏎  - a⏎  b: 1 (nested sequence top under a mapping: pendingBlock park)", "k:\n  - a\n  b: 1", (1, 0, 1), false),
+      ("- - a⏎  b: 1 (sequence top under a sequence)", "- - a\n  b: 1", (1, 0, 0), false),
+      ("? a⏎:⏎  - x⏎  b: 1 (sequence top under an explicit value: pendingMapValue park; REFUTED (1, 0, 2): the `:` line-start lands on the open mapping level, a `level` landing)", "? a\n:\n  - x\n  b: 1", (1, 1, 1), false),
+      ("- a⏎- b (the `-` sibling on the sequence top is an ENTRY, accepted)", "- a\n- b", (1, 0, 0), true),
+      ("k:⏎  -⏎  -⏎b: 2 (item 370: the dedent key resumes `k`'s level; REFUTED (0, 1, 2): the sibling `-` lands on the sequence top — a face landing that is an ENTRY, not a key)", "k:\n  -\n  -\nb: 2", (1, 1, 1), true),
+      ("k:⏎  a: 1⏎  b: 2 (the frames name the level: resume)", "k:\n  a: 1\n  b: 2", (0, 1, 1), true),
+      ("a: 1⏎b: 2 (root resume)", "a: 1\nb: 2", (0, 1, 0), true),
+      ("- a⏎b (plain scalar on the sequence top, no key: not the face's consumer)", "- a\nb", (1, 0, 0), false),
+      ("k:⏎  - a⏎b: 1 (dedent past the sequence to the root mapping: resume, not the face)", "k:\n  - a\nb: 1", (0, 1, 1), true) ]
+  for (label, src, expected, accepted) in rows do
+    let got := seqTopResumeWalk src
+    let ok := match L4YAML.TokenParser.parseYaml src with | .ok _ => true | .error _ => false
+    checkM state s!"seqtop resume {label}" (got == expected && ok == accepted)
+      s!"(face, level, closed) = {repr got} accepted={ok}; expected {repr expected} accepted={accepted}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5723,6 +5769,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testSeqTopKeyFace state
   testSeqTopKeyLemma state
   testSiblingArmDomain state
+  testSeqTopResumeCtx state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",

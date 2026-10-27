@@ -211,11 +211,12 @@ example {sp_start sp_land sp_prep : SurfPos} {k lo : Nat} {ks : List FrameLevel}
     ResumeKeyCtx s_prep sp_start sp_prep :=
   match h_fr.resumeAt hmem with
   | ⟨ks', h_w, cont⟩ =>
-      Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt,
+      -- Item 374: the framed lane is the context's first disjunct.
+      Or.inl (Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt,
         Or.inl (dedent_cover_of_floor h_mono h_top h_fl h_cv hmem h_w),
         cont, Or.inr h_alt,
         -- Item 168: the sequence face is the third lane and punts here.
-        Or.inr trivial⟩, h_poss, h_pos⟩
+        Or.inr trivial⟩, h_poss, h_pos⟩)
 
 /-! ## §4  The lane, walked against the scanner
 
@@ -304,9 +305,11 @@ example {sc s_prep : ScannerState} {c : Char}
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (fS : ∀ sp_m : SurfPos, SSLComments sp_scan sp_m →
       ResumeFrames (SLYamlStream sp_start) ks sp_m) 
-    (h_alt : PackAlt sc) :
+    (h_alt : PackAlt sc)
+    -- Item 374: the sentinel base, for the sequence-top face the declined resume now carries.
+    (h_base : SentinelBase sc) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
-  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+  resumectx_of_landing (h_base := h_base) hcol_mid h_ws h_ssl h_preprocess hcorr_prep
     (Or.inl ⟨ks, Or.inr trivial, fS⟩) (Or.inr h_alt)
     (fun _ _ _ _ _ _ _ => Or.inr trivial)
     -- Item 168: the sequence face punts; this guard is about the COVER.

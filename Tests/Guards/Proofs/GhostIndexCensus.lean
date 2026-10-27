@@ -266,7 +266,8 @@ it may only shrink. -/
 -- Item 372 (2026-10-27): `ImplicitKeyPack`'s route conjunct gained `∨ SeqTopKey sc`
 -- — a Bool projection of the pack's own state, so one more carrier and one more
 -- disjunct, no ghost row.
-def expectedSummary : String := "carriers=60 snapshot=9 ghost=72 or=101"
+-- Item 374: `ResumeKeyCtx` gains the sequence-top face disjunct (or 101 → 102; ghost unchanged).
+def expectedSummary : String := "carriers=60 snapshot=9 ghost=72 or=102"
 
 -- 2026-10-24 (B3 [66] col-0 threading): carriers 61 → 62 — `SSLCommentsFrom` (the separator-less comment product).
 -- 2026-10-25 (#99 landed): the `FlowLead`/`leadFree`/`closeFree` tally rows go with the deleted carrier and
@@ -320,7 +321,7 @@ def expectedTally : List String :=
    "PropsRun: surface=14 state=0 prop=8 scalar=4 snapshot=0 ghost=0 or=0",
    "RestoreLayout: surface=0 state=1 prop=0 scalar=4 snapshot=0 ghost=0 or=0",
    "ResumeFrames: surface=4 state=0 prop=5 scalar=3 snapshot=0 ghost=2 or=0",
-   "ResumeKeyCtx: surface=6 state=1 prop=6 scalar=8 snapshot=0 ghost=3 or=5",
+   "ResumeKeyCtx: surface=7 state=1 prop=6 scalar=9 snapshot=0 ghost=3 or=6",
    "ResumeWidths: surface=0 state=0 prop=0 scalar=2 snapshot=0 ghost=2 or=0",
    "ResvOk: surface=0 state=1 prop=2 scalar=5 snapshot=0 ghost=0 or=0",
    "ResvOkLe: surface=0 state=1 prop=2 scalar=5 snapshot=0 ghost=0 or=0",
@@ -524,6 +525,8 @@ def expectedDisjuncts : List String :=
     "PropsKeyPack.body ∨ PackAlt sc",
     "PropsKeyPack.body ∨ True",
     "ResumeKeyCtx.body ∨ True",
+    -- Item 374: the sequence-top face disjunct on the resume context.
+    "ResumeKeyCtx.body ∨ (∃ k sp_land, sp_land.col = 0 ∧ SIndent k sp_land sp_prep ∧ SeqTopKey s_prep) ∧ s_prep.simpleKey.possible = true ∧ s_prep.simpleKey.pos = s_prep.currentPos",
     "ResumeKeyCtx.body ∨ True",
     "ResumeKeyCtx.body ∨ PackAlt s_prep",
     "ResumeKeyCtx.body ∨ True",

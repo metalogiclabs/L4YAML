@@ -355,6 +355,7 @@ declarations' own binders and not by a rescoring of an existing one.
 -- 2026-10-25 (#99 review): PEELED constants 1667 → 1662, decls 1304 → 1301, FIELD 191 → 190, READ 1333 → 1331 — the dead `FlowLead` (+ its two lemmas) deleted; `leadFree`/`closeFree` are `Bool`.
 -- 2026-10-26 (item 367, `[82]`): the three `s-l-comments` composition lemmas join StreamAccum: decls 1317 → 1320, FIELD +2, READ +4, RELAY +4.
 -- 2026-10-26 (item 369): READ=1375 → READ=1376 — `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames, read at the `:`/`?` landing for `h_res_land`).
+-- Item 374: `h_base` on `resumectx_of_landing` and the resume context's face disjunct — constants/decls +2, READ +6, RELAY +1.
 def expectedModuleTallyP : String :=
   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
@@ -367,7 +368,7 @@ def expectedModuleTallyP : String :=
   -- 2026-10-26 (item 370): constants/decls +1 (the sibling `-` arm's `match h_closeF_old` auxiliary), READ 1376 → 1379.
 -- Item 371: constants/decls +1, READ +1 — `ResumeFrames.one` (the restated value-line pack's one-level bottom).
 -- Item 372 (2026-10-27): `SeqTopKey`, `SeqTopKey.of_eq`, `seqTopKey_refuted_at_colon` and the exit (a) face (+5 constants, +4 decls).
-  "constants=1688 decls=1326 eta=442 FIELD=192 READ=1387 RELAY=2652 RETURN=167 UNUSED=27"
+  "constants=1690 decls=1328 eta=442 FIELD=192 READ=1393 RELAY=2653 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
