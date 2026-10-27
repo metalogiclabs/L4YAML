@@ -5792,21 +5792,23 @@ def testOpenerSiblingAccepted (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"opener lanes {label}" (got == expected)
       s!"(open, started, marker, props) = {repr got}; expected {repr expected}"
 
-/-- The root's shape: (documents, the first document's root entries, the entries of the root's
-    first item).  A one-document result that DROPPED the sibling would read `(1, 1, _)`, not `(1, 2, _)`. -/
-def rootShape (input : String) : Option (Nat × Nat × Nat) :=
-  let entries : L4YAML.YamlValue → Nat
-    | .mapping _ pairs _ _ => pairs.size
-    | .sequence _ items _ _ => items.size
-    | _ => 0
-  let firstItem : L4YAML.YamlValue → Nat
-    | .mapping _ pairs _ _ => match pairs[0]? with | some (_, v) => entries v | none => 0
-    | .sequence _ items _ _ => match items[0]? with | some v => entries v | none => 0
-    | _ => 0
+/-- The root's KEYS: (documents, the first document's root keys as text in order, the keys of the
+    root's first item).  Arity is not identity (PR #141 review): a result that duplicated the first
+    pair or dropped `b: 2` would still have two entries, so the test reads WHICH keys survive —
+    `["a", "b"]`, in that order.  A non-scalar key (`[1]: a`) renders as `"<non-scalar>"`. -/
+def rootKeys (input : String) : Option (Nat × List String × List String) :=
+  let keyText : L4YAML.YamlValue → String := fun k => (k.asString?).getD "<non-scalar>"
+  let keys : L4YAML.YamlValue → List String
+    | .mapping _ pairs _ _ => (pairs.map (fun (k, _) => keyText k)).toList
+    | _ => []
+  let firstItem : L4YAML.YamlValue → List String
+    | .mapping _ pairs _ _ => match pairs[0]? with | some (_, v) => keys v | none => []
+    | .sequence _ items _ _ => match items[0]? with | some v => keys v | none => []
+    | _ => []
   match L4YAML.TokenParser.parseYaml input with
   | .ok docs => match docs[0]? with
-    | some d => some (docs.size, entries d.value, firstItem d.value)
-    | none => some (docs.size, 0, 0)
+    | some d => some (docs.size, keys d.value, firstItem d.value)
+    | none => some (docs.size, [], [])
   | .error _ => none
 
 /-- **Priority 44 (item 376): the openers' root sibling is a RESUME of the root mapping, not a
@@ -5815,25 +5817,25 @@ def rootShape (input : String) : Option (Nat × Nat × Nat) :=
     seven fallback arms is the one the parser already takes: at a frameless root sibling
     (`a: 1⏎b: 2`) the document count stays at ONE (the key continues the root mapping), it is `---`
     alone that makes a second document, and a sibling key after a sequence top or a plain scalar is
-    REFUSED.  Read off `L4YAML.TokenParser.parseYaml`'s document count and, on the one-document rows, the root mapping's entry count — a single document that DROPPED the sibling would not do; predictions written before the run. -/
+    REFUSED.  Read off `L4YAML.TokenParser.parseYaml` as the root's KEYS in order — a document count or an entry count could not tell a continued mapping from one that dropped or duplicated a key; predictions written before the run. -/
 def testRootSiblingResumes (state : IO.Ref TestCollector) : IO Unit := do
-  setCategory state "Priority 44: item 376 — a root sibling continues the root mapping (one document, two root entries); only `---` opens a second; sequence-top/scalar siblings refused"
-  let rows : List (String × String × Option (Nat × Nat × Nat)) :=
-    [ ("a: 1⏎b: 2 (`:` opener, root sibling)", "a: 1\nb: 2", some (1, 2, 0)),
-      ("? a⏎b: 2 (`?` opener, sibling with the value empty)", "? a\nb: 2", some (1, 2, 0)),
-      ("a: [1, 2]⏎b: 2 (flow value then a block sibling)", "a: [1, 2]\nb: 2", some (1, 2, 2)),
-      ("[1]: a⏎b: 2 (flow key at the root then a sibling)", "[1]: a\nb: 2", some (1, 2, 0)),
-      ("- a: 1⏎  b: 2 (compact mapping in a sequence entry: one item holding both keys)", "- a: 1\n  b: 2", some (1, 1, 2)),
-      ("a: 1⏎⏎b: 2 (blank line between siblings)", "a: 1\n\nb: 2", some (1, 2, 0)),
-      ("a: 1⏎# c⏎b: 2 (comment line between siblings)", "a: 1\n# c\nb: 2", some (1, 2, 0)),
-      ("k:⏎  a: 1⏎  b: 2⏎c: 3 (closeThenBlock dedent to a root sibling)", "k:\n  a: 1\n  b: 2\nc: 3", some (1, 2, 2)),
-      ("a: 1⏎---⏎b: 2 (the marker alone makes a second document)", "a: 1\n---\nb: 2", some (2, 1, 0)),
+  setCategory state "Priority 44: item 376 — a root sibling continues the root mapping (one document, root keys [a, b] in order); only `---` opens a second; sequence-top/scalar siblings refused"
+  let rows : List (String × String × Option (Nat × List String × List String)) :=
+    [ ("a: 1⏎b: 2 (`:` opener, root sibling)", "a: 1\nb: 2", some (1, ["a", "b"], [])),
+      ("? a⏎b: 2 (`?` opener, sibling with the value empty)", "? a\nb: 2", some (1, ["a", "b"], [])),
+      ("a: [1, 2]⏎b: 2 (flow value then a block sibling)", "a: [1, 2]\nb: 2", some (1, ["a", "b"], [])),
+      ("[1]: a⏎b: 2 (flow key at the root then a sibling)", "[1]: a\nb: 2", some (1, ["<non-scalar>", "b"], [])),
+      ("- a: 1⏎  b: 2 (compact mapping in a sequence entry: one item holding both keys)", "- a: 1\n  b: 2", some (1, [], ["a", "b"])),
+      ("a: 1⏎⏎b: 2 (blank line between siblings)", "a: 1\n\nb: 2", some (1, ["a", "b"], [])),
+      ("a: 1⏎# c⏎b: 2 (comment line between siblings)", "a: 1\n# c\nb: 2", some (1, ["a", "b"], [])),
+      ("k:⏎  a: 1⏎  b: 2⏎c: 3 (closeThenBlock dedent to a root sibling)", "k:\n  a: 1\n  b: 2\nc: 3", some (1, ["k", "c"], ["a", "b"])),
+      ("a: 1⏎---⏎b: 2 (the marker alone makes a second document)", "a: 1\n---\nb: 2", some (2, ["a"], [])),
       ("- a⏎b: 2 (sequence top then a key: refused)", "- a\nb: 2", none),
       ("a⏎b: 2 (plain scalar then a key: refused)", "a\nb: 2", none) ]
   for (label, src, expected) in rows do
-    let got := rootShape src
+    let got := rootKeys src
     checkM state s!"root sibling {label}" (got == expected)
-      s!"(documents, root entries, first item's entries) = {repr got}; expected {repr expected}"
+      s!"(documents, root keys, first item's keys) = {repr got}; expected {repr expected}"
 
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
