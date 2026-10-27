@@ -23113,12 +23113,12 @@ lemma scanValueClearKey_keep {s : ScannerState}
     dsimp only at h
     split
     · rename_i h1
-      rw [if_pos h1] at h; simp at h
+      simp [h1] at h
     · rename_i h1
-      rw [if_neg h1] at h
+      simp only [h1] at h
       split
       · rename_i h2
-        rw [if_pos h2] at h; simp at h
+        simp [h2] at h
       · rfl
   · rfl
 
