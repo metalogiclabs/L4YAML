@@ -5792,6 +5792,57 @@ def testOpenerSiblingAccepted (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"opener lanes {label}" (got == expected)
       s!"(open, started, marker, props) = {repr got}; expected {repr expected}"
 
+/-- The root's KEYS: (documents, the first document's root keys as text in order, the root's first
+    item rendered).  Arity is not identity (PR #141 review): a result that duplicated the first pair or
+    dropped `b: 2` would still have two entries, so the test reads WHICH keys survive — `["a", "b"]`, in
+    that order — and the first value's own contents (a mapping as its keys, a sequence as its scalar
+    items, so `a: [1, 2]` reads `["1", "2"]` and a dropped flow element is a refutation too).  A
+    non-scalar key (`[1]: a`) renders as `"<non-scalar>"`. -/
+def rootKeys (input : String) : Option (Nat × List String × List String) :=
+  let text : L4YAML.YamlValue → String := fun k => (k.asString?).getD "<non-scalar>"
+  let keys : L4YAML.YamlValue → List String
+    | .mapping _ pairs _ _ => (pairs.map (fun (k, _) => text k)).toList
+    | _ => []
+  let render : L4YAML.YamlValue → List String
+    | .mapping _ pairs _ _ => (pairs.map (fun (k, _) => text k)).toList
+    | .sequence _ items _ _ => (items.map text).toList
+    | _ => []
+  let firstItem : L4YAML.YamlValue → List String
+    | .mapping _ pairs _ _ => match pairs[0]? with | some (_, v) => render v | none => []
+    | .sequence _ items _ _ => match items[0]? with | some v => render v | none => []
+    | _ => []
+  match L4YAML.TokenParser.parseYaml input with
+  | .ok docs => match docs[0]? with
+    | some d => some (docs.size, keys d.value, firstItem d.value)
+    | none => some (docs.size, [], [])
+  | .error _ => none
+
+/-- **Priority 44 (item 376): the openers' root sibling is a RESUME of the root mapping, not a
+    second bare document.**  Item 376 priced the park route field's decline face and found no sink
+    beneath `pendingMapValue.h_close` — the optional faces decline INTO it.  The way left for the
+    seven fallback arms is the one the parser already takes: at a frameless root sibling
+    (`a: 1⏎b: 2`) the document count stays at ONE (the key continues the root mapping), it is `---`
+    alone that makes a second document, and a sibling key after a sequence top or a plain scalar is
+    REFUSED.  Read off `L4YAML.TokenParser.parseYaml` as the root's KEYS in order — a document count or an entry count could not tell a continued mapping from one that dropped or duplicated a key; predictions written before the run. -/
+def testRootSiblingResumes (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 44: item 376 — a root sibling continues the root mapping (one document, root keys [a, b] in order); only `---` opens a second; sequence-top/scalar siblings refused"
+  let rows : List (String × String × Option (Nat × List String × List String)) :=
+    [ ("a: 1⏎b: 2 (`:` opener, root sibling)", "a: 1\nb: 2", some (1, ["a", "b"], [])),
+      ("? a⏎b: 2 (`?` opener, sibling with the value empty)", "? a\nb: 2", some (1, ["a", "b"], [])),
+      ("a: [1, 2]⏎b: 2 (flow value then a block sibling: the flow elements survive too)", "a: [1, 2]\nb: 2", some (1, ["a", "b"], ["1", "2"])),
+      ("[1]: a⏎b: 2 (flow key at the root then a sibling)", "[1]: a\nb: 2", some (1, ["<non-scalar>", "b"], [])),
+      ("- a: 1⏎  b: 2 (compact mapping in a sequence entry: one item holding both keys)", "- a: 1\n  b: 2", some (1, [], ["a", "b"])),
+      ("a: 1⏎⏎b: 2 (blank line between siblings)", "a: 1\n\nb: 2", some (1, ["a", "b"], [])),
+      ("a: 1⏎# c⏎b: 2 (comment line between siblings)", "a: 1\n# c\nb: 2", some (1, ["a", "b"], [])),
+      ("k:⏎  a: 1⏎  b: 2⏎c: 3 (closeThenBlock dedent to a root sibling)", "k:\n  a: 1\n  b: 2\nc: 3", some (1, ["k", "c"], ["a", "b"])),
+      ("a: 1⏎---⏎b: 2 (the marker alone makes a second document)", "a: 1\n---\nb: 2", some (2, ["a"], [])),
+      ("- a⏎b: 2 (sequence top then a key: refused)", "- a\nb: 2", none),
+      ("a⏎b: 2 (plain scalar then a key: refused)", "a\nb: 2", none) ]
+  for (label, src, expected) in rows do
+    let got := rootKeys src
+    checkM state s!"root sibling {label}" (got == expected)
+      s!"(documents, root keys, first item rendered) = {repr got}; expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5845,6 +5896,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testSiblingArmDomain state
   testSeqTopResumeCtx state
   testOpenerSiblingAccepted state
+  testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",
