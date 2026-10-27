@@ -5724,7 +5724,9 @@ def testSeqTopResumeCtx (state : IO.Ref TestCollector) : IO Unit := do
     over the break-crossing landings, and the parser's verdict beside it.  What this reads:
     scanner landings and verdicts — an accepted row shows the fallback arm, IF reached, has no
     refutation.  What it does NOT read (PR #139's review): which arm the opener's PROOF takes —
-    proof irrelevance (§7) makes that unobservable from outside, and the frames lane
+    proof irrelevance (§7) makes that unobservable from outside (read off the proof TERMS
+    instead by `Tests/Guards/Proofs/OpenerFallbackReach.lean`: per caller path, how each
+    optional context of the five openers settles), and the frames lane
     (`h_res_land`) is a proof-side list, not a scanner projection.  `openerLaneRow` reads the
     four lanes that ARE scanner projections at the sibling landing — open level, document
     started (the `h_nodoc` lane is dead), marker line (`h_mk` dead), props run (`h_pr` dead) —
