@@ -5792,18 +5792,24 @@ def testOpenerSiblingAccepted (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"opener lanes {label}" (got == expected)
       s!"(open, started, marker, props) = {repr got}; expected {repr expected}"
 
-/-- The root's KEYS: (documents, the first document's root keys as text in order, the keys of the
-    root's first item).  Arity is not identity (PR #141 review): a result that duplicated the first
-    pair or dropped `b: 2` would still have two entries, so the test reads WHICH keys survive —
-    `["a", "b"]`, in that order.  A non-scalar key (`[1]: a`) renders as `"<non-scalar>"`. -/
+/-- The root's KEYS: (documents, the first document's root keys as text in order, the root's first
+    item rendered).  Arity is not identity (PR #141 review): a result that duplicated the first pair or
+    dropped `b: 2` would still have two entries, so the test reads WHICH keys survive — `["a", "b"]`, in
+    that order — and the first value's own contents (a mapping as its keys, a sequence as its scalar
+    items, so `a: [1, 2]` reads `["1", "2"]` and a dropped flow element is a refutation too).  A
+    non-scalar key (`[1]: a`) renders as `"<non-scalar>"`. -/
 def rootKeys (input : String) : Option (Nat × List String × List String) :=
-  let keyText : L4YAML.YamlValue → String := fun k => (k.asString?).getD "<non-scalar>"
+  let text : L4YAML.YamlValue → String := fun k => (k.asString?).getD "<non-scalar>"
   let keys : L4YAML.YamlValue → List String
-    | .mapping _ pairs _ _ => (pairs.map (fun (k, _) => keyText k)).toList
+    | .mapping _ pairs _ _ => (pairs.map (fun (k, _) => text k)).toList
+    | _ => []
+  let render : L4YAML.YamlValue → List String
+    | .mapping _ pairs _ _ => (pairs.map (fun (k, _) => text k)).toList
+    | .sequence _ items _ _ => (items.map text).toList
     | _ => []
   let firstItem : L4YAML.YamlValue → List String
-    | .mapping _ pairs _ _ => match pairs[0]? with | some (_, v) => keys v | none => []
-    | .sequence _ items _ _ => match items[0]? with | some v => keys v | none => []
+    | .mapping _ pairs _ _ => match pairs[0]? with | some (_, v) => render v | none => []
+    | .sequence _ items _ _ => match items[0]? with | some v => render v | none => []
     | _ => []
   match L4YAML.TokenParser.parseYaml input with
   | .ok docs => match docs[0]? with
@@ -5823,7 +5829,7 @@ def testRootSiblingResumes (state : IO.Ref TestCollector) : IO Unit := do
   let rows : List (String × String × Option (Nat × List String × List String)) :=
     [ ("a: 1⏎b: 2 (`:` opener, root sibling)", "a: 1\nb: 2", some (1, ["a", "b"], [])),
       ("? a⏎b: 2 (`?` opener, sibling with the value empty)", "? a\nb: 2", some (1, ["a", "b"], [])),
-      ("a: [1, 2]⏎b: 2 (flow value then a block sibling)", "a: [1, 2]\nb: 2", some (1, ["a", "b"], [])),
+      ("a: [1, 2]⏎b: 2 (flow value then a block sibling: the flow elements survive too)", "a: [1, 2]\nb: 2", some (1, ["a", "b"], ["1", "2"])),
       ("[1]: a⏎b: 2 (flow key at the root then a sibling)", "[1]: a\nb: 2", some (1, ["<non-scalar>", "b"], [])),
       ("- a: 1⏎  b: 2 (compact mapping in a sequence entry: one item holding both keys)", "- a: 1\n  b: 2", some (1, [], ["a", "b"])),
       ("a: 1⏎⏎b: 2 (blank line between siblings)", "a: 1\n\nb: 2", some (1, ["a", "b"], [])),
@@ -5835,7 +5841,7 @@ def testRootSiblingResumes (state : IO.Ref TestCollector) : IO Unit := do
   for (label, src, expected) in rows do
     let got := rootKeys src
     checkM state s!"root sibling {label}" (got == expected)
-      s!"(documents, root keys, first item's keys) = {repr got}; expected {repr expected}"
+      s!"(documents, root keys, first item rendered) = {repr got}; expected {repr expected}"
 
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
