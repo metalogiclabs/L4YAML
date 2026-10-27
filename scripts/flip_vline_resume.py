@@ -48,6 +48,10 @@ def main():
     before = md5(SRC); orig = SRC.read_text()
     new, sites = patch(orig)
     print(f"md5 before: {before}\nsites: {len(sites)}\n" + " ".join(map(str, sites)))
+    if not sites:
+        sys.exit("no fused value-line conclusion left to flip: the restatement is landed "
+                 "(DOCS item 371), so a build here would price a no-op; the measured price "
+                 "is the item's entry.  To re-price, check out the pre-371 tree first.")
     if dry: return
     SRC.write_text(new)
     if keep: print(f"kept; md5 now {md5(SRC)}"); return
