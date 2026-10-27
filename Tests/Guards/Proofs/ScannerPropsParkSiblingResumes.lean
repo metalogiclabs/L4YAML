@@ -208,7 +208,7 @@ example {sp_start sp_node sp_scan' : SurfPos} {n nv : Nat}
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v)
     (h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
       SBlockNode n .blockIn sp_node sp_m) :
     -- The entry-level pack the completion pays `pendingBlockContent` …
@@ -216,12 +216,12 @@ example {sp_start sp_node sp_scan' : SurfPos} {n nv : Nat}
      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-     SLYamlStream sp_start sp_v) ∧
+     ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
     -- … subsumes the nil-tail reading the old field could state.
     (∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
      ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-     SLYamlStream sp_start sp_v) :=
+     ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) :=
   ⟨fun sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
     kslotE sp_m (h_nodeAt sp_m h_ssl) sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi,
    fun sp_m h_bn sp_i sp_c h_iv h_lit sp_v h_sbi =>

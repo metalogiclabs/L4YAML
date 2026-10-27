@@ -216,12 +216,13 @@ partial def scanFloors (st : IO.Ref FS) (lem : Name) (stk : Stack) (e : Expr) : 
 -- 2026-10-26 (item 370): the `content:`/`entry:` trees gain one position and one row and lose one punt — the sibling `-`
 -- arm's `pendingBlock.h_closeF` relay of `h_closeF_old`.
 def expectedTrees255 : List String :=
-  ["none content: positions=17 rows=48 paid=6 punt=14 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
-   "none entry: positions=17 rows=48 paid=6 punt=14 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
-   "none merged=true",
-   "R4 content: positions=19 rows=55 paid=6 punt=15 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
-   "R4 entry: positions=19 rows=55 paid=6 punt=15 cover-punt=2 open=2 origins=6 Δ(paid=+0 punt=+1 cover-punt=+0 open=+0 positions=+2)",
-   "R4 merged=true"]
+  ["none merged=true",
+   "R4 merged=true",
+   -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
+   "none content: positions=17 rows=48 paid=6 punt=13 cover-punt=3 open=2 origins=6 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
+   "none entry: positions=17 rows=48 paid=6 punt=13 cover-punt=3 open=2 origins=6 Δ(paid=+0 punt=+0 cover-punt=+0 open=+0 positions=+0)",
+   "R4 content: positions=19 rows=55 paid=6 punt=12 cover-punt=5 open=2 origins=6 Δ(paid=+0 punt=-1 cover-punt=+2 open=+0 positions=+2)",
+   "R4 entry: positions=19 rows=55 paid=6 punt=12 cover-punt=5 open=2 origins=6 Δ(paid=+0 punt=-1 cover-punt=+2 open=+0 positions=+2)"]
 def expectedPayments : List String :=
   ["R4 relay accum_content_on_pendingMapValue_indented #1 ctor:pendingProps.h_closeFE idx=n + 1 src=h_frames99@2:Floor(n,ks) tgt=bound(ks<ne) Floor(ne,ks) eq(n=ne + 1) := match[paid{cover=step(relay(param:accum_content_on_pendingMapValue_indented.h_frames99))}|punt]"]
 -- 2026-10-25 (item 358): 30 → 33 — the cover conjunct on the `h_closeFV_old` twins and the two `h_closeFV_old`
@@ -365,7 +366,9 @@ def expectedLine : String :=
   -- `accum_block_on_closeThenBlock`; no row of this guard moved.
   -- 2026-10-26 (item 366): floorNodes 29565 → 29567 (same two pays); the paid-leaf delta is unchanged.
 -- 2026-10-26 (item 370): floorNodes=29618 → floorNodes=29702 — the sibling `-` arm transports the park's cover into the re-park (one more floor literal; one punt fewer).
-  "rows=199 payments=1 literal=0 relay=1 scenarios=2 baseContent=17/6/14/2/2 allContent=19/6/15/2/2 baseEntry=17/6/14/2/2 allEntry=19/6/15/2/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=+1 puntEntry=+1 coverPuntContent=+0 coverPuntEntry=+0 mergedBase=true mergedAll=true floorLits=97 own=12 lit=6 var=79 ownLemmas=2 scanned=34 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=117865 floorNodes=29702"
+-- Item 371 (baseContent=17/6/14/2/2 → 17/6/13/3/2, allContent=19/6/15/2/2 → 19/6/12/5/2, baseEntry=17/6/14/2/2 → 17/6/13/3/2, allEntry=19/6/15/2/2 → 19/6/12/5/2, puntContent=+1 → -1, puntEntry=+1 → -1, coverPuntContent=+0 → +2, coverPuntEntry=+0 → +2, nodes=117865 → 119846, floorNodes=29702 → 29779): the value-line packs end in the one-level
+-- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+  "rows=199 payments=1 literal=0 relay=1 scenarios=2 baseContent=17/6/13/3/2 allContent=19/6/12/5/2 baseEntry=17/6/13/3/2 allEntry=19/6/12/5/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=-1 puntEntry=-1 coverPuntContent=+2 coverPuntEntry=+2 mergedBase=true mergedAll=true floorLits=97 own=12 lit=6 var=79 ownLemmas=2 scanned=34 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=119846 floorNodes=29779"
 
 /-! ## §4 The reading -/
 

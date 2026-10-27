@@ -5445,6 +5445,42 @@ def testSiblingDashFrames (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"sibling dash frames {label}" (got == expected)
       s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
 
+/-- Priority 39 (item 371, the framed value-line pack): every value-line pack now ends in
+`ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v` instead of the fused
+`SLYamlStream sp_start sp_v`, so after the explicit `:`'s value the mapping at `nv` goes on with its
+SIBLINGS — `? a⏎:⏎b: 1` is one document with two root entries, where the fused pack could only
+close the mapping (item 370's frameless exit (b)).  `some (docs, n)` = accepted with `docs` documents
+and `n` entries at the root; `none` = refused.  The enclosing-frames row (`x:⏎  ? a⏎  :⏎y: 2`) is the
+parser's verdict only — the pack carries ONE level, the enclosing ones are not paid by this item. -/
+def testValueLineResume (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 39: the explicit `:`'s value resumes its mapping — siblings after `? a⏎:` (item 371)"
+  let rootArity : YamlValue → Nat
+    | .mapping _ arr => arr.size
+    | .sequence _ arr => arr.size
+    | _ => 0
+  let rows : List (String × String × Option (Nat × Nat)) :=
+    [ ("? a⏎:⏎b: 1 (empty explicit value, then a sibling)", "? a\n:\nb: 1", some (1, 2)),
+      ("? a⏎: b⏎c: 1 (inline explicit value, then a sibling)", "? a\n: b\nc: 1", some (1, 2)),
+      ("?⏎:⏎b: 1 (empty key and value)", "?\n:\nb: 1", some (1, 2)),
+      ("? - a⏎:⏎b: 1 (compact sequence key)", "? - a\n:\nb: 1", some (1, 2)),
+      ("? [a]⏎:⏎b: 1 (flow key)", "? [a]\n:\nb: 1", some (1, 2)),
+      ("? a⏎: b⏎? c⏎: d (two explicit entries)", "? a\n: b\n? c\n: d", some (1, 2)),
+      ("? a⏎:⏎  b: 1 (the value is a nested mapping)", "? a\n:\n  b: 1", some (1, 1)),
+      ("? a⏎:⏎ b: 1 (one column in: still the value)", "? a\n:\n b: 1", some (1, 1)),
+      ("x:⏎  ? a⏎  :⏎  b: 1 (nested: the sibling resumes the inner mapping)", "x:\n  ? a\n  :\n  b: 1", some (1, 1)),
+      ("x:⏎  ? a⏎  :⏎y: 2 (enclosing level: parser verdict, not paid here)", "x:\n  ? a\n  :\ny: 2", some (1, 2)),
+      -- Rule 2 refuted the row as first written (expected refused): `[185]` lets a block
+      -- sequence value stand at the mapping's own column (`seq-spaces(n, block-out) = n-1`),
+      -- so the `-` is the explicit `:`'s VALUE — `{a: [b]}`, one entry.
+      ("? a⏎:⏎- b (a `-` at the mapping's own column is the VALUE: `{a: [b]}`)", "? a\n:\n- b", some (1, 1)),
+      ("? a⏎:⏎b (a plain scalar at the root after the entry: refused)", "? a\n:\nb", none) ]
+  for (label, src, expected) in rows do
+    let got : Option (Nat × Nat) := match L4YAML.TokenParser.parseYaml src with
+      | .ok docs => some (docs.size, (docs[0]?.map (fun d => rootArity d.value)).getD 0)
+      | .error _ => none
+    checkM state s!"value-line resume {label}" (got == expected)
+      s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5492,6 +5528,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testTraceOfBlockLedger state
   testRootSiblingLedger state
   testSiblingDashFrames state
+  testValueLineResume state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",

@@ -308,7 +308,9 @@ def expectedTally : List String :=
    "ParkCore: surface=0 state=2 prop=5 scalar=6 snapshot=0 ghost=1 or=0",
    "ParkFloor: surface=0 state=2 prop=4 scalar=4 snapshot=0 ghost=0 or=0",
    "ParkSlot: surface=0 state=2 prop=3 scalar=7 snapshot=0 ghost=0 or=1",
-   "PendingNode: surface=125 state=1 prop=261 scalar=60 snapshot=0 ghost=22 or=60",
+   -- Item 371: `pendingMapValue.h_expl`'s route carries its tail — one more surface binder
+   -- (`sp_e`) and one more `Prop` premise (`SCompactMapTail`); ghost 22 and or 60 unchanged.
+   "PendingNode: surface=126 state=1 prop=262 scalar=60 snapshot=0 ghost=22 or=60",
    "PropsKeyPack: surface=13 state=1 prop=13 scalar=7 snapshot=0 ghost=3 or=5",
    "PropsNodeRoute: surface=6 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0",
    "PropsRideRoute: surface=7 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0",

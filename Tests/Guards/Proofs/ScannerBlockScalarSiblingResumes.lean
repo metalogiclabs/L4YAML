@@ -165,20 +165,21 @@ before falling to the park's twin. -/
 example {sp_start sp_q sp_scan sp_scan' : SurfPos}
     (h_qlit : GLit '?' sp_q sp_scan)
     (route : ∀ sp_v : SurfPos, SBlockMapEntry 0 sp_q sp_v →
-      SLYamlStream sp_start sp_v)
+      ∀ sp_e : SurfPos, SCompactMapTail 0 sp_v sp_e →
+      SLYamlStream sp_start sp_e)
     -- Item 179: the key node reads at the SHIFTED index.
     (h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
       SBlockNode (0 + 1) .blockIn sp_scan sp_m) :
     ∀ sp_m sp_i sp_c : SurfPos, SSLComments sp_scan' sp_m →
       SIndent 0 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 0 .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 0] sp_v :=
   fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-    route sp_v (SBlockMapEntry.explicit 0 sp_q sp_scan sp_m sp_i sp_c sp_v
+    ResumeFrames.one (route sp_v (SBlockMapEntry.explicit 0 sp_q sp_scan sp_m sp_i sp_c sp_v
       h_qlit
       (SBlockIndented.node 0 .blockOut sp_scan sp_m
         (SBlockNode_blockIn_to_blockOut (h_nodeAt sp_m h_ssl)))
-      h_ind h_lit h_sbi)
+      h_ind h_lit h_sbi))
 
 /-! ## §5 Nothing the park already said gets weaker
 

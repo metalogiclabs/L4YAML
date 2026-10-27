@@ -479,10 +479,11 @@ def emptiesOf (c : Name) : MetaM (Array Empty) := do
 -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
 def expectedCloses : List String :=
   ["accum_block_pending→accum_block_on_closeThenBlock.h_close_pending [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=accum_block_on_closeThenBlock.h_close_pending",
-   "accum_block_pending→accum_block_on_closeThenBlock.h_vslot [[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream | [col(_)=_+1] SBlockIndented(_,blockOut) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream | [col(_)=_+1] SBlockIndented(_,blockOut) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Stream] comps=(fact) viaClose=false param=accum_block_on_closeThenBlock.h_vslot",
    "accum_block_pending→accum_block_on_pendingBlock.h_close_pending [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=accum_block_on_pendingBlock.h_close_pending",
    "accum_content_on_noPending→keyctx_of_preprocess.h_close [SSLComments ⇒ Stream] comps=SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil] viaClose=false param=keyctx_of_preprocess.h_close",
-   "accum_flow_open_depth0→flowKeyRoute_of_root.h_close [SSLComments ⇒ Stream] comps=absorb:absorb_stacksB ▹ SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=flowKeyRoute_of_root.h_close"]
+   "accum_flow_open_depth0→flowKeyRoute_of_root.h_close [SSLComments ⇒ Stream] comps=absorb:absorb_stacksB ▹ SLYamlStream.implicitContinue[S,GStar.cons(SLDocumentPrefix.comments,GStar.nil),GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.suffixContinue[S,GPlus.mk(SLDocumentSuffix.mk,GStar.nil),GStar.nil,GOpt.none,GStar.nil],absorb:absorb_stacksB ▹ SLYamlStream.scannerDrop[S,prem:SSLComments] viaClose=true param=flowKeyRoute_of_root.h_close",
+   -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
+   "accum_block_pending→accum_block_on_closeThenBlock.h_vslot [[col(_)=_+1] SBlockIndented(_,blockOut) ⇒ Stream | [col(_)=_+1] SBlockIndented(_,blockOut) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Resume(map(_)::[])▹Stream | [col(_)=_+1] SBlockIndented(_,blockOut) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Resume(map(_)::[])▹Stream] comps=(fact) viaClose=false param=accum_block_on_closeThenBlock.h_vslot"]
 -- Item 305: `closeThenBlock`'s `h_vslot` is spent at two more nodes — the first entry's
 -- value-line stack at the landed-`-` arm (`h_slotV`) and at the compact arm, both the slot's
 -- inner pack under `KeyFrames.bottom`: `spends` 8 → 10.
@@ -563,7 +564,10 @@ def expectedEmpties : List String :=
    "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
    "accum_content_on_pendingMapValue_indented SBlockNode.emptyNode n=n + 1 @sp_mid width=ind[col:h_col0m,ind:h_ind] cmp=yes[_hj:j < n + 1]",
    "question_open_map SBlockIndented.empty n=k @sp_m width=none cmp=no",
-   "question_open_map SBlockIndented.empty n=k @sp_m width=ind[ind:h_iv] cmp=yes[≡k]"]
+   "question_open_map SBlockIndented.empty n=k @sp_m width=ind[ind:h_iv] cmp=yes[≡k]",
+   -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
+   "colon_open_map_explicit SBlockIndented.empty n=nv @sp_m width=none cmp=no",
+   "compact_open_map SBlockIndented.empty n=n + 1 + m @sp_v width=none cmp=no"]
 /-- Item 257 spends the compact fill's slot closure once more: the fill's
     `pendingBlock.h_closeF` is paid with a literal cover whose bottom is
     `hvs` applied to the compact sequence — a NODE spend of
@@ -583,7 +587,9 @@ def expectedEmpties : List String :=
 -- 2026-10-26 (item 369): empties=24 → 25, emptyInd=11 → 12 — the `:`/`?` landing in
 -- `accum_block_on_pendingBlock` closes the awaited entry EMPTY once more to read `h_res_land` off `pendingBlock.h_closeF`.
 def expectedLine : String :=
-  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=18 spendsC=6 spendsE=0 spendsN=12 handoffs=4 carries=1 untyped=0 edges=2 paramsWalked=6 widthInd=5 widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 handInd=4 handDirect=4 handCmp=4 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=25 emptyLemmas=6 emptyInd=12 emptyCmp=4 emptySame=2 emptyClose=2 sites=20 pairs=20 pairs21=19 pairs18=17 nonANoDrop=8 reach=38"
+-- Item 371 (empties=25 → 27, emptyLemmas=6 → 8): the value-line packs end in the one-level
+-- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=18 spendsC=6 spendsE=0 spendsN=12 handoffs=4 carries=1 untyped=0 edges=2 paramsWalked=6 widthInd=5 widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 handInd=4 handDirect=4 handCmp=4 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=27 emptyLemmas=8 emptyInd=12 emptyCmp=4 emptySame=2 emptyClose=2 sites=20 pairs=20 pairs21=19 pairs18=17 nonANoDrop=8 reach=38"
 
 /-! ## §5 The reading -/
 

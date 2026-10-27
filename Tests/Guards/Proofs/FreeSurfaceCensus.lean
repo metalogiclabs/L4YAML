@@ -100,8 +100,10 @@ def expectedClosure : String := "modulesSeen=265"
 -- two `maxHeartbeats 4000000` inductions over `YamlValue` do not elaborate
 -- together.
 
+-- 2026-10-27 (item 371): headStream 37 → 35, nestedConcl 55 → 57 — `explFrameValueLine` and
+-- `accum_flow_open_depth0`'s value-line conclusions now head `ResumeFrames`, not `SLYamlStream`.
 def expectedCensus : String :=
-  "theorems=105 headYaml=5 headStream=37 nestedConcl=55 hypOnly=8 free=17 \
+  "theorems=105 headYaml=5 headStream=35 nestedConcl=57 hypOnly=8 free=17 \
 survivesBeta5=2 yamlInHypothesis=0"
 
 /-- Every free theorem, with the route that closes it.  A count alone would not

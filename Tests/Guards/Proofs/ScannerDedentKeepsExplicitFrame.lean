@@ -111,7 +111,7 @@ example {sp_start : SurfPos} {nv : Nat} {sp_e : SurfPos}
     (h : ResumeFrames (ExplValueLine sp_start nv) [] sp_e) :
     ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
     ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-    SLYamlStream sp_start sp_w := h.close
+    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w := h.close
 
 /-! ## §3 The `?` producer's bottom
 
@@ -123,14 +123,17 @@ level, only this entry's unpaid value. -/
 
 example {sp_start sp_q sp_scan sp_v : SurfPos} {k : Nat}
     (h_qlit : GLit '?' sp_q sp_scan)
-    (route : ∀ sp_x : SurfPos, SBlockMapEntry k sp_q sp_x → SLYamlStream sp_start sp_x)
+    -- Item 371: the route carries its TAIL — the mapping the `?` heads may go
+    -- on with siblings after the value — and the bottom is one level deep.
+    (route : ∀ sp_x : SurfPos, SBlockMapEntry k sp_q sp_x →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_x sp_e → SLYamlStream sp_start sp_e)
     (h_key : SBlockIndented k .blockOut sp_scan sp_v) :
     ResumeFrames (ExplValueLine sp_start k) [] sp_v :=
   ResumeFrames.bottom sp_v
     (fun sp_i sp_c h_iv h_colon sp_w h_sbi =>
-      route sp_w
+      ResumeFrames.one (route sp_w
         (SBlockMapEntry.explicit k sp_q sp_scan sp_v sp_i sp_c sp_w h_qlit h_key
-          h_iv h_colon h_sbi))
+          h_iv h_colon h_sbi)))
 
 /-! ## §4 The threading hop
 
@@ -163,7 +166,7 @@ example {sp_start sp_mid sp_land : SurfPos} {nv w : Nat} {ks : List FrameLevel}
     ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
     ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
     ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-    SLYamlStream sp_start sp_w :=
+    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w :=
   match frames.resumeAt hmem with
   | ⟨_, _, cont⟩ =>
       fun sp_v h_entry sp_e h_tail =>

@@ -317,8 +317,10 @@ def expectedHeadCensus : List String :=
    "MarkerNodeRoute 5",
    "Mono 4",
    "PropsNodeRoute 4",
-   "ResumeFrames 3",
-   "SLYamlStream 20",
+   -- 2026-10-27 (item 371): ResumeFrames 3 → 18, SLYamlStream 20 → 5 — every value-line pack's
+   -- conclusion is a singleton `ResumeFrames` over the stream.
+   "ResumeFrames 18",
+   "SLYamlStream 5",
    "SeqEntryTail 7",
    "Sound 2",
    "SuffixRun 6",
@@ -855,7 +857,8 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- (the non-printable stop keeps `s_after_line` only for a non-empty line run); not a no-op conclusion.
 -- 2026-10-26 (item 367, `[82]`): +17 lemmas (directive loop/char bridges in StructureProduction, the three `s-l-comments` composition lemmas in StreamAccum): theorems 6309 → 6326; the elab/whnf tallies are unchanged.
 -- 2026-10-26 (item 367 review): `collectTagHandleDirectiveLoop_inputEnd` removed (no caller): theorems 6326 → 6325.
-def expectedNoopTally : String := "theorems=6325 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- 2026-10-27 (item 371): `ResumeFrames.one` added: theorems 6325 → 6326.
+def expectedNoopTally : String := "theorems=6326 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

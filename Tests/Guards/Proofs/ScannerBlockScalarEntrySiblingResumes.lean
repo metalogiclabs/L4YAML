@@ -180,7 +180,7 @@ example {sp_start sp_scan sp_scan' : SurfPos} {n nv : Nat}
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v)
     (h_nodeAt : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
       SBlockNode (n + 1) .blockIn sp_scan sp_m) :
     -- The entry-level pack (what the arm now pays) …
@@ -188,17 +188,17 @@ example {sp_start sp_scan sp_scan' : SurfPos} {n nv : Nat}
      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-     SLYamlStream sp_start sp_v) ∧
+     ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
     -- … subsumes the nil-tail reading (what item 95's park could say).
     (∀ sp_m sp_i sp_c : SurfPos, SSLComments sp_scan' sp_m →
      SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-     SLYamlStream sp_start sp_v) :=
+     ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) :=
   have pack : ∀ sp_m : SurfPos, SSLComments sp_scan' sp_m →
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v :=
     fun sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
       kslot sp_m
         (SBlockIndented.node n .blockIn sp_scan sp_m (h_nodeAt sp_m h_ssl))

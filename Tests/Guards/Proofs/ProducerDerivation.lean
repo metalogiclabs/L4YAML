@@ -262,7 +262,9 @@ def expectedCensus : String :=
 -- the `": "` surface through a `ScannerSurfCorr` hypothesis; the thread, held and pair rows are unchanged.
 -- 2026-10-24 (B3 [66] col-0 threading): corrHyp 546 → 583, streamConcl 90 → 91, both 40 → 41 — the
 -- gate/JSON-key/reservation lemmas read the surface through `ScannerSurfCorr`; `close_with_sslFrom` concludes a stream.
-  "corrHyp=584 streamConcl=91 both=41 free=0 pairConcl=1 held=3 pairAny=8"
+  -- Item 371: streamConcl 91 → 88 — three value-line conclusions now end in the
+  -- one-level `ResumeFrames`, not head-`SLYamlStream` (the restated pack).
+  "corrHyp=584 streamConcl=88 both=41 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=
