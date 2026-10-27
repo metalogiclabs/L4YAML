@@ -5921,6 +5921,65 @@ def cursorFaceWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Na
     | _ => break
   return (viol, ekNone, survive, cleared, quest)
 
+/-- Item 378 (PR #144 review): the premises of `seqTop_refuted_at_indicator` read at every
+    accepted `:`/`?` pause — `h_pop` (the landing popped), `h_noflow`, `h_key` (saved key at the
+    cursor), `h_poss`, `h_surv` — so the lemma's domain is told apart from the observations outside
+    it: `(inScope, inViol, outside, outViol)`, the refutation `atSequenceIndent = false` read on both. -/
+def cursorFaceScopeWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut inScope := 0
+  let mut inViol := 0
+  let mut outside := 0
+  let mut outViol := 0
+  let shape : ScannerState → Array (Int × Bool) := fun st => st.indents.map fun e => (e.column, e.isSequence)
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if c == ':' || c == '?' then
+        let sd := if sp.allowDirectives then
+          { sp with allowDirectives := false, documentEverStarted := true } else sp
+        match scanNextToken_dispatchBlockIndicators sd c with
+        | .ok (some _) =>
+          let cl := scanValueClearKey sd
+          let premises := shape sp != shape s && sp.flowLevel == 0
+            && sp.simpleKey.pos.col == sp.col && sp.simpleKey.possible
+            && (c != ':' || sd.explicitKeyLine.isNone || cl.simpleKey.possible)
+          let refuted := !atSequenceIndent sp
+          if premises then
+            inScope := inScope + 1
+            if !refuted then inViol := inViol + 1
+          else
+            outside := outside + 1
+            if !refuted then outViol := outViol + 1
+        | _ => pure ()
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (inScope, inViol, outside, outViol)
+
+def testCursorFaceScope (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 46c: item 378 (PR #144 review) — seqTop_refuted_at_indicator's premises read at every accepted indicator pause: in-scope pauses (pop, no flow, saved key at the cursor, possible, surviving/dead) vs observations outside the lemma; the refutation holds on both"
+  -- Predicted before the run: `inViol = outViol = 0` everywhere (HELD 12/12); `inScope > 0` at a
+  -- dedent `:` — HELD on `k:⏎  - a⏎: b` (1), REFUTED on `a:⏎- b⏎: c` (a sequence at its
+  -- parent's indent pushed no level, so nothing pops: item 377's reading); counts pinned from the run.
+  let rows : List (String × String × (Nat × Nat × Nat × Nat)) :=
+    [ ("k:⏎  - a⏎: b (`:` at the mapping's indent after a sequence: dead register)", "k:\n  - a\n: b", (1, 0, 1, 0)),
+      ("a:⏎- b⏎: c (sequence at its parent's indent: dead register)", "a:\n- b\n: c", (0, 0, 2, 0)),
+      ("? a⏎: b (the explicit pair: the live register clears the key)", "? a\n: b", (0, 0, 2, 0)),
+      ("? a⏎: b⏎c: d", "? a\n: b\nc: d", (0, 0, 3, 0)),
+      ("- ? a⏎  : b (compact explicit pair in a sequence)", "- ? a\n  : b", (0, 0, 2, 0)),
+      ("k:⏎  ? a⏎  : b (explicit pair nested in a mapping: the `?` accepted, the `:` cleared)", "k:\n  ? a\n  : b", (0, 0, 3, 0)),
+      ("? a⏎? b⏎: c (two explicit keys)", "? a\n? b\n: c", (0, 0, 3, 0)),
+      ("? a⏎:⏎? b⏎: c (two explicit pairs, the first value empty)", "? a\n:\n? b\n: c", (0, 0, 4, 0)),
+      ("? a⏎⏎: b (blank line between)", "? a\n\n: b", (0, 0, 2, 0)),
+      ("? a⏎  k: v⏎: b (block mapping as the explicit key; REFUTED (0, 0, 0, 1, 0): the scanner refuses the inner `k:` itself — misindentedExplicitValue at 1:3 — so no pause is accepted)", "? a\n  k: v\n: b", (0, 0, 1, 0)),
+      ("- a⏎- b⏎: c (refused at the sequence top: no accepted pause)", "- a\n- b\n: c", (0, 0, 0, 0)),
+      ("a: 1⏎b: 2 (no indicator line)", "a: 1\nb: 2", (0, 0, 2, 0)) ]
+  for (label, input, expected) in rows do
+    let got := cursorFaceScopeWalk input
+    check state s!"cursor-face premises over the accepted pauses of {label}: (inScope, inViol, outside, outViol) = {got}; expected {expected}" (got == expected)
+
 /-- Every field of `ScannerState` rendered, so two states compare whole (`ScannerState`
     derives no `BEq`; `tokens` by size and the last token's `repr`). -/
 def stateFingerprint (s : ScannerState) : String :=
@@ -6120,6 +6179,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testOpenerSeqTopRefused state
   testCursorFace state
   testDeadRegisterIdentity state
+  testCursorFaceScope state
   testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state
