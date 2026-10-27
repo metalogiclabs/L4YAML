@@ -23086,6 +23086,136 @@ lemma dispatchBlock_question_scanKey {s s' : ScannerState}
       exact hk
   · cases h
 
+/-- **Item 378: the directive-reset twin keeps the cursor face** — `indents` and `col`
+    are untouched by the reset. -/
+lemma atSequenceIndent_disp (s : ScannerState) :
+    atSequenceIndent (if s.allowDirectives then
+      { s with allowDirectives := false, documentEverStarted := true } else s) =
+    atSequenceIndent s := by
+  by_cases h : s.allowDirectives = true
+  · simp only [h, ↓reduceIte]; rfl
+  · simp only [h, Bool.false_eq_true, ↓reduceIte]
+
+/-- **Item 378: a dead register leaves the key clear alone.** -/
+lemma scanValueClearKey_id_of_ek_none {s : ScannerState} (h : s.explicitKeyLine = none) :
+    scanValueClearKey s = s := by
+  unfold scanValueClearKey; rw [h]
+
+/-- **Item 378: a key that survives the clear is the key that was saved** — both
+    clearing arms set `possible := false`. -/
+lemma scanValueClearKey_keep {s : ScannerState}
+    (h : (scanValueClearKey s).simpleKey.possible = true) :
+    (scanValueClearKey s).simpleKey = s.simpleKey := by
+  unfold scanValueClearKey at h ⊢
+  split
+  · rename_i ekLine heq
+    rw [heq] at h
+    dsimp only at h
+    split
+    · rename_i h1
+      rw [if_pos h1] at h; simp at h
+    · rename_i h1
+      rw [if_neg h1] at h
+      split
+      · rename_i h2
+        rw [if_pos h2] at h; simp at h
+      · rfl
+  · rfl
+
+/-- **Item 378: the `?` refutes the cursor face.**  `scanKey` runs `scanKeyValidate`
+    outside flow, whose `atSequenceIndent` check throws `trailingContent` on a sequence
+    top at the cursor's column (`scanKey_top_not_sequence`). -/
+lemma seqTop_refuted_at_question {s s' : ScannerState}
+    (h_dispatch : scanNextToken_dispatchBlockIndicators s '?' = .ok (some s'))
+    (h_noflow : s.inFlow = false) : atSequenceIndent s = false := by
+  have hok := dispatchBlock_question_scanKey h_dispatch
+  unfold atSequenceIndent
+  cases h_top : s.indents.back? with
+  | none => rfl
+  | some top =>
+    simp only [Bool.and_eq_false_imp, beq_eq_false_iff_ne, ne_eq]
+    intro hseq hce
+    have h_ns := PreprocessIndentStable.scanKey_top_not_sequence hok h_noflow h_top hce
+    rw [hseq] at h_ns; exact absurd h_ns (by decide)
+
+/-- **Item 378: the `:` refutes the cursor face when the saved key survives the clear.**
+    §8.2.1's check in `scanValueValidate` runs on the cleared state's key; a key saved at
+    the cursor, at or under the current indent, puts `scanValue_top_not_sequence` on the
+    top entry at the cursor's own column. -/
+lemma seqTop_refuted_at_colon_cursor {s s' : ScannerState}
+    (h_dispatch : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s'))
+    (h_noflow : s.inFlow = false)
+    (h_poss : (scanValueClearKey s).simpleKey.possible = true)
+    (h_col : s.simpleKey.pos.col = s.col)
+    (h_le : (s.col : Int) ≤ s.currentIndent) : atSequenceIndent s = false := by
+  have hv := EntryBoundaryLayout.scanValue_ok_validate_ok (dispatchBlock_colon_scanValue h_dispatch)
+  have h_ind := (PendingKeySound.scanValueClearKey_core s).1
+  have h_fl := (ColFloor.scanValueClearKey_fields s).2.2.2.2.1
+  have h_keep := scanValueClearKey_keep h_poss
+  unfold atSequenceIndent
+  cases h_top : s.indents.back? with
+  | none => rfl
+  | some top =>
+    simp only [Bool.and_eq_false_imp, beq_eq_false_iff_ne, ne_eq]
+    intro hseq hce
+    have h_ns : top.isSequence = false :=
+      PreprocessIndentStable.scanValue_top_not_sequence hv h_poss
+        (by rw [h_fl]; exact h_noflow) (by rw [h_ind]; exact h_top)
+        (by rw [h_keep, h_col]; exact hce)
+        (by
+          rw [h_keep, h_col, PreprocessIndentStable.currentIndent_of_indents_eq h_ind]
+          exact h_le)
+    rw [hseq] at h_ns; exact absurd h_ns (by decide)
+
+/-- **Item 378: both indicators, on the dispatch state.**  The `:` needs the saved key
+    to survive the clear (`h_surv`: a dead register, or the survival itself — the
+    opener's `h_src` first two disjuncts); the `?` needs nothing beyond the dispatch. -/
+lemma seqTop_refuted_at_indicator_core {s s' : ScannerState} {c : Char}
+    (hcv : c = ':' ∨ c = '?')
+    (h_dispatch : scanNextToken_dispatchBlockIndicators s c = .ok (some s'))
+    (h_noflow : s.inFlow = false) (h_le : (s.col : Int) ≤ s.currentIndent)
+    (h_key : s.simpleKey.pos.col = s.col) (h_poss : s.simpleKey.possible = true)
+    (h_surv : c = ':' → s.explicitKeyLine = none ∨
+      (scanValueClearKey s).simpleKey.possible = true) :
+    atSequenceIndent s = false := by
+  rcases hcv with rfl | rfl
+  · refine seqTop_refuted_at_colon_cursor h_dispatch h_noflow ?_ h_key h_le
+    rcases h_surv rfl with h_ek | h_p
+    · rw [scanValueClearKey_id_of_ek_none h_ek]; exact h_poss
+    · exact h_p
+  · exact seqTop_refuted_at_question h_dispatch h_noflow
+
+/-- **Item 378: at a POPPED landing, a `:`/`?` that dispatched stands on no sequence
+    top.**  The pop puts the cursor at or under `currentIndent`
+    (`preprocess_indents_or_underIndent`), the line start saved the key at the cursor,
+    and the builders hold the dispatch over the directive-reset twin. -/
+lemma seqTop_refuted_at_indicator {sc s_prep s' : ScannerState} {c : Char}
+    (hcv : c = ':' ∨ c = '?')
+    (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_pop : s_prep.indents ≠ sc.indents)
+    (h_noflow : s_prep.inFlow = false)
+    (h_key : s_prep.simpleKey.pos.col = s_prep.col)
+    (h_poss : s_prep.simpleKey.possible = true)
+    (h_surv : c = ':' → (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep).explicitKeyLine = none ∨
+      (scanValueClearKey (if s_prep.allowDirectives then
+        { s_prep with allowDirectives := false, documentEverStarted := true }
+      else s_prep)).simpleKey.possible = true)
+    (h_dispatch : scanNextToken_dispatchBlockIndicators
+        (if s_prep.allowDirectives then
+          { s_prep with allowDirectives := false, documentEverStarted := true }
+        else s_prep) c = .ok (some s')) :
+    atSequenceIndent s_prep = false := by
+  have h_le : (s_prep.col : Int) ≤ s_prep.currentIndent :=
+    (preprocess_indents_or_underIndent h_preprocess).resolve_left h_pop
+  by_cases had : s_prep.allowDirectives = true
+  · simp only [had, ↓reduceIte] at h_dispatch h_surv
+    have := seqTop_refuted_at_indicator_core hcv h_dispatch h_noflow h_le h_key h_poss h_surv
+    exact this
+  · simp only [had, Bool.false_eq_true, ↓reduceIte] at h_dispatch h_surv
+    exact seqTop_refuted_at_indicator_core hcv h_dispatch h_noflow h_le h_key h_poss h_surv
+
 /-- The three block indicators park before a separator (§8.2.1/§8.2.2 lookahead). -/
 lemma dispatchBlock_colon_next {s s' : ScannerState} (h_noflow : s.inFlow = false)
     (hpk : s.peek? = some ':')
@@ -28817,12 +28947,36 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
             -- which this parameter's type cannot take.  The residue is a BOTTOM,
             -- not a missing field. ═══
             (by
-              rcases h_closeF_old with ⟨ks, _, _, closeF⟩ | _
+              rcases h_closeF_old with ⟨ks, _, h_cvO, closeF⟩ | _
               · by_cases hmem : FrameLevel.map k ∈ ks
                 · obtain ⟨ks', hw, cont⟩ :=
                     (closeF sp_mid h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt hmem
                   exact Or.inl ⟨ks', hw.lt, cont⟩
-                · exact Or.inr trivial
+                · -- Item 378: under a cover, a POPPED landing off the park's frames at a width the
+                  -- frames do not name is a sequence top at the cursor (item 372's reading), and the
+                  -- dispatched `:`/`?` refutes that face; what stays declined is the no-pop landing,
+                  -- the uncovered park, and a `:` whose saved key the live register clears.
+                  have h_scol : s_prep.col = k := by
+                    rw [← hcorr_prep.col_eq]
+                    have := SIndent_col h_ind
+                    rw [hcol_mid] at this
+                    omega
+                  exact (Classical.em (s_prep.indents = sc.indents)).elim (fun _ => Or.inr trivial)
+                    (fun h_pop =>
+                      match h_cvO with
+                      | Or.inl ⟨lo, _, hc⟩ =>
+                        if hlo : lo ≤ k then
+                          match preprocess_landing_mem_or_seq h_preprocess h_pop h_base
+                              (h_scol ▸ hlo) hc with
+                          | Or.inl hm => absurd (h_scol ▸ hm) hmem
+                          | Or.inr ⟨e, h_back, h_seq, h_col⟩ =>
+                            (Classical.em _).elim
+                              (fun h_surv => absurd (seqTop_refuted_at_indicator hcv h_preprocess h_pop
+                                  h_noflow (landing_or_park_save h_noflow h_larm (h_park.imp_left And.left) h_preprocess) (preprocess_saved_key_possible_post (landing_or_park_ska h_noflow h_larm (h_park.imp_left And.left) h_preprocess) h_noflow h_preprocess) h_surv h_dispatch)
+                                (by unfold atSequenceIndent; rw [h_back]; simp [h_seq, h_col]))
+                              (fun _ => Or.inr trivial)
+                        else Or.inr trivial
+                      | Or.inr _ => Or.inr trivial)
               · exact Or.inr trivial)
             -- Item 142: this park finished a node, so it PAYS §9.2's refusal —
             -- the landing's flag comes from the park's own arm or the break it
@@ -29488,13 +29642,37 @@ lemma accum_block_on_pendingBlock
           -- conses onto that level's tail (item 173's punt, paid as
           -- `accum_block_on_pendingBlockContent` pays its own).
           (by
-            rcases h_closeF_old with ⟨ks, _, _, closeF⟩ | _
+            rcases h_closeF_old with ⟨ks, _, h_cvO, closeF⟩ | _
             · by_cases hmem : FrameLevel.map k ∈ ks
               · obtain ⟨ks', hw, cont⟩ :=
                   (closeF sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl)
                     sp_mid (SCompactSeqTail.nil n sp_mid)).resumeAt hmem
                 exact Or.inl ⟨ks', hw.lt, cont⟩
-              · exact Or.inr trivial
+              · -- Item 378: under a cover, a POPPED landing off the park's frames at a width the
+                -- frames do not name is a sequence top at the cursor (item 372's reading), and the
+                -- dispatched `:`/`?` refutes that face; what stays declined is the no-pop landing,
+                -- the uncovered park, and a `:` whose saved key the live register clears.
+                have h_scol : s_prep.col = k := by
+                  rw [← hcorr_prep.col_eq]
+                  have := SIndent_col h_ind
+                  rw [hcol_mid] at this
+                  omega
+                exact (Classical.em (s_prep.indents = sc.indents)).elim (fun _ => Or.inr trivial)
+                  (fun h_pop =>
+                    match h_cvO with
+                    | Or.inl ⟨lo, _, hc⟩ =>
+                      if hlo : lo ≤ k then
+                        match preprocess_landing_mem_or_seq h_preprocess h_pop h_base
+                            (h_scol ▸ hlo) hc with
+                        | Or.inl hm => absurd (h_scol ▸ hm) hmem
+                        | Or.inr ⟨e, h_back, h_seq, h_col⟩ =>
+                          (Classical.em _).elim
+                            (fun h_surv => absurd (seqTop_refuted_at_indicator hcv h_preprocess h_pop
+                                h_noflow (preprocess_saved_key_col h_sk h_noflow h_preprocess).2 (preprocess_saved_key_col h_sk h_noflow h_preprocess).1 h_surv h_dispatch)
+                              (by unfold atSequenceIndent; rw [h_back]; simp [h_seq, h_col]))
+                            (fun _ => Or.inr trivial)
+                      else Or.inr trivial
+                    | Or.inr _ => Or.inr trivial)
             · exact Or.inr trivial)
           -- Item 142: this park's tail is the `-` that opened the entry, so
           -- `completesFlowValue` is FALSE there and the check stands aside by
