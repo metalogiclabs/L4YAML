@@ -273,3 +273,4 @@ import Tests.Guards.Proofs.TokenEventsCensus
 import Tests.Guards.Proofs.TraceOfFlowAmbiguity
 import Tests.Guards.Proofs.TraceOfBlockAmbiguity
 import Tests.Guards.Proofs.ResumeFramesOne
+import Tests.Guards.Proofs.SeqTopKeyFace
