@@ -285,8 +285,15 @@ def expected : List String :=
    -- item 369: `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames,
    -- `pendingBlock.h_closeF` threaded) is one more stream-bottom frames carrier
    "stream/frames/occ=4  ×12",
+   -- item 371: every value-line pack now ends in the one-level
+   -- `ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv]` — a literal
+   -- frame list, no `ks`, so the census reads it as stream/other (58 sites)
+   "stream/other/occ=1  ×27",
+   "stream/other/occ=2  ×14",
+   "stream/other/occ=3  ×6",
    "stream/other/occ=4  ×4",
    "stream/other/occ=6  ×1",
+   "stream/other/occ=8  ×1",
    "valueline/bottom/occ=1  ×34",
    "valueline/frames/occ=1  ×2",
    "valueline/frames/occ=2  ×10",

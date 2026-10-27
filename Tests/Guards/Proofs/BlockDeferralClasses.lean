@@ -756,14 +756,15 @@ conclusion** — so it cannot be satisfied by punting. -/
 example {sp_start sp_scan sp_q : SurfPos} {nmv : Nat}
     (h_qlit : GLit '?' sp_q sp_scan)
     (route : ∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
-      SLYamlStream sp_start sp_v) :
+      ∀ sp_e : SurfPos, SCompactMapTail nmv sp_v sp_e →
+      SLYamlStream sp_start sp_e) :
     ∀ sp_m : SurfPos, SBlockIndented nmv .blockOut sp_scan sp_m →
     ∀ sp_i sp_c : SurfPos, SIndent nmv sp_m sp_i → GLit ':' sp_i sp_c →
     ∀ sp_v : SurfPos, SBlockIndented nmv .blockOut sp_c sp_v →
-    SLYamlStream sp_start sp_v :=
+    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nmv] sp_v :=
   fun sp_m h_key sp_i sp_c h_iv h_lit sp_v h_sbi =>
-    route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
-      h_qlit h_key h_iv h_lit h_sbi)
+    ResumeFrames.one (route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
+      h_qlit h_key h_iv h_lit h_sbi))
 
 /-! …and the two composed: the frame's route, across the landed sequence, is
 the value-line pack `pendingBlock.h_kslot` carries.  This is the payment at
@@ -776,19 +777,20 @@ example {sp_start sp_scan sp_mid sp_i0 sp_scan' sp_q : SurfPos} {nv k : Nat}
     (h_gnot : GNot SNsChar sp_scan')
     (h_qlit : GLit '?' sp_q sp_scan)
     (route : ∀ sp_v : SurfPos, SBlockMapEntry nv sp_q sp_v →
-      SLYamlStream sp_start sp_v) :
+      ∀ sp_e : SurfPos, SCompactMapTail nv sp_v sp_e →
+      SLYamlStream sp_start sp_e) :
     ∀ sp_m : SurfPos, SBlockIndented k .blockIn sp_scan' sp_m →
     ∀ sp_e : SurfPos, SCompactSeqTail k sp_m sp_e →
     ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
     ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-    SLYamlStream sp_start sp_v :=
+    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v :=
   fun _ h_indented sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
-    route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_e sp_i sp_c sp_v
+    ResumeFrames.one (route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_e sp_i sp_c sp_v
       h_qlit
       (slotLandedSeq hnk h_ssl
         (Proofs.NodeProduction.SBlockSeqEntries_of_compactTail
           h_ind h_dash h_gnot h_indented h_tail))
-      h_iv h_lit h_sbi)
+      h_iv h_lit h_sbi))
 
 /-! **The family, at the runtime.**  §6's five rows are the ones the derivation
 was written for; these five extend the shapes it has to cover — a nested
@@ -905,20 +907,21 @@ example {sp_start sp_scan sp_mid sp_ind sp_scan' sp_q : SurfPos} {nv k : Nat}
     (h_ind : SIndent k sp_mid sp_ind) (h_qlit : GLit '?' sp_ind sp_scan')
     (h_qlit0 : GLit '?' sp_q sp_scan)
     (route : ∀ sp_v : SurfPos, SBlockMapEntry nv sp_q sp_v →
-      SLYamlStream sp_start sp_v) :
+      ∀ sp_e : SurfPos, SCompactMapTail nv sp_v sp_e →
+      SLYamlStream sp_start sp_e) :
     ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_scan' sp_m →
     ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
     ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-    SLYamlStream sp_start sp_v :=
+    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v :=
   fun sp_m h_node sp_i sp_c h_iv h_clit sp_v h_sbi =>
-    route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_m sp_i sp_c sp_v
+    ResumeFrames.one (route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_m sp_i sp_c sp_v
       h_qlit0
       (slotLandedMap hnk h_ssl
         (SBlockMapEntries.single k sp_mid sp_ind sp_m h_ind
           (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_m h_qlit
             (SBlockIndented.node k .blockOut sp_scan' sp_m
               (Proofs.NodeProduction.SBlockNode_blockIn_to_blockOut h_node)))))
-      h_iv h_clit h_sbi)
+      h_iv h_clit h_sbi))
 
 /-! **The family, at the runtime.**  The `?` route and the implicit-key route
 both reach the indented mapping; the two-entry key is the `SCompactMapTail`
@@ -1159,8 +1162,8 @@ example {k n₀ n₁ m : Nat}
     SBlockMapEntry.explicitEmpty k sp_q sp_scan sp_e h_qlit
       (SBlockIndented.compactSeq k .blockOut m sp_scan sp_sc sp_e h_ind
         (SCompactSeq.mk (k + 1 + m) sp_sc sp_scan' sp_m sp_e h_dash h_gnot h_bi h_tail))
-  exact ⟨up n₀ (by simp) sp_e fill sp_i0 sp_c0 h_iv0 h_lit0 sp_v0 h_sbi0,
-         up n₁ (by simp) sp_e fill sp_i1 sp_c1 h_iv1 h_lit1 sp_v1 h_sbi1⟩
+  exact ⟨(up n₀ (by simp) sp_e fill sp_i0 sp_c0 h_iv0 h_lit0 sp_v0 h_sbi0).close,
+         (up n₁ (by simp) sp_e fill sp_i1 sp_c1 h_iv1 h_lit1 sp_v1 h_sbi1).close⟩
 
 /-- …and the single-index shape verifiably does NOT reach the other landing.
     The funder answers at one index and the `:` here stands at another, so the
@@ -1291,8 +1294,8 @@ example {n₀ n₁ : Nat} {sp_start sp_m : SurfPos}
     (h_iv1 : SIndent n₁ sp_m sp_i1) (h_lit1 : GLit ':' sp_i1 sp_c1)
     (h_sbi1 : SBlockIndented n₁ .blockOut sp_c1 sp_v1) :
     SLYamlStream sp_start sp_v0 ∧ SLYamlStream sp_start sp_v1 :=
-  ⟨carried n₀ (by simp) sp_i0 sp_c0 h_iv0 h_lit0 sp_v0 h_sbi0,
-   carried n₁ (by simp) sp_i1 sp_c1 h_iv1 h_lit1 sp_v1 h_sbi1⟩
+  ⟨(carried n₀ (by simp) sp_i0 sp_c0 h_iv0 h_lit0 sp_v0 h_sbi0).close,
+   (carried n₁ (by simp) sp_i1 sp_c1 h_iv1 h_lit1 sp_v1 h_sbi1).close⟩
 
 /-- …and the shape the relay carried BEFORE this item verifiably does not reach
     the second landing.  A `vslot` that names one index answers at that index;
@@ -1415,8 +1418,8 @@ example {n k n₀ n₁ : Nat} {sp_start sp_scan sp_mid sp_ind sp_v : SurfPos}
     (h_sbi1 : SBlockIndented n₁ .blockOut sp_c1 sp_w1) :
     SLYamlStream sp_start sp_w0 ∧ SLYamlStream sp_start sp_w1 :=
   let carried := entryChainMap hnk h_ssl h_ind chain
-  ⟨carried n₀ (by simp) sp_v h_entry sp_i0 sp_c0 h_iv0 h_lit0 sp_w0 h_sbi0,
-   carried n₁ (by simp) sp_v h_entry sp_i1 sp_c1 h_iv1 h_lit1 sp_w1 h_sbi1⟩
+  ⟨(carried n₀ (by simp) sp_v h_entry sp_i0 sp_c0 h_iv0 h_lit0 sp_w0 h_sbi0).close,
+   (carried n₁ (by simp) sp_v h_entry sp_i1 sp_c1 h_iv1 h_lit1 sp_w1 h_sbi1).close⟩
 
 /-- …and item 191's crossing verifiably does NOT serve this park, which is why
     the item needed one of its own.  `slotChainMap` fills a `[185]` KEY slot —
@@ -1717,11 +1720,11 @@ example {nmv : Nat} {sp_start sp_scan sp_q : SurfPos} {nsU : List Nat}
     (up : ∀ nv ∈ nsU, ∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) :
     ∀ nv ∈ nsU, ∀ sp_m sp_i sp_c : SurfPos,
       SSLComments sp_scan sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v :=
   fun nvU hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
     up nvU hmem sp_m
       (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
@@ -1736,15 +1739,15 @@ example {nmv : Nat} {sp_start sp_scan sp_q : SurfPos}
     (up : ∀ nv ∈ [2, 0], ∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) :
     (∀ sp_m sp_i sp_c : SurfPos,
       SSLComments sp_scan sp_m → SIndent 2 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 2 .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∧
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 2] sp_v) ∧
     (∀ sp_m sp_i sp_c : SurfPos,
       SSLComments sp_scan sp_m → SIndent 0 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 0 .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 0] sp_v) :=
   ⟨fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
      up 2 (by simp) sp_m
        (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
@@ -1769,25 +1772,26 @@ example {sp_start sp_scan sp_q : SurfPos}
     -- which discards the term it elaborates
     (_h_qlit : GLit '?' sp_q sp_scan)
     (_route : ∀ sp_v : SurfPos, SBlockMapEntry 6 sp_q sp_v →
-      SLYamlStream sp_start sp_v)
+      ∀ sp_e : SurfPos, SCompactMapTail 6 sp_v sp_e →
+      SLYamlStream sp_start sp_e)
     (_kslot : ∀ sp_m : SurfPos, SBlockNode 7 .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent 4 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 4 .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 4] sp_v) :
     True := by
   -- control A: the park's OWN frame answers at 6
   have _okOwn : ∀ sp_m sp_i sp_c : SurfPos,
       SSLComments sp_scan sp_m → SIndent 6 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 6 .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 6] sp_v :=
     fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-      _route sp_v (SBlockMapEntry.explicit 6 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
-        (SBlockIndented.empty 6 .blockOut sp_scan sp_m h_ssl) h_ind h_lit h_sbi)
+      ResumeFrames.one (_route sp_v (SBlockMapEntry.explicit 6 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
+        (SBlockIndented.empty 6 .blockOut sp_scan sp_m h_ssl) h_ind h_lit h_sbi))
   -- control B: item 93's field answers at the ONE ancestor it names, 4
   have _okUp : ∀ sp_m sp_i sp_c : SurfPos,
       SSLComments sp_scan sp_m → SIndent 4 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 4 .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 4] sp_v :=
     fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
       _kslot sp_m (SBlockNode.emptyNode 7 .blockIn sp_scan sp_m h_ssl)
         sp_i sp_c h_ind h_lit sp_v h_sbi
@@ -1796,7 +1800,7 @@ example {sp_start sp_scan sp_q : SurfPos}
     have : ∀ sp_m sp_i sp_c : SurfPos,
         SSLComments sp_scan sp_m → SIndent 2 sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented 2 .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v :=
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 2] sp_v :=
       fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
         _kslot sp_m (SBlockNode.emptyNode 7 .blockIn sp_scan sp_m h_ssl)
           sp_i sp_c h_ind h_lit sp_v h_sbi
@@ -1804,7 +1808,7 @@ example {sp_start sp_scan sp_q : SurfPos}
     have : ∀ sp_m sp_i sp_c : SurfPos,
         SSLComments sp_scan sp_m → SIndent 2 sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented 2 .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v :=
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 2] sp_v :=
       fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
         _route sp_v (SBlockMapEntry.explicit 6 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
           (SBlockIndented.empty 6 .blockOut sp_scan sp_m h_ssl) h_ind h_lit h_sbi)
@@ -1928,11 +1932,11 @@ example {k : Nat} {sp_start sp_scan sp_ind : SurfPos} {nsU : List Nat}
     (up : ∀ nv ∈ nsU, ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) :
     ∀ nv ∈ nsU, ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v :=
   fun nv hmem sp_m h_node sp_i sp_c h_iv h_clit sp_v h_sbi =>
     up nv hmem sp_m
       (SBlockMapEntry.explicitEmpty k sp_ind sp_scan sp_m h_lit
@@ -1947,25 +1951,26 @@ example {k : Nat} {sp_start sp_scan sp_ind : SurfPos} {nsU : List Nat}
 example {sp_start sp_scan sp_q : SurfPos}
     (h_qlit : GLit '?' sp_q sp_scan)
     (route : ∀ sp_v : SurfPos, SBlockMapEntry 4 sp_q sp_v →
-      SLYamlStream sp_start sp_v)
+      ∀ sp_e : SurfPos, SCompactMapTail 4 sp_v sp_e →
+      SLYamlStream sp_start sp_e)
     (kslot : ∀ nv ∈ [2, 0], ∀ sp_m : SurfPos, SBlockNode 5 .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) :
     ∃ ns : List Nat, (4 ∈ ns ∧ 2 ∈ ns ∧ 0 ∈ ns) ∧
       ∀ nv ∈ ns, ∀ sp_m : SurfPos, SBlockNode 5 .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v := by
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v := by
   refine ⟨[4] ++ [2, 0], ⟨by simp, by simp, by simp⟩, ?_⟩
   rintro nv hmem
   rcases List.mem_append.mp hmem with h | h
   · rcases List.mem_cons.mp h with rfl | h'
     · exact fun sp_m h_node sp_i sp_c h_iv h_lit sp_v h_sbi =>
-        route sp_v (SBlockMapEntry.explicit 4 sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
+        ResumeFrames.one (route sp_v (SBlockMapEntry.explicit 4 sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
           (SBlockIndented.node 4 .blockOut sp_scan sp_m
             (L4YAML.Proofs.NodeProduction.SBlockNode_blockIn_to_blockOut h_node))
-          h_iv h_lit h_sbi)
+          h_iv h_lit h_sbi))
     · exact absurd h' (List.not_mem_nil)
   · exact kslot nv h
 
@@ -1981,24 +1986,25 @@ example {sp_start sp_scan sp_q : SurfPos}
     -- discards the term it elaborates
     (_h_qlit : GLit '?' sp_q sp_scan)
     (_route : ∀ sp_v : SurfPos, SBlockMapEntry 4 sp_q sp_v →
-      SLYamlStream sp_start sp_v) :
+      ∀ sp_e : SurfPos, SCompactMapTail 4 sp_v sp_e →
+      SLYamlStream sp_start sp_e) :
     True := by
   -- control: the park's own frame answers at 4
   have _okOwn : ∀ sp_m : SurfPos, SBlockNode 5 .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent 4 sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented 4 .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 4] sp_v :=
     fun sp_m h_node sp_i sp_c h_iv h_lit sp_v h_sbi =>
-      _route sp_v (SBlockMapEntry.explicit 4 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
+      ResumeFrames.one (_route sp_v (SBlockMapEntry.explicit 4 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
         (SBlockIndented.node 4 .blockOut sp_scan sp_m
           (L4YAML.Proofs.NodeProduction.SBlockNode_blockIn_to_blockOut h_node))
-        h_iv h_lit h_sbi)
+        h_iv h_lit h_sbi))
   -- …and not at 2, the landing one frame further out
   fail_if_success
     have : ∀ sp_m : SurfPos, SBlockNode 5 .blockIn sp_scan sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent 2 sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented 2 .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v :=
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 2] sp_v :=
       fun sp_m h_node sp_i sp_c h_iv h_lit sp_v h_sbi =>
         _route sp_v (SBlockMapEntry.explicit 4 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
           (SBlockIndented.node 4 .blockOut sp_scan sp_m
@@ -2009,7 +2015,7 @@ example {sp_start sp_scan sp_q : SurfPos}
     have : ∀ sp_m : SurfPos, SBlockNode 5 .blockIn sp_scan sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent 0 sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented 0 .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v :=
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map 0] sp_v :=
       fun sp_m h_node sp_i sp_c h_iv h_lit sp_v h_sbi =>
         _route sp_v (SBlockMapEntry.explicit 4 sp_q sp_scan sp_m sp_i sp_c sp_v _h_qlit
           (SBlockIndented.node 4 .blockOut sp_scan sp_m
@@ -2157,7 +2163,7 @@ example {k nv : Nat} {sp_start sp_land sp_key : SurfPos} {ks : List FrameLevel}
     ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w :=
   resumeFrameRoute h_ind cont
 
 /-- **The `:` half at its own entry**, which item 93 punted: the empty-key entry
@@ -2170,7 +2176,7 @@ example {k nv : Nat} {sp_start sp_land sp_ind sp_scan' : SurfPos} {ks : List Fra
     ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_scan' sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v :=
   fun sp_m h_node =>
     resumeFrameRoute h_ind cont sp_m
       (SBlockMapEntry.emptyKeyNode k sp_ind sp_scan' sp_m h_lit
@@ -2589,7 +2595,7 @@ example {sp_start sp_scan : SurfPos} {n nv : Nat}
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) :
     ∃ (nv : Nat) (ks : List FrameLevel),
       ∀ sp_mid : SurfPos, SBlockIndented n .blockIn sp_scan sp_mid →
       ∀ sp_end : SurfPos, SCompactSeqTail n sp_mid sp_end →
@@ -2605,7 +2611,7 @@ example {sp_start sp_scan : SurfPos} {ns : List Nat} {nv : Nat} (hmem : nv ∈ n
     (vpack : ∀ nv ∈ ns, ∀ sp_mid sp_i sp_c : SurfPos, SSLComments sp_scan sp_mid →
       SIndent nv sp_mid sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) :
     ∃ (nv : Nat) (ks : List FrameLevel),
       ∀ sp_mid : SurfPos, SSLComments sp_scan sp_mid →
       ResumeFrames (ExplValueLine sp_start nv) ks sp_mid :=
@@ -2801,7 +2807,7 @@ example {sp_start sp_mid sp_key : SurfPos} {nv w : Nat} {ks : List FrameLevel}
       ∀ sp_e : SurfPos, SCompactMapTail w sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w :=
   match fV.resumeAt hmem with
   | ⟨_ks', _, cont⟩ =>
       ⟨[nv], frameChainOne (a := nv)
@@ -2955,7 +2961,7 @@ example {sp_start sp_entry sp_key : SurfPos} {nc w nv : Nat} {cc : YamlContext}
     (pair : ∀ sp, SBlockIndented nc cc sp_entry sp →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v)
     (h_ind : SIndent w sp_entry sp_key) :
     ∃ (nv : Nat) (ks : List FrameLevel), (∀ fr ∈ ks, fr.width < nc + 1 + w) ∧
       ∀ sp_v : SurfPos, SBlockMapEntry (nc + 1 + w) sp_key sp_v →
@@ -3076,7 +3082,7 @@ example {sp_start sp_scan sp_key : SurfPos} {nc w : Nat} {cc : YamlContext}
       ∀ sp, SBlockIndented nc cc sp_scan sp →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) :
     ∃ (nv : Nat) (ks : List FrameLevel), (∀ fr ∈ ks, fr.width < nc + 1 + w) ∧
       ∀ sp_v : SurfPos, SBlockMapEntry (nc + 1 + w) sp_key sp_v →
       ∀ sp_e : SurfPos, SCompactMapTail (nc + 1 + w) sp_v sp_e →
@@ -3101,7 +3107,7 @@ example {sp_start sp_scan sp_key : SurfPos} {nc w : Nat} {cc : YamlContext}
       ∀ sp, SBlockIndented nc cc sp_scan sp →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) : True := by
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) : True := by
   fail_if_success
     have : ∃ (nvs ks : List FrameLevel), (∀ fr ∈ ks, fr.width < nc + 1 + w) ∧
         ∀ nv ∈ nvs, ∀ sp_v : SurfPos, SBlockMapEntry (nc + 1 + w) sp_key sp_v →

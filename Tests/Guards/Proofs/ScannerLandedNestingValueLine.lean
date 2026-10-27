@@ -143,21 +143,23 @@ second argument is the park's own `h_kslot`, the frames it stands INSIDE —
 together, as a chain the landing picks from by column. -/
 
 example {sp_start sp_scan : SurfPos} {n : Nat}
+    -- Item 371: the `?` route carries its tail (the restated value-line pack).
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-        SLYamlStream sp_start sp_v) ∨ True)
+      ∀ sp_e : SurfPos, SCompactMapTail n sp_v sp_e →
+        SLYamlStream sp_start sp_e) ∨ True)
     -- Item 179: the awaited key node reads at the SHIFTED index.
     -- Item 196: and the ancestor index is a LIST.
     (h_kslot : (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ True) :
+      ResumeFrames (SLYamlStream sp_start) [L4YAML.Proofs.IndentStackCover.FrameLevel.map nv] sp_v) ∨ True) :
     (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ True :=
+      ResumeFrames (SLYamlStream sp_start) [L4YAML.Proofs.IndentStackCover.FrameLevel.map nv] sp_v) ∨ True :=
   explFrameValueLine h_expl h_kslot
 
 -- A `?` frame really does fund it, and this is the half that carries content:
@@ -167,17 +169,18 @@ example {sp_start sp_scan : SurfPos} {n : Nat}
 example {sp_start sp_scan sp_q : SurfPos} {n : Nat}
     (h_qlit : GLit '?' sp_q sp_scan)
     (route : ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-      SLYamlStream sp_start sp_v) :
+      ∀ sp_e : SurfPos, SCompactMapTail n sp_v sp_e →
+      SLYamlStream sp_start sp_e) :
     ∃ nv : Nat,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [L4YAML.Proofs.IndentStackCover.FrameLevel.map nv] sp_v :=
   ⟨n, fun sp_m h_node sp_i sp_c h_iv h_lit sp_v h_sbi =>
-    route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
+    ResumeFrames.one (route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
       (SBlockIndented.node n .blockOut sp_scan sp_m
         (SBlockNode_blockIn_to_blockOut h_node))
-      h_iv h_lit h_sbi)⟩
+      h_iv h_lit h_sbi))⟩
 
 end L4YAML.Tests.Guards.ScannerLandedNestingValueLine
 

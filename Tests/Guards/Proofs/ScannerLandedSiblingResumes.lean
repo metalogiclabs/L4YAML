@@ -159,7 +159,7 @@ example {sp_start sp_scan : SurfPos} {nv : Nat} {ks : List FrameLevel}
     ∀ sp_mid sp_i sp_c : SurfPos, SSLComments sp_scan sp_mid →
       SIndent nv sp_mid sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v :=
   fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
     (h sp_mid h_ssl).close sp_i sp_c h_ind h_lit sp_v h_sbi
 

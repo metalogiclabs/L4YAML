@@ -95,7 +95,7 @@ example {sc s_prep : ScannerState} {c : Char} {sp_start sp_scan sp_prep : SurfPo
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ True) ∧
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ True) ∧
       ((∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < k) ∧
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
@@ -137,7 +137,7 @@ example {n : Nat} {sc s_prep : ScannerState} {c : Char}
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ True) ∧
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ True) ∧
       ((∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < k) ∧
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →

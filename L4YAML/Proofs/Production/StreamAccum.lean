@@ -839,6 +839,15 @@ inductive ResumeFrames (P : SurfPos → Prop) : List FrameLevel → SurfPos → 
         ResumeFrames P ks sp_end) :
       ResumeFrames P (FrameLevel.map k :: ks) sp
 
+/-- One level with nothing beneath it (item 371): the mapping at `k` may go on
+    with its compact tail, and then the bottom holds — the shape every value-line
+    pack now ends in, so `? a⏎:⏎b: 1` continues `b: 1` as a sibling. -/
+lemma ResumeFrames.one {P : SurfPos → Prop} {k : Nat} {sp : SurfPos}
+    (h_tail : ∀ sp_end, SCompactMapTail k sp sp_end → P sp_end) :
+    ResumeFrames P [FrameLevel.map k] sp :=
+  ResumeFrames.level k [] sp (fun _ h => absurd h (List.not_mem_nil))
+    (fun sp_end h => ResumeFrames.bottom sp_end (h_tail sp_end h))
+
 /-- Close every level with its empty tail, reaching whatever the bottom owes —
     the fused stream the pendings' existing closures end in, or the explicit
     frame's value line. -/
@@ -1021,8 +1030,11 @@ lemma KeyFrames.resumeAtSeq {P : SurfPos → Prop} {sp : SurfPos} {ks : List Fra
 
 /-- **The explicit frame's value line**, named (item 108).  `[186]`'s key is
     complete at `sp_e`, and what the `[188]` entry still owes is `[190]
-    s-indent(nv) ':' s-l+block-indented(nv, block-out)`, after which it reaches
-    the stream.  Items 93/106 wrote this predicate inline at every twin that
+    s-indent(nv) ':' s-l+block-indented(nv, block-out)`, after which the
+    mapping at `nv` is still OPEN — one `ResumeFrames` level, whose compact
+    tail (`? a⏎:⏎b: 1`'s `b: 1`) is read before the stream is reached (item
+    371; before it the conclusion was the fused stream and the value park was
+    born frameless).  Items 93/106 wrote this predicate inline at every twin that
     carries it; naming it is what lets a stack of still-open mapping levels
     stand ON it — `KeyFrames (ExplValueLine sp_start nv)` — instead of on
     the finished stream, which is the difference between a dedent landing that
@@ -1031,7 +1043,7 @@ lemma KeyFrames.resumeAtSeq {P : SurfPos → Prop} {sp : SurfPos} {ks : List Fra
 def ExplValueLine (sp_start : SurfPos) (nv : Nat) (sp_e : SurfPos) : Prop :=
   ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
   ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-  SLYamlStream sp_start sp_w
+  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w
 
 /-- **The enclosing sequence's own remaining tail** (item 167) — the SEQUENCE
     lane's bottom, and `ExplValueLine`'s twin on it.
@@ -1179,7 +1191,7 @@ def ImplicitKeyPack (sc : ScannerState) (sp_start sp_scan : SurfPos) : Prop :=
       ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc) ∧
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc) ∧
     -- Item 99: the route's RESUME twin — the same entry and the same tail,
     -- ending in the still-open mapping levels BELOW this one instead of the
     -- fused stream.  It is what lets a park opened off this pack hand its own
@@ -1612,7 +1624,7 @@ lemma flowKeyPack_of_close {sc : ScannerState} {g : Option ScannerState} {n kc :
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ PackAltG g) ∧
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAltG g) ∧
       -- Item 120: the resume twins ride the frame beside the pair.
       ((∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < k) ∧
         ∀ sp_v : SurfPos, SBlockMapEntry k sp_key sp_v →
@@ -1749,14 +1761,14 @@ lemma flowVPack_of_close {n : Nat} {sp_start sp_br sp_tok : SurfPos} {alt : Prop
     (h_vslot : (∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
       ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
         GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ alt)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ alt)
     (h_content : SFlowContent n .flowOut sp_br sp_tok) :
     (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_mid sp_i sp_c : SurfPos,
         SSLComments sp_tok sp_mid → SIndent nv sp_mid sp_i →
         GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ alt :=
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ alt :=
   -- Item 309: generic in the alternative (`frameChainUnion`'s note).
   match h_vslot with
   | Or.inl ⟨ns, f⟩ => Or.inl ⟨ns, fun nv hmem => f nv hmem sp_tok h_content⟩
@@ -1831,7 +1843,7 @@ def PropsKeyPack (sc : ScannerState) (sp_start sp_p sp_scan : SurfPos) : Prop :=
       ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc) ∧
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc) ∧
     -- Item 111: the route's RESUME twin (item 99's shape).  Item 148: with
     -- the scanner stack under it, the same way — a props-headed key is a hop
     -- in the same chain, and `colon_open_map_props` spends it identically.
@@ -2110,7 +2122,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
           SSLComments sp_gram sp_mid → SIndent nv sp_mid sp_i →
           GLit ':' sp_i sp_c →
           ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-          SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- **Item 77 — the park's own arm** (LAST, so the patterns naming the older
       -- fields still bind them).  A landed `:` measures its floor against the
       -- save preprocessing makes at the landing, and item 76 supplies that save
@@ -2360,7 +2372,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- **Item 114 — the park's own resume faces** (LAST, same reason).  The
       -- run stands where a node is awaited, and until now `h_route` was the
       -- only way OUT: the node closed the whole stream, so everything the
@@ -2402,7 +2414,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_e : SurfPos, SCompactSeqTail ne sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- **Item 155: and the cover, which item 153 recorded this field as not
       -- having.**  Its one payer relays `pendingBlock.h_closeF`, and that
       -- field now carries one — so the entry face joins the other two lanes
@@ -2728,7 +2740,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- Item 99 (LAST, same reason): `h_closable_entry`'s RESUME twin — the
       -- landing's comments close this entry around the content already
       -- scanned, the collection's remaining tail rides, and the still-open
@@ -2799,7 +2811,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- ═══ **Item 198 — `h_closeF`'s twin at the VALUE-LINE bottom** (LAST, so
       -- the patterns naming the older fields still bind them), relayed from
       -- `pendingBlock.h_closeFV`.  `h_closeF` (item 99) is this park's
@@ -2940,7 +2952,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- Item 99 (LAST, same reason): `h_close_entry`'s RESUME twin — the
       -- entry's content and the collection's remaining tail close the
       -- sequence, and the still-open mapping levels BELOW it stand ready
@@ -2993,7 +3005,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- ═══ **Item 198 — `h_closeF`'s twin at the VALUE-LINE bottom** (LAST, so
       -- the patterns naming the older fields still bind them).  Item 99 gave
       -- this lane one bottom and item 155 gave it a cover; the stack it holds
@@ -3137,7 +3149,8 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       -- `h_ivl`'s stamp instead.
       (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
         ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-          SLYamlStream sp_start sp_v) ∨ NotQuestionPark sc)
+        ∀ sp_e : SurfPos, SCompactMapTail n sp_v sp_e →
+          SLYamlStream sp_start sp_e) ∨ NotQuestionPark sc)
       -- Item 59: the slot travels with the park's own COLUMN.  Only a `?` or
       -- an explicit `:` opens one, and both stand AT the entry's index, so the
       -- park is one past it — which is what lets the compact fill measure the
@@ -3216,7 +3229,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
       -- Item 99 (LAST, same reason): `h_close`'s RESUME twin and the park's
       -- own dedent frames, the two faces one landing question splits into.
       --
@@ -3339,7 +3352,7 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
         ∀ nv ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ NotQuestionPark sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ NotQuestionPark sc)
       -- **Item 284 — the indicator this park stands on OFFERS a slot** (LAST,
       -- same reason).  A run started off this park and an open dispatched from
       -- it read their slot face off the token the dispatch just pushed.
@@ -6803,7 +6816,7 @@ structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos)
       ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAltG g) ∧
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAltG g) ∧
     -- Item 120: the route's two RESUME twins (items 99/108's shapes at the
     -- key's own entry), riding beside the pair for the same reason — the
     -- close's pack hands them on, which is what lets a park opened off a
@@ -6829,7 +6842,7 @@ structure FlowBaseRoutes (sp_start : SurfPos) (n : Nat) (sp_br : SurfPos)
   vslot : (∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
     ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
       GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAltG g
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAltG g
 
 /-- The routes an enclosing construct that hosts no mapping entry hands a
     depth-0 frame: the node reading alone. -/
@@ -9225,17 +9238,18 @@ lemma valueMapRouteF {sp_start sp_scan sp_land sp_key : SurfPos} {n k : Nat}
 lemma explFrameValueLine {sp_start sp_scan : SurfPos} {n : Nat} {alt alt' : Prop}
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-        SLYamlStream sp_start sp_v) ∨ alt')
+      ∀ sp_e : SurfPos, SCompactMapTail n sp_v sp_e →
+        SLYamlStream sp_start sp_e) ∨ alt')
     (h_kslot : (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ alt) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ alt) :
     (∃ ns : List Nat, ∀ nv ∈ ns,
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ alt :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ alt :=
   -- Item 309: generic in the alternative (`frameChainUnion`'s note); the `?` slot
   -- and the frames above share it here — 12.3.4.2's face lane may give the slot its own.
   frameChainUnion
@@ -9244,10 +9258,10 @@ lemma explFrameValueLine {sp_start sp_scan : SurfPos} {n : Nat} {alt alt' : Prop
     (match h_expl with
      | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n], frameChainOne (a := n)
          (fun sp_m h_node sp_i sp_c h_iv h_lit sp_v h_sbi =>
-           route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
+           ResumeFrames.one (route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
              (SBlockIndented.node n .blockOut sp_scan sp_m
                (SBlockNode_blockIn_to_blockOut h_node))
-             h_iv h_lit h_sbi))⟩
+             h_iv h_lit h_sbi)))⟩
      -- Item 350: not a `?` park (`NotQuestionPark`, or any alternative) — the
      -- `?` slot owes no `:` line, so its chain is the EMPTY chain, not `alt`.
      | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
@@ -12500,7 +12514,7 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {g : Option ScannerState} {cc : YamlCo
       ∀ sp, SBlockIndented nc cc sp_scan sp →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- Item 78: the key this open will STACK, MEASURED rather than assumed.
     -- Item 75 took the coordinate as an option because a park that reached the
     -- bracket with the flag down stacks someone else's key; items 76 and 77
@@ -12525,7 +12539,7 @@ lemma flowKeyRoute_of_open {n nc m : Nat} {g : Option ScannerState} {cc : YamlCo
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ PackAltG g) ∧
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAltG g) ∧
       -- Item 120: the resume twins (the frame's rider).
       --
       -- ~~Both arms' routes end in the closed stream
@@ -12770,7 +12784,7 @@ lemma flowKeyRoute_of_root {m : Nat} {g : Option ScannerState} {sp_start sp_scan
         ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-        SLYamlStream sp_start sp_w) ∨ PackAltG g) ∧
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAltG g) ∧
       -- Item 120: the resume twins (the frame's rider).  The stream twin is
       -- paid on both arms (item 176): the level's own resume where `h_mapF`
       -- names the landing's width, `ks = []` under the suffix, head or root
@@ -14796,8 +14810,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                   | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨n_old, [],
                       frameChainOne (a := n_old)
                         (fun sp h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                          route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp sp_i sp_c sp_v
-                            h_qlit h_bo h_iv h_lit h_sbi))⟩
+                          ResumeFrames.one (route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp sp_i sp_c sp_v
+                            h_qlit h_bo h_iv h_lit h_sbi)))⟩
                   -- Item 361/363: no `?` park at the tail — the face is paid off the block
                   -- state when no slot is marked, and declines, named, when a `?` encloses.
                   | Or.inr _ => (h_refused.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial)))
@@ -14824,13 +14838,13 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                    (match h_expl with
                     | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n_old], frameChainOne (a := n_old)
                         (fun sp_end h_content sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-                          route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp_m sp_i sp_c sp_v
+                          ResumeFrames.one (route sp_v (SBlockMapEntry.explicit n_old sp_q sp_scan sp_m sp_i sp_c sp_v
                             h_qlit
                             (SBlockIndented.node n_old .blockOut sp_scan sp_m
                               (SBlockNode_blockIn_to_blockOut
                                 (SBlockNode.flowInBlock (n_old + 1) .blockIn sp_scan sp_prep sp_end sp_m
                                   h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)))
-                            h_ind h_lit h_sbi))⟩
+                            h_ind h_lit h_sbi)))⟩
                     | Or.inr _ => Or.inr trivial)
                    -- Item 196: the mapping-lane field is a CHAIN now, so the
                    -- crossing carries the whole of it instead of its head.
@@ -24174,7 +24188,7 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
       ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc)
     -- **Item 197 (LAST): the landing's own resume arm, at the VALUE-LINE
     -- bottom.**  `h_explUp_chain` above is the chain a caller composed by
     -- FILLING this `?`'s slot into an outer frame's key — the NESTED reading,
@@ -24198,7 +24212,7 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
       ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc)
     (h_mcstep : ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
       RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns)) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -24276,6 +24290,10 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           rootMapRouteF_or_refused h_ref_land hcol_land h_stream_land h_ind⟩
+  -- Item 371: the `?` route with its TAIL — the restated value-line pack's own element.
+  have h_route51F : ∀ sp_k, SBlockMapEntry k sp_ind sp_k →
+      ∀ sp_e, SCompactMapTail k sp_k sp_e → SLYamlStream sp_start sp_e :=
+    fun sp_k h_entry sp_e h_tail => (h_routeF sp_k h_entry sp_e h_tail).close
   -- ═══ **Item 197: the two ancestor readings, unioned.**  `h_explUp_chain` is
   -- the NESTED one — a caller filled the mapping this `?` heads into an outer
   -- frame's KEY slot (`slotLandedMap` at `nv + 1 ≤ k`) and handed back the
@@ -24289,7 +24307,7 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
       ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc :=
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc :=
     frameChainUnion h_explUp_chain
       (match h_resV_land with
        | Or.inl ⟨nv, _, _, contV⟩ =>
@@ -24312,7 +24330,7 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
            -- Item 51: the `?` literal + the entry route (`h_expl`), and the
            -- KEY slot itself (`h_vslot`) — `[186]`'s `s-l+block-indented`,
            -- compact alternatives included (`? - a`, `? ? b`, `? : v`).
-           (Or.inl ⟨sp_ind, h_lit, h_route51⟩)
+           (Or.inl ⟨sp_ind, h_lit, h_route51F⟩)
            -- Item 209: and the slot's own stack top, the caller's measurement.
            (Or.inl ⟨h_top_in, park_col_of_indicator hcol_land h_ind h_lit,
              fun sp_v h_sbi =>
@@ -24346,9 +24364,9 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
                 (by have h := h_mcstep nsU hdomU; rwa [hk] at h), fun nv hmem =>
                 fun sp_m h_node sp_i sp_c h_iv h_clit sp_v h_sbi => by
                   rcases List.mem_cons.1 hmem with rfl | hmem'
-                  · exact h_route51 sp_v (SBlockMapEntry.explicit _ sp_ind sp_scan' sp_m sp_i sp_c sp_v
+                  · exact ResumeFrames.one (h_route51F sp_v (SBlockMapEntry.explicit _ sp_ind sp_scan' sp_m sp_i sp_c sp_v
                       h_lit (SBlockIndented.node _ .blockOut sp_scan' sp_m
-                        (SBlockNode_blockIn_to_blockOut h_node)) h_iv h_clit h_sbi)
+                        (SBlockNode_blockIn_to_blockOut h_node)) h_iv h_clit h_sbi))
                   · exact up nv hmem' sp_m
                       (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_m h_lit
                         (SBlockIndented.node k .blockOut sp_scan' sp_m
@@ -24394,11 +24412,11 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
              fun sp_v h_node =>
                KeyFrames.bottom sp_v
                  (fun sp_i sp_c h_iv h_colon sp_w h_sbi =>
-                   h_route51 sp_w
+                   ResumeFrames.one (h_route51F sp_w
                      (SBlockMapEntry.explicit k sp_ind sp_scan' sp_v sp_i sp_c sp_w h_lit
                        (SBlockIndented.node k .blockOut sp_scan' sp_v
                          (SBlockNode_blockIn_to_blockOut h_node))
-                       h_iv h_colon h_sbi))⟩)
+                       h_iv h_colon h_sbi)))⟩)
            (Or.inl ⟨k, [],
              -- Item 150: the same seed on the face the dedent landing pops.
              h_cov_nil.imp (fun h =>
@@ -24406,10 +24424,10 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
              fun sp_m h_ssl =>
                KeyFrames.bottom sp_m
                  (fun sp_i sp_c h_iv h_colon sp_w h_sbi =>
-                   h_route51 sp_w
+                   ResumeFrames.one (h_route51F sp_w
                      (SBlockMapEntry.explicit k sp_ind sp_scan' sp_m sp_i sp_c sp_w h_lit
                        (SBlockIndented.empty k .blockOut sp_scan' sp_m h_ssl)
-                       h_iv h_colon h_sbi))⟩)
+                       h_iv h_colon h_sbi)))⟩)
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
            -- ═══ **Item 190: the SLOT-premised twin of item 189's payment.**
            -- `h_kslot` above narrows `h_kslot_up` to the awaited BLOCK NODE,
@@ -24445,7 +24463,7 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
     (hvp : ∀ sp_m sp_i sp_c : SurfPos,
       SSLComments sp_scan sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v)
     (h_ssl : SSLComments sp_scan sp_mid)
     (hcol_mid : sp_mid.col = 0)
     (h_ind : SIndent nv sp_mid sp_ind)
@@ -24499,7 +24517,7 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
     h_noflow_disp h_nic_disp hpeek_disp
   have h_slot : ∀ sp_v, SBlockIndented nv .blockOut sp_scan' sp_v →
       SLYamlStream sp_start sp_v :=
-    fun sp_v h_sbi => hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit sp_v h_sbi
+    fun sp_v h_sbi => (hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit sp_v h_sbi).close
   exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_mid,
          BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
          PendingNode.pendingMapValue (h_next := fun _ => dispatchBlock_colon_next h_noflow_disp hpeek_disp h_dispatch) (h_offer := dispatchBlock_colon_offerPred h_dispatch) sp_start sp_mid sp_scan' nv
@@ -24519,8 +24537,16 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
            (Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega))
            -- Item 93: a VALUE park has no value line of its own.
            (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
-             (Or.inr trivial)
-             (Or.inr trivial)
+             -- Item 371: the park's own frame, from the restated value-line pack —
+             -- after the explicit `:`'s value (a node, or nothing but comments)
+             -- the mapping at `nv` goes on with its siblings: `? a⏎:⏎b: 1`.
+             (Or.inl ⟨[], fun _ h => absurd h List.not_mem_nil, Or.inr trivial,
+               fun sp_m h_node => hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit sp_m
+                 (SBlockIndented.node nv .blockOut sp_scan' sp_m
+                   (SBlockNode_blockIn_to_blockOut h_node))⟩)
+             (Or.inl ⟨[FrameLevel.map nv], Or.inr trivial,
+               fun sp_m h_ssl' => hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit sp_m
+                 (SBlockIndented.empty nv .blockOut sp_scan' sp_m h_ssl')⟩)
              -- Item 108: nor a value-line-bottomed stack, for the same reason.
              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
@@ -24709,6 +24735,30 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
             (SBlockNode_blockIn_to_blockOut h_node))
   -- Item 68: the park is the character past the indicator, whichever indicator
   -- this is — the one fact both `[188]` alternatives share.
+  -- Item 371: the same entry when the awaited node is EMPTY — nothing but
+  -- comments after the indicator — for the `h_frames` face.
+  have h_entry_empty : ∀ sp_v, SSLComments sp_scan' sp_v →
+      SBlockMapEntry (n + 1 + m) sp_ind sp_v := by
+    cases hc with
+    | inl h =>
+      subst h
+      obtain ⟨sp_colon, h_lit, hcorr_colon⟩ :=
+        dispatchBlockValue_full_prod _ sp_ind
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+      have hsp_eq := ScannerSurfCorr_unique hcorr_colon hcorr_result
+      rw [hsp_eq] at h_lit
+      exact fun sp_v h_ssl =>
+        SBlockMapEntry.emptyKeyEmpty (n + 1 + m) sp_ind sp_scan' sp_v h_lit h_ssl
+    | inr h =>
+      subst h
+      obtain ⟨sp_q, h_lit, hcorr_q⟩ :=
+        dispatchBlockKey_full_prod _ sp_ind
+          (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+      have hsp_eq := ScannerSurfCorr_unique hcorr_q hcorr_result
+      rw [hsp_eq] at h_lit
+      exact fun sp_v h_ssl =>
+        SBlockMapEntry.explicitEmpty (n + 1 + m) sp_ind sp_scan' sp_v h_lit
+          (SBlockIndented.empty (n + 1 + m) .blockOut sp_scan' sp_v h_ssl)
   have h_park_col : sp_scan'.col = sp_ind.col + 1 := by
     cases hc with
     | inl h =>
@@ -24799,10 +24849,15 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
   -- (item 101), which is the field `hpk.2.2.1` carries. ═══
   have h_expl105 : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan' ∧
       ∀ sp_v : SurfPos, SBlockMapEntry (n + 1 + m) sp_q sp_v →
-        SLYamlStream sp_start sp_v) ∨ NotQuestionPark s' :=
+      ∀ sp_e : SurfPos, SCompactMapTail (n + 1 + m) sp_v sp_e →
+        SLYamlStream sp_start sp_e) ∨ NotQuestionPark s' :=
     match hc with
     | Or.inl h => Or.inr (dispatchBlock_colon_notQuestion (h ▸ h_dispatch))
-    | Or.inr h => Or.inl (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).1
+    -- Item 371: the compact `?`'s route WITH its tail — the compact mapping the
+    -- entry heads goes on with its siblings before the awaited node closes.
+    | Or.inr h => Or.inl ⟨sp_ind, h_qlit h, fun sp_v h_entry sp_e h_tail =>
+        h_close_old sp_e (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_e h_ind
+          (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_e h_entry h_tail))⟩
   have h_vslot105 : (s'.currentIndent ≤ ((n + 1 + m : Nat) : Int) ∧
       sp_scan'.col = (n + 1 + m) + 1 ∧ ∀ sp_v : SurfPos,
       SBlockIndented (n + 1 + m) .blockOut sp_scan' sp_v →
@@ -24866,7 +24921,18 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
                        (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_end h_ind
                          (SCompactMap.mk (n + 1 + m) sp_ind sp_mid sp_end
                            (h_entry_of sp_mid h_node) h_tail))))⟩)
-             (Or.inr trivial)
+             -- Item 371: and the EMPTY face — the awaited node is nothing but
+             -- comments, the compact mapping goes on with its siblings
+             -- (`- ? a⏎  :⏎  b: 1`): the level is bottomed on the same close.
+             (Or.inl ⟨[FrameLevel.map (n + 1 + m)], Or.inr trivial,
+               fun sp_mid h_ssl =>
+                 ResumeFrames.level (n + 1 + m) [] sp_mid
+                   (fun _ h => absurd h List.not_mem_nil)
+                   (fun sp_end h_tail => ResumeFrames.bottom sp_end
+                     (h_close_old sp_end
+                       (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_end h_ind
+                         (SCompactMap.mk (n + 1 + m) sp_ind sp_mid sp_end
+                           (h_entry_empty sp_mid h_ssl) h_tail))))⟩)
              -- Item 108: the compact `?`'s own frame (`h_expl105`) could bottom
              -- a stack here the way `question_open_map` does; no landing inside
              -- a compact key reaches the dedent branch yet, so it stays unpaid
@@ -24981,7 +25047,7 @@ lemma indicator_open_map {sc : ScannerState}
       ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc)
     -- **Item 197 (LAST): the landing's resume arm at the VALUE-LINE bottom**,
     -- handed to BOTH openers — unlike `h_explUp_chain`, which only the `?` half
     -- can take.  The two halves have different inputs and the same shape: a `?`
@@ -25006,7 +25072,7 @@ lemma indicator_open_map {sc : ScannerState}
       ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc)
     (h_mcstep : ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
       RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns)) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
@@ -25177,7 +25243,7 @@ lemma colon_open_map_implicit {alt : Prop} (sp_start sp_block sp_key sp_gram sp_
       ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ alt) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ alt) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -25399,7 +25465,7 @@ lemma colon_open_map_props (sp_start sp_block sp_p sp_scan : SurfPos) (k : Nat)
       ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
-      SLYamlStream sp_start sp_w) ∨ PackAlt sc) :
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc) :
     ∃ sp_gram' sp_block' sp_flow' sp_scan',
       SLYamlStream sp_start sp_gram' ∧
       BlockStack sp_gram' sp_block' ∧
@@ -26604,7 +26670,7 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
       ∀ sp_m sp_i sp_c : SurfPos,
         SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- Item 58: the slot travels with the park's own simple-key coordinate.
     -- Only a `?`/`:` scan opens this slot, and both re-arm fresh saves, so a
     -- key recorded at the NEXT indicator sits AT it — which is what sends the
@@ -26642,14 +26708,14 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
       ((∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_gram sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc) ∧
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc) ∧
       -- **Item 191: a LIST of ancestors** — the park may stand inside several
       -- open `?` frames at once and the landing names one of them.
       ((∃ nsU : List Nat, ∀ nvU ∈ nsU,
         ∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_gram sp_m →
         ∀ sp_i sp_c : SurfPos, SIndent nvU sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nvU .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)) ∨
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nvU] sp_v) ∨ PackAlt sc)) ∨
       (InlineResidue sp_scan c →
         (sc.needIndentCheck = false → LastTokenReal sc.tokens →
           s_prep.line = sc.line ∧ s_prep.needIndentCheck = false ∧
@@ -27375,7 +27441,7 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
         ∀ sp_e : SurfPos, SCompactSeqTail k sp_m sp_e →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc :=
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc :=
       match h_resSeqV with
       | Or.inl ⟨nv, _, _, cont⟩ => Or.inl ⟨nv, fun sp_m h_node sp_e h_tail =>
           (cont sp_m h_node sp_e h_tail).close⟩
@@ -27570,7 +27636,7 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
         have h_explicit := fun (hvp : ∀ sp_m sp_i sp_c : SurfPos,
             SSLComments sp_gram sp_m → SIndent k sp_m sp_i → GLit ':' sp_i sp_c →
             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
-            SLYamlStream sp_start sp_v) =>
+            ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
           colon_open_map_explicit sp_start sp_gram sp_mid _ k s_prep s'
             sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
             -- Item 76: the explicit VALUE line measures on the same datum the
@@ -28155,7 +28221,7 @@ lemma accum_block_on_pendingContent
       ∀ sp_m sp_i sp_c : SurfPos,
         SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (hcorr_result : ScannerSurfCorr s' sp_scan')
     (h_corr : ScannerSurfCorr sc sp_scan)
@@ -28338,7 +28404,7 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
       ImplicitKeyPack sc sp_start sp_scan ∨ KeyPackPunt sc)
     -- Item 80: the park's stale tail, as at `accum_block_on_pendingContent`.
@@ -28397,7 +28463,7 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- **Item 194 (LAST): the park's OWN resume frames** (`pendingBlockContent.h_closeF`,
     -- item 99), threaded here for the first time.  Item 173 added the `:`/`?`
     -- opener's resume arm and punted it at this call with "no mapping-lane
@@ -28769,7 +28835,7 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
               ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
               ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
-              SLYamlStream sp_start sp_v) =>
+              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
             colon_open_map_explicit sp_start sp_gram sp_mid _ k s_prep s'
               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
               (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
@@ -28811,7 +28877,7 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
               ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
               ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
-              SLYamlStream sp_start sp_v) ∨ (∃ nsU : List Nat, k ∉ nsU) := by
+              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) ∨ (∃ nsU : List Nat, k ∉ nsU) := by
             -- Item 191: the list is decided by MEMBERSHIP at the landing's
             -- own column — item 190's `nvU = k` was the one-element case.
             -- **Item 192: the miss carries the list it missed on**, so the
@@ -28903,7 +28969,7 @@ lemma accum_block_on_pendingBlock
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     (h_sk : sc.simpleKeyAllowed = true)
     (h_col_old : sp_scan.col = n + 1)
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -28951,7 +29017,7 @@ lemma accum_block_on_pendingBlock
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- **Item 198 (LAST): the park's value-line stack** (`pendingBlock.h_closeFV`).
     -- `h_kslotUp` above answers a LIST of ancestor frames DIRECTLY; this holds
     -- the levels still open BETWEEN this park and one of them, so a landing
@@ -29451,7 +29517,7 @@ lemma accum_block_on_pendingBlock
             ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
             ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
-            SLYamlStream sp_start sp_v) =>
+            ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
           colon_open_map_explicit sp_start sp_scan sp_mid _ k s_prep s'
             sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
             (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
@@ -29488,7 +29554,7 @@ lemma accum_block_on_pendingBlock
             ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
             ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
-            SLYamlStream sp_start sp_v) ∨ (∃ nsU : List Nat, k ∉ nsU) := by
+            ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) ∨ (∃ nsU : List Nat, k ∉ nsU) := by
           -- Item 191: decided by MEMBERSHIP, as on the content twin.
           -- Item 192: and the miss carries its list, as there.
           rcases h_kslotUp with ⟨nsU, _, upU⟩ | _
@@ -30186,9 +30252,9 @@ lemma accum_block_pending (sc : ScannerState)
             (match h_expl51 with
              | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[nmv], frameChainOne (a := nmv)
                  (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
-                   route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
+                   ResumeFrames.one (route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
                      h_qlit (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl)
-                     h_ind h_lit h_sbi))⟩
+                     h_ind h_lit h_sbi)))⟩
              | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)
             -- Item 93: the explicit-`:` twin of the branch above.
             (match h_kslot93 with
@@ -30222,8 +30288,8 @@ lemma accum_block_pending (sc : ScannerState)
              (match h_expl51 with
               | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl
                   (fun sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
-                    route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c
-                      sp_v h_qlit h_bo h_iv h_lit h_sbi))
+                    ResumeFrames.one (route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c
+                      sp_v h_qlit h_bo h_iv h_lit h_sbi)))
               | Or.inr _ => Or.inr trivial),
              -- ═══ **Item 190: and the frame ONE LEVEL UP, composed the same
              -- way.**  `h_explUp` carries the outer entry's value line against
@@ -33331,7 +33397,7 @@ lemma entryKeyPack_of_dispatch
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- Item 59: the COMPACT frame, with the park's own column beside it.  The
     -- column is what that branch's key needs in order to know its `[187]` entry
     -- index IS the column the scanner pushed its indent at — the conjunct item
@@ -33351,7 +33417,7 @@ lemma entryKeyPack_of_dispatch
       ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)) ∨ True)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)) ∨ True)
     -- **Item 101 — the park's own implicit-value stamp**, for the branch
     -- `h_compact` has no frame for.  A `[189]` value slot cannot offer a
     -- compact alternative, so a key on the park's own line punts there; but
@@ -33372,7 +33438,7 @@ lemma entryKeyPack_of_dispatch
         ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
           ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
           ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-          SLYamlStream sp_start sp_v) ∨ PackAlt sc)))
+          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)))
     -- Item 99: `h_node`'s RESUME twin — the levels still open once the
     -- awaited node completes (the entry's own level at `n` included, so the
     -- bound is `≤ n`).  The nested branch pays the pack's resume twin from
@@ -33864,7 +33930,7 @@ lemma entryKeyPack_of_dispatch
             ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
               ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
               ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-              SLYamlStream sp_start sp_v) ∨ PackAlt sc)) ∨
+              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)) ∨
             (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
               LastTokenReal sc.tokens) :=
           match h_compact with
@@ -34005,7 +34071,7 @@ lemma entryPropsKeyPack_of_dispatch
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- Item 79: `entryKeyPack_of_dispatch`'s bundled frame, verbatim — the
     -- compact route and the park's width, so the run's own column is measured
     -- on the line as it already was across a break.  Item 94: and the frame's
@@ -34018,7 +34084,7 @@ lemma entryPropsKeyPack_of_dispatch
       ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)) ∨ True)
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)) ∨ True)
     -- ═══ Item 115: `entryKeyPack_of_dispatch`'s four threaded premises
     -- (items 99/108), transposed to the props side — verbatim, because the
     -- run-headed key nests in exactly the mapping the scalar-headed one does.
@@ -34106,7 +34172,7 @@ lemma entryPropsKeyPack_of_dispatch
         ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
           ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
           ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-          SLYamlStream sp_start sp_v) ∨ PackAlt sc)))
+          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
     (h_corr : ScannerSurfCorr sc sp_scan)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
@@ -34388,7 +34454,7 @@ lemma entryPropsKeyPack_of_dispatch
           ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
             ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
             ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-            SLYamlStream sp_start sp_v) ∨ PackAlt sc)) ∨
+            ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)) ∨
           (sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧
             LastTokenReal sc.tokens) :=
         match h_compact with
@@ -35864,7 +35930,7 @@ lemma accum_content_on_pendingBlock_indented
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- Item 99: the park's resume frames (`pendingBlock.h_closeF`), threaded
     -- so the pack lemmas can pay their resume twins.
     -- **Item 155: and the cover the field now carries** — the sequence lane's
@@ -35927,7 +35993,7 @@ lemma accum_content_on_pendingBlock_indented
       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- **Item 198 (LAST): the park's value-line stack** (`pendingBlock.h_closeFV`),
     -- relayed onto whatever this content step parks exactly as `h_closeF_old`
     -- is — the same fold, one bottom over.
@@ -36726,7 +36792,8 @@ lemma accum_content_on_pendingMapValue_indented
     -- (`k:⏎  ? a` — the nested `?`), threaded exactly as at the root arm.
     (h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
       ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v →
-        SLYamlStream sp_start sp_v) ∨ NotQuestionPark sc)
+      ∀ sp_e : SurfPos, SCompactMapTail n sp_v sp_e →
+        SLYamlStream sp_start sp_e) ∨ NotQuestionPark sc)
     -- Item 89: the pending's OPEN `[185]` slot at the entry's index, threaded
     -- exactly as at the root arm (`k:⏎  ? a: b`'s `a`).
     (h_vslot : (sp_scan.col = n + 1 ∧ ∀ sp_v : SurfPos,
@@ -36738,7 +36805,7 @@ lemma accum_content_on_pendingMapValue_indented
       ∀ sp_m : SurfPos, SBlockNode (n + 1) .blockIn sp_scan sp_m →
       ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-      SLYamlStream sp_start sp_v) ∨ PackAlt sc)
+      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
     -- Item 99: the park's resume frames, both faces (`pendingMapValue`'s
     -- `h_closeF`/`h_frames`), threaded for the pack lemmas' resume twins.
     (h_closeF99 : (∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < n) ∧
@@ -36868,7 +36935,7 @@ lemma accum_content_on_pendingMapValue_indented
         ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
           ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
           ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-          SLYamlStream sp_start sp_v) ∨ PackAlt sc)) :=
+          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)) :=
     match h_ivl_mv with
     | Or.inl h => Or.inl ⟨h, h_nic_mv, h_real_mv⟩
     | Or.inr h_face => Or.inr ⟨fun sp h_bi =>
@@ -36879,8 +36946,8 @@ lemma accum_content_on_pendingMapValue_indented
         match h_expl with
         | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n], frameChainOne (a := n)
             (fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
-              route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp sp_i sp_c sp_v
-                h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi))⟩
+              ResumeFrames.one (route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp sp_i sp_c sp_v
+                h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi)))⟩
         | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩⟩
   have h_compact_vslot : ((∀ sp, SBlockIndented n .blockIn sp_scan sp →
       SLYamlStream sp_start sp) ∧ sp_scan.col = n + 1 ∧
@@ -36888,7 +36955,7 @@ lemma accum_content_on_pendingMapValue_indented
       ((∃ ns : List Nat, ∀ nv ∈ ns, ∀ sp : SurfPos, SBlockIndented n .blockIn sp_scan sp →
         ∀ sp_i sp_c : SurfPos, SIndent nv sp sp_i → GLit ':' sp_i sp_c →
         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-        SLYamlStream sp_start sp_v) ∨ PackAlt sc)) ∨ True :=
+        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)) ∨ True :=
     match h_vslot with
     | Or.inl hvs => Or.inl ⟨fun sp h_bi =>
         hvs.2 sp (SBlockIndented_blockIn_to_blockOut h_bi), hvs.1,
@@ -36898,8 +36965,8 @@ lemma accum_content_on_pendingMapValue_indented
         match h_expl with
         | Or.inl ⟨sp_q, h_qlit, route⟩ => Or.inl ⟨[n], frameChainOne (a := n)
             (fun sp h_bi sp_i sp_c h_iv h_lit sp_v h_sbi =>
-              route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp sp_i sp_c sp_v
-                h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi))⟩
+              ResumeFrames.one (route sp_v (SBlockMapEntry.explicit n sp_q sp_scan sp sp_i sp_c sp_v
+                h_qlit (SBlockIndented_blockIn_to_blockOut h_bi) h_iv h_lit h_sbi)))⟩
         | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩⟩
     | Or.inr _ => Or.inr trivial
   rcases indentedValue_reads_at_any_indent (h_src := h_src) sc sp_scan (n + 1) s_prep s' c sp_prep sp_scan'
@@ -39004,7 +39071,7 @@ lemma accum_content_pending (sc : ScannerState)
                   ∀ sp_e : SurfPos, SCompactSeqTail k sp_m sp_e →
                   ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
                   ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
-                  SLYamlStream sp_start sp_v) ∨ PackAlt sc := by
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc := by
                 rcases h_kslotE_p with ⟨ne, nv, hne, r⟩ | h_alt
                 · obtain rfl : ne = k := by omega
                   exact Or.inl ⟨nv, r⟩

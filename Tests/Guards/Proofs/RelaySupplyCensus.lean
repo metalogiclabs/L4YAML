@@ -925,7 +925,7 @@ def expectedTally : String :=
   -- 2026-10-26 (item 369): edges 664 → 665, DECLINE 256 → 255, FIELD 55 → 56, SPLIT 160 → 161 —
   -- `pendingBlock.h_closeF` threaded into `accum_block_on_pendingBlock` (one FIELD edge) and the
   -- `:`/`?` landing's `h_res_land` there read off those frames instead of `Or.inr trivial`.
-  "edges=665 skipped=38 [DECLINE=254, FIELD=56, LOCAL=27, PAY=52, RELAY=65, \
+  "edges=665 skipped=38 [DECLINE=251, FIELD=56, LOCAL=27, PAY=55, RELAY=65, \
 SPLIT=162, VIA=49]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
@@ -1329,7 +1329,7 @@ def expectedBranchSupply : List String :=
    -- 2026-10-20 (item 309): `explFrameValueLine`'s `h_expl` is binder #4 — `{alt : Prop}` precedes it now.
   -- 2026-10-24 (B3 [66] col-0 threading): the step frames read from the park's `sp_gram` and the
   -- `PendingNode` gate/`h_next` fields shift the binder indices of every relayed field.
-  ["h_closeF99 :: accum_content_on_pendingMapValue_indented#18 :: splits=7 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_closeF ⇒ DECLINE+PAY+brDECLINE+brPAY",
+  ["h_closeF99 :: accum_content_on_pendingMapValue_indented#18 :: splits=7 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_closeF ⇒ PAY+brDECLINE+brPAY",
    "h_closeFV108 :: accum_content_on_pendingMapValue_indented#20 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_closeFV ⇒ PAY+VIA+brDECLINE+brPAY",
    "h_closeFV_old :: accum_block_on_pendingBlock#31 :: splits=7 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeFV ⇒ DECLINE+brDECLINE+brPAY",
    "h_closeFV_old :: accum_block_on_pendingBlockContent#37 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeFV ⇒ brDECLINE+brPAY",
@@ -1402,7 +1402,11 @@ def expectedBranchSupply : List String :=
 def expectedDeclineWriters : List String :=
   -- Item 350: the `:` producers pay `h_expl`/`h_explUp`'s `NotQuestionPark` from the dispatch
   -- (`colon_open_map` 12 → 7, the three `colon_open_map_*` 15 → 10, `compact_open_map` 14 → 9).
-  ["10 colon_open_map_implicit",
+  -- Item 371: `colon_open_map_explicit` 4 → 1 and `compact_open_map` 3 → 1 — their
+  -- `h_closeF`/`h_frames` DECLINEs are paid from the restated value-line pack.
+  ["1 colon_open_map_explicit",
+   "1 compact_open_map",
+   "10 colon_open_map_implicit",
    "10 colon_open_map_props",
    "10 content_dispatch_routed",
    "11 accum_block_on_noPending",
@@ -1414,13 +1418,11 @@ def expectedDeclineWriters : List String :=
    "2 question_open_map",
    "3 colon_fires_implicit_key",
    "3 colon_fires_props_key",
-   "3 compact_open_map",
    -- 2026-10-26 (item 369): 31 → 32 — DECLINE writes on `h_closeF_old`
    "32 accum_block_on_pendingBlock",
    "34 accum_block_pending",
    "37 accum_content_pending",
    "4 accum_step_flow",
-   "4 colon_open_map_explicit",
    "7 colon_open_map",
    "8 accum_block_on_pendingContent"]
 

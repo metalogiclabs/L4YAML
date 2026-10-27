@@ -954,8 +954,6 @@ def expectedRows : List String :=
    "colon_open_map #1 ctor:pendingMapValue.h_frames := paid{cover=relay(val:colon_open_map.h✝)}",
    "colon_open_map #1 ctor:pendingMapValue.h_closeFV := match[paid{cover=punt}|punt]",
    "colon_open_map #1 ctor:pendingMapValue.h_framesV := match[paid{cover=punt}|punt]",
-   "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF := punt",
-   "colon_open_map_explicit #1 ctor:pendingMapValue.h_frames := punt",
    "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeFV := elim[punt|punt]",
    "colon_open_map_explicit #1 ctor:pendingMapValue.h_framesV := elim[punt|punt]",
    "colon_open_map_implicit #1 fn:colon_open_map_implicit.h_cov_step := via:Covered.dedup_head(via:IndentStackCover.scanValue_cover_key(via:Covered.of_indents_eq(relay(fnp:colon_open_map_implicit.h_cov_step.hc))))",
@@ -969,7 +967,6 @@ def expectedRows : List String :=
    "colon_open_map_props #1 ctor:pendingMapValue.h_closeFV := match[paid{cover=step(relay(param:colon_open_map_props.h_routeFV))}|punt]",
    "colon_open_map_props #1 ctor:pendingMapValue.h_framesV := match[paid{cover=step(relay(param:colon_open_map_props.h_routeFV))}|punt]",
    "compact_open_map #1 ctor:pendingMapValue.h_closeF := paid{cover=lit(lo=n + 1,idx=n + 1 + m,ks=map(…) :: [],by=via:CoverStep.cons_of_top_eq(via:IndentStackCover.dispatchBlockIndicators_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(lemma(IndentStackCover.covered_nil_of_top_le))))))}",
-   "compact_open_map #1 ctor:pendingMapValue.h_frames := punt",
    "compact_open_map #1 ctor:pendingMapValue.h_closeFV := elim[punt|punt]",
    "compact_open_map #1 ctor:pendingMapValue.h_framesV := elim[punt|punt]",
    "content_dispatch_routed #1 fn:content_dispatch_routed.h_cov_lift := via:IndentStackCover.dispatchContent_cover(via:Covered.of_indents_eq(relay(fnp:content_dispatch_routed.h_cov_lift.hc)))",
@@ -1034,8 +1031,11 @@ def expectedRows : List String :=
    "accum_content_pending #3 ctor:pendingBlockContent.h_closeFV := match[paid{cover=punt}|punt]",
    "accum_content_pending #1 param:accum_content_on_pendingBlock_indented.h_closeFV_old := imp:door:pendingBlock.h_closeFV{relay(door:pendingBlock.h_closeFV)}",
    -- 2026-10-26 (item 369): 198 → 199 — `accum_block_on_pendingBlock.h_closeF_old` relays `pendingBlock.h_closeF`
-   "accum_block_pending #1 param:accum_block_on_pendingBlock.h_closeF_old := relay(door:pendingBlock.h_closeF)"
-  ]
+   "accum_block_pending #1 param:accum_block_on_pendingBlock.h_closeF_old := relay(door:pendingBlock.h_closeF)",
+   -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
+   "colon_open_map_explicit #1 ctor:pendingMapValue.h_closeF := paid{cover=punt}",
+   "colon_open_map_explicit #1 ctor:pendingMapValue.h_frames := paid{cover=punt}",
+   "compact_open_map #1 ctor:pendingMapValue.h_frames := paid{cover=punt}"]
 -- Item 259: the compact opener's payment of `pendingMapValue.h_closeF` is a
 -- leaf of ALL FOUR trees — the mapping value field is a position of the
 -- content and entry trees through `accum_block_pending`'s door and of the
@@ -1043,11 +1043,13 @@ def expectedRows : List String :=
 -- leaf and one punt fewer (`valF` was not predicted; the other three were).
 -- 2026-10-26 (item 370): `content:`/`entry:` trees gain one position and one row and lose one punt — the sibling `-`
 -- arm's `pendingBlock.h_closeF` relay of `h_closeF_old`.
+-- Item 371: the paid `h_closeF`/`h_frames` at `colon_open_map_explicit`/`compact_open_map` carry a punted
+-- cover conjunct (`Or.inr trivial`) — the trees read them as `cover-punt`, one fewer plain punt each.
 def expectedTrees : List String :=
-  ["content: positions=17 rows=48 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=6 punt=14] open=2",
-   "entry: positions=17 rows=48 leaves[cover-punt=2 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=6 punt=14] open=2",
-   "valF: positions=9 rows=24 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=11] open=2",
-   "mapValue: positions=8 rows=13 leaves[open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=2] open=2"]
+  ["content: positions=17 rows=48 leaves[cover-punt=3 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=6 punt=13] open=2",
+   "entry: positions=17 rows=48 leaves[cover-punt=3 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=6 punt=13] open=2",
+   "valF: positions=9 rows=24 leaves[cover-punt=1 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=10] open=2",
+   "mapValue: positions=8 rows=13 leaves[cover-punt=1 open:fnparam:colon_fires_implicit_key.h_key=1 open:fnparam:colon_fires_props_key.h_key=1 paid=2 punt=1] open=2"]
 -- 2026-10-26 (item 369): `accum_block_on_pendingBlock` row re-read — `h_closeF_old` (the `-` park's frames) joins its binders.
 def expectedEight : List String :=
   ["accum_block_on_pendingBlock indicator_open_map.h_stream_land indents=0 top=1(h_top_old) floor=0 minCI=0 nic=1(h_nic_old) prep=1(h_preprocess) base=1(h_base) mono=1(h_mono) cover=2(h_closeFV_old@2,h_closeF_old@2)",
@@ -1212,7 +1214,9 @@ def expectedLine : String :=
   -- lemmas and the eleven `h_alt := h_refused.elim …` arguments; no cover row moved.
   -- 2026-10-26 (item 366): nodes 117885 → 117899 — the two `Classical.em` pays of `h_outer` in
   -- `accum_block_on_closeThenBlock`; no row of this guard moved.
-  "positions=23 ctorFields=13 lemParams=35 lemmas=18 walked=25 doors=9 rows=199 ctorRows=92 lemRows=74 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=1 pmvCoverPunt=0 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=14 contentCoverPunt=2 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=14 entryCoverPunt=2 entryLemma=0 entryOpen=2 entryPos=17 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=17 doorForgotten=8 doorDropped=24 doorsOther=5 nodes=117865"
+-- Item 371 (pmvPunt=1 → 0, pmvCoverPunt=0 → 1, contentPunt=14 → 13, contentCoverPunt=2 → 3, entryPunt=14 → 13, entryCoverPunt=2 → 3, nodes=117865 → 119846): the value-line packs end in the one-level
+-- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+  "positions=23 ctorFields=13 lemParams=35 lemmas=18 walked=25 doors=9 rows=199 ctorRows=92 lemRows=74 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=0 pmvCoverPunt=1 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=13 contentCoverPunt=3 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=13 entryCoverPunt=3 entryLemma=0 entryOpen=2 entryPos=17 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=17 doorForgotten=8 doorDropped=24 doorsOther=5 nodes=119846"
 
 /-! ## §6 The reading -/
 

@@ -365,7 +365,8 @@ def expectedModuleTallyP : String :=
   -- (`h_sound` ×3, `h_fl0` ×2, `h_alt` ×1) passed whole along the content lane.
   -- 2026-10-26 (item 366): RELAY 2639 → 2641 — the same two `h_sound` relays (pre-pinned with `HypothesisReaderCensus`).
   -- 2026-10-26 (item 370): constants/decls +1 (the sibling `-` arm's `match h_closeF_old` auxiliary), READ 1376 → 1379.
-  "constants=1682 decls=1321 eta=441 FIELD=192 READ=1379 RELAY=2645 RETURN=167 UNUSED=27"
+-- Item 371: constants/decls +1, READ +1 — `ResumeFrames.one` (the restated value-line pack's one-level bottom).
+  "constants=1683 decls=1322 eta=441 FIELD=192 READ=1380 RELAY=2645 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
