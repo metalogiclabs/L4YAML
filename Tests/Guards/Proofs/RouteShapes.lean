@@ -674,7 +674,8 @@ def expectedClosures : List String :=
    -- 2026-10-24 (item 350): `h_expl`/`h_explUp` read `req`, no longer `opt` — their alternative is
    -- `NotQuestionPark sc` (a scanner fact the `:` producers pay), not a `PackAlt`/`True` escape.
   ["pendingContent.h_closable[] req+guard: sp_gram: SSLComments ⇒ Stream",
-   "pendingContent.h_key[λλLEEE1] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
+    -- Item 372 (2026-10-27): the pack's route conjunct is an Or (`∨ SeqTopKey sc`); the stream route is its LEFT side (`L`).
+   "pendingContent.h_key[λλLEEE1L] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
    "pendingContent.h_key[λλLEEE5LE] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Resume(map(_)::[])▹Stream",
    "pendingContent.h_key[λλLEEE6LE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
    "pendingContent.h_key[λλLEEE7LEE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
@@ -699,7 +700,7 @@ def expectedClosures : List String :=
    "pendingDirective.h_dir_route[] req: sp_block: SLDirectiveDocument ⇒ Stream",
    "pendingBlockContent.h_closable[] req+guard: sp_gram: SSLComments ⇒ Stream",
    "pendingBlockContent.h_closable_entry[] req: sp_gram: SSLComments > SCompactSeqTail(n) ⇒ Stream",
-   "pendingBlockContent.h_key[λλLEEE1] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
+   "pendingBlockContent.h_key[λλLEEE1L] req+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) ⇒ Stream",
    "pendingBlockContent.h_key[λλLEEE5LE] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Resume(map(_)::[])▹Stream",
    "pendingBlockContent.h_key[λλLEEE6LE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Resume(_)▹Stream",
    "pendingBlockContent.h_key[λλLEEE7LEE3] opt+guard+pack: [col(pos(simpleKey(sc)))=_; line(pos(simpleKey(sc)))=line(sc)] _: SBlockMapEntry(_) > SCompactMapTail(_) ⇒ Key(_)▹ExplValueLine(_)",
@@ -937,7 +938,8 @@ def expectedK : List String :=
 -- Item 371 (stream=8 → 5, carry=174 → 180, punt=67 → 64, mandatory[stream=5 → 4, carry=53 → 54, optional[stream=3 → 1, carry=121 → 126, punt=53 → 50, spinesFromStream=6 → 3, spinesCarried=31 → 34, firstsFromStream=4 → 2, headsFromStream=4 → 2, routeArgs=162 → 161, routeFwd=51 → 50, build[stream=17 → 14, carry=289 → 295, punt=71 → 68, buildStreamSlots=17 → 14, buildSpines=11 → 8, k=15 → 12): `colon_open_map_explicit`/`compact_open_map` carry
 -- `h_closeF`/`h_frames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` ride the bound tail route, not the stream.
 def expectedLine : String :=
-  "closures=54 packed=14 optional=38 guarded=13 facts=3 others=4 byHead=6 byFirst=8 bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 stream=5 carry=180 fwd=0 punt=64 closed=6 mandatory[stream=4 carry=54 fwd=0 punt=14 closed=0] optional[stream=1 carry=126 fwd=0 punt=50 closed=6] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=3 spinesCarried=34 spinesTouched=37 firstsFromStream=2 headsFromStream=2 streamSites=2 closings=11 closedDistinct=3 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=161 routeStream=16 routeCarry=56 routeFwd=50 routeClosed=39 routeToWalked=100 routeStreamToWalked=11 viaObtained=0 viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=14 carry=295 fwd=697 punt=68 closed=27] buildStreamSlots=14 buildSpines=8 routePairs=7 routeSpines=5 k=12 kHeads=6 streamBuilders=8"
+  -- Item 372 (2026-10-27): `ImplicitKeyPack`'s route conjunct is an Or (the `SeqTopKey` face): the pack's route slot reads as a guarded alternative, not a bare stream route.
+  "closures=54 packed=14 optional=38 guarded=13 facts=3 others=4 byHead=6 byFirst=8 bySpine=39 flowRoutes=6 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=255 stream=5 carry=180 fwd=0 punt=64 closed=6 mandatory[stream=4 carry=54 fwd=0 punt=14 closed=0] optional[stream=1 carry=126 fwd=0 punt=50 closed=6] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=3 spinesCarried=34 spinesTouched=37 firstsFromStream=2 headsFromStream=2 streamSites=2 closings=11 closedDistinct=3 closedIn=2 absorbed=4 obtained=2 flowSites=7 flowSlots=42 flow[stream=8 carry=29 fwd=0 punt=4 closed=1] routeArgs=161 routeStream=16 routeCarry=57 routeFwd=49 routeClosed=39 routeToWalked=100 routeStreamToWalked=11 viaObtained=0 viaSites=0 builders=13 builds=170 buildSlots=1101 build[stream=14 carry=295 fwd=697 punt=68 closed=27] buildStreamSlots=14 buildSpines=8 routePairs=7 routeSpines=5 k=12 kHeads=6 streamBuilders=8"
 
 set_option maxHeartbeats 4000000 in
 run_cmd Lean.Elab.Command.liftTermElabM do

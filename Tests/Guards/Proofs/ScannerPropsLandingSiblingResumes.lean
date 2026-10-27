@@ -147,7 +147,7 @@ example {sc : ScannerState} {sp_start sp_p sp_scan sp_gram : SurfPos}
   obtain ⟨⟨k, route, hcol, kslot, resF, resFV⟩, _, _, _⟩ := h
   -- Item 168: a run-headed key opens no compact mapping over a sequence entry,
   -- so the pack's fourth twin punts.
-  exact ⟨k, sp_p, sp_gram, route, head, hws, hcol, kslot, resF, resFV, Or.inr trivial⟩
+  exact ⟨k, sp_p, sp_gram, Or.inl route, head, hws, hcol, kslot, resF, resFV, Or.inr trivial⟩
 
 /-! ## §5 The spend at the anchored null key
 

@@ -5481,6 +5481,139 @@ def testValueLineResume (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"value-line resume {label}" (got == expected)
       s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
 
+/-- Priority 40 (item 372): a key LANDING ON A SEQUENCE TOP is refused at its `:`
+    (§8.2.1 `trailingContent`), and that refusal is the only survivor of the key
+    pack's `w ∉ ks` exit under a cover — the `SeqTopKey` face the `:` consumer
+    refutes.  Neighbours that are accepted name the other exits: a `-` sibling
+    (the landing is a sequence entry, not a key), a key resuming an OPEN mapping
+    level (a frame), a key inside the entry's own mapping. -/
+def testSeqTopKeyFace (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 40: a key on a sequence top is refused at its `:` — the key pack's SeqTopKey face (item 372)"
+  let rootArity : YamlValue → Nat
+    | .mapping _ arr => arr.size
+    | .sequence _ arr => arr.size
+    | _ => 0
+  let rows : List (String × String × Option (Nat × Nat)) :=
+    [ ("- a⏎b: 1 (key at the root sequence's column: refused at the `:`)", "- a\nb: 1", none),
+      ("k:⏎  - a⏎  b: 1 (key at a nested sequence's column: refused)", "k:\n  - a\n  b: 1", none),
+      ("- - a⏎  b: 1 (key at an inner sequence's column: refused)", "- - a\n  b: 1", none),
+      ("- a⏎\"b\": 1 (quoted key at the sequence's column: refused)", "- a\n\"b\": 1", none),
+      ("- a⏎&p b: 1 (props-headed key at the sequence's column: refused — PRICED, props lane)", "- a\n&p b: 1", none),
+      ("- a⏎- b (a `-` sibling, not a key: accepted)", "- a\n- b", some (1, 2)),
+      ("k:⏎  - a⏎b: 1 (the key resumes the OPEN root mapping — a frame, not a sequence top)", "k:\n  - a\nb: 1", some (1, 2)),
+      ("- a: 1⏎  b: 2 (a key inside the entry's own mapping)", "- a: 1\n  b: 2", some (1, 1)),
+      ("- a⏎  b: 1 (one column in: the plain scalar folds, then `:` is refused)", "- a\n  b: 1", none),
+      ("-⏎b: 1 (empty entry, then a key at the sequence's column: refused)", "-\nb: 1", none) ]
+  for (label, src, expected) in rows do
+    let got : Option (Nat × Nat) := match L4YAML.TokenParser.parseYaml src with
+      | .ok docs => some (docs.size, (docs[0]?.map (fun d => rootArity d.value)).getD 0)
+      | .error _ => none
+    checkM state s!"seq-top key face {label}" (got == expected)
+      s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
+
+/-- The states at which preprocessing hands a `:` to the block dispatcher while scanning
+    `input` (the lemma's `s`, before the directive reset).  Not `colonStates`: that reads the
+    raw cursor, which never rests on the explicit `:` of `? a⏎: b` (it sits behind a break). -/
+def colonDispatchStates (input : String) (fuel : Nat := 64) : List ScannerState := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut acc : List ScannerState := []
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) => if c == ':' then acc := acc ++ [sp]
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return acc
+
+/-- Item 372's lemma at one `:` pause (after the directive reset the producers dispatch
+    over): `(premises, face, dispatched)` — the four side premises of
+    `seqTopKey_refuted_at_colon` read off the state, `SeqTopKey` as a Bool, and whether
+    `scanNextToken_dispatchBlockIndicators` dispatched.  The lemma says: premises ∧
+    dispatched → ¬ face. -/
+def seqTopKeyRow (sp : ScannerState) : Bool × Bool × Bool :=
+  let sd := if sp.allowDirectives then
+    { sp with allowDirectives := false, documentEverStarted := true } else sp
+  let prem := !sd.inFlow && sd.simpleKey.possible && sd.simpleKey.pos.offset != sd.offset
+    && sd.simpleKey.pos.line == sd.line
+  let face := (sd.indents.back?.map fun e =>
+    e.isSequence && e.column == (sd.simpleKey.pos.col : Int)) == some true
+  let disp := match scanNextToken_dispatchBlockIndicators sd ':' with
+    | .ok (some _) => true
+    | _ => false
+  (prem, face, disp)
+
+/-- The `:` pauses of `input`, classified: `holds` (premises, dispatched, no face),
+    `facedRefused` (premises, face, NOT dispatched — the scanner's side of the lemma),
+    `sidePremise` / `inFlow` (a side premise fails — for the explicit `:` of `? a⏎: b` it is
+    `h_behind`: a fresh simple key is saved AT the `:`), `refuted` (premises, dispatched,
+    face). -/
+def seqTopKeyLemmaWalk (input : String) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut holds := 0
+  let mut facedRefused := 0
+  let mut sidePremise := 0
+  let mut inFlow := 0
+  let mut refuted := 0
+  for sp in colonDispatchStates input do
+    let (prem, face, disp) := seqTopKeyRow sp
+    if prem && disp && !face then holds := holds + 1
+    else if prem && face && !disp then facedRefused := facedRefused + 1
+    else if prem && disp && face then refuted := refuted + 1
+    else if sp.inFlow then inFlow := inFlow + 1
+    else sidePremise := sidePremise + 1
+  return (holds, facedRefused, sidePremise, inFlow, refuted)
+
+def testSeqTopKeyLemma (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 40b: seqTopKey_refuted_at_colon and SeqTopKey.of_eq on the scanner's own `:` states (item 372, PR review)"
+  -- (holds, facedRefused, sidePremise, inFlow, refuted); `refuted` must be 0 everywhere.
+  let rows : List (String × String × (Nat × Nat × Nat × Nat × Nat)) :=
+    [ ("a: 1 (root key, sentinel stack)", "a: 1", (1, 0, 0, 0, 0)),
+      ("a: 1⏎b: 2 (two root keys)", "a: 1\nb: 2", (2, 0, 0, 0, 0)),
+      ("k:⏎  a: 1 (mapping top at the key's column)", "k:\n  a: 1", (2, 0, 0, 0, 0)),
+      ("- a: 1 (key inside the entry: mapping over the sequence)", "- a: 1", (1, 0, 0, 0, 0)),
+      ("- a: 1⏎  b: 2 (Priority 40's accepted neighbour)", "- a: 1\n  b: 2", (2, 0, 0, 0, 0)),
+      ("k:⏎  - a⏎b: 1 (the dedent popped the sequence: holds)", "k:\n  - a\nb: 1", (2, 0, 0, 0, 0)),
+      ("- a⏎b: 1 (the item's input: face holds, `:` refused)", "- a\nb: 1", (0, 1, 0, 0, 0)),
+      ("-⏎b: 1 (empty entry, then the face)", "-\nb: 1", (0, 1, 0, 0, 0)),
+      ("k:⏎  - a⏎  b: 1 (nested sequence top)", "k:\n  - a\n  b: 1", (1, 1, 0, 0, 0)),
+      ("- - a⏎  b: 1 (inner sequence top)", "- - a\n  b: 1", (0, 1, 0, 0, 0)),
+      ("- a⏎\"b\": 1 (quoted key on the sequence top)", "- a\n\"b\": 1", (0, 1, 0, 0, 0)),
+      ("- a⏎  b: 1 (one column in: the fold makes a multiline key)", "- a\n  b: 1", (0, 0, 1, 0, 0)),
+      ("? a⏎: b (explicit `:`: the saved key sits AT the `:` — h_behind fails)", "? a\n: b", (0, 0, 1, 0, 0)),
+      ("{a: b} (flow `:`)", "{a: b}", (0, 0, 0, 1, 0)),
+      ("[a: 1] (flow pair `:`)", "[a: 1]", (0, 0, 0, 1, 0)) ]
+  for (label, src, expected) in rows do
+    let got := seqTopKeyLemmaWalk src
+    let detail := (colonDispatchStates src).map seqTopKeyRow
+    checkM state s!"seq-top lemma {label}" (got == expected)
+      s!"(holds, facedRefused, sidePremise, inFlow, refuted) = {repr got}, expected {repr expected}; rows (prem, face, disp) = {repr detail}"
+  -- `SeqTopKey.of_eq`'s reading at the executable level: the face is a function of
+  -- `indents` and the key's column only — rewriting every other field keeps it.
+  let faceOf (s : ScannerState) : Bool := (seqTopKeyRow s).2.1
+  for (label, src) in [("- a⏎b: 1", "- a\nb: 1"), ("k:⏎  - a⏎  b: 1", "k:\n  - a\n  b: 1")] do
+    match (colonDispatchStates src).getLast? with
+    | some sp =>
+      let moved : ScannerState := { sp with
+        offset := sp.offset + 7
+        line := sp.line + 1
+        col := sp.col + 3
+        tokens := #[]
+        simpleKeyAllowed := !sp.simpleKeyAllowed
+        simpleKey := { sp.simpleKey with
+          pos := { sp.simpleKey.pos with offset := 0, line := 99 } } }
+      let colMoved : ScannerState := { sp with
+        simpleKey := { sp.simpleKey with
+          pos := { sp.simpleKey.pos with col := sp.simpleKey.pos.col + 1 } } }
+      let popped : ScannerState := { sp with indents := sp.indents.pop }
+      checkM state s!"of_eq {label}: face at the pause" (faceOf sp) s!"face={faceOf sp}"
+      checkM state s!"of_eq {label}: rides a step keeping indents and the key column" (faceOf moved)
+        s!"face={faceOf moved}"
+      checkM state s!"of_eq {label}: the key column is load-bearing" (!faceOf colMoved)
+        s!"face={faceOf colMoved}"
+      checkM state s!"of_eq {label}: the stack is load-bearing" (!faceOf popped)
+        s!"face={faceOf popped}"
+    | none => checkM state s!"of_eq {label}: a `:` pause exists" false "no pause"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5529,6 +5662,8 @@ def collectTests : IO VerifiedSuiteResult := do
   testRootSiblingLedger state
   testSiblingDashFrames state
   testValueLineResume state
+  testSeqTopKeyFace state
+  testSeqTopKeyLemma state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",
