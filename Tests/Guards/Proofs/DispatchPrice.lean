@@ -336,7 +336,7 @@ def expectedSteps : String :=
 -- 2026-10-25 (item 359): stepHolders 1887 → 1888 — `scanValue_refused_of_outer` (RegisterWitness) holds the
 -- `scanValue s = .ok s'` step equation.
 -- Item 372 (2026-10-27): `seqTopKey_refuted_at_colon` holds the `:` dispatch step (+1 step/disp holder).
-  "stepHolders=1890 dispHolders=358 dispTwoCorr=31 fns=73 fnsIx=26"
+  "stepHolders=1894 dispHolders=362 dispTwoCorr=31 fns=73 fnsIx=26"
 
 /-- **The ladder, at each population.**  `edge` is a production whose right
     endpoint is the step's output; `chain` requires a path to it from another
@@ -413,7 +413,7 @@ def expectedChainSpec : List Name :=
 -- / reservation lemmas); preprocess chain 6 → 3 — three carriers now read the `sp_gram` edge directly.
 def expectedPerFn : List String :=
   ["scanNextToken_dispatchContent decls=159 chain=1",
-   "scanNextToken_preprocess decls=242 chain=3"]
+   "scanNextToken_preprocess decls=243 chain=3"]
 
 /-- **The one worked precedent is outside the work.**  It is not in item 238's
     transitive set and not on either repair thread, so β.5 neither pays for it

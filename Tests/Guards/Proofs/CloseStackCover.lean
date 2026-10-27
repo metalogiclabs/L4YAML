@@ -1001,8 +1001,10 @@ def expectedRows : List String :=
    "accum_block_on_closeThenBlock #1 param:landing_frame_of_cover.h_cov := via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(param:accum_block_on_closeThenBlock.h_mapFV)))",
    "accum_block_on_pendingBlock #1 param:accum_block_on_closeThenBlock.h_mapFV := match[paid{cover=step(relay(param:accum_block_on_pendingBlock.h_closeFV_old))}|punt]",
    "accum_block_on_pendingBlock #1 param:landing_frame_of_cover.h_cov := via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(param:accum_block_on_pendingBlock.h_closeFV_old)))",
+   "accum_block_on_pendingBlock #1 param:preprocess_landing_mem_or_seq.h_cov := relay(param:accum_block_on_pendingBlock.h_closeF_old)",
    "accum_block_on_pendingBlockContent #1 param:accum_block_on_closeThenBlock.h_mapFV := match[paid{cover=step(relay(param:accum_block_on_pendingBlockContent.h_closeFV_old))}|punt]",
    "accum_block_on_pendingBlockContent #1 param:landing_frame_of_cover.h_cov := via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(param:accum_block_on_pendingBlockContent.h_closeFV_old)))",
+   "accum_block_on_pendingBlockContent #1 param:preprocess_landing_mem_or_seq.h_cov := relay(param:accum_block_on_pendingBlockContent.h_closeF_old)",
    "accum_block_on_pendingContent #1 param:accum_block_on_closeThenBlock.h_mapFV := imp:?{punt}",
    "accum_block_on_pendingContent #2 param:accum_block_on_closeThenBlock.h_mapFV := imp:?{punt}",
    "accum_block_pending #1 param:accum_block_on_closeThenBlock.h_mapFV := match[paid{cover=relay(door:pendingProps.h_closeFV)}|punt]",
@@ -1223,7 +1225,7 @@ def expectedLine : String :=
 -- Item 371 (pmvPunt=1 → 0, pmvCoverPunt=0 → 1, contentPunt=14 → 13, contentCoverPunt=2 → 3, entryPunt=14 → 13, entryCoverPunt=2 → 3, nodes=117865 → 119846): the value-line packs end in the one-level
 -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
 -- Item 372 (2026-10-27): exit (a)'s cover spend on `preprocess_landing_mem_or_seq` (one more lemma relay row).
-  "positions=23 ctorFields=13 lemParams=35 lemmas=18 walked=26 doors=9 rows=202 ctorRows=92 lemRows=76 localRows=5 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=0 pmvCoverPunt=1 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=13 contentCoverPunt=3 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=13 entryCoverPunt=3 entryLemma=0 entryOpen=2 entryPos=17 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=17 doorForgotten=8 doorDropped=24 doorsOther=5 nodes=120158"
+  "positions=23 ctorFields=13 lemParams=35 lemmas=18 walked=26 doors=9 rows=204 ctorRows=92 lemRows=78 localRows=5 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=0 pmvCoverPunt=1 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=13 contentCoverPunt=3 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=13 entryCoverPunt=3 entryLemma=0 entryOpen=2 entryPos=17 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=17 doorForgotten=8 doorDropped=24 doorsOther=5 nodes=120362"
 
 /-! ## §6 The reading -/
 
