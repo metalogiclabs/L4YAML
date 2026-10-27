@@ -5614,6 +5614,61 @@ def testSeqTopKeyLemma (state : IO.Ref TestCollector) : IO Unit := do
         s!"face={faceOf popped}"
     | none => checkM state s!"of_eq {label}: a `:` pause exists" false "no pause"
 
+/-- Item 373's reading of the `_or_refused` wrappers' discriminator at one dispatcher-bound
+    landing: `(open, seqTop)` — `h_op` (`s_prep.indents.any (column == col)`, the sibling arm)
+    and whether the stack's top is a SEQUENCE at the landing column (item 372's face). -/
+def siblingArmRow (sp : ScannerState) : Bool × Bool :=
+  let sd := if sp.allowDirectives then
+    { sp with allowDirectives := false, documentEverStarted := true } else sp
+  let op := sd.indents.any fun e => e.column == (sd.col : Int)
+  let seqTop := (sd.indents.back?.map fun e => e.isSequence && e.column == (sd.col : Int)) == some true
+  (op, seqTop)
+
+/-- Every landing `scanNextToken_preprocess` hands the block dispatcher while scanning `input`
+    (any character), classified: `(openMap, seqTop, closed)` = sibling landings on a mapping
+    top, landings on a sequence top, landings at no open level. -/
+def siblingArmWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut openMap := 0
+  let mut seqTop := 0
+  let mut closed := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, _)) =>
+      let (op, st) := siblingArmRow sp
+      if st then seqTop := seqTop + 1
+      else if op then openMap := openMap + 1
+      else closed := closed + 1
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (openMap, seqTop, closed)
+
+def testSiblingArmDomain (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 41: the `_or_refused` wrappers' sibling arm (h_op = true) — what lands on an open level, and the parser's verdict (item 373)"
+  -- (openMap, seqTop, closed) over every dispatcher-bound landing, and whether parseYaml accepts.
+  -- REFUTED as first written (every landing of a line with an open level counted as `open`):
+  -- `h_op` holds at exactly ONE landing per sibling line — the line-start one — and every
+  -- mid-line token (`:`, the value) lands at no level's column, where the wrappers are
+  -- never reached.  The sibling arm's whole domain is the line-start landing.
+  let rows : List (String × String × (Nat × Nat × Nat) × Bool) :=
+    [ ("a: 1 (one root key: every landing is at the root level)", "a: 1", (0, 0, 3), true),
+      ("a: 1⏎b: 2 (the sibling key resumes the root mapping)", "a: 1\nb: 2", (1, 0, 5), true),
+      ("k:⏎  a: 1⏎  b: 2 (nested sibling)", "k:\n  a: 1\n  b: 2", (1, 0, 7), true),
+      ("a: 1⏎&p b: 2 (props-headed sibling: content lane)", "a: 1\n&p b: 2", (1, 0, 6), true),
+      ("a: 1⏎[1]: b (flow-key sibling)", "a: 1\n[1]: b", (1, 0, 7), true),
+      ("- a⏎b: 1 (sequence top at the landing: item 372's face)", "- a\nb: 1", (0, 1, 3), false),
+      ("k:⏎  - a⏎  b: 1 (nested sequence top)", "k:\n  - a\n  b: 1", (0, 1, 5), false),
+      ("- a⏎- b (the `-` sibling lands on the sequence top and is accepted)", "- a\n- b", (0, 1, 3), true),
+      ("a: 1⏎  b: 2 (a landing at NO open level: the scanner refuses the dedent-less indent)", "a: 1\n  b: 2", (0, 0, 4), false),
+      ("a: 1⏎...⏎b: 2 (post-`...`: the sibling is a new document, not a resume)", "a: 1\n...\nb: 2", (1, 0, 6), true) ]
+  for (label, src, expected, accepted) in rows do
+    let got := siblingArmWalk src
+    let ok := match L4YAML.TokenParser.parseYaml src with | .ok _ => true | .error _ => false
+    checkM state s!"sibling arm {label}" (got == expected && ok == accepted)
+      s!"(openMap, seqTop, closed) = {repr got} accepted={ok}; expected {repr expected} accepted={accepted}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5664,6 +5719,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testValueLineResume state
   testSeqTopKeyFace state
   testSeqTopKeyLemma state
+  testSiblingArmDomain state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",
