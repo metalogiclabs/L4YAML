@@ -5792,6 +5792,81 @@ def testOpenerSiblingAccepted (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"opener lanes {label}" (got == expected)
       s!"(open, started, marker, props) = {repr got}; expected {repr expected}"
 
+
+/-- One line-start pause of the scanner, read for item 377 (Priority 45): the character the dispatcher is
+    about to see, whether the cursor stands at a block sequence's own indent
+    (`atSequenceIndent` — the CURSOR twin of `SeqTopKey`, which reads the SAVED key), and,
+    for a `:`/`?` indicator, whether `scanNextToken_dispatchBlockIndicators` accepts it on
+    the directives-adjusted state (`seqTopKeyRow`'s `sd`). -/
+def openerSeqTopRow (sp : ScannerState) (c : Char) : Bool × Bool × Option Bool :=
+  let sd := if sp.allowDirectives then
+    { sp with allowDirectives := false, documentEverStarted := true } else sp
+  let ind := c == ':' || c == '?'
+  let disp := if ind then some (match scanNextToken_dispatchBlockIndicators sd c with
+    | .ok (some _) => true
+    | _ => false) else none
+  (ind, atSequenceIndent sd, disp)
+
+/-- Over the line-start pauses of `input` (as `siblingArmWalk`): `(indSeqTopRefused,
+    indSeqTopOk, indClear, otherSeqTop)` — indicators on a sequence top refused / accepted by
+    the dispatcher, indicators not on a sequence top, and non-indicator landings on a
+    sequence top (the content lane's face, item 372).  Item 377's claim is `indSeqTopOk = 0`
+    everywhere: an opener on a sequence top is refused by the dispatcher itself
+    (`scanKeyValidateIx`/`scanValueValidateIx`'s `atSequenceIndentIx` check), with no saved
+    key in play. -/
+def openerSeqTopWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut refused := 0
+  let mut ok := 0
+  let mut clear := 0
+  let mut other := 0
+  let mut visited := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if sp.line != s.line then
+        visited := visited + 1
+        match openerSeqTopRow sp c with
+        | (true, true, some false) => refused := refused + 1
+        | (true, true, some true) => ok := ok + 1
+        | (true, false, _) => clear := clear + 1
+        | (false, true, _) => other := other + 1
+        | _ => pure ()
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (refused, ok, clear, other, visited)
+
+/-- The lines of `input` after the first whose first non-blank character is `:` or `?` — the
+    indicator positions the walker SHOULD reach if nothing before them is refused. -/
+def indicatorLineStarts (input : String) : Nat :=
+  ((input.splitOn "\n").drop 1).foldl (fun n l =>
+    match (l.toList.dropWhile (· == ' ')).head? with | some ':' | some '?' => n + 1 | _ => n) 0
+
+def testOpenerSeqTopRefused (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 45: item 377 — an opener (`:`/`?`) standing at a block sequence's own indent is refused by the dispatcher (atSequenceIndent), so the openers' h_res_land sequence-top branch is refutable without a saved key; the parser's verdict beside it"
+  -- (indSeqTopRefused, indSeqTopOk, indClear, otherSeqTop) over the line-start pauses, and
+  -- whether parseYaml accepts.  `indSeqTopOk` must be 0 on every row.
+  let rows : List (String × String × (Nat × Nat × Nat × Nat × Nat) × Bool) :=
+    [ ("- a⏎: b (`:` at the root sequence's indent)", "- a\n: b", (1, 0, 0, 0, 1), false),
+      ("- a⏎? b (`?` at the root sequence's indent)", "- a\n? b", (1, 0, 0, 0, 1), false),
+      ("- a⏎- b⏎: c (`:` after two entries; REFUTED (1, 0, 0, 0): the second `-` is itself a non-indicator landing on the sequence top)", "- a\n- b\n: c", (1, 0, 0, 1, 2), false),
+      ("- a⏎: (empty explicit value at the sequence's indent)", "- a\n:", (1, 0, 0, 0, 1), false),
+      ("-⏎: b (empty entry, then `:`)", "-\n: b", (1, 0, 0, 0, 1), false),
+      ("- - a⏎  : b (nested sequence's indent)", "- - a\n  : b", (1, 0, 0, 0, 1), false),
+      ("k:⏎  - a⏎  : b (nested sequence inside a mapping; REFUTED (0, 0, 0, 0): preprocessing accepts the landing, the DISPATCHER refuses it)", "k:\n  - a\n  : b", (1, 0, 0, 0, 2), false),
+      ("k:⏎  - a⏎: b (`:` at the enclosing mapping's indent, not the sequence's: accepted)", "k:\n  - a\n: b", (0, 0, 1, 0, 2), true),
+      ("? a⏎: b⏎c: d (`:` after an explicit key: accepted)", "? a\n: b\nc: d", (0, 0, 1, 0, 2), true),
+      ("- a⏎b: 1 (content lane: a key on the sequence top — not an opener, refused at its `:`)", "- a\nb: 1", (0, 0, 0, 1, 1), false),
+      ("- a⏎? b⏎: c (explicit pair at the sequence's indent; the refused `?` ends the walk: 1 of 2 indicator lines visited — the scope point)", "- a\n? b\n: c", (1, 0, 0, 0, 1), false),
+      ("a:⏎- b⏎: c (REFUTED (1, 0, 0, 0) refused: a sequence at its parent mapping's indent pushes no indent level, so the `:` stands on the MAPPING top — clear, and accepted as an empty key)", "a:\n- b\n: c", (0, 0, 1, 0, 2), true) ]
+  for (label, src, expected, accepted) in rows do
+    let got := openerSeqTopWalk src
+    let ok := match L4YAML.TokenParser.parseYaml src with | .ok _ => true | .error _ => false
+    checkM state s!"opener on a sequence top {label}" (got == expected && ok == accepted && got.2.1 == 0)
+      s!"(indSeqTopRefused, indSeqTopOk, indClear, otherSeqTop, visited) = {repr got} of {indicatorLineStarts src} indicator line(s) accepted={ok}; expected {repr expected} accepted={accepted}"
+
 /-- The root's KEYS: (documents, the first document's root keys as text in order, the root's first
     item rendered).  Arity is not identity (PR #141 review): a result that duplicated the first pair or
     dropped `b: 2` would still have two entries, so the test reads WHICH keys survive — `["a", "b"]`, in
@@ -5896,6 +5971,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testSiblingArmDomain state
   testSeqTopResumeCtx state
   testOpenerSiblingAccepted state
+  testOpenerSeqTopRefused state
   testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state
