@@ -858,7 +858,8 @@ one unfolding, and §6 is the item where those two disagreed about binders. -/
 -- 2026-10-26 (item 367, `[82]`): +17 lemmas (directive loop/char bridges in StructureProduction, the three `s-l-comments` composition lemmas in StreamAccum): theorems 6309 → 6326; the elab/whnf tallies are unchanged.
 -- 2026-10-26 (item 367 review): `collectTagHandleDirectiveLoop_inputEnd` removed (no caller): theorems 6326 → 6325.
 -- 2026-10-27 (item 371): `ResumeFrames.one` added: theorems 6325 → 6326.
-def expectedNoopTally : String := "theorems=6326 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
+-- Item 372 (2026-10-27): `SeqTopKey.of_eq` and `seqTopKey_refuted_at_colon` (+2).
+def expectedNoopTally : String := "theorems=6328 byElab=15 byWhnf=15 elabOnly=0 whnfOnly=0"
 -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
 -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
 -- grew and the predicate gained its tools.  What is new in kind: `AG` carries

@@ -984,6 +984,8 @@ def expectedRows : List String :=
    "entryKeyPack_of_dispatch #1 fn:entryKeyPack_of_dispatch.h_cov_step := via:IndentStackCover.dispatchContent_cover(via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(fnp:entryKeyPack_of_dispatch.h_cov_step.hc))))",
    "entryKeyPack_of_dispatch #1 fn:entryKeyPack_of_dispatch.h_pay := via:StreamAccum.dedent_cover_of_landing(relay(param:entryKeyPack_of_dispatch.h_dframes))",
    "entryKeyPack_of_dispatch #1 fn:entryKeyPack_of_dispatch.h_payV := via:StreamAccum.dedent_cover_of_landing(relay(fnp:entryKeyPack_of_dispatch.h_payV.h_cv))",
+   -- Item 372 (2026-10-27): exit (a) spends the park's cover on `preprocess_landing_mem_or_seq`.
+   "entryKeyPack_of_dispatch #1 param:preprocess_landing_mem_or_seq.h_cov := relay(param:entryKeyPack_of_dispatch.h_dframes)",
    "entryPropsKeyPack_of_dispatch #1 fn:entryPropsKeyPack_of_dispatch.h_cov_step := via:Covered.of_indents_eq(via:IndentStackCover.preprocess_cover(relay(fnp:entryPropsKeyPack_of_dispatch.h_cov_step.hc)))",
    "entryPropsKeyPack_of_dispatch #1 fn:entryPropsKeyPack_of_dispatch.h_pay := via:StreamAccum.dedent_cover_of_landing(relay(param:entryPropsKeyPack_of_dispatch.h_dframes))",
    "entryPropsKeyPack_of_dispatch #1 fn:entryPropsKeyPack_of_dispatch.h_payV := via:StreamAccum.dedent_cover_of_landing(relay(fnp:entryPropsKeyPack_of_dispatch.h_payV.h_cv))",
@@ -1216,7 +1218,8 @@ def expectedLine : String :=
   -- `accum_block_on_closeThenBlock`; no row of this guard moved.
 -- Item 371 (pmvPunt=1 → 0, pmvCoverPunt=0 → 1, contentPunt=14 → 13, contentCoverPunt=2 → 3, entryPunt=14 → 13, entryCoverPunt=2 → 3, nodes=117865 → 119846): the value-line packs end in the one-level
 -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
-  "positions=23 ctorFields=13 lemParams=35 lemmas=18 walked=25 doors=9 rows=199 ctorRows=92 lemRows=74 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=0 pmvCoverPunt=1 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=13 contentCoverPunt=3 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=13 entryCoverPunt=3 entryLemma=0 entryOpen=2 entryPos=17 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=17 doorForgotten=8 doorDropped=24 doorsOther=5 nodes=119846"
+-- Item 372 (2026-10-27): exit (a)'s cover spend on `preprocess_landing_mem_or_seq` (one more lemma relay row).
+  "positions=23 ctorFields=13 lemParams=35 lemmas=18 walked=25 doors=9 rows=200 ctorRows=92 lemRows=75 localRows=4 fnRows=19 fnpRows=8 valRows=2 coverTypes=4 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=0 pmvCoverPunt=1 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=13 contentCoverPunt=3 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=13 entryCoverPunt=3 entryLemma=0 entryOpen=2 entryPos=17 eight=8 eightPB=4 eightPBC=4 eightIndents=0 eightTop=4 eightFloor=0 eightMinCI=0 eightNic=8 eightPrep=8 eightCover=8 doorUses=49 doorKept=17 doorForgotten=8 doorDropped=24 doorsOther=5 nodes=119962"
 
 /-! ## §6 The reading -/
 

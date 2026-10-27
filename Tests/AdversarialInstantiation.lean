@@ -5481,6 +5481,36 @@ def testValueLineResume (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"value-line resume {label}" (got == expected)
       s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
 
+/-- Priority 40 (item 372): a key LANDING ON A SEQUENCE TOP is refused at its `:`
+    (§8.2.1 `trailingContent`), and that refusal is the only survivor of the key
+    pack's `w ∉ ks` exit under a cover — the `SeqTopKey` face the `:` consumer
+    refutes.  Neighbours that are accepted name the other exits: a `-` sibling
+    (the landing is a sequence entry, not a key), a key resuming an OPEN mapping
+    level (a frame), a key inside the entry's own mapping. -/
+def testSeqTopKeyFace (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 40: a key on a sequence top is refused at its `:` — the key pack's SeqTopKey face (item 372)"
+  let rootArity : YamlValue → Nat
+    | .mapping _ arr => arr.size
+    | .sequence _ arr => arr.size
+    | _ => 0
+  let rows : List (String × String × Option (Nat × Nat)) :=
+    [ ("- a⏎b: 1 (key at the root sequence's column: refused at the `:`)", "- a\nb: 1", none),
+      ("k:⏎  - a⏎  b: 1 (key at a nested sequence's column: refused)", "k:\n  - a\n  b: 1", none),
+      ("- - a⏎  b: 1 (key at an inner sequence's column: refused)", "- - a\n  b: 1", none),
+      ("- a⏎\"b\": 1 (quoted key at the sequence's column: refused)", "- a\n\"b\": 1", none),
+      ("- a⏎&p b: 1 (props-headed key at the sequence's column: refused — PRICED, props lane)", "- a\n&p b: 1", none),
+      ("- a⏎- b (a `-` sibling, not a key: accepted)", "- a\n- b", some (1, 2)),
+      ("k:⏎  - a⏎b: 1 (the key resumes the OPEN root mapping — a frame, not a sequence top)", "k:\n  - a\nb: 1", some (1, 2)),
+      ("- a: 1⏎  b: 2 (a key inside the entry's own mapping)", "- a: 1\n  b: 2", some (1, 1)),
+      ("- a⏎  b: 1 (one column in: the plain scalar folds, then `:` is refused)", "- a\n  b: 1", none),
+      ("-⏎b: 1 (empty entry, then a key at the sequence's column: refused)", "-\nb: 1", none) ]
+  for (label, src, expected) in rows do
+    let got : Option (Nat × Nat) := match L4YAML.TokenParser.parseYaml src with
+      | .ok docs => some (docs.size, (docs[0]?.map (fun d => rootArity d.value)).getD 0)
+      | .error _ => none
+    checkM state s!"seq-top key face {label}" (got == expected)
+      s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5529,6 +5559,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testRootSiblingLedger state
   testSiblingDashFrames state
   testValueLineResume state
+  testSeqTopKeyFace state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",

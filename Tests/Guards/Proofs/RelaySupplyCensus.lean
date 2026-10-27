@@ -925,7 +925,7 @@ def expectedTally : String :=
   -- 2026-10-26 (item 369): edges 664 → 665, DECLINE 256 → 255, FIELD 55 → 56, SPLIT 160 → 161 —
   -- `pendingBlock.h_closeF` threaded into `accum_block_on_pendingBlock` (one FIELD edge) and the
   -- `:`/`?` landing's `h_res_land` there read off those frames instead of `Or.inr trivial`.
-  "edges=665 skipped=38 [DECLINE=251, FIELD=56, LOCAL=27, PAY=55, RELAY=65, \
+  "edges=667 skipped=39 [DECLINE=253, FIELD=56, LOCAL=27, PAY=55, RELAY=65, \
 SPLIT=162, VIA=49]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
@@ -1296,7 +1296,8 @@ def expectedBranchPremises : List String :=
 -- parkHop 21 → 22 — one more field-fed split (`pendingBlock.h_closeF` → `accum_block_on_pendingBlock.h_closeF_old`).
 -- 2026-10-26 (item 370): liveSplits 100 → 101 — the sibling `-` arm's split of `h_closeF_old` is live (PAY arm reached).
 def expectedDeclineReach : String :=
-  "pairs=36 orphan=2 direct=9 closureDecline=34 dead=0 maxDepth=2 liveSplits=101 deadSplits=0 accounted=665/665 nodes=163 fieldEdges=56 fieldResolved=56 withCycle=8 declineWriters=19 parkHop=22"
+-- Item 372 (2026-10-27): two more edges — `ImplicitKeyPack`'s route conjunct is now an Or (the `SeqTopKey` face), split at the producer's exit (a) and resolved at `colon_fires_implicit_key`.
+  "pairs=36 orphan=2 direct=9 closureDecline=34 dead=0 maxDepth=2 liveSplits=101 deadSplits=0 accounted=667/667 nodes=163 fieldEdges=56 fieldResolved=56 withCycle=8 declineWriters=19 parkHop=22"
 
 /-- **Every branch premise, with what its own callers supply and where that
     bottoms out.**  `⇐` names the FIRST hop — for a park field, the field

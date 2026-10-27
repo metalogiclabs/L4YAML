@@ -456,7 +456,11 @@ All three lanes, in one walk of the module. -/
        "colon_open_map: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1",
        "content_dispatch_routed: rootMapRoute_or_refused=2 rootMapRouteF_or_refused=2",
        -- Items 296/297: the dedent branch's two exits, in both pack producers.
-       "entryKeyPack_of_dispatch: rootMapRoute_or_refused=2 rootMapRouteF_or_refused=2",
+       -- Item 372 (2026-10-27): the `w ∉ ks` exit spells the bare-document
+       -- fallback in its three unpaid cases (unpopped / uncovered / below the
+       -- floor) and pays the `SeqTopKey` face in the fourth — four spellings,
+       -- the same two application LINES item 368 counted.
+       "entryKeyPack_of_dispatch: rootMapRoute_or_refused=4 rootMapRouteF_or_refused=2",
        "entryPropsKeyPack_of_dispatch: rootMapRoute_or_refused=2 rootMapRouteF_or_refused=2",
        "flowKeyRoute_of_root: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1",
        "question_open_map: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1"]⟩,

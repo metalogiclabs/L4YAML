@@ -263,7 +263,10 @@ it may only shrink. -/
 -- (consumers state `tl.leadFree = true`), not `Prop` carriers over it, and the dead `FlowLead`
 -- duplicate is deleted — the eight `FrameTail` ghost rows they added are gone; ghost is back at 72.
 -- 2026-10-25 (#112 review): the `FlowStackK.body ∨ True` row #112 added is gone with the carrier (Rule 8: decided at the close by `Classical.em`); or back at 98.
-def expectedSummary : String := "carriers=59 snapshot=9 ghost=72 or=100"
+-- Item 372 (2026-10-27): `ImplicitKeyPack`'s route conjunct gained `∨ SeqTopKey sc`
+-- — a Bool projection of the pack's own state, so one more carrier and one more
+-- disjunct, no ghost row.
+def expectedSummary : String := "carriers=60 snapshot=9 ghost=72 or=101"
 
 -- 2026-10-24 (B3 [66] col-0 threading): carriers 61 → 62 — `SSLCommentsFrom` (the separator-less comment product).
 -- 2026-10-25 (#99 landed): the `FlowLead`/`leadFree`/`closeFree` tally rows go with the deleted carrier and
@@ -286,7 +289,7 @@ def expectedTally : List String :=
    "FlowStackK: surface=5 state=1 prop=4 scalar=5 snapshot=1 ghost=3 or=2",
    "GateOf: surface=0 state=1 prop=0 scalar=1 snapshot=2 ghost=0 or=0",
    "ImplicitKeyHead: surface=2 state=0 prop=2 scalar=0 snapshot=0 ghost=0 or=0",
-   "ImplicitKeyPack: surface=16 state=1 prop=16 scalar=9 snapshot=0 ghost=4 or=6",
+   "ImplicitKeyPack: surface=16 state=1 prop=16 scalar=9 snapshot=0 ghost=4 or=7",
    "InlineResidue: surface=2 state=0 prop=0 scalar=1 snapshot=0 ghost=0 or=0",
    "InteriorGap: surface=3 state=1 prop=30 scalar=11 snapshot=0 ghost=1 or=4",
    "KeyFloor: surface=0 state=0 prop=1 scalar=7 snapshot=0 ghost=0 or=0",
@@ -323,6 +326,8 @@ def expectedTally : List String :=
    "ResvOkLe: surface=0 state=1 prop=2 scalar=5 snapshot=0 ghost=0 or=0",
    "SeqEntryTail: surface=3 state=0 prop=1 scalar=1 snapshot=0 ghost=0 or=0",
    "SeqFrame: surface=40 state=0 prop=38 scalar=7 snapshot=0 ghost=1 or=0",
+   -- Item 372 (2026-10-27): the key pack's sequence-top face, a projection of its own state.
+   "SeqTopKey: surface=0 state=1 prop=0 scalar=1 snapshot=0 ghost=0 or=0",
    "SlotFace: surface=0 state=0 prop=0 scalar=4 snapshot=0 ghost=0 or=1",
    "SlotGateAt: surface=0 state=2 prop=7 scalar=1 snapshot=0 ghost=0 or=1",
    "SlotResv: surface=0 state=0 prop=1 scalar=5 snapshot=0 ghost=0 or=1",
@@ -436,6 +441,8 @@ def expectedDisjuncts : List String :=
     "FlowOpenStack.mapNest[14].promise ∨ sp_prep = sp_ne",
     "FlowStackK.body ∨ ∀ (sp_prep sp_tok : SurfPos), SSeparateLines n sp_flow sp_prep ∨ sp_prep = sp_flow → GLit ':' sp_prep sp_tok → FlowStackB sp_start n kc g fl ks km (FrameTail.colon kj) sp_block sp_tok",
     "FlowStackK.body ∨ sp_prep = sp_flow",
+    -- Item 372 (2026-10-27): the route conjunct's sequence-top face.
+    "ImplicitKeyPack.body ∨ SeqTopKey sc",
     "ImplicitKeyPack.body ∨ PackAlt sc",
     "ImplicitKeyPack.body ∨ True",
     "ImplicitKeyPack.body ∨ True",

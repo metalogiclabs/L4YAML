@@ -274,7 +274,7 @@ def expectedBinders : List String :=
 -- `PendingNode.nil_gate_of_allowDirectives`, `FlowBaseRoutes.value`) return functions, so their values
 -- have fewer leading lambdas than their types have binders; the census refuses to read them, by design.
 def expectedTally : String :=
-  "edges=104 skipped=38 DECLINE=21 FIELD=7 PAY=17 RELAY=27 VIA=32"
+  "edges=104 skipped=39 DECLINE=21 FIELD=7 PAY=17 RELAY=27 VIA=32"
 
 run_cmd do
   let env ← getEnv

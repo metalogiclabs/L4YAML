@@ -1131,6 +1131,21 @@ lemma PackAltG.ofPark {sc : ScannerState} {g : Option ScannerState} (_h : PackAl
 lemma PackAlt.ofGateClose {g : Option ScannerState} {s' : ScannerState} (_h : PackAltG g) :
     PackAlt s' := trivial
 
+/-- **The landing on a sequence top** (item 372): the saved key's column is the
+    scanner's top level and that level is a SEQUENCE — `- a⏎b: 1`'s `b` — which
+    §8.2.1 refuses at the `:` (`scanValue_top_not_sequence`).  A key pack's route
+    may decline into this face where the frames cover the stack and name no level
+    at the landing (`preprocess_landing_mem_or_seq`'s right disjunct); the `:`
+    consumers refute it. -/
+def SeqTopKey (sc : ScannerState) : Prop :=
+  (sc.indents.back?.map fun e =>
+    e.isSequence && e.column == (sc.simpleKey.pos.col : Int)) = some true
+
+/-- The face reads two fields, so it rides any step that keeps them. -/
+lemma SeqTopKey.of_eq {s t : ScannerState} (hi : t.indents = s.indents)
+    (hk : t.simpleKey.pos.col = s.simpleKey.pos.col) : SeqTopKey s → SeqTopKey t := by
+  unfold SeqTopKey; rw [hi, hk]; exact id
+
 /-- The implicit-key pack (item 15): everything a same-line `:` needs to read
     the parked content back as `[193] ns-s-block-map-implicit-key`.
     `sp_key` is the key's start (= the content start), and the trailing
@@ -1174,7 +1189,7 @@ lemma PackAlt.ofGateClose {g : Option ScannerState} {s' : ScannerState} (_h : Pa
     measurement. -/
 def ImplicitKeyPack (sc : ScannerState) (sp_start sp_scan : SurfPos) : Prop :=
   ∃ (k : Nat) (sp_key sp_gram : SurfPos),
-    (∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∧
+    ((∀ sp_v, SBlockMapEntry k sp_key sp_v → SLYamlStream sp_start sp_v) ∨ SeqTopKey sc) ∧
     ImplicitKeyHead sp_key sp_gram ∧
     GStar SSWhite sp_gram sp_scan ∧
     sc.simpleKey.pos.col = k ∧
@@ -1664,7 +1679,7 @@ lemma flowKeyPack_of_close {sc : ScannerState} {g : Option ScannerState} {n kc :
     -- Item 120: and the resume twins ride the same way, so the pack a
     -- props-headed flow key hands the landed `:` keeps its context's
     -- holdings across the collection.
-    · exact Or.inl ⟨k, sp_key, sp_tok, route, h_head, GStar.nil _, h_kc.trans hkcol,
+    · exact Or.inl ⟨k, sp_key, sp_tok, Or.inl (route), h_head, GStar.nil _, h_kc.trans hkcol,
         (h_pair.imp id PackAlt.ofGateClose),
         -- Item 148: the frame's own resume twin carries widths and no stack —
         -- a flow collection's interior is where the block levels stand still,
@@ -22959,6 +22974,53 @@ lemma dispatchBlock_colon_scanValue {s s' : ScannerState}
       exact hv
   · cases h
 
+/-- **Item 372: the `:` refutes the sequence-top face.**  A `:` that dispatched
+    (`scanValue … = .ok`) passed `scanValueValidate` on the key-cleared state;
+    a live same-line key strictly behind the cursor survives the clear, so
+    §8.2.1's check ran on it, and `scanValue_top_not_sequence` says the top
+    entry at the key's column is not a sequence — which is what `SeqTopKey`
+    asserts.  Stated on the dispatch state; the consumer transports the pack's
+    face to it with `SeqTopKey.of_eq`. -/
+lemma seqTopKey_refuted_at_colon {s s' : ScannerState}
+    (h_dispatch : scanNextToken_dispatchBlockIndicators s ':' = .ok (some s'))
+    (h_noflow : s.inFlow = false) (h_poss : s.simpleKey.possible = true)
+    (h_behind : s.simpleKey.pos.offset ≠ s.offset)
+    (h_kline : s.simpleKey.pos.line = s.line) : ¬ SeqTopKey s := by
+  intro h_seq
+  have hv := EntryBoundaryLayout.scanValue_ok_validate_ok (dispatchBlock_colon_scanValue h_dispatch)
+  have h_keep : (scanValueClearKey s).simpleKey = s.simpleKey := by
+    unfold scanValueClearKey
+    split
+    · split
+      · rename_i hc
+        exfalso
+        simp [h_behind] at hc
+      · split
+        · rename_i hc
+          exfalso
+          simp [h_kline] at hc
+          exact hc.1.2 hc.1.1.2
+        · rfl
+    · rfl
+  have h_ind := (PendingKeySound.scanValueClearKey_core s).1
+  have h_fl := (ColFloor.scanValueClearKey_fields s).2.2.2.2.1
+  unfold SeqTopKey at h_seq
+  cases h_top : s.indents.back? with
+  | none => rw [h_top] at h_seq; simp at h_seq
+  | some top =>
+    rw [h_top] at h_seq
+    simp only [Option.map_some, Option.some.injEq, Bool.and_eq_true, beq_iff_eq] at h_seq
+    have h_ns : top.isSequence = false :=
+      PreprocessIndentStable.scanValue_top_not_sequence hv
+        (by rw [h_keep]; exact h_poss) (by rw [h_fl]; exact h_noflow)
+        (by rw [h_ind]; exact h_top) (by rw [h_keep]; exact h_seq.2.symm)
+        (by
+          rw [h_keep, PreprocessIndentStable.currentIndent_of_indents_eq h_ind]
+          unfold ScannerState.currentIndent
+          rw [h_top]
+          exact Int.le_of_eq h_seq.2.symm)
+    rw [h_ns] at h_seq; exact Bool.false_ne_true h_seq.1
+
 /-- **K7's payer at the dispatch** (item 360): the `:` producers hold their dispatch over the
     directive-reset twin of `s_prep`; the reset moves none of the six fields `Sound` reads, no
     slot and no frame, so `scanValue_refused_of_outer` applies as is. -/
@@ -28088,7 +28150,15 @@ lemma colon_fires_implicit_key
           -- line, and `KeysBehindCursor` strictly behind its cursor.
           obtain ⟨h_line_pp, -, -, -⟩ := h_mid.2.1 h_st.1 h_st.2.2.1
           exact colon_open_map_implicit sp_start sp_block sp_key sp_gram sp_prep k
-            s_prep s' sp_scan' h_stream_block h_route
+            s_prep s' sp_scan' h_stream_block
+            -- Item 372: the route, or the sequence-top face the `:` refutes.
+            (h_route.resolve_right fun h_seq =>
+              seqTopKey_refuted_at_colon h_dispatch (noflow_disp_of_noflow h_noflow)
+                (by rw [allowDirectives_update_simpleKey, h_inh]; exact h_poss)
+                (by split <;> (show s_prep.simpleKey.pos.offset ≠ s_prep.offset; rw [h_inh]; have := h_kbc.1 h_poss; omega))
+                (by rw [allowDirectives_update_simpleKey, allowDirectives_update_line, h_inh, h_line_pp]; exact h_kline)
+                (SeqTopKey.of_eq (by rw [allowDirectives_update_indents]; exact h_mid.2.2.1 h_st.1)
+                  (by rw [allowDirectives_update_simpleKey, h_inh]) h_seq))
             -- Item 148: the pack's cover, across preprocessing's own pops.
             (by
               rcases h_rfr_pk with ⟨ks, h_lt, h_cov, r⟩ | h
@@ -33651,7 +33721,7 @@ lemma entryKeyPack_of_dispatch
             rw [h_land.2.1] at this
             omega
           exact Or.inl ⟨w, sp_prep, sp_gram2,
-                        valueMapRoute hnw h_node h_land.1 h_ind', h_ol, h_tws2, h_kcol,
+                        Or.inl (valueMapRoute hnw h_node h_land.1 h_ind'), h_ol, h_tws2, h_kcol,
                         -- ~~Item 93: the landed key belongs to a mapping
                         -- nested in a `[199] s-l+block-node` slot — no
                         -- compact alternative, so no frame twins it (the map
@@ -33810,9 +33880,9 @@ lemma entryKeyPack_of_dispatch
               -- taken twice and the value-line face falls back to the punt
               -- item 99 always paid. ═══
               exact Or.inl ⟨w, sp_prep, sp_gram2,
-                fun sp_v h_entry =>
+                Or.inl (fun sp_v h_entry =>
                   (cont' sp_v (SCompactMapTail.cons w sp_mid sp_prep sp_v sp_v
-                    h_ind' h_entry (SCompactMapTail.nil w sp_v))).close,
+                    h_ind' h_entry (SCompactMapTail.nil w sp_v))).close),
                 h_ol, h_tws2, h_kcol,
                 -- Item 196: the value-line FACE still bottoms at one index —
                 -- `ExplValueLine sp_start nv` names it — so this lane answers
@@ -33880,9 +33950,45 @@ lemma entryKeyPack_of_dispatch
                 omega
               have h_stream_mid : SLYamlStream sp_start sp_mid :=
                 h_node sp_mid (SBlockNode.emptyNode (n + 1) .blockIn sp_scan sp_mid h_land.1)
-              exact Or.inl ⟨w, sp_prep, sp_gram2,
-                rootMapRoute_or_refused (sc := sc) (s_prep := s_prep) (c := c) (Or.inr trivial)
-                  h_land.2.1 h_stream_mid h_ind, h_ol, h_tws2, h_kcol,
+              have h_scol' : s_prep.col = w := by
+                rw [← hcorr_prep.col_eq]
+                have := SIndent_col h_ind
+                rw [h_land.2.1] at this
+                omega
+              -- ═══ Item 372: where the frames COVER the scanner's stack, the
+              -- landing popped, and the floor reaches `w`, the one survivor of
+              -- `w ∉ ks` is a landing ON A SEQUENCE TOP
+              -- (`preprocess_landing_mem_or_seq`; `- a⏎b: 1`) — a face for the
+              -- `:` to refute (`seqTopKey_refuted_at_colon`), not a route.  The
+              -- uncovered, unpopped and below-floor cases keep item 297's bare
+              -- document reading. ═══
+              have h_route372 : (∀ sp_v, SBlockMapEntry w sp_prep sp_v → SLYamlStream sp_start sp_v) ∨
+                  SeqTopKey s' :=
+                (Classical.em (s_prep.indents = sc.indents)).elim (fun _ =>
+                  Or.inl (rootMapRoute_or_refused (sc := sc) (s_prep := s_prep) (c := c) (Or.inr trivial)
+                    h_land.2.1 h_stream_mid h_ind))
+                (fun h_pop =>
+                  match h_cov, h_dcov with
+                  | Or.inl ⟨_, h_base⟩, Or.inl ⟨lo, _, hc⟩ =>
+                    if hlo : lo ≤ w then
+                      match preprocess_landing_mem_or_seq h_preprocess h_pop h_base
+                          (h_scol' ▸ hlo) hc with
+                      | Or.inl hm => absurd (h_scol' ▸ hm) hmem
+                      | Or.inr ⟨e, h_back, h_seq, h_col⟩ => Or.inr (by
+                          unfold SeqTopKey
+                          rw [IndentStackBase.dispatchContent_preserves_indents h_dispatch,
+                            show (if s_prep.allowDirectives then
+                                { s_prep with allowDirectives := false, documentEverStarted := true }
+                              else s_prep).indents = s_prep.indents from by split <;> rfl,
+                            h_back, h_kcol]
+                          simp [h_seq, h_col, h_scol'])
+                    else
+                      Or.inl (rootMapRoute_or_refused (sc := sc) (s_prep := s_prep) (c := c) (Or.inr trivial)
+                        h_land.2.1 h_stream_mid h_ind)
+                  | _, _ =>
+                    Or.inl (rootMapRoute_or_refused (sc := sc) (s_prep := s_prep) (c := c) (Or.inr trivial)
+                      h_land.2.1 h_stream_mid h_ind))
+              exact Or.inl ⟨w, sp_prep, sp_gram2, h_route372, h_ol, h_tws2, h_kcol,
                 Or.inr (PackAlt.step_content h_preprocess h_dispatch h_alt),
                 Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil), Or.inr trivial,
                   rootMapRouteF_or_refused (sc := sc) (s_prep := s_prep) (c := c) (Or.inr trivial)
@@ -33911,8 +34017,8 @@ lemma entryKeyPack_of_dispatch
             have h_stream_mid : SLYamlStream sp_start sp_mid :=
               h_node sp_mid (SBlockNode.emptyNode (n + 1) .blockIn sp_scan sp_mid h_land.1)
             exact Or.inl ⟨w, sp_prep, sp_gram2,
-              rootMapRoute_or_refused (sc := sc) (s_prep := s_prep) (c := c) (Or.inr trivial)
-                h_land.2.1 h_stream_mid h_ind, h_ol, h_tws2, h_kcol,
+              Or.inl (rootMapRoute_or_refused (sc := sc) (s_prep := s_prep) (c := c) (Or.inr trivial)
+                h_land.2.1 h_stream_mid h_ind), h_ol, h_tws2, h_kcol,
               Or.inr (PackAlt.step_content h_preprocess h_dispatch h_alt),
               -- The fresh document's root level is the key's own, so the park
               -- made after its value resumes it (`ks = []`, nothing below).
@@ -33983,7 +34089,7 @@ lemma entryKeyPack_of_dispatch
             rw [h_cp.2.1] at this
             omega
           exact Or.inl ⟨n + 1 + w, sp_prep, sp_gram2,
-                        compactMapRoute h_cp.1 h_ind', h_ol, h_tws2, h_kcol,
+                        Or.inl (compactMapRoute h_cp.1 h_ind'), h_ol, h_tws2, h_kcol,
                         -- Item 93: the frame's value line, the entry and its
                         -- tail folded into the same `[195]` wrap the route
                         -- builds — this is `ImplicitKeyPack`'s twin's one
@@ -35008,7 +35114,7 @@ lemma content_dispatch_routed
         obtain ⟨sp_gram2, h_ol, h_tws2, h_pp⟩ :=
           implicitKeyHead_of_dispatch s_prep s' c sp_prep sp_scan' h_poss h_kline h_sk_pos
             hcorr_prep hcorr_result hna hnt h_not_doc h_flow_disp hpeek_disp h_dispatch
-        exact Or.inl ⟨k, sp_prep, sp_gram2, h_route_k,
+        exact Or.inl ⟨k, sp_prep, sp_gram2, Or.inl (h_route_k),
                       h_ol, h_tws2, h_kcol_of h_pp, Or.inr (PackAlt.step_dispatch h_dispatch (if hk : k = 0 then PackAlt.ofRefused (h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)) else h_alt)),
                       h_resF, h_resFV, h_resQ⟩
       -- Item 109: the RESUMING context first.  It is the honest reading where
@@ -38821,7 +38927,7 @@ lemma accum_content_pending (sc : ScannerState)
                     -- entry-level domain `ImplicitKeyPack`'s twin asks for,
                     -- verbatim (`? &p "a": b⏎: - w`).  Item 111: and so are
                     -- its RESUME twins, the same way.
-                    exact Or.inl ⟨k, sp_p, sp_scan', h_route_k,
+                    exact Or.inl ⟨k, sp_p, sp_scan', Or.inl (h_route_k),
                       ImplicitKeyHead.json
                         (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                           h_props_bk h_sep_bk
@@ -38843,7 +38949,7 @@ lemma accum_content_pending (sc : ScannerState)
                       obtain ⟨sp_res2, h_sq, -, hcorr2⟩ := h_cond (h_line_scan h_pp)
                       have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
                       rw [hsp2] at h_sq
-                      exact Or.inl ⟨k, sp_p, sp_scan', h_route_k,
+                      exact Or.inl ⟨k, sp_p, sp_scan', Or.inl (h_route_k),
                         ImplicitKeyHead.json
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_scan'
                             h_props_bk h_sep_bk
@@ -38865,7 +38971,7 @@ lemma accum_content_pending (sc : ScannerState)
                         h_cond (h_line_scan (by rw [h_sk_pres]))
                       have hsp2 := ScannerSurfCorr_unique hcorr2 hcorr_result
                       rw [hsp2] at h_tws2
-                      exact Or.inl ⟨k, sp_p, sp_gram2, h_route_k,
+                      exact Or.inl ⟨k, sp_p, sp_gram2, Or.inl (h_route_k),
                         ImplicitKeyHead.json
                           (SFlowNode.propsContent 0 .blockKey sp_p sp_scan sp_prep sp_gram2
                             h_props_bk h_sep_bk

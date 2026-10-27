@@ -366,7 +366,8 @@ def expectedModuleTallyP : String :=
   -- 2026-10-26 (item 366): RELAY 2639 → 2641 — the same two `h_sound` relays (pre-pinned with `HypothesisReaderCensus`).
   -- 2026-10-26 (item 370): constants/decls +1 (the sibling `-` arm's `match h_closeF_old` auxiliary), READ 1376 → 1379.
 -- Item 371: constants/decls +1, READ +1 — `ResumeFrames.one` (the restated value-line pack's one-level bottom).
-  "constants=1683 decls=1322 eta=441 FIELD=192 READ=1380 RELAY=2645 RETURN=167 UNUSED=27"
+-- Item 372 (2026-10-27): `SeqTopKey`, `SeqTopKey.of_eq`, `seqTopKey_refuted_at_colon` and the exit (a) face (+5 constants, +4 decls).
+  "constants=1688 decls=1326 eta=442 FIELD=192 READ=1387 RELAY=2652 RETURN=167 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
