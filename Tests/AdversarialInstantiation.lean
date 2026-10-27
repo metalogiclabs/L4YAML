@@ -5859,7 +5859,6 @@ def testOpenerSeqTopRefused (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"opener on a sequence top {label}" (got == expected && ok == accepted && got.2.1 == 0)
       s!"(indSeqTopRefused, indSeqTopOk, indClear, otherSeqTop) = {repr got} accepted={ok}; expected {repr expected} accepted={accepted}"
 
-||||||| 905448b6
 /-- The root's KEYS: (documents, the first document's root keys as text in order, the root's first
     item rendered).  Arity is not identity (PR #141 review): a result that duplicated the first pair or
     dropped `b: 2` would still have two entries, so the test reads WHICH keys survive — `["a", "b"]`, in
@@ -5965,7 +5964,6 @@ def collectTests : IO VerifiedSuiteResult := do
   testSeqTopResumeCtx state
   testOpenerSiblingAccepted state
   testOpenerSeqTopRefused state
-||||||| 905448b6
   testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state
