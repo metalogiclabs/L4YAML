@@ -5718,6 +5718,80 @@ def testSeqTopResumeCtx (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"seqtop resume {label}" (got == expected && ok == accepted)
       s!"(face, level, closed) = {repr got} accepted={ok}; expected {repr expected} accepted={accepted}"
 
+/-- **Priority 43 (item 375): the openers' sibling landings are ACCEPTED, so the `[211]` flip
+    cannot REFUTE them.**  Each row lands a `:`/`?`/flow opener's park and then a sibling key at
+    an OPEN level of the park's stack (`h_op = true` at the wrapper); `(openMap, seqTop, closed)`
+    over the break-crossing landings, and the parser's verdict beside it.  What this reads:
+    scanner landings and verdicts — an accepted row shows the fallback arm, IF reached, has no
+    refutation.  What it does NOT read (PR #139's review): which arm the opener's PROOF takes —
+    proof irrelevance (§7) makes that unobservable from outside (read off the proof TERMS
+    instead by `Tests/Guards/Proofs/OpenerFallbackReach.lean`: per caller path, how each
+    optional context of the five openers settles), and the frames lane
+    (`h_res_land`) is a proof-side list, not a scanner projection.  `openerLaneRow` reads the
+    four lanes that ARE scanner projections at the sibling landing — open level, document
+    started (the `h_nodoc` lane is dead), marker line (`h_mk` dead), props run (`h_pr` dead) —
+    so the only lane that can keep the arm from its fallback is the frames lane; the sites whose
+    producers hand it `Or.inr trivial` reach the fallback by construction (roster in DOCS item
+    375's review follow-up).  The reachability of the seven sites by ELABORATION is the stage-1
+    flip's reading (`scripts/flip_211_stage1.py`: the wrapper's `∨ True` result does not fit the
+    park's route field at exactly those lines). -/
+def openerLaneRow (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Nat := Id.run do
+  -- over the break-crossing landings: (open-level landings, of which: document already
+  -- started, on a `---` line, at a props run (`&`/`!`))
+  let mut s := ScannerState.mk' input
+  let mut op := 0; let mut started := 0; let mut marker := 0; let mut props := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if sp.line != s.line then
+        let (o, st) := siblingArmRow sp
+        if o && !st then
+          op := op + 1
+          let sd := if sp.allowDirectives then
+            { sp with allowDirectives := false, documentEverStarted := true } else sp
+          if sd.documentEverStarted then started := started + 1
+          if sd.docStartLine == some sd.line then marker := marker + 1
+          if c == '&' || c == '!' then props := props + 1
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (op, started, marker, props)
+
+def testOpenerSiblingAccepted (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 43: item 375 — the openers' sibling landings parse (unrefutable); the scanner-visible lanes decline there, only the frames lane is left"
+  let rows : List (String × String × (Nat × Nat × Nat) × Bool) :=
+    [ ("a: 1⏎b: 2 (`:` opener, root sibling)", "a: 1\nb: 2", (1, 0, 0), true),
+      ("a:⏎  x: 1⏎b: 2 (`:` opener with a nested value, dedent sibling)", "a:\n  x: 1\nb: 2", (1, 0, 1), true),
+      ("? a⏎: 1⏎b: 2 (`?` opener, sibling after the explicit value; REFUTED (1, 0, 1): the explicit `:` line-start is itself an open-level landing)", "? a\n: 1\nb: 2", (2, 0, 0), true),
+      ("? a⏎b: 2 (`?` opener, sibling with the value empty)", "? a\nb: 2", (1, 0, 0), true),
+      ("a: [1, 2]⏎b: 2 (flow value then a block sibling: accum_flow_open_depth0's arm)", "a: [1, 2]\nb: 2", (1, 0, 0), true),
+      ("a: {x: 1}⏎b: 2 (flow mapping value then a block sibling)", "a: {x: 1}\nb: 2", (1, 0, 0), true),
+      ("[1]: a⏎b: 2 (flow key at the root then a sibling: flowKeyRoute_of_root)", "[1]: a\nb: 2", (1, 0, 0), true),
+      ("k:⏎  a: 1⏎  b: 2⏎c: 3 (closeThenBlock: dedent past a closed level to a root sibling)", "k:\n  a: 1\n  b: 2\nc: 3", (2, 0, 1), true),
+      ("- a: 1⏎  b: 2 (compact mapping in a sequence entry, sibling at the entry's level)", "- a: 1\n  b: 2", (1, 0, 0), true),
+      ("- a⏎b: 1 (sequence top, not an opener's sibling: the face, refused)", "- a\nb: 1", (0, 1, 0), false) ]
+  for (label, src, expected, accepted) in rows do
+    let got := siblingArmWalk src
+    let ok := match L4YAML.TokenParser.parseYaml src with | .ok _ => true | .error _ => false
+    checkM state s!"opener sibling {label}" (got == expected && ok == accepted)
+      s!"(openMap, seqTop, closed) = {repr got} accepted={ok}; expected {repr expected} accepted={accepted}"
+  -- the lanes at the open-level landings: every one has a document started (nodoc dead), none
+  -- is a `---` line (marker dead), and only the `&p` row is a props run (props dead elsewhere)
+  let lanes : List (String × String × (Nat × Nat × Nat × Nat)) :=
+    [ ("a: 1⏎b: 2", "a: 1\nb: 2", (1, 1, 0, 0)),
+      ("a:⏎  x: 1⏎b: 2", "a:\n  x: 1\nb: 2", (1, 1, 0, 0)),
+      ("? a⏎: 1⏎b: 2", "? a\n: 1\nb: 2", (2, 2, 0, 0)),
+      ("a: [1, 2]⏎b: 2", "a: [1, 2]\nb: 2", (1, 1, 0, 0)),
+      ("[1]: a⏎b: 2", "[1]: a\nb: 2", (1, 1, 0, 0)),
+      ("k:⏎  a: 1⏎  b: 2⏎c: 3", "k:\n  a: 1\n  b: 2\nc: 3", (2, 2, 0, 0)),
+      ("a: 1⏎&p b: 2 (the props lane, alive only here)", "a: 1\n&p b: 2", (1, 1, 0, 1)),
+      ("a: 1⏎---⏎b: 2 (REFUTED (1, 1, 1, 0): the `---` line is never an open-level landing, so the marker lane is read at NO sibling landing; the one open landing is `b` in the restarted document)", "a: 1\n---\nb: 2", (1, 1, 0, 0)) ]
+  for (label, src, expected) in lanes do
+    let got := openerLaneRow src
+    checkM state s!"opener lanes {label}" (got == expected)
+      s!"(open, started, marker, props) = {repr got}; expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5770,6 +5844,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testSeqTopKeyLemma state
   testSiblingArmDomain state
   testSeqTopResumeCtx state
+  testOpenerSiblingAccepted state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",
