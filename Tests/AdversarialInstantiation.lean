@@ -5664,7 +5664,7 @@ def testSiblingArmDomain (state : IO.Ref TestCollector) : IO Unit := do
       ("- a⏎b: 1 (sequence top at the landing: item 372's face)", "- a\nb: 1", (0, 1, 0), false),
       ("k:⏎  - a⏎  b: 1 (nested sequence top)", "k:\n  - a\n  b: 1", (0, 1, 1), false),
       ("- a⏎- b (the `-` sibling lands on the sequence top and is accepted)", "- a\n- b", (0, 1, 0), true),
-      ("a: 1⏎  b: 2 (a landing at NO open level: the scanner refuses the dedent-less indent)", "a: 1\n  b: 2", (0, 0, 1), false),
+      ("a: 1⏎  b: 2 (REFUTED (0, 0, 1): preprocessing refuses the indent before any landing is handed over — no row)", "a: 1\n  b: 2", (0, 0, 0), false),
       ("a: 1⏎...⏎b: 2 (post-`...`: the sibling is a new document, not a resume)", "a: 1\n...\nb: 2", (1, 0, 1), true) ]
   for (label, src, expected, accepted) in rows do
     let got := siblingArmWalk src
