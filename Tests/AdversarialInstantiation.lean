@@ -5792,6 +5792,32 @@ def testOpenerSiblingAccepted (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"opener lanes {label}" (got == expected)
       s!"(open, started, marker, props) = {repr got}; expected {repr expected}"
 
+/-- **Priority 44 (item 376): the openers' root sibling is a RESUME of the root mapping, not a
+    second bare document.**  Item 376 priced the park route field's decline face and found no sink
+    beneath `pendingMapValue.h_close` — the optional faces decline INTO it.  The way left for the
+    seven fallback arms is the one the parser already takes: at a frameless root sibling
+    (`a: 1⏎b: 2`) the document count stays at ONE (the key continues the root mapping), it is `---`
+    alone that makes a second document, and a sibling key after a sequence top or a plain scalar is
+    REFUSED.  Read off `parseYamlRawMarked`'s document count; predictions written before the run. -/
+def testRootSiblingResumes (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 44: item 376 — a root sibling continues the root mapping (one document); only `---` opens a second; sequence-top/scalar siblings refused"
+  let rows : List (String × String × Option Nat) :=
+    [ ("a: 1⏎b: 2 (`:` opener, root sibling)", "a: 1\nb: 2", some 1),
+      ("? a⏎b: 2 (`?` opener, sibling with the value empty)", "? a\nb: 2", some 1),
+      ("a: [1, 2]⏎b: 2 (flow value then a block sibling)", "a: [1, 2]\nb: 2", some 1),
+      ("[1]: a⏎b: 2 (flow key at the root then a sibling)", "[1]: a\nb: 2", some 1),
+      ("- a: 1⏎  b: 2 (compact mapping in a sequence entry)", "- a: 1\n  b: 2", some 1),
+      ("a: 1⏎⏎b: 2 (blank line between siblings)", "a: 1\n\nb: 2", some 1),
+      ("a: 1⏎# c⏎b: 2 (comment line between siblings)", "a: 1\n# c\nb: 2", some 1),
+      ("k:⏎  a: 1⏎  b: 2⏎c: 3 (closeThenBlock dedent to a root sibling)", "k:\n  a: 1\n  b: 2\nc: 3", some 1),
+      ("a: 1⏎---⏎b: 2 (the marker alone makes a second document)", "a: 1\n---\nb: 2", some 2),
+      ("- a⏎b: 2 (sequence top then a key: refused)", "- a\nb: 2", none),
+      ("a⏎b: 2 (plain scalar then a key: refused)", "a\nb: 2", none) ]
+  for (label, src, expected) in rows do
+    let got : Option Nat := match L4YAML.TokenParser.parseYaml src with | .ok docs => some docs.size | .error _ => none
+    checkM state s!"root sibling {label}" (got == expected)
+      s!"documents = {repr got}; expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5845,6 +5871,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testSiblingArmDomain state
   testSeqTopResumeCtx state
   testOpenerSiblingAccepted state
+  testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",
