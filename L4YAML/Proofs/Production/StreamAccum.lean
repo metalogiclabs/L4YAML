@@ -23209,11 +23209,11 @@ lemma seqTop_refuted_at_indicator {sc s_prep s' : ScannerState} {c : Char}
     atSequenceIndent s_prep = false := by
   have h_le : (s_prep.col : Int) ≤ s_prep.currentIndent :=
     (preprocess_indents_or_underIndent h_preprocess).resolve_left h_pop
+  rw [← atSequenceIndent_disp s_prep]
   by_cases had : s_prep.allowDirectives = true
-  · simp only [had, ↓reduceIte] at h_dispatch h_surv
-    have := seqTop_refuted_at_indicator_core hcv h_dispatch h_noflow h_le h_key h_poss h_surv
-    exact this
-  · simp only [had, Bool.false_eq_true, ↓reduceIte] at h_dispatch h_surv
+  · simp only [had, ↓reduceIte] at h_dispatch h_surv ⊢
+    exact seqTop_refuted_at_indicator_core hcv h_dispatch h_noflow h_le h_key h_poss h_surv
+  · simp only [had, Bool.false_eq_true, ↓reduceIte] at h_dispatch h_surv ⊢
     exact seqTop_refuted_at_indicator_core hcv h_dispatch h_noflow h_le h_key h_poss h_surv
 
 /-- The three block indicators park before a separator (§8.2.1/§8.2.2 lookahead). -/

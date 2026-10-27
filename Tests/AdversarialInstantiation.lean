@@ -5921,6 +5921,74 @@ def cursorFaceWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Na
     | _ => break
   return (viol, ekNone, survive, cleared, quest)
 
+/-- Every field of `ScannerState` rendered, so two states compare whole (`ScannerState`
+    derives no `BEq`; `tokens` by size and the last token's `repr`). -/
+def stateFingerprint (s : ScannerState) : String :=
+  s!"{s.input.length}|{s.inputEnd}|{s.offset}|{s.line}|{s.col}|{repr s.indents}|{repr s.pendingKeys}|" ++
+  s!"{s.flowLevel}|{s.tokens.size}|{repr (s.tokens.back?.map (·.val))}|{repr s.simpleKey}|{repr s.simpleKeyStack}|" ++
+  s!"{s.simpleKeyAllowed}|{s.needIndentCheck}|{s.allowDirectives}|{s.seenYamlDirective}|" ++
+  s!"{s.directivesPresent}|{s.documentEverStarted}|{repr s.flowStack}|{repr s.explicitKeyLine}|" ++
+  s!"{repr s.implicitValueLine}|{repr s.docStartLine}|{s.explicitKeyCol}|{repr s.explicitKeyStack}|" ++
+  s!"{repr s.comments}|{repr s.definedAnchors}"
+
+/-- Item 378 (PR #144 review): `scanValueClearKey_id_of_ek_none` claims FULL state equality
+    on a dead register.  Over every preprocessing pause of an input (and its directive-reset
+    twin), `(checked, bad, live)`: dead-register pauses compared whole by
+    `stateFingerprint` (`ScannerState` derives no `BEq`), the ones that differ, and the live-register pauses the
+    lemma does not speak to (reported apart, not as refutations). -/
+def deadRegisterWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut checked := 0
+  let mut bad := 0
+  let mut live := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, _)) =>
+      let sd := if sp.allowDirectives then
+        { sp with allowDirectives := false, documentEverStarted := true } else sp
+      for st in [sp, sd] do
+        if st.explicitKeyLine.isNone then
+          checked := checked + 1
+          if stateFingerprint (scanValueClearKey st) != stateFingerprint st then bad := bad + 1
+        else live := live + 1
+    | _ => pure ()
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (checked, bad, live)
+
+/-- Hand-built dead-register states off the scanner's path: the fields the clear could touch
+    set to non-default values, so a clear that rewrote any of them would show. -/
+def deadRegisterStates : List (String × ScannerState) :=
+  let base := ScannerState.mk' "k: v"
+  [ ("default", base),
+    ("key disallowed, in flow, col 7",
+      { base with simpleKeyAllowed := false, flowLevel := 1, flowStack := #[true], col := 7 }),
+    ("possible key at (3, 2) on a pushed level 2",
+      { base with
+          simpleKey := { base.simpleKey with possible := true, pos := { line := 3, col := 2, offset := 9 } }
+          indents := base.indents.push { column := 2, isSequence := false }
+          line := 3, col := 2, offset := 9 }),
+    ("explicitKeyCol 4 with the line dead", { base with explicitKeyCol := 4, col := 4 }) ]
+
+def testDeadRegisterIdentity (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 46b: item 378 (PR #144 review) — a dead register leaves the key clear alone, the WHOLE state compared (scanValueClearKey_id_of_ek_none); live-register pauses reported apart"
+  -- Predicted before the run: `bad = 0` on every row (HELD 6/6); `checked`/`live` pinned from
+  -- the run (each pause counted twice: itself and its reset twin; live `?` pauses apart).
+  let rows : List (String × String × (Nat × Nat × Nat)) :=
+    [ ("k:⏎  - a⏎: b", "k:\n  - a\n: b", (12, 0, 0)),
+      ("a:⏎- b⏎: c", "a:\n- b\n: c", (12, 0, 0)),
+      ("? a⏎: b", "? a\n: b", (4, 0, 4)),
+      ("- ? a⏎  : b", "- ? a\n  : b", (6, 0, 4)),
+      ("? a⏎:⏎? b⏎: c", "? a\n:\n? b\n: c", (6, 0, 8)),
+      ("a: 1⏎b: 2", "a: 1\nb: 2", (12, 0, 0)) ]
+  for (label, input, expected) in rows do
+    let got := deadRegisterWalk input
+    check state s!"dead-register identity over the pauses of {label}: (checked, bad, live) = {got}; expected {expected}" (got == expected)
+  for (label, st) in deadRegisterStates do
+    check state s!"dead-register identity on a built state ({label})"
+      (stateFingerprint (scanValueClearKey st) == stateFingerprint st)
+
 def testCursorFace (state : IO.Ref TestCollector) : IO Unit := do
   setCategory state "Priority 46: item 378 — at an accepted `:`/`?` landing the cursor is never on a sequence top (seqTop_refuted_at_indicator), the clear keeps a surviving key (scanValueClearKey_keep), the reset twin keeps the face (atSequenceIndent_disp), a pop puts the cursor under currentIndent; the `:`'s survival disjunct classified (dead register paid, live register the declined residue)"
   -- (viol, ekNone, survive, cleared, quest) over the accepted indicator pauses.  `viol` must be 0
@@ -6051,6 +6119,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testOpenerSiblingAccepted state
   testOpenerSeqTopRefused state
   testCursorFace state
+  testDeadRegisterIdentity state
   testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state
