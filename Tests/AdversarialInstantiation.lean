@@ -5413,6 +5413,38 @@ def testRootSiblingLedger (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"root sibling {label}" (got == expected)
       s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
 
+/-- Priority 38 (item 370, lane A proper): a park re-born at a SIBLING `-` (`accum_block_on_pendingBlock`'s
+snoc arm) now carries the enclosing frames the first `-` held, so a key that then lands LEFT of the
+sequence resumes the enclosing mapping (one document, the key a root sibling) instead of exit (b) of the
+key pack (`rootMapRoute_or_refused`'s fresh bare document).  The parser's verdicts: `some (docs, n)` =
+accepted with `docs` documents and `n` root entries; `none` = refused.  Dedents to a width the stack
+does not hold are refused at preprocessing (`trailingContent`); a key at a root SEQUENCE's own column
+is refused at its `:` (§8.2.1). -/
+def testSiblingDashFrames (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 38: a key landing left of a sibling `-` resumes the enclosing mapping (item 370)"
+  let rootArity : YamlValue → Nat
+    | .mapping _ arr => arr.size
+    | .sequence _ arr => arr.size
+    | _ => 0
+  let rows : List (String × String × Option (Nat × Nat)) :=
+    [ ("k:⏎  -⏎  -⏎b: 2 (two empty entries, then a root key)", "k:\n  -\n  -\nb: 2", some (1, 2)),
+      ("k:⏎  - a⏎  - b⏎c: 2", "k:\n  - a\n  - b\nc: 2", some (1, 2)),
+      ("k:⏎  -⏎  -⏎  -⏎b: 2 (three siblings)", "k:\n  -\n  -\n  -\nb: 2", some (1, 2)),
+      ("k:⏎  -⏎  - ? x⏎b: 2 (compact `?` in the sibling)", "k:\n  -\n  - ? x\nb: 2", some (1, 2)),
+      ("k:⏎  -⏎  -⏎? x (a `?` at the root)", "k:\n  -\n  -\n? x", some (1, 2)),
+      ("k:⏎  -⏎  -⏎: x (a `:` at the root: `[189]` empty key)", "k:\n  -\n  -\n: x", some (1, 2)),
+      ("- k:⏎    -⏎    -⏎  j: 1 (nested: the key resumes the compact mapping)", "- k:\n    -\n    -\n  j: 1", some (1, 1)),
+      ("k:⏎  -⏎  -⏎   b: 2 (deeper: the key is the second entry's node)", "k:\n  -\n  -\n   b: 2", some (1, 1)),
+      ("- a⏎-⏎b: 1 (root sequence: refused at the `:`)", "- a\n-\nb: 1", none),
+      ("k:⏎  -⏎  -⏎  b: 2 (a key at the sequence's own column: refused)", "k:\n  -\n  -\n  b: 2", none),
+      ("k:⏎  -⏎  -⏎ ? x (a width the stack does not hold: refused at preprocessing)", "k:\n  -\n  -\n ? x", none) ]
+  for (label, src, expected) in rows do
+    let got : Option (Nat × Nat) := match L4YAML.TokenParser.parseYaml src with
+      | .ok docs => some (docs.size, (docs[0]?.map (fun d => rootArity d.value)).getD 0)
+      | .error _ => none
+    checkM state s!"sibling dash frames {label}" (got == expected)
+      s!"parseYaml: {repr got} (docs, root arity), expected {repr expected}"
+
 def collectTests : IO VerifiedSuiteResult := do
   let state ← IO.mkRef ({} : TestCollector)
   test9g state
@@ -5459,6 +5491,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testTraceOfLeafEvents state
   testTraceOfBlockLedger state
   testRootSiblingLedger state
+  testSiblingDashFrames state
   testBlockScalarTailEof state
   let results ← finish state
   return { name := "adversarialinstantiation",

@@ -654,6 +654,8 @@ def expectedSpends : List String :=
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-24 (B3 [66] col-0 threading): re-read on the #98/#100 base.
+-- 2026-10-26 (item 370): four `accum_block_on_pendingBlock` rows write one more `E:empty` — the sibling `-` arm's
+-- `match h_closeF_old` has an `Or.inr _ => Or.inr trivial` arm (the frameless park stays frameless).
 -- 2026-10-26 (item 369): 46 → 48 — the `:`/`?` landing in `accum_block_on_pendingBlock` decides `h_closeF_old`
 -- (`rcases` on the frames, `by_cases FrameLevel.map k ∈ ks`) to pay `indicator_open_map`'s `h_res_land`.
 def expectedDecisions : List String :=
@@ -677,10 +679,10 @@ def expectedDecisions : List String :=
     "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass×4|punt pos=—",
     "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
     "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
-    "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×9,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×8|E:prem,E:node×6,E:pass pos=above#3,above#4,above#5,above#6",
-    "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×9,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×8|— pos=above#3,above#4,above#5,above#6",
-    "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×7,E:node×6,P:hand,E:carry|P:spend×4,E:empty×2,E:pass×8,E:carry pos=above#3,above#4,above#5,above#6",
-    "accum_block_on_pendingBlock dite kn [k = n] → E:empty×4|E:node×6,P:hand,E:carry,E:empty×3 pos=—",
+    "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×10,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×8|E:prem,E:node×6,E:pass pos=above#3,above#4,above#5,above#6",
+    "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×10,E:node×6,P:hand,E:carry×2,P:spend×4,E:pass×8|— pos=above#3,above#4,above#5,above#6",
+    "accum_block_on_pendingBlock dite char [c = '-'] → E:empty×8,E:node×6,P:hand,E:carry|P:spend×4,E:empty×2,E:pass×8,E:carry pos=above#3,above#4,above#5,above#6",
+    "accum_block_on_pendingBlock dite kn [k = n] → E:empty×5|E:node×6,P:hand,E:carry,E:empty×3 pos=—",
     "accum_block_on_pendingBlock Or.casesOn kn [n < k ∨ n ≥ k] → E:node×5|P:hand,E:carry,E:empty×3,E:node pos=—",
     "accum_block_on_pendingBlock dite char [c = ':' ∨ c = '?'] → P:spend×4,E:empty×2,E:pass×8,E:carry|— pos=above#3,above#4,above#5,above#6",
     "accum_block_on_pendingBlock Or.casesOn opt [h_closeF_old:(∃ ks, (∀ (fr : Proofs.IndentStackCover.FrameLevel), fr ∈ ks → fr.width …] → E:empty|punt pos=beside#3",
@@ -751,10 +753,11 @@ def expectedDoor : List String :=
 -- 2026-10-23 (item 344): decisions 138 → 139 — the relayed `h_valFV` adds a `match` on `h_closeFV_old`.
 -- 2026-10-24 (B3 [66] col-0 threading): follows CloseLandingWidth — the content/block parks close from `sp_gram` (run + gate).
 -- 2026-10-26 (item 369): closeF=0 → closeF=4, puntKMem=0 → puntKMem=1, decisions=115 → decisions=117, decOnK=22 → decOnK=23, decKMem=9 → decKMem=10, apps=42 → apps=43, doorDropped=4/1 → doorDropped=3/1 — `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames, read at the `:`/`?` landing for `h_res_land`).
+-- 2026-10-26 (item 370): decisions 117 → 118 — the sibling `-` arm decides `h_closeF_old` once more.
 def expectedLine : String :=
   -- 2026-10-26 (item 366): decisions 114 → 115 — the `Classical.em (MarkedColsIn sc [k])` decision at
   -- `accum_block_on_closeThenBlock`'s explicit `:` face; no frame row moved.
-  "asked=6 both=4 lemmas=1 walked=4 feedFunnel=1 feedExplicit=1 feedDeferred=2 feedTuple=0 entry=4 entrySBI=4 kslot=4 kslotUp=4 closeF=4 closeFV=4 seqF=4 top=4 floor=0 cover=4 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=1 aboveKEx=1 hands=1 besideKN=1 besideKMem=1 besideKNv=0 puntKN=1 puntKMem=1 besideNone=0 decisions=117 decOnK=23 decKN=10 decKMem=10 decKNv=3 apps=43 funnelArgs=1 doorDropped=3/1 closeSites=5 params=5"
+  "asked=6 both=4 lemmas=1 walked=4 feedFunnel=1 feedExplicit=1 feedDeferred=2 feedTuple=0 entry=4 entrySBI=4 kslot=4 kslotUp=4 closeF=4 closeFV=4 seqF=4 top=4 floor=0 cover=4 cover2=4 floorB=4 aboveKN=0 aboveKMem=0 aboveKNv=1 aboveKEx=1 hands=1 besideKN=1 besideKMem=1 besideKNv=0 puntKN=1 puntKMem=1 besideNone=0 decisions=118 decOnK=23 decKN=10 decKMem=10 decKNv=3 apps=43 funnelArgs=1 doorDropped=3/1 closeSites=5 params=5"
 
 /-! ## §5 The reading -/
 
