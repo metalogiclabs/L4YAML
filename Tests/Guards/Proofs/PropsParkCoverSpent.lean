@@ -176,9 +176,11 @@ example {sc s_prep : ScannerState} {c : Char}
         FrameLevel.map w ∈ ksw → ResumeWidths ksw ksw' w → s_prep.col = w →
         ((∃ lo : Nat, Floor lo w (FrameLevel.map w :: ksw') ∧
           Covered lo (FrameLevel.map w :: ksw') s_prep) ∨ True)) 
-    (h_alt : PackAlt sc) :
+    (h_alt : PackAlt sc)
+    -- Item 374: the sentinel base, for the sequence-top face the declined resume now carries.
+    (h_base : SentinelBase sc) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
-  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+  resumectx_of_landing (h_base := h_base) hcol_mid h_ws h_ssl h_preprocess hcorr_prep
     (Or.inl ⟨ks, Or.inl ⟨lo, n, h_fl, h_cv⟩, fS⟩) (Or.inr h_alt) h_pay
     -- Item 168: the sequence face punts; this guard is about the COVER.
     (Or.inr trivial)

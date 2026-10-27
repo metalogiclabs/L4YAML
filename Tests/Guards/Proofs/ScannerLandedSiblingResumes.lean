@@ -211,9 +211,11 @@ example {sc s_prep : ScannerState} {c : Char}
           Covered lo ks sc) ∨ True) →
         FrameLevel.map w ∈ ks → ResumeWidths ks ks' w → s_prep.col = w →
         ((∃ lo : Nat, Floor lo w (FrameLevel.map w :: ks') ∧
-          Covered lo (FrameLevel.map w :: ks') s_prep) ∨ True)) :
+          Covered lo (FrameLevel.map w :: ks') s_prep) ∨ True))
+    -- Item 374: the sentinel base, for the sequence-top face the declined resume now carries.
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
-  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep h_fS h_fV h_pay
+  resumectx_of_landing (h_base := h_base) hcol_mid h_ws h_ssl h_preprocess hcorr_prep h_fS h_fV h_pay
     -- Item 168: this guard is about the two FRAMED lanes; the sequence face punts.
     (Or.inr trivial)
 
@@ -233,10 +235,11 @@ example {sp_start sp_land sp_prep : SurfPos} {k : Nat} {ks : List FrameLevel}
     ResumeKeyCtx s_prep sp_start sp_prep :=
   match h_fr.resumeAt hmem with
   | ⟨ks', h_w, cont⟩ =>
-      Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt, Or.inr trivial, cont,
+      -- Item 374: the framed lane is the context's first disjunct.
+      Or.inl (Or.inl ⟨⟨k, ks', sp_land, hcol0, h_ind, h_w.lt, Or.inr trivial, cont,
         Or.inr h_alt,
         -- Item 168: the sequence face is the third lane and punts here.
-        Or.inr trivial⟩, h_poss, h_pos⟩
+        Or.inr trivial⟩, h_poss, h_pos⟩)
 
 /-! ## §6 The discrimination: what the resumed route does NOT need
 

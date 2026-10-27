@@ -165,12 +165,14 @@ example {sc s_prep : ScannerState} {c : Char}
     (closeF : ∀ sp_m, SSLComments sp_park sp_m →
       ∀ sp_end, SCompactSeqTail n sp_m sp_end →
       ResumeFrames (SLYamlStream sp_start) ks sp_end) 
-    (h_alt : PackAlt sc) :
+    (h_alt : PackAlt sc)
+    -- Item 374: the sentinel base, for the sequence-top face the declined resume now carries.
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc) :
     ResumeKeyCtx s_prep sp_start sp_prep :=
   -- Item 151: the entry-parked face carries no cover (`pendingBlock.h_closeF`
   -- is the widths alone), so the slot and the payer both take the punt — which
   -- is the argument this park actually passes at the relay.
-  resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+  resumectx_of_landing (h_base := h_base) hcol_mid h_ws h_ssl h_preprocess hcorr_prep
     (Or.inl ⟨ks, Or.inr trivial,
       fun sp_m h => closeF sp_m h sp_m (SCompactSeqTail.nil n sp_m)⟩)
     (Or.inr h_alt)

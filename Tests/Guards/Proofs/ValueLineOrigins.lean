@@ -1162,7 +1162,8 @@ def expectedLine : String :=
 -- Item 371 (origins=72 → 67, route=21 → 12, tail=0 → 14, other=6 → 0, concl=12 → 8, heldOrigins=26 → 15, allHeld=9 → 3, noneHeld=60 → 66, lets=641 → 645, lapps=815 → 821, alts=5222 → 5229, nodes=13688 → 13696, liteNodes=622909 → 629317): the value-line packs end in the one-level
 -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
 -- Item 372 (2026-10-27): the Or-shaped route conjunct of `ImplicitKeyPack` (summary mirrors the five `(Or)` rows).
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=67 originRows=32 route=12 frames=29 tail=14 other=0 concl=8 invariant=4 heldOrigins=15 allHeld=3 someHeld=36 noneHeld=66 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=647 lapps=821 alts=5234 nodes=13694 liteNodes=630069"
+-- Item 374: lets=647 → 648, lapps=821 → 822, alts=5234 → 5243, nodes=13694 → 13696, liteNodes=630069 → 632322 — the resume context's face disjunct and `resumectx_of_landing`'s `h_base`.
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=67 originRows=32 route=12 frames=29 tail=14 other=0 concl=8 invariant=4 heldOrigins=15 allHeld=3 someHeld=36 noneHeld=66 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=648 lapps=822 alts=5243 nodes=13696 liteNodes=632322"
 
 /-! ## §4 The reading -/
 

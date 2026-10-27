@@ -32979,7 +32979,7 @@ lemma nodocctx_of_preprocess (sc : ScannerState) (sp sp_prep : SurfPos)
     mapping level of EITHER stack, so nothing is excluded here, where at the
     parks the `?`'s own level is not one of its value-line frames. -/
 def ResumeKeyCtx (s_prep : ScannerState) (sp_start sp_prep : SurfPos) : Prop :=
-  ((∃ (k : Nat) (ks : List FrameLevel) (sp_land : SurfPos),
+  (((∃ (k : Nat) (ks : List FrameLevel) (sp_land : SurfPos),
       sp_land.col = 0 ∧ SIndent k sp_land sp_prep ∧
       (∀ fr ∈ ks, fr.width < k) ∧
       ((∃ lo : Nat, IndentStackCover.Floor lo k (FrameLevel.map k :: ks) ∧
@@ -33008,7 +33008,15 @@ def ResumeKeyCtx (s_prep : ScannerState) (sp_start sp_prep : SurfPos) : Prop :=
         ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
           ResumeFrames (SeqEntryTail sp_start ke) ksq sp_end) ∨ True)) ∧
     s_prep.simpleKey.possible = true ∧
-    s_prep.simpleKey.pos = s_prep.currentPos) ∨ True
+    s_prep.simpleKey.pos = s_prep.currentPos) ∨
+    -- Item 374: the landing's frames named no level at its width, and the
+    -- level it stands on is a SEQUENCE top (`- a⏎b: 1`): item 372's face,
+    -- carried from the producer that declined the resume to the `:` that
+    -- refutes it.  `Or.inr trivial` still declines the whole context.
+    ((∃ (k : Nat) (sp_land : SurfPos),
+      sp_land.col = 0 ∧ SIndent k sp_land sp_prep ∧ SeqTopKey s_prep) ∧
+    s_prep.simpleKey.possible = true ∧
+    s_prep.simpleKey.pos = s_prep.currentPos)) ∨ True
 
 /-- Build a `ResumeKeyCtx` from the landing the caller already has in hand
     (item 109).  Unlike `keyctx_of_preprocess` this takes the landing rather
@@ -33044,6 +33052,7 @@ lemma resumectx_of_landing {sc s_prep : ScannerState} {c : Char}
     (h_ssl : SSLComments sp_scan sp_mid)
     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+    (h_base : IndentStackBase.SentinelBase sc)
     (h_fS : (∃ ks : List FrameLevel,
         ((∃ lo n : Nat, IndentStackCover.Floor lo n ks ∧
           IndentStackCover.Covered lo ks sc) ∨ True) ∧
@@ -33083,20 +33092,20 @@ lemma resumectx_of_landing {sc s_prep : ScannerState} {c : Char}
       | inr _ => exact Or.inr trivial
       | inl h_fS0 =>
         obtain ⟨ks, h_cvS, fS⟩ := h_fS0
+        -- Item 151: the landing's width at the SCANNER, which is what the
+        -- payer measures its floor against.  `[63] s-indent(k)` off a
+        -- column-0 line start puts the key at column `k`, and the step's own
+        -- correspondence reads that column off `s_prep`.
+        have h_scol : s_prep.col = k := by
+          rw [← hcorr_prep.col_eq]
+          have := SIndent_col h_ind
+          rw [hcol_mid] at this
+          omega
         by_cases hmem : FrameLevel.map k ∈ ks
         · obtain ⟨ks', h_w, cont⟩ := (fS sp_mid h_ssl).resumeAt hmem
-          -- Item 151: the landing's width at the SCANNER, which is what the
-          -- payer measures its floor against.  `[63] s-indent(k)` off a
-          -- column-0 line start puts the key at column `k`, and the step's own
-          -- correspondence reads that column off `s_prep`.
-          have h_scol : s_prep.col = k := by
-            rw [← hcorr_prep.col_eq]
-            have := SIndent_col h_ind
-            rw [hcol_mid] at this
-            omega
-          refine Or.inl ⟨⟨k, ks', sp_mid, hcol_mid, h_ind, h_w.lt,
+          refine Or.inl (Or.inl ⟨⟨k, ks', sp_mid, hcol_mid, h_ind, h_w.lt,
             h_pay k ks ks' h_cvS hmem h_w h_scol, cont, ?_, ?_⟩,
-            h_sk.1, h_sk.2⟩
+            h_sk.1, h_sk.2⟩)
           -- The value face is optional all the way down: the park may carry no
           -- explicit frame, or carry one whose stack this width misses.
           · match h_fV with
@@ -33122,7 +33131,24 @@ lemma resumectx_of_landing {sc s_prep : ScannerState} {c : Char}
                   fun sp_end h_tail => fQ sp_mid h_ssl sp_end h_tail⟩
               · exact Or.inr trivial
             | Or.inr _ => exact Or.inr trivial
-        · exact Or.inr trivial
+        · -- Item 374: no frame at this width.  Under a cover whose floor reaches
+          -- the landing, a popped stack puts the landing on a frame (refuted by
+          -- `hmem`) or on a SEQUENCE top — item 372's face, carried here.
+          exact (Classical.em (s_prep.indents = sc.indents)).elim (fun _ => Or.inr trivial)
+            (fun h_pop =>
+              match h_cvS with
+              | Or.inl ⟨lo, _, _, hc⟩ =>
+                if hlo : lo ≤ k then
+                  match preprocess_landing_mem_or_seq h_preprocess h_pop h_base
+                      (h_scol ▸ hlo) hc with
+                  | Or.inl hm => absurd (h_scol ▸ hm) hmem
+                  | Or.inr ⟨e, h_back, h_seq, h_col⟩ =>
+                    Or.inl (Or.inr ⟨⟨k, sp_mid, hcol_mid, h_ind, by
+                      unfold SeqTopKey
+                      rw [h_back, h_sk.2]
+                      simp [ScannerState.currentPos, h_seq, h_col]⟩, h_sk.1, h_sk.2⟩)
+                else Or.inr trivial
+              | Or.inr _ => Or.inr trivial)
 
 /-- Build the SUFFIX key context from the landing the caller already has in
     hand (item 117) — `resumectx_of_landing`'s shape with the park's open
@@ -34859,7 +34885,11 @@ lemma content_dispatch_routed
       -- Item 111: the RESUMING context first, as at `h_key` below — the honest
       -- reading where the park that closed here kept frames whose stack the
       -- landing width names (`k:⏎  - a⏎&p b: 2`).
-      cases h_resumectx with
+      -- Item 374: the props twin declines the face (item 372's PRICED lane): the
+      -- route relays into the state-free `FlowBaseRoutes.key` rider.
+      have h_rc := h_resumectx.elim
+        (fun h => h.elim (fun h => Or.inl h) (fun _ => Or.inr trivial)) (fun h => Or.inr h)
+      cases h_rc with
       | inl hres =>
         obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, h_cov_res, cont, hresV, _hresQ⟩,
                 h_sk_poss, h_sk_pos⟩ := hres
@@ -35065,7 +35095,8 @@ lemma content_dispatch_routed
       have h_build : ∀ (k : Nat) (sp_land : SurfPos),
           sp_land.col = 0 → SIndent k sp_land sp_prep →
           s_prep.simpleKey.pos = s_prep.currentPos →
-          (∀ sp_v, SBlockMapEntry k sp_prep sp_v → SLYamlStream sp_start sp_v) →
+          ((∀ sp_v, SBlockMapEntry k sp_prep sp_v → SLYamlStream sp_start sp_v) ∨
+            SeqTopKey s_prep) →
           ((∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < k) ∧
             -- Item 148: the pack's cover, at the park this build reaches.
             ((∃ lo : Nat, IndentStackCover.Floor lo k (FrameLevel.map k :: ks) ∧
@@ -35114,45 +35145,59 @@ lemma content_dispatch_routed
         obtain ⟨sp_gram2, h_ol, h_tws2, h_pp⟩ :=
           implicitKeyHead_of_dispatch s_prep s' c sp_prep sp_scan' h_poss h_kline h_sk_pos
             hcorr_prep hcorr_result hna hnt h_not_doc h_flow_disp hpeek_disp h_dispatch
-        exact Or.inl ⟨k, sp_prep, sp_gram2, Or.inl (h_route_k),
+        exact Or.inl ⟨k, sp_prep, sp_gram2,
+                      -- Item 374: the face at the landing, moved to `s'` where `h_pp` lives.
+                      h_route_k.imp_right (fun h_seq => SeqTopKey.of_eq
+                        (by rw [IndentStackBase.dispatchContent_preserves_indents h_dispatch,
+                          show (if s_prep.allowDirectives then
+                              { s_prep with allowDirectives := false, documentEverStarted := true }
+                            else s_prep).indents = s_prep.indents from by split <;> rfl])
+                        (by rw [h_pp, allowDirectives_update_simpleKey]) h_seq),
                       h_ol, h_tws2, h_kcol_of h_pp, Or.inr (PackAlt.step_dispatch h_dispatch (if hk : k = 0 then PackAlt.ofRefused (h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)) else h_alt)),
                       h_resF, h_resFV, h_resQ⟩
       -- Item 109: the RESUMING context first.  It is the honest reading where
       -- it exists, and it exists exactly when the park that closed here kept
       -- frames whose stack the landing width names.
       cases h_resumectx with
-      | inl hres =>
-        obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, h_cov_res, cont, hresV, hresQ⟩,
-                _h_sk_poss, h_sk_pos⟩ := hres
-        exact h_build k sp_land hcol0 h_ind h_sk_pos
-          (resumeMapRoute h_ind cont)
-          -- ~~Item 150: `ResumeKeyCtx` has no cover slot on either lane, so the
-          -- value-line face punts here exactly as the stream face does.~~
-          -- **Item 151: it has one on both, and this is where each is spent.**
-          -- The context states its cover at the landing's own state; a content
-          -- dispatch writes no level, so the lift to the park's is the stack
-          -- equation and nothing else.  Both lanes land at the pack's own
-          -- index, so neither floor moves on the way in.
-          (Or.inl ⟨ks, h_lt,
-            h_cov_res.imp (fun ⟨lo, hb, hc⟩ =>
-              ⟨lo, hb, h_cov_lift lo (FrameLevel.map k :: ks) hc⟩) id,
-            resumeMapRouteF h_ind cont⟩)
-          (match hresV with
-           | Or.inl ⟨nv, ksv, h_ltv, h_covv, contv⟩ =>
-               Or.inl ⟨nv, ksv, h_ltv,
-                 h_covv.imp (fun ⟨lo, hb, hc⟩ =>
-                   ⟨lo, hb, h_cov_lift lo (FrameLevel.map k :: ksv) hc⟩) id,
-                 resumeMapRouteK h_ind contv⟩
-           | Or.inr h => Or.inr (PackAlt.step_dispatch h_dispatch h))
-          -- **Item 168: the sequence face, spent.**  Same cons as the two lanes
-          -- above and a shorter bottom — the landed entry joins the level the
-          -- landing resumed and the enclosing collection's tail stays owed
-          -- underneath, which is how the face survives a multi-line sequence
-          -- entry (62 of the corpus's 68 need it).  Item 169: the cons is
-          -- `resumeMapRouteF`'s, at the third instantiation of item 108's
-          -- parameter, so this lane stopped needing a lemma of its own.
-          (hresQ.imp (fun ⟨ke, ksq, h_ltq, contq⟩ =>
-            ⟨ke, ksq, h_ltq, resumeMapRouteF h_ind contq⟩) id)
+      | inl hres' =>
+        cases hres' with
+        | inr hface =>
+          -- Item 374: the sequence-top face rides the pack's route conjunct to the `:`.
+          obtain ⟨⟨k, sp_land, hcol0, h_ind, h_seq⟩, h_sk_poss, h_sk_pos⟩ := hface
+          exact h_build k sp_land hcol0 h_ind h_sk_pos (Or.inr h_seq)
+            (Or.inr trivial) (Or.inr trivial) (Or.inr trivial)
+        | inl hres =>
+            obtain ⟨⟨k, ks, sp_land, hcol0, h_ind, h_lt, h_cov_res, cont, hresV, hresQ⟩,
+                    _h_sk_poss, h_sk_pos⟩ := hres
+            exact h_build k sp_land hcol0 h_ind h_sk_pos
+              (Or.inl (resumeMapRoute h_ind cont))
+              -- ~~Item 150: `ResumeKeyCtx` has no cover slot on either lane, so the
+              -- value-line face punts here exactly as the stream face does.~~
+              -- **Item 151: it has one on both, and this is where each is spent.**
+              -- The context states its cover at the landing's own state; a content
+              -- dispatch writes no level, so the lift to the park's is the stack
+              -- equation and nothing else.  Both lanes land at the pack's own
+              -- index, so neither floor moves on the way in.
+              (Or.inl ⟨ks, h_lt,
+                h_cov_res.imp (fun ⟨lo, hb, hc⟩ =>
+                  ⟨lo, hb, h_cov_lift lo (FrameLevel.map k :: ks) hc⟩) id,
+                resumeMapRouteF h_ind cont⟩)
+              (match hresV with
+               | Or.inl ⟨nv, ksv, h_ltv, h_covv, contv⟩ =>
+                   Or.inl ⟨nv, ksv, h_ltv,
+                     h_covv.imp (fun ⟨lo, hb, hc⟩ =>
+                       ⟨lo, hb, h_cov_lift lo (FrameLevel.map k :: ksv) hc⟩) id,
+                     resumeMapRouteK h_ind contv⟩
+               | Or.inr h => Or.inr (PackAlt.step_dispatch h_dispatch h))
+              -- **Item 168: the sequence face, spent.**  Same cons as the two lanes
+              -- above and a shorter bottom — the landed entry joins the level the
+              -- landing resumed and the enclosing collection's tail stays owed
+              -- underneath, which is how the face survives a multi-line sequence
+              -- entry (62 of the corpus's 68 need it).  Item 169: the cons is
+              -- `resumeMapRouteF`'s, at the third instantiation of item 108's
+              -- parameter, so this lane stopped needing a lemma of its own.
+              (hresQ.imp (fun ⟨ke, ksq, h_ltq, contq⟩ =>
+                ⟨ke, ksq, h_ltq, resumeMapRouteF h_ind contq⟩) id)
       | inr _ =>
         cases h_suffixctx with
         -- Item 117: the SUFFIX context next — the park that closed here was a
@@ -35162,7 +35207,7 @@ lemma content_dispatch_routed
         | inl hsfx =>
           obtain ⟨⟨k, sp_land, hcol0, h_sfx_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hsfx
           exact h_build k sp_land hcol0 h_ind h_sk_pos
-            (suffixMapRoute hcol0 h_sfx_land h_ind)
+            (Or.inl (suffixMapRoute hcol0 h_sfx_land h_ind))
             (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
               -- Item 148: no park to inherit from, as at the suffix arm above.
               Or.inr trivial,
@@ -35180,7 +35225,7 @@ lemma content_dispatch_routed
           | inl hnd =>
             obtain ⟨⟨k, sp_land, hcol0, h_nodoc_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hnd
             exact h_build k sp_land hcol0 h_ind h_sk_pos
-              (nodocMapRoute hcol0 h_nodoc_land h_ind)
+              (Or.inl (nodocMapRoute hcol0 h_nodoc_land h_ind))
               (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
                 -- Item 148: no park to inherit from, as at the suffix arm above.
                 Or.inr trivial,
@@ -35195,7 +35240,7 @@ lemma content_dispatch_routed
             | inl hmk =>
               obtain ⟨⟨k, sp_land, _hcol0, h_mk_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hmk
               exact h_build k sp_land _hcol0 h_ind h_sk_pos
-                (markerMapRoute h_mk_land h_ind)
+                (Or.inl (markerMapRoute h_mk_land h_ind))
                 (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
                   -- Item 148: no park to inherit from, as at the suffix arm above.
                   Or.inr trivial,
@@ -35213,7 +35258,7 @@ lemma content_dispatch_routed
             | inl hpr =>
               obtain ⟨⟨k, sp_land, hcol0, h_pr_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hpr
               exact h_build k sp_land hcol0 h_ind h_sk_pos
-                (propsMapRoute (PropsRideRoute.toNodeRoute h_pr_land) h_ind)
+                (Or.inl (propsMapRoute (PropsRideRoute.toNodeRoute h_pr_land) h_ind))
                 (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
                   -- Item 148: no park to inherit from, as at the suffix arm above.
                   Or.inr trivial,
@@ -35251,7 +35296,7 @@ lemma content_dispatch_routed
               -- tail close the root mapping and nothing is open below (`ks = []`).
               -- Item 144: the same guard on the CONTENT cascade's root arm.
               exact h_build k sp_land hcol0 h_ind h_sk_pos
-                (rootMapRoute_or_refused h_ref hcol0 h_stream_land h_ind)
+                (Or.inl (rootMapRoute_or_refused h_ref hcol0 h_stream_land h_ind))
                 (Or.inl ⟨[], fun _ h => absurd h (List.not_mem_nil),
                   -- Item 148: no park to inherit from, as at the suffix arm above.
                   Or.inr trivial,
@@ -36841,7 +36886,7 @@ lemma accum_content_on_pendingBlock_indented
       -- closes empty on the landing's comments, the sequence tail is `nil`, and
       -- what is left is the mapping levels below (`k:⏎  -⏎b: 2`).  The root
       -- context above stays as the fallback for a width that names no level.
-      (resumectx_of_landing h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
+      (resumectx_of_landing (h_base := h_base) h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
         h_preprocess hcorr_prep
         -- ~~Item 151: the SEQUENCE park's face has frames and no cover —
         -- `pendingBlock.h_closeF` carries the widths alone, and this relay has
@@ -37554,7 +37599,7 @@ lemma accum_content_on_pendingMapValue_indented
       -- through whole, index and all; the payer forgets the index, which is
       -- what lets one argument serve a stream face bounded at `n` and a value
       -- face bounded at `n + 1`.
-      (resumectx_of_landing h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
+      (resumectx_of_landing (h_base := h_base) h_col0m (SIndent_gives_GStar_SSWhite h_ind) h_ssl_land
         h_preprocess hcorr_prep
         (h_frames99.imp (fun ⟨ks, hc, r⟩ =>
           ⟨ks, hc.imp (fun ⟨lo, hb, hcv⟩ => ⟨lo, n, hb, hcv⟩) id, r⟩) id)
@@ -37881,7 +37926,7 @@ lemma accum_content_pending (sc : ScannerState)
           -- park that reached column 0 consumed the break that arms it.  So the
           -- faces and the payer both go through, and `k:⏎  a: |⏎    x⏎  c: d`
           -- resumes the level its block scalar was written inside.
-          (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+          (resumectx_of_landing (h_base := h_base) hcol_mid h_ws h_ssl h_preprocess hcorr_prep
             h_fS h_fV h_pay_col0 h_fQ)
           (Or.inr trivial) (Or.inr trivial)
           (markerctx_of_landing hcol_mid h_ws h_ssl h_preprocess (Or.inl h_mk_on))
@@ -37919,7 +37964,7 @@ lemma accum_content_pending (sc : ScannerState)
         -- ~~Item 152: …and the PAYER is the punt.~~  **Item 154: the same
         -- payment as at the marker route above** — `h_pay_col0` is built once
         -- for both, off the park's own indent check.
-        (resumectx_of_landing hcol_mid h_ws h_ssl h_preprocess hcorr_prep
+        (resumectx_of_landing (h_base := h_base) hcol_mid h_ws h_ssl h_preprocess hcorr_prep
           h_fS h_fV h_pay_col0 h_fQ)
         (suffixctx_of_landing hcol_mid h_ws h_ssl h_preprocess h_sfx)
         -- Item 136: the skeleton's landings close a park that HAS started a
@@ -38002,7 +38047,7 @@ lemma accum_content_pending (sc : ScannerState)
             -- indent check, preprocessing's unwind ran — and `h_pay_res` is that floor
             -- spent through `dedent_cover_of_floor`.  A landed sibling key now resumes
             -- with the scanner's reading of the stack beside its widths, on both lanes.
-            (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
+            (resumectx_of_landing (h_base := h_base) hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
               h_fS h_fV h_pay_res h_fQ)
             (Or.inr trivial) (Or.inr trivial)
             (markerctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess (Or.inl h_mk_on))
@@ -38035,7 +38080,7 @@ lemma accum_content_pending (sc : ScannerState)
           -- indent check, preprocessing's unwind ran — and `h_pay_res` is that floor
           -- spent through `dedent_cover_of_floor`.  A landed sibling key now resumes
           -- with the scanner's reading of the stack beside its widths, on both lanes.
-          (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
+          (resumectx_of_landing (h_base := h_base) hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
             h_fS h_fV h_pay_res h_fQ)
           (suffixctx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess h_sfx)
           (Or.inr trivial) (Or.inr trivial)
@@ -38393,7 +38438,7 @@ lemma accum_content_pending (sc : ScannerState)
           -- obstacle here, so both halves go through whole and a landed sibling
           -- off a decorated run resumes with the scanner's reading of the stack
           -- beside its widths (`k:⏎  a: &p b⏎  c: d`, `?⏎  a: &p b⏎: v`).
-          (resumectx_of_landing hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
+          (resumectx_of_landing (h_base := h_base) hcol_mid.1 h_ws h_ssl h_preprocess hcorr_prep
             h_fS h_fV h_pay_props
             -- Item 168: a `[96]` run's park has no mapping level of its own.
             (Or.inr trivial))
