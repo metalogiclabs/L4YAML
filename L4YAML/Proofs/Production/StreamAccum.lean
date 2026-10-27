@@ -1030,8 +1030,11 @@ lemma KeyFrames.resumeAtSeq {P : SurfPos → Prop} {sp : SurfPos} {ks : List Fra
 
 /-- **The explicit frame's value line**, named (item 108).  `[186]`'s key is
     complete at `sp_e`, and what the `[188]` entry still owes is `[190]
-    s-indent(nv) ':' s-l+block-indented(nv, block-out)`, after which it reaches
-    the stream.  Items 93/106 wrote this predicate inline at every twin that
+    s-indent(nv) ':' s-l+block-indented(nv, block-out)`, after which the
+    mapping at `nv` is still OPEN — one `ResumeFrames` level, whose compact
+    tail (`? a⏎:⏎b: 1`'s `b: 1`) is read before the stream is reached (item
+    371; before it the conclusion was the fused stream and the value park was
+    born frameless).  Items 93/106 wrote this predicate inline at every twin that
     carries it; naming it is what lets a stack of still-open mapping levels
     stand ON it — `KeyFrames (ExplValueLine sp_start nv)` — instead of on
     the finished stream, which is the difference between a dedent landing that
