@@ -8,7 +8,10 @@ arm stops compiling; the breaks are the lines that must either route the open
 level's continuation or declare the decline at the `[211]` flip.
 
 Edits `L4YAML/Proofs/Production/StreamAccum.lean` in place, builds `L4YAML`,
-classifies with `scripts/flip_census.py`, restores; md5 printed both sides.
+classifies with `scripts/flip_census.py`, restores; md5 printed both sides.  The
+count is a FLOOR (one build stops at the first failing module); the four wrappers
+and all their applications live in `StreamAccum.lean`, so the library roster is
+whole, and only the guard modules behind it go unmeasured.
 `--dry` patches nothing and reports the sites; `--keep` leaves the patch.
 """
 import hashlib, subprocess, sys
@@ -30,15 +33,20 @@ def patch(text):
             # copy the signature up to the `:= by` line, inserting h_nosib before the conclusion
             j = i
             while not lines[j].rstrip().endswith(":= by"): j += 1
-            # the conclusion starts at the first line after the last `(h_` binder
+            # the last `(h_` binder line carries the conclusion colon (`… (h_ind : …) :`);
+            # the new binder goes BEFORE that colon, the result type stays.
             k = j
             while k > i and not lines[k].lstrip().startswith("(h_"): k -= 1
-            out.extend(lines[i:k + 1]); out.append(NOSIB); out.extend(lines[k + 1:j + 1])
+            last = lines[k].rstrip("\n")
+            if not last.endswith(" :"):
+                sys.exit(f"wrapper at line {i + 1}: last binder line does not end in ` :`; refusing")
+            out.extend(lines[i:k]); out.append(last[:-2] + "\n"); out.append(NOSIB.rstrip("\n") + " :\n")
+            out.extend(lines[k + 1:j + 1])
             i = j + 1
             # the body: replace the `| true => exact …` arm by the refutation
             while i < len(lines) and not lines[i].startswith("lemma ") and not lines[i].startswith("/--"):
                 if lines[i].startswith("  | true =>"):
-                    out.append("  | true => exact absurd h_op (by rw [h_nosib]; decide)\n"); n += 1
+                    out.append("  | true => exact absurd (h_nosib.symm.trans h_op) Bool.false_ne_true\n"); n += 1
                 else:
                     out.append(lines[i])
                 i += 1
@@ -63,6 +71,11 @@ def main():
         print(f"lake build L4YAML exit={r.returncode}; log {log}")
         c = subprocess.run([sys.executable, "scripts/flip_census.py", str(log)], cwd=ROOT, capture_output=True, text=True)
         print(c.stdout[-8000:]); print(c.stderr[-2000:], file=sys.stderr)
+        outside = sum(f.read_text().count(w) for f in (ROOT / "L4YAML").rglob("*.lean")
+                      if f != SRC for w in WRAPPERS)
+        print(f"FLOOR: one build, stopped in StreamAccum.lean; wrapper applications outside it (grep): {outside}"
+              + (" — the library roster is complete there; guard/census modules behind it were not attempted."
+                 if outside == 0 else " — rebuild past the module to read them."))
     finally:
         SRC.write_text(orig)
         print(f"md5 after: {md5(SRC)} ({'restored' if md5(SRC) == before else 'NOT RESTORED'})")

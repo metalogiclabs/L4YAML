@@ -5625,8 +5625,10 @@ def siblingArmRow (sp : ScannerState) : Bool × Bool :=
   (op, seqTop)
 
 /-- Every landing `scanNextToken_preprocess` hands the block dispatcher while scanning `input`
-    (any character), classified: `(openMap, seqTop, closed)` = sibling landings on a mapping
-    top, landings on a sequence top, landings at no open level. -/
+    (any character), classified by the wrappers' DISCRIMINATOR: `(openMap, seqTop, closed)` =
+    landings on an open mapping level, on a sequence top, at no open level.  These are scanner
+    landings, not wrapper reachability — most are routed before any `_or_refused` wrapper is
+    applied; the rows say where the sibling arm's `h_op` can be true at all. -/
 def siblingArmWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat := Id.run do
   let mut s := ScannerState.mk' input
   let mut openMap := 0
