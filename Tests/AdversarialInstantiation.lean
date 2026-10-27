@@ -5637,10 +5637,11 @@ def siblingArmWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat := Id
   for _ in [:fuel] do
     match scanNextToken_preprocess s with
     | .ok (some (sp, _)) =>
-      let (op, st) := siblingArmRow sp
-      if st then seqTop := seqTop + 1
-      else if op then openMap := openMap + 1
-      else closed := closed + 1
+      if sp.line != s.line then
+        let (op, st) := siblingArmRow sp
+        if st then seqTop := seqTop + 1
+        else if op then openMap := openMap + 1
+        else closed := closed + 1
     | _ => break
     match scanNextToken s with
     | .ok (some s') => s := s'
@@ -5655,16 +5656,16 @@ def testSiblingArmDomain (state : IO.Ref TestCollector) : IO Unit := do
   -- mid-line token (`:`, the value) lands at no level's column, where the wrappers are
   -- never reached.  The sibling arm's whole domain is the line-start landing.
   let rows : List (String × String × (Nat × Nat × Nat) × Bool) :=
-    [ ("a: 1 (one root key: every landing is at the root level)", "a: 1", (0, 0, 3), true),
-      ("a: 1⏎b: 2 (the sibling key resumes the root mapping)", "a: 1\nb: 2", (1, 0, 5), true),
-      ("k:⏎  a: 1⏎  b: 2 (nested sibling)", "k:\n  a: 1\n  b: 2", (1, 0, 7), true),
-      ("a: 1⏎&p b: 2 (props-headed sibling: content lane)", "a: 1\n&p b: 2", (1, 0, 6), true),
-      ("a: 1⏎[1]: b (flow-key sibling)", "a: 1\n[1]: b", (1, 0, 7), true),
-      ("- a⏎b: 1 (sequence top at the landing: item 372's face)", "- a\nb: 1", (0, 1, 3), false),
-      ("k:⏎  - a⏎  b: 1 (nested sequence top)", "k:\n  - a\n  b: 1", (0, 1, 5), false),
-      ("- a⏎- b (the `-` sibling lands on the sequence top and is accepted)", "- a\n- b", (0, 1, 3), true),
-      ("a: 1⏎  b: 2 (a landing at NO open level: the scanner refuses the dedent-less indent)", "a: 1\n  b: 2", (0, 0, 4), false),
-      ("a: 1⏎...⏎b: 2 (post-`...`: the sibling is a new document, not a resume)", "a: 1\n...\nb: 2", (1, 0, 6), true) ]
+    [ ("a: 1 (one root key: every landing is at the root level)", "a: 1", (0, 0, 0), true),
+      ("a: 1⏎b: 2 (the sibling key resumes the root mapping)", "a: 1\nb: 2", (1, 0, 0), true),
+      ("k:⏎  a: 1⏎  b: 2 (nested sibling)", "k:\n  a: 1\n  b: 2", (1, 0, 1), true),
+      ("a: 1⏎&p b: 2 (props-headed sibling: content lane)", "a: 1\n&p b: 2", (1, 0, 0), true),
+      ("a: 1⏎[1]: b (flow-key sibling)", "a: 1\n[1]: b", (1, 0, 0), true),
+      ("- a⏎b: 1 (sequence top at the landing: item 372's face)", "- a\nb: 1", (0, 1, 0), false),
+      ("k:⏎  - a⏎  b: 1 (nested sequence top)", "k:\n  - a\n  b: 1", (0, 1, 1), false),
+      ("- a⏎- b (the `-` sibling lands on the sequence top and is accepted)", "- a\n- b", (0, 1, 0), true),
+      ("a: 1⏎  b: 2 (a landing at NO open level: the scanner refuses the dedent-less indent)", "a: 1\n  b: 2", (0, 0, 1), false),
+      ("a: 1⏎...⏎b: 2 (post-`...`: the sibling is a new document, not a resume)", "a: 1\n...\nb: 2", (1, 0, 1), true) ]
   for (label, src, expected, accepted) in rows do
     let got := siblingArmWalk src
     let ok := match L4YAML.TokenParser.parseYaml src with | .ok _ => true | .error _ => false
