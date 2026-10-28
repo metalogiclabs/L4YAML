@@ -52,6 +52,12 @@ lean_lib L4YAML where
   -- 48 files stay legacy.
   requiresModuleSystem := true
 
+-- Opt-in proof probe: compile with `lake build Tests.Probes.OwnerNodeTailBoundary`.
+-- Kept outside the default library build so the proof obligation is isolated.
+lean_lib «Tests.Probes.OwnerNodeTailBoundary» where
+  roots := #[`Tests.Probes.OwnerNodeTailBoundary]
+  allowNonModules := true
+
 @[default_target]
 lean_lib «Tests.Guards» where
   roots := #[`Tests.Guards]
