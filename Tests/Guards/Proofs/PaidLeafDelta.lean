@@ -249,7 +249,7 @@ def expectedFloorLits : List String :=
    "accum_content_pending lo=lo idx=ne ks=ks var ×3",
    "colon_fires_implicit_key lo=lo idx=k ks=map(…) :: ks var ×2",
    "colon_fires_props_key lo=lo idx=k ks=map(…) :: ks var ×2",
-   "colon_open_map lo=k idx=k ks=map(…) :: [] own ×5",
+   "colon_open_map lo=k idx=k ks=map(…) :: [] own ×6",
    "colon_open_map_implicit lo=lo idx=k + 1 ks=map(…) :: ks var ×2",
    "colon_open_map_implicit lo=lo idx=k ks=map(…) :: ks var ×2",
    "colon_open_map_props lo=lo idx=k + 1 ks=map(…) :: ks var ×2",
@@ -261,7 +261,7 @@ def expectedFloorLits : List String :=
    "entryKeyPack_of_dispatch lo=lo idx=w ks=map(…) :: ks var ×2",
    "entryPropsKeyPack_of_dispatch lo=lo idx=w ks=map(…) :: ks var ×2",
    "question_open_map lo=k + 1 idx=k + 1 ks=[] own ×2",
-   "question_open_map lo=k idx=k ks=map(…) :: [] own ×5",
+   "question_open_map lo=k idx=k ks=map(…) :: [] own ×6",
    "accum_block_on_pendingBlock lo=lo idx=n ks=ks var ×1",
    "accum_block_on_pendingBlockContent lo=lo idx=n ks=ks var ×1",
    "accum_block_pending lo=lo idx=nmv + 1 ks=ks var ×2"
@@ -370,7 +370,7 @@ def expectedLine : String :=
 -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
 -- Item 372 (2026-10-27): exit (a)'s sequence-top face: one more lemma row at `entryKeyPack_of_dispatch` (the CloseStackCover row mirrored).
 -- Item 374: rows=200 → 202, nodes=119962 → 120158, floorNodes=29792 → 30376 — the resume context's face disjunct and `resumectx_of_landing`'s `h_base`.
-  "rows=204 payments=1 literal=0 relay=1 scenarios=2 baseContent=17/6/13/3/2 allContent=19/6/12/5/2 baseEntry=17/6/13/3/2 allEntry=19/6/12/5/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=-1 puntEntry=-1 coverPuntContent=+2 coverPuntEntry=+2 mergedBase=true mergedAll=true floorLits=97 own=12 lit=6 var=79 ownLemmas=2 scanned=34 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=120362 floorNodes=30396"
+  "rows=204 payments=1 literal=0 relay=1 scenarios=2 baseContent=17/6/13/3/2 allContent=19/6/12/5/2 baseEntry=17/6/13/3/2 allEntry=19/6/12/5/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=-1 puntEntry=-1 coverPuntContent=+2 coverPuntEntry=+2 mergedBase=true mergedAll=true floorLits=99 own=14 lit=6 var=79 ownLemmas=2 scanned=34 monoIndex=9 monoIndexLemmas=5 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=4 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=120371 floorNodes=30508"
 
 /-! ## §4 The reading -/
 

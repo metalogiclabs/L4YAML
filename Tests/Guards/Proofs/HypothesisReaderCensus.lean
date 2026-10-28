@@ -614,7 +614,7 @@ def expectedModuleTally : String :=
   -- `dispatchBlock_colon_notQuestion` and `explFrameValueLine`'s split alternative.
   -- 2026-10-26 (item 366): RELAY 2836 → 2838 — `h_sound` passed whole into the two new `Sound sc` binders.
   -- 2026-10-27 (item 371): constants/decls +1, READ +1 — `ResumeFrames.one` (its `h_tail` is read once).
-  "constants=1701 decls=1338 eta=442 FIELD=168 READ=1357 RELAY=2862 RETURN=54 \
+  "constants=1703 decls=1340 eta=442 FIELD=168 READ=1373 RELAY=2863 RETURN=54 \
 UNUSED=27"
 -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); the two transport helpers and `h_pk'` go (constants 1683 → 1681, decls 1322 → 1320, READ 1325 → 1323, RELAY 2838 → 2830); `Mono sc` stays on `accum_step_flow`.
 -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): the five deleted `match` auxiliaries: constants 1681 → 1676, decls 1320 → 1315, READ 1323 → 1306.
@@ -725,7 +725,7 @@ inherit their parents' binders filtered out so the denominator is declarations. 
 -- `inr` arms no longer read their alternative (they pay an empty chain instead).
 -- 2026-10-26 (item 369): total=165 → total=166, READ=88 → READ=89 — `accum_block_on_pendingBlock.h_closeF_old`
 -- (the `-` park's frames, read by the `:`/`?` landing for `h_res_land`).
-def expectedOptTally : String := "total=166 ETA=31 READ=91 RELAY=44"
+def expectedOptTally : String := "total=169 ETA=31 READ=93 RELAY=45"
 
 /-- The six item 212 enumerated, by verdict — seven since item 300.  Six are
     read in `content_dispatch_routed`'s own term (`h_markerline`, the marker
@@ -805,11 +805,11 @@ def expectedCoreTerminal : List String :=
     "accum_block_on_pendingBlockContent#34 (h_seqF_old)",
     "accum_block_on_pendingContent#33 (h_seqF168)",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old)",
-    "colon_open_map#24 (h_cov_in)",
+    "colon_open_map#25 (h_cov_in)",
       "flowKeyRoute_of_root#24 (h_tail143)",  -- item 311: `{g}` precedes it
-    "indicator_open_map#26 (h_ref_land)",
-    "question_open_map#23 (h_cov_in)",
-    "question_open_map#24 (h_cov_nil)" ]
+    "indicator_open_map#27 (h_ref_land)",
+    "question_open_map#24 (h_cov_in)",
+    "question_open_map#25 (h_cov_nil)" ]
 
 /-- Where `h_ref` is eliminated, named. -/
 def expectedRefTerminals : List String :=

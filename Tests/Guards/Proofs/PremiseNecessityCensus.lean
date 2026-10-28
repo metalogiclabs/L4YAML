@@ -370,7 +370,7 @@ def expectedModuleTallyP : String :=
 -- Item 372 (2026-10-27): `SeqTopKey`, `SeqTopKey.of_eq`, `seqTopKey_refuted_at_colon` and the exit (a) face (+5 constants, +4 decls).
   -- 2026-10-28 (item 380, PR #146 review): READ 1408 → 1421, RELAY 2673 → 2660 — `Or.elim` is a two-arm split
   -- (`RelaySupplyCensus.isTwoArm`): the thirteen premises handed to a `Classical.em … |>.elim` are read at the site.
-  "constants=1701 decls=1338 eta=442 FIELD=192 READ=1421 RELAY=2660 RETURN=168 UNUSED=27"
+  "constants=1703 decls=1340 eta=442 FIELD=192 READ=1437 RELAY=2661 RETURN=168 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -384,7 +384,7 @@ def expectedOptTallyP : String :=
   -- 2026-10-24 (item 350): total 163 → 159, ETA 33 → 31, READ 87 → 85 — the `h_expl`/`h_explUp` `inr`
   -- arms pay an empty chain and no longer read their alternative.
   -- 2026-10-28 (item 380, PR #146 review): READ 89 → 91, RELAY 40 → 38 — the two optional contexts eliminated by `Or.elim`.
-  "total=166 ETA=31 FIELD=4 READ=91 RELAY=38 RETURN=2"
+  "total=169 ETA=31 FIELD=4 READ=93 RELAY=39 RETURN=2"
 
 run_cmd do
   let env ← getEnv
@@ -487,11 +487,11 @@ def expectedNineResolved : List String :=
     "accum_block_on_pendingBlockContent#34 (h_seqF_old) => ELIM@L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock#28>Or.casesOn#3",
     "accum_block_on_pendingContent#33 (h_seqF168) => RETURN@L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent#33",
     "accum_content_on_pendingMapValue_indented#14 (h_ncol_old) => FIELD@L4YAML.Proofs.StreamAccum.PendingNode.pendingProps#19",
-    "colon_open_map#24 (h_cov_in) => FIELD@And.intro#2",
+    "colon_open_map#25 (h_cov_in) => FIELD@And.intro#2",
     "flowKeyRoute_of_root#24 (h_tail143) => RETURN@L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root#24",  -- item 311: `{g}` precedes it
-    "indicator_open_map#26 (h_ref_land) => ELIM@L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused.match_1_1#4, ELIM@L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused.match_1_1#4",
-    "question_open_map#23 (h_cov_in) => FIELD@And.intro#2",
-    "question_open_map#24 (h_cov_nil) => FIELD@And.intro#2" ]
+    "indicator_open_map#27 (h_ref_land) => ELIM@L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused.match_1_1#4, ELIM@L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused#7>L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused.match_1_1#4",
+    "question_open_map#24 (h_cov_in) => FIELD@And.intro#2",
+    "question_open_map#25 (h_cov_nil) => FIELD@And.intro#2" ]
 
 /-- `h_ref`'s terminals, with the pipe peeled: the `SPLIT@Eq.ndrec#9` row item
     225 published was the over-applied transport, not a site. -/
@@ -504,8 +504,8 @@ run_cmd do
   let nine : List (Name × Nat) :=
     [ (``accum_block_on_pendingBlock, 29), (``accum_block_on_pendingBlockContent, 34),
       (``accum_block_on_pendingContent, 33), (``accum_content_on_pendingMapValue_indented, 14),
-      (``colon_open_map, 24), (``flowKeyRoute_of_root, 24), (``indicator_open_map, 26),
-      (``question_open_map, 23), (``question_open_map, 24) ]
+      (``colon_open_map, 25), (``flowKeyRoute_of_root, 24), (``indicator_open_map, 27),
+      (``question_open_map, 24), (``question_open_map, 25) ]
   if nine.length != expectedCoreTerminal.length then
     throwError "item 225's shortlist is no longer nine rows"
   let got := nine.map (fun (c, i) =>
@@ -860,7 +860,7 @@ lemma opt_premise_is_no_premise {A P : Prop} : (A ∨ True → P) ↔ P :=
 -- 2026-10-26 (item 369): total=165 → total=166, optTy=157 → optTy=158 — `accum_block_on_pendingBlock.h_closeF_old` (the `-` park's frames, read at the `:`/`?` landing for `h_res_land`).
 def expectedOptPopulation : String :=
   -- 2026-10-24 (item 350): total 163 → 159, optTy 156 → 153, ctorFields 33 → 31 — as above.
-  "total=166 optTy=158 ctorFields=31"
+  "total=169 optTy=161 ctorFields=31"
 
 run_cmd do
   let env ← getEnv

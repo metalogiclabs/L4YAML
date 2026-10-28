@@ -37,7 +37,10 @@ def optBinders (n : Name) : MetaM (Array (Nat × Name)) := do
     for h : i in [:xs.size] do
       let t ← inferType xs[i]
       if let some (_, r) := t.app2? ``Or then
-        if r.isConstOf ``True then
+        -- Item 381's typed nested-sequence route is measured separately by
+        -- NoPopFreshSupply; this historic fallback census keeps its original
+        -- set of stream/marker/resume contexts.
+        if r.isConstOf ``True && (← xs[i].fvarId!.getUserName) != `h_fresh_land then
           out := out.push (i, (← xs[i].fvarId!.getUserName))
     return out
 
@@ -69,10 +72,10 @@ context settles `DECLINE` on that path (the catch-all arm is what the path buys)
 some context settles `PAY` on that path (which arm is selected depends on which context); `OPEN` = a context settles at a case
 split / pipe / local fact (`SPLIT`/`VIA`/`LOCAL`/`FIELD`) or is still relayed at the depth
 bound, which this reading cannot settle. -/
-def rowsFor (n : Name) : CommandElabM (Array String × (Nat × Nat × Nat)) := do
+def rowsFor (n : Name) (es : Array Edge) :
+    CommandElabM (Array String × (Nat × Nat × Nat)) := do
   let full := ns ++ n
   let opts ← liftTermElabM (optBinders full)
-  let (es, _) ← edges full
   let mut rows := #[]
   let mut fb := 0
   let mut rt := 0
@@ -140,12 +143,16 @@ def expectedRows : List String :=
     "accum_block_on_closeThenBlock: opts=8 paths=7 fallback=0 pays=4 open=3" ]
 
 run_cmd do
+  -- Every opener is in StreamAccum, so `edges` returns the SAME module-wide
+  -- graph for each of them. Compute it once, not five times; row assertions
+  -- remain identical and retain their independent per-opener settlement.
+  let (es, _) ← edges (ns ++ `colon_open_map)
   let mut rows : Array String := #[]
   let mut fb := 0
   let mut rt := 0
   let mut op := 0
   for n in openers do
-    let (rs, (f, r, o)) ← rowsFor n
+    let (rs, (f, r, o)) ← rowsFor n es
     rows := rows ++ rs
     fb := fb + f; rt := rt + r; op := op + o
   let got := s!"openers={openers.length} fallback={fb} pays={rt} open={op}"

@@ -24072,6 +24072,12 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
     (h_res_land : (∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < k) ∧
       ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
         ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True)
+    -- Item 381: a fresh mapping nested in an awaited sequence entry owns
+    -- its FIRST entry and compact tail. It cannot resume an older map frame.
+    (h_fresh_land : (∃ ke : Nat,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        SeqEntryTail sp_start ke sp_e) ∨ True)
     -- Item 142: §9.2's landing refusal, the sixth arm.  `Or.inl` says the
     -- scanner has already refused this landing (`a⏎: v`), so the fallback
     -- below is unreachable; `Or.inr` says nothing, exactly as the four
@@ -24133,17 +24139,21 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
   -- claims.
   have h_routeE : ∀ sp_v, SBlockMapEntry k sp_ind sp_v →
       SLYamlStream sp_start sp_v :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
-    | Or.inl ⟨_, _, cont⟩, _, _, _, _ => resumeMapRoute h_ind cont
-    | Or.inr _, Or.inl sfxrun, _, _, _ => suffixMapRoute hcol_land sfxrun h_ind
-    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ => nodocMapRoute hcol_land nodoc h_ind
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ => markerMapRoute mk h_ind
+    match h_res_land, h_fresh_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
+    | Or.inl ⟨_, _, cont⟩, _, _, _, _, _ => resumeMapRoute h_ind cont
+    | Or.inr _, Or.inl ⟨ke, route⟩, _, _, _, _ =>
+        fun sp_v h_entry =>
+          route sp_v h_entry sp_v (SCompactMapTail.nil k sp_v)
+            sp_v (SCompactSeqTail.nil ke sp_v)
+    | Or.inr _, Or.inr _, Or.inl sfxrun, _, _, _ => suffixMapRoute hcol_land sfxrun h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl nodoc, _, _ => nodocMapRoute hcol_land nodoc h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ => markerMapRoute mk h_ind
     -- Item 175: the PROPS arm, fifth — the entry heads the held run's own
     -- collection through `[196]`'s slot and the park's route.
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn => propsMapRoute pn h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn => propsMapRoute pn h_ind
     -- Item 142: the fallback, with §9.2's landing refusal taken out of its
     -- domain.
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         rootMapRoute_or_refused h_ref_land hcol_land h_stream_land h_ind
   -- Item 173: the entries-level twin carries the RESUMED level's own `ks`, so
   -- the park this opener makes offers the next landing the same resume this
@@ -24158,26 +24168,32 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
         ∀ sp_v, SBlockMapEntry k sp_ind sp_v →
         ∀ sp_e, SCompactMapTail k sp_v sp_e →
         ResumeFrames (SLYamlStream sp_start) ks sp_e :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
-    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _, _ =>
+    match h_res_land, h_fresh_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
+    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _, _, _ =>
         ⟨ks, h_lt, Or.inr trivial, resumeMapRouteF h_ind cont⟩
-    | Or.inr _, Or.inl sfxrun, _, _, _ =>
+    | Or.inr _, Or.inl ⟨ke, route⟩, _, _, _, _ =>
+        ⟨[], fun _ h => absurd h (List.not_mem_nil),
+          h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
+          fun sp_v h_entry sp_e h_tail =>
+            ResumeFrames.bottom sp_e
+              (route sp_v h_entry sp_e h_tail sp_e (SCompactSeqTail.nil ke sp_e))⟩
+    | Or.inr _, Or.inr _, Or.inl sfxrun, _, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           suffixMapRouteF hcol_land sfxrun h_ind⟩
-    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl nodoc, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           nodocMapRouteF hcol_land nodoc h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           markerMapRouteF mk h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           propsMapRouteF pn h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           rootMapRouteF_or_refused h_ref_land hcol_land h_stream_land h_ind⟩
@@ -24263,7 +24279,17 @@ lemma colon_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) (k 
                       (resumeMapRouteK h_ind contV sp_m
                         (SBlockMapEntry.emptyKeyEmpty k sp_ind sp_scan' sp_m h_lit h_ssl))⟩
             | Or.inr h_alt => Or.inr (h_alt_step h_alt))
-           (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
+           (nodir_of_block_dispatch h_dispatch)
+           (match h_fresh_land with
+            | Or.inl ⟨ke, route⟩ => Or.inl ⟨ke, [],
+                fun _ hm => (List.not_mem_nil hm).elim,
+                fun sp_v h_node sp_e h_tail =>
+                  ResumeFrames.bottom sp_e
+                    (route sp_v
+                      (SBlockMapEntry.emptyKeyNode k sp_ind sp_scan' sp_v h_lit
+                        (SBlockNode_blockIn_to_blockOut h_node))
+                      sp_e h_tail)⟩
+            | Or.inr _ => Or.inr trivial)
            -- Item 190: and no `?` literal either, so no entry route to compose
            -- an outer frame's value line against.
            (Or.inr (dispatchBlock_colon_notQuestion h_dispatch)),
@@ -24330,6 +24356,12 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
     (h_res_land : (∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < k) ∧
       ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
         ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True)
+    -- Item 381: fresh map inside a pending sequence entry; first entry and
+    -- its compact tail fill the sequence node without resuming an old frame.
+    (h_fresh_land : (∃ ke : Nat,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        SeqEntryTail sp_start ke sp_e) ∨ True)
     -- Item 142: §9.2's landing refusal, as at `colon_open_map`.
     (h_ref_land : BareLandingFacts sc s_prep '?' ∨ True)
     -- Item 147: the landing's own cover, as at `colon_open_map`.
@@ -24436,18 +24468,22 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
     rw [Int.toNat_natCast]; omega
   have h_route51 : ∀ sp_k, SBlockMapEntry k sp_ind sp_k →
       SLYamlStream sp_start sp_k :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
+    match h_res_land, h_fresh_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
     -- Item 173: the RESUME arm first, as at the content cascade.
-    | Or.inl ⟨_, _, cont⟩, _, _, _, _ => resumeMapRoute h_ind cont
-    | Or.inr _, Or.inl sfxrun, _, _, _ => suffixMapRoute hcol_land sfxrun h_ind
-    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ => nodocMapRoute hcol_land nodoc h_ind
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ => markerMapRoute mk h_ind
+    | Or.inl ⟨_, _, cont⟩, _, _, _, _, _ => resumeMapRoute h_ind cont
+    | Or.inr _, Or.inl ⟨ke, route⟩, _, _, _, _ =>
+        fun sp_v h_entry =>
+          route sp_v h_entry sp_v (SCompactMapTail.nil k sp_v)
+            sp_v (SCompactSeqTail.nil ke sp_v)
+    | Or.inr _, Or.inr _, Or.inl sfxrun, _, _, _ => suffixMapRoute hcol_land sfxrun h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl nodoc, _, _ => nodocMapRoute hcol_land nodoc h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ => markerMapRoute mk h_ind
     -- Item 175: the PROPS arm, fifth — the explicit entry heads the held
     -- run's own collection through `[196]`'s slot and the park's route.
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn => propsMapRoute pn h_ind
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn => propsMapRoute pn h_ind
     -- Item 142: the fallback, with §9.2's landing refusal taken out of its
     -- domain.
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         rootMapRoute_or_refused h_ref_land hcol_land h_stream_land h_ind
   -- Item 173: the entries-level twin, packaged with the resumed level's own
   -- `ks` and the root arms' cover — as at `colon_open_map` (the resume arm
@@ -24459,26 +24495,32 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
         ∀ sp_v, SBlockMapEntry k sp_ind sp_v →
         ∀ sp_e, SCompactMapTail k sp_v sp_e →
         ResumeFrames (SLYamlStream sp_start) ks sp_e :=
-    match h_res_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
-    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _, _ =>
+    match h_res_land, h_fresh_land, h_sfx_land, h_nodoc_land, h_mk_land, h_pr_land with
+    | Or.inl ⟨ks, h_lt, cont⟩, _, _, _, _, _ =>
         ⟨ks, h_lt, Or.inr trivial, resumeMapRouteF h_ind cont⟩
-    | Or.inr _, Or.inl sfxrun, _, _, _ =>
+    | Or.inr _, Or.inl ⟨ke, route⟩, _, _, _, _ =>
+        ⟨[], fun _ h => absurd h (List.not_mem_nil),
+          h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
+          fun sp_v h_entry sp_e h_tail =>
+            ResumeFrames.bottom sp_e
+              (route sp_v h_entry sp_e h_tail sp_e (SCompactSeqTail.nil ke sp_e))⟩
+    | Or.inr _, Or.inr _, Or.inl sfxrun, _, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           suffixMapRouteF hcol_land sfxrun h_ind⟩
-    | Or.inr _, Or.inr _, Or.inl nodoc, _, _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inl nodoc, _, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           nodocMapRouteF hcol_land nodoc h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl mk, _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           markerMapRouteF mk h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inl pn =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           propsMapRouteF pn h_ind⟩
-    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
+    | Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _, Or.inr _ =>
         ⟨[], fun _ h => absurd h (List.not_mem_nil),
           h_cov_in.imp (fun h => ⟨k, ⟨Nat.le_refl k, by simp⟩, h⟩) id,
           rootMapRouteF_or_refused h_ref_land hcol_land h_stream_land h_ind⟩
@@ -24620,7 +24662,18 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos) 
                      (SBlockMapEntry.explicit k sp_ind sp_scan' sp_m sp_i sp_c sp_w h_lit
                        (SBlockIndented.empty k .blockOut sp_scan' sp_m h_ssl)
                        h_iv h_colon h_sbi)))⟩)
-           (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
+           (nodir_of_block_dispatch h_dispatch)
+           (match h_fresh_land with
+            | Or.inl ⟨ke, route⟩ => Or.inl ⟨ke, [],
+                fun _ hm => (List.not_mem_nil hm).elim,
+                fun sp_v h_node sp_e h_tail =>
+                  ResumeFrames.bottom sp_e
+                    (route sp_v
+                      (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit
+                        (SBlockIndented.node k .blockOut sp_scan' sp_v
+                          (SBlockNode_blockIn_to_blockOut h_node)))
+                      sp_e h_tail)⟩
+            | Or.inr _ => Or.inr trivial)
            -- ═══ **Item 190: the SLOT-premised twin of item 189's payment.**
            -- `h_kslot` above narrows `h_kslot_up` to the awaited BLOCK NODE,
            -- which is all `[195]` admits; this field keeps the entry route
@@ -25211,6 +25264,11 @@ lemma indicator_open_map {sc : ScannerState}
     (h_res_land : (∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width < k) ∧
       ∀ sp_end : SurfPos, SCompactMapTail k sp_land sp_end →
         ResumeFrames (SLYamlStream sp_start) ks sp_end) ∨ True)
+    -- Item 381: the separate fresh mapping nested in a sequence entry.
+    (h_fresh_land : (∃ ke : Nat,
+      ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →
+      ∀ sp_e : SurfPos, SCompactMapTail k sp_v sp_e →
+        SeqEntryTail sp_start ke sp_e) ∨ True)
     -- Item 142: §9.2's landing refusal, handed through to whichever opener
     -- the indicator selects.
     (h_ref_land : BareLandingFacts sc s_prep c ∨ True)
@@ -25297,7 +25355,7 @@ lemma indicator_open_map {sc : ScannerState}
       (indicator_floor_colon_at_col_of_save hcol_ind hcorr_prep
         h_noflow_disp h_save h_preprocess h_dispatch)
       hpeek h_noflow_disp h_nic_disp h_dispatch (h_src rfl) h_sfx_land h_nodoc_land
-      h_mk_land h_res_land h_ref_land
+      h_mk_land h_res_land h_fresh_land h_ref_land
       ((h_cov_in ':' (Or.inl rfl) h_preprocess h_dispatch).imp And.left id)
       h_pr_land h_resV_land
       -- Item 322: the alternative's transport, from this lemma's own step facts (`c = ':'` here).
@@ -25309,7 +25367,7 @@ lemma indicator_open_map {sc : ScannerState}
       (indicator_floor_question_at_col hcol_ind hcorr_prep h_noflow_disp
         h_preprocess h_dispatch)
       hpeek h_noflow_disp h_nic_disp h_dispatch h_sfx_land h_nodoc_land h_mk_land
-      h_res_land h_ref_land
+      h_res_land h_fresh_land h_ref_land
       ((h_cov_in '?' (Or.inr rfl) h_preprocess h_dispatch).imp And.left id)
       -- Item 150: the value-line seed, off the same measurement — the `?`'s own
       -- level is the top, so nothing stands at or right of `k + 1`.
@@ -26768,6 +26826,8 @@ lemma accum_block_on_noPending
           -- Item 173: a virgin park keeps no level open, so there is nothing
           -- for a landing to resume and the arm punts by its own reading.
           (Or.inr trivial)
+          -- A virgin stream cannot be a pending sequence-entry map.
+          (Or.inr trivial)
           -- Item 142: a virgin park pays the HEAD arm above, so the fallback
           -- §9.2 refutes is unreachable from here for a different reason and
           -- this arm punts.
@@ -27759,7 +27819,7 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
           -- (`noPending` has its own lemma), so the head arm punts here.
           (Or.inr trivial) h_mk_land
           -- Item 173: the resume face, read above at this landing's width.
-          h_res_land h_ref_land
+          h_res_land (Or.inr trivial) h_ref_land
           -- Item 147: the landing's floor, where this step reached the
           -- indicator across a break.
           (by
@@ -28978,6 +29038,8 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
                         else Or.inr trivial
                       | Or.inr _ => Or.inr trivial)
               · exact Or.inr trivial)
+            -- Item 381: this content park's node slot is already occupied.
+            (Or.inr trivial)
             -- Item 142: this park finished a node, so it PAYS §9.2's refusal —
             -- the landing's flag comes from the park's own arm or the break it
             -- crossed (`landing_or_park_ska`).
@@ -29673,6 +29735,19 @@ lemma accum_block_on_pendingBlock
                             (fun _ => Or.inr trivial)
                       else Or.inr trivial
                     | Or.inr _ => Or.inr trivial)
+            · exact Or.inr trivial)
+          -- Item 381: the empty pending entry can receive a fresh nested
+          -- mapping, including subsequent entries in its compact map tail.
+          (by
+            by_cases hnk : n + 1 ≤ k
+            · exact Or.inl ⟨n, fun sp_v h_entry sp_e h_tail =>
+                fun sp_end h_outer =>
+                  h_close_entry_old sp_e
+                    (SBlockIndented.node n .blockIn sp_scan sp_e
+                      (nestedBlockMap hnk h_ssl
+                        (L4YAML.Proofs.NodeProduction.SBlockMapEntries_of_compactTail
+                          h_ind h_entry h_tail)))
+                    sp_end h_outer⟩
             · exact Or.inr trivial)
           -- Item 142: this park's tail is the `-` that opened the entry, so
           -- `completesFlowValue` is FALSE there and the check stands aside by

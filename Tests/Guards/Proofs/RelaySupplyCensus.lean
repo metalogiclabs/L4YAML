@@ -934,8 +934,8 @@ def expectedTally : String :=
   -- 2026-10-26 (item 369): edges 664 → 665, DECLINE 256 → 255, FIELD 55 → 56, SPLIT 160 → 161 —
   -- `pendingBlock.h_closeF` threaded into `accum_block_on_pendingBlock` (one FIELD edge) and the
   -- `:`/`?` landing's `h_res_land` there read off those frames instead of `Or.inr trivial`.
-  "edges=667 skipped=39 [DECLINE=265, FIELD=56, LOCAL=27, PAY=55, RELAY=65, \
-SPLIT=167, VIA=32]"
+  "edges=673 skipped=39 [DECLINE=266, FIELD=56, LOCAL=27, PAY=55, RELAY=67, \
+SPLIT=170, VIA=32]"
 
 /-- **The row item 211 read off the compiler's error text and got wrong.**  All
     eight of these print `h_keyctx` when the premise is narrowed; six of them
@@ -1022,8 +1022,8 @@ def expectedProducers : List String :=
 -- payments surfaced); producers and the other landings stand.
 -- 2026-10-28 (item 380, PR #146 review): piped 63 → 68, `Or.elim⇒SPLIT=5` — the five disagreeing `Or.elim`s land as splits.
 def expectedPipeLanding : String :=
-  "piped=68 producers=0 [Or.elim⇒SPLIT=5, Or.imp⇒FIELD=33, Or.imp⇒LOCAL=5, \
-Or.imp⇒RELAY=16, Or.imp⇒SPLIT=4, dite⇒SPLIT=5]"
+  "piped=69 producers=0 [Or.elim⇒SPLIT=5, Or.imp⇒FIELD=33, Or.imp⇒LOCAL=5, \
+Or.imp⇒RELAY=16, Or.imp⇒SPLIT=4, dite⇒SPLIT=6]"
 
 /-- What the SPLITs decide (DOCS item 216), and the row that matters is
     `elsewhere=0`: **not one leaf of any case split in this module is decided
@@ -1094,12 +1094,12 @@ Or.imp⇒RELAY=16, Or.imp⇒SPLIT=4, dite⇒SPLIT=5]"
 -- 2026-10-28 (item 380, PR #146 review): survived 162 → 167, collapsed 14 → 26 (the twelve agreeing `Or.elim`s), leaves 358 → 384,
 -- DECLINE 177 → 197, PAY 174 → 179, VIA 7 → 8 — the arms the `VIA Or.elim` leaves hid, read.
 def expectedSplitLanding : String :=
-  "survived=167 collapsed=26 leaves=384 elsewhere=8 [DECLINE=197, PAY=179, \
+  "survived=170 collapsed=26 leaves=390 elsewhere=8 [DECLINE=200, PAY=182, \
 VIA=8] [DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|PAY|VIA|VIA=2, \
 DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
 DECLINE|DECLINE|DECLINE|PAY=2, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
 DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=5, \
-DECLINE|DECLINE|PAY|PAY=1, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=148, \
+DECLINE|DECLINE|PAY|PAY=1, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=151, \
 DECLINE|PAY|PAY=1, PAY|VIA=1]"
 
 /-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
@@ -1195,7 +1195,7 @@ DECLINE|PAY|PAY=1, PAY|VIA=1]"
 -- optionalRoot 105 → 108; `VIA Or.elim` 3 → 0 (now arms), `VIA absurd` 3 → 7 and `DECLINE-closed` 84 → 103 (the
 -- arms it hid: item 378's refutations and the declined no-pop / `lo > k` / uncovered arms at the two builders).
 def expectedSplitBranch : String :=
-  "splits=167 leaves=384 relayRooted=156 siteDecided=11 optionalRoot=108 plainRoot=48 agree=110/110 disagree=0 [DECLINE-closed=103, DECLINE-free=94, PAY-free=179, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA absurd-=7]"
+  "splits=170 leaves=390 relayRooted=158 siteDecided=12 optionalRoot=110 plainRoot=48 agree=112/112 disagree=0 [DECLINE-closed=106, DECLINE-free=94, PAY-free=182, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA absurd-=7]"
 
 /-- **The ten splits the site decides for itself**, which is the whole residue
     of the branch question after `expectedSplitBranch`.  Four are a `dite` on a
@@ -1215,6 +1215,7 @@ def expectedSiteDecided : List String :=
    "1 accum_block_on_pendingBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
    "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|DECLINE|PAY|PAY",
    "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|DECLINE|PAY|PAY|PAY",
+   "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|PAY",
    "1 accum_block_on_pendingBlockContent :: dite on VIA Eq ⇒ DECLINE|PAY",
    "1 accum_content_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|DECLINE|DECLINE|PAY",
    "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_22 on SPLIT Or.casesOn on VIA preprocess_some_savedKey_shape ⇒ PAY|VIA",
@@ -1251,6 +1252,7 @@ def expectedBranchPremises : List String :=
    -- 2026-10-26 (item 369): 13 → 14 — `accum_block_on_pendingBlock` now splits on `pendingBlock.h_closeF` too
    -- 2026-10-26 (item 370): 14 → 15 — the sibling `-` arm splits `h_closeF_old` too.
    "15 h_closeF_old",
+   "2 h_fresh_land",
    "2 h_kslotD",
    "22 h_closeFV_old",
    "3 h_cov",
@@ -1322,7 +1324,7 @@ def expectedDeclineReach : String :=
 -- Item 372 (2026-10-27): two more edges — `ImplicitKeyPack`'s route conjunct is now an Or (the `SeqTopKey` face), split at the producer's exit (a) and resolved at `colon_fires_implicit_key`.
 -- 2026-10-28 (item 380, PR #146 review): liveSplits 101 → 104 — `Or.elim` read as a two-arm split: three of the
 -- five disagreeing `Classical.em … |>.elim` decisions stand on a live (reachable) decline path; nothing else moved.
-  "pairs=36 orphan=2 direct=9 closureDecline=34 dead=0 maxDepth=2 liveSplits=104 deadSplits=0 accounted=667/667 nodes=163 fieldEdges=56 fieldResolved=56 withCycle=8 declineWriters=19 parkHop=22"
+  "pairs=38 orphan=2 direct=9 closureDecline=36 dead=0 maxDepth=2 liveSplits=106 deadSplits=0 accounted=673/673 nodes=166 fieldEdges=56 fieldResolved=56 withCycle=8 declineWriters=19 parkHop=22"
 
 /-- **Every branch premise, with what its own callers supply and where that
     bottoms out.**  `⇐` names the FIRST hop — for a park field, the field
@@ -1370,8 +1372,10 @@ def expectedBranchSupply : List String :=
    "h_closeF_old :: accum_block_on_pendingBlockContent#36 :: splits=2 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_closeF ⇒ brDECLINE+brPAY",
    -- 2026-10-26 (item 370): `pendingBlock.h_closeF`'s suppliers are all PAY now that the sibling `-` arm relays `h_closeF_old`.
    "h_closeF_old :: accum_content_on_pendingBlock_indented#14 :: splits=11 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_closeF ⇒ PAY+brDECLINE+brPAY",
-   "h_cov :: indicator_open_map#27 :: splits=3 sup=4 [DECLINE=1,SPLIT=3] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
-   "h_explUp_chainD :: question_open_map#29 :: splits=1 sup=1 [RELAY=1] ⇐ h_explUp_chainD@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
+   "h_cov :: indicator_open_map#28 :: splits=3 sup=4 [DECLINE=1,SPLIT=3] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
+   "h_explUp_chainD :: question_open_map#30 :: splits=1 sup=1 [RELAY=1] ⇐ h_explUp_chainD@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
+   "h_fresh_land :: colon_open_map#23 :: splits=1 sup=1 [RELAY=1] ⇐ h_fresh_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
+   "h_fresh_land :: question_open_map#22 :: splits=1 sup=1 [RELAY=1] ⇐ h_fresh_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
    "h_kslot :: accum_block_on_pendingBlock#13 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
    "h_kslot :: accum_block_on_pendingBlockContent#15 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_kslot ⇒ brDECLINE+brPAY",
    "h_kslot :: accum_content_on_pendingMapValue_indented#17 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
@@ -1386,8 +1390,8 @@ def expectedBranchSupply : List String :=
    "h_mapFV108 :: accum_block_on_pendingContent#35 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingContent.h_framesV ⇒ DECLINE+brDECLINE+brPAY",
    "h_mk :: accum_block_on_closeThenBlock#20 :: splits=1 sup=11 [DECLINE=10,PAY=1] ⇐ - ⇒ DECLINE+PAY",
    "h_pr :: accum_block_on_closeThenBlock#30 :: splits=1 sup=11 [DECLINE=9,SPLIT=2] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
-   "h_resV_land :: colon_open_map#26 :: splits=2 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY+brVIA",
-   "h_resV_land :: question_open_map#27 :: splits=1 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY+brVIA",
+   "h_resV_land :: colon_open_map#27 :: splits=2 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY+brVIA",
+   "h_resV_land :: question_open_map#28 :: splits=1 sup=1 [RELAY=1] ⇐ h_resV_land@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY+brVIA",
    "h_routeF :: colon_open_map_implicit#12 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
    "h_routeF :: colon_open_map_props#11 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
    "h_routeFV :: colon_open_map_implicit#13 :: splits=2 sup=1 [SPLIT=1] ⇐ - ⇒ brDECLINE+brPAY",
@@ -1441,15 +1445,15 @@ def expectedDeclineWriters : List String :=
    "10 colon_open_map_implicit",
    "10 colon_open_map_props",
    "10 content_dispatch_routed",
-   "11 accum_block_on_noPending",
    "12 accum_content_on_pendingBlock_indented",
+   "13 accum_block_on_noPending",
    "15 accum_content_on_pendingMapValue_indented",
-   "18 accum_block_on_closeThenBlock",
-   "19 accum_block_on_pendingBlockContent",
    "2 question_open_map",
+   "20 accum_block_on_closeThenBlock",
+   "21 accum_block_on_pendingBlockContent",
    "3 colon_fires_implicit_key",
    "3 colon_fires_props_key",
-   "32 accum_block_on_pendingBlock",
+   "34 accum_block_on_pendingBlock",
    "34 accum_block_pending",
    "37 accum_content_pending",
    "7 colon_open_map",

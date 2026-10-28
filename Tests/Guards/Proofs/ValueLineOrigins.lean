@@ -689,20 +689,20 @@ def expectedOrigins : List String := [
    "O44 accum_flow_open_depth0 #3 param:flowKeyRoute_of_open.h_compact_pair ← tail(door:pendingMapValue.h_expl) lvl=n_old ⊢ held(h_expl,h_seqF✝) | @n_old:held(h_expl,h_seqF✝) → held",
    "O49 compact_open_map #1 ctor:pendingMapValue.h_ivl ← route(param:compact_open_map.h_close_old) lvl=n ⊢ held(h_expl105) | @n:none → unheld",
    "O50 compact_open_map #1 ctor:pendingMapValue.h_vslot ← route(param:compact_open_map.h_close_old) lvl=n ⊢ held(h_expl105) | @n:none → unheld",
-   "O53 question_open_map #1 ctor:pendingMapValue.h_ivl ← frames(param:question_open_map.h_nodoc_land) lvl=k ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) | @k:held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O54 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:suffixMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O55 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:nodocMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O56 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:markerMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O57 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:propsMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O58 question_open_map #1 ctor:pendingMapValue.h_ivl ← route(param:question_open_map.h_stream_land) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O59 question_open_map #1 ctor:pendingMapValue.h_vslot ← frames(param:question_open_map.h_nodoc_land) lvl=k ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) | @k:held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O60 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:suffixMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O61 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:nodocMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O62 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:markerMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O63 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:propsMapRoute) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O64 question_open_map #1 ctor:pendingMapValue.h_vslot ← route(param:question_open_map.h_stream_land) lvl=— ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O65 question_open_map #1 ctor:pendingMapValue.h_kslot ← frames(param:question_open_map.h_res_land) lvl=k ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) | @k:held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
-   "O66 question_open_map #1 ctor:pendingMapValue.h_explUp ← frames(param:question_open_map.h_resV_land) lvl=k ⊢ level-var | @k:held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → unheld"]
+   "O53 question_open_map #1 ctor:pendingMapValue.h_ivl ← frames(param:question_open_map.h_sfx_land) lvl=k ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) | @k:held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O54 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:suffixMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O55 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:nodocMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O56 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:markerMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O57 question_open_map #1 ctor:pendingMapValue.h_ivl ← concl(concl:propsMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O58 question_open_map #1 ctor:pendingMapValue.h_ivl ← route(param:question_open_map.h_stream_land) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O59 question_open_map #1 ctor:pendingMapValue.h_vslot ← frames(param:question_open_map.h_sfx_land) lvl=k ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) | @k:held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O60 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:suffixMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O61 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:nodocMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O62 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:markerMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O63 question_open_map #1 ctor:pendingMapValue.h_vslot ← concl(concl:propsMapRoute) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O64 question_open_map #1 ctor:pendingMapValue.h_vslot ← route(param:question_open_map.h_stream_land) lvl=— ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O65 question_open_map #1 ctor:pendingMapValue.h_kslot ← frames(param:question_open_map.h_res_land) lvl=k ⊢ held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) | @k:held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → held",
+   "O66 question_open_map #1 ctor:pendingMapValue.h_explUp ← frames(param:question_open_map.h_resV_land) lvl=k ⊢ level-var | @k:held(h_res_land,h_fresh_land,h_resV_land,h✝,right✝,h_routeF,h_route51F) → unheld"]
 -- Item 287: the eleven writers of `accum_block_on_closeThenBlock.h_vslot`, read
 -- as `ValueLinePacks.expectedWriters` reads them — the ten `punt`s are `stamp`s,
 -- and the value park's split writes both.  Item 288: the four writers of
@@ -1163,7 +1163,7 @@ def expectedLine : String :=
 -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
 -- Item 372 (2026-10-27): the Or-shaped route conjunct of `ImplicitKeyPack` (summary mirrors the five `(Or)` rows).
 -- Item 374: lets=647 → 648, lapps=821 → 822, alts=5234 → 5243, nodes=13694 → 13696, liteNodes=630069 → 632322 — the resume context's face disjunct and `resumectx_of_landing`'s `h_base`.
-  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=67 originRows=32 route=12 frames=29 tail=14 other=0 concl=8 invariant=4 heldOrigins=15 allHeld=3 someHeld=36 noneHeld=66 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=652 lapps=822 alts=5277 nodes=13696 liteNodes=634791"
+  "positions=49 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=184 ctorRows=98 paramRows=86 packagedRows=29 punt=7 stamp=44 built=133 origins=67 originRows=32 route=12 frames=29 tail=14 other=0 concl=8 invariant=4 heldOrigins=15 allHeld=3 someHeld=36 noneHeld=66 unbornRows=13 relayedPunt=0 relayedStamp=11 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=5 rounds=5 follows=360 lets=652 lapps=829 alts=5280 nodes=13704 liteNodes=636417"
 
 /-! ## §4 The reading -/
 

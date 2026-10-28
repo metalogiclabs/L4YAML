@@ -92,6 +92,24 @@ private def singletonBlockSequenceMap (source : String) (entries : Nat) : Bool :
           | _ => false
       | _ => false
 
+-- Item 381: inspect the AST, not just acceptance, for a multi-entry mapping
+-- nested in the FIRST sequence item, then a later sequence sibling.
+private def blockSequenceFirstMap (source : String)
+    (mapEntries totalEntries : Nat) : Bool :=
+  match L4YAML.TokenParser.parseYaml source with
+  | .error _ => false
+  | .ok docs =>
+    if docs.size != 1 then false
+    else
+      match docs[0]!.value with
+      | .sequence .block items _ _ =>
+        if items.size != totalEntries || items.isEmpty then false
+        else
+          match items[0]! with
+          | .mapping .block pairs _ _ => pairs.size == mapEntries
+          | _ => false
+      | _ => false
+
 #guard accepted "a: 1\nb: 2\n"
 #guard accepted "a:\n  x: 1\nb: 2\n"
 #guard accepted "- a\n- b\n"
@@ -142,6 +160,12 @@ private def singletonBlockSequenceMap (source : String) (entries : Nat) : Bool :
 #guard singletonBlockSequenceMap "-\n  : b\n" 1
 #guard singletonBlockSequenceMap "-\n  ? a\n  : b\n" 1
 #guard oneBlockMapping "? a\n: b\n? c\n: d\n" 2
+
+-- Explicit and empty-key first entries, compact siblings, comments and a
+-- following '-' are all retained in one document with the intended AST shape.
+#guard blockSequenceFirstMap "-\n  ? a\n  : b\n  ? c\n  : d\n- tail\n" 2 2
+#guard blockSequenceFirstMap "-\n  : b\n  : c\n- tail\n" 2 2
+#guard blockSequenceFirstMap "-\n  # between entries\n  ? a\n  : b\n  ? c\n  : d\n- tail\n" 2 2
 
 -- In contrast, these three new indicators after a FINISHED scalar are
 -- rejected.  This is a bounded scanner/parser observation, not a theorem

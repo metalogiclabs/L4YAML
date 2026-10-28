@@ -19,7 +19,8 @@ def carrierKinds (declaration binder : Name) : MetaM (Bool × Bool) := do
     for x in xs do
       if (← x.fvarId!.getUserName) == binder then
         let ty ← inferType x
-        let hasSeq := (ty.find? (·.isConstOf ``L4YAML.Surface.SCompactSeqTail)).isSome
+        let hasSeq := (ty.find? (·.isConstOf ``L4YAML.Surface.SCompactSeqTail)).isSome ||
+          (ty.find? (·.isConstOf ``L4YAML.Proofs.StreamAccum.SeqEntryTail)).isSome
         let hasMap := (ty.find? (·.isConstOf ``L4YAML.Surface.SCompactMapTail)).isSome
         return (hasSeq, hasMap)
     throwError "missing {binder} on {declaration}"
@@ -35,5 +36,9 @@ run_cmd do
     (ns ++ `indicator_open_map) `h_res_land
   unless hasMap && !hasSeq do
     throwError "opener contract changed: hasSeq={hasSeq} hasMap={hasMap}"
+  for b in [`indicator_open_map, `colon_open_map, `question_open_map] do
+    let (hasSeq, hasMap) ← liftTermElabM <| carrierKinds (ns ++ b) `h_fresh_land
+    unless hasSeq && hasMap do
+      throwError "fresh continuation contract changed: {b} hasSeq={hasSeq} hasMap={hasMap}"
 
 end L4YAML.Tests.Probes.NoPopBinderTypes

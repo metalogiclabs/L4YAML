@@ -174,6 +174,7 @@ import Tests.Guards.Proofs.PackCoverChained
 import Tests.Guards.Proofs.DedentCoverSpent
 import Tests.Guards.Proofs.ValueLineCoverSpent
 import Tests.Guards.Proofs.RelaySupplyCensus
+import Tests.Guards.Proofs.NoPopFreshSupply
 import Tests.Guards.Proofs.OpenerFallbackReach
 import Tests.Guards.Proofs.ConclusionRouteCensus
 import Tests.Guards.Proofs.ResumeCtxCoverSpent
