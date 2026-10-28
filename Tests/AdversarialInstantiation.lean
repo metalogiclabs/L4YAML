@@ -6125,24 +6125,26 @@ def testLiveRegisterSeqTop (state : IO.Ref TestCollector) : IO Unit := do
   -- `?`'s mapping, never a sequence (a `?` on a sequence top is refused, Priority 45; a compact
   -- `- ? a` puts the mapping at the `?`'s column, above the sequence's).  The other four counts are
   -- pinned from the first run (9506/9518: the twelve rows' placeholders; `liveSeqTopOk = 0` on all).
-  let rows : List (String × String × (Nat × Nat × Nat × Nat × Nat)) :=
-    [ ("- ? a⏎: b (compact explicit key, `:` at the SEQUENCE's column: refused, no live-cleared pause visited)", "- ? a\n: b", (0, 0, 0, 0, 1)),
-      ("- ? a⏎  : b (compact explicit key, `:` at the `?`'s column: live-cleared, accepted, on the MAPPING top)", "- ? a\n  : b", (0, 0, 1, 0, 1)),
-      ("? - a⏎: b (sequence as the explicit key)", "? - a\n: b", (0, 0, 1, 0, 1)),
-      ("- ? - a⏎  : b (sequence as a compact explicit key)", "- ? - a\n  : b", (0, 0, 1, 0, 1)),
-      ("? a⏎- b⏎: c (a `-` at the `?`'s column after the key: the scanner refuses the `- b` line, the walk ends before the `:`)", "? a\n- b\n: c", (0, 0, 0, 0, 1)),
-      ("- - ? a⏎    : b (doubly compact)", "- - ? a\n    : b", (0, 0, 1, 0, 1)),
-      ("-⏎  ? a⏎  : b (explicit pair inside an entry)", "-\n  ? a\n  : b", (0, 0, 1, 0, 2)),
-      ("- ? a⏎  : b⏎- c (a sibling entry after the pair)", "- ? a\n  : b\n- c", (0, 0, 1, 0, 2)),
-      ("? a⏎:⏎- b⏎: c (empty explicit value, then a sequence, then a `:`)", "? a\n:\n- b\n: c", (0, 0, 1, 0, 3)),
-      ("? a⏎: b (the explicit pair at the root)", "? a\n: b", (0, 0, 1, 0, 1)),
-      ("k:⏎  ? a⏎  : b (explicit pair nested in a mapping)", "k:\n  ? a\n  : b", (0, 0, 1, 0, 2)),
-      ("- a⏎? b⏎: c (`?` on the sequence top: refused before any `:`)", "- a\n? b\n: c", (0, 0, 0, 0, 1)) ]
-  for (label, src, expected) in rows do
+  -- The parser's verdict is PINNED per row (PR #145 review): nine accepted, three refused — the
+  -- refusals the labels claim are enforced, not printed.
+  let rows : List (String × String × (Nat × Nat × Nat × Nat × Nat) × Bool) :=
+    [ ("- ? a⏎: b (compact explicit key, `:` at the SEQUENCE's column: refused, no live-cleared pause visited)", "- ? a\n: b", (0, 0, 0, 0, 1), false),
+      ("- ? a⏎  : b (compact explicit key, `:` at the `?`'s column: live-cleared, accepted, on the MAPPING top)", "- ? a\n  : b", (0, 0, 1, 0, 1), true),
+      ("? - a⏎: b (sequence as the explicit key)", "? - a\n: b", (0, 0, 1, 0, 1), true),
+      ("- ? - a⏎  : b (sequence as a compact explicit key)", "- ? - a\n  : b", (0, 0, 1, 0, 1), true),
+      ("? a⏎- b⏎: c (a `-` at the `?`'s column after the key: the scanner refuses the `- b` line, the walk ends before the `:`)", "? a\n- b\n: c", (0, 0, 0, 0, 1), false),
+      ("- - ? a⏎    : b (doubly compact)", "- - ? a\n    : b", (0, 0, 1, 0, 1), true),
+      ("-⏎  ? a⏎  : b (explicit pair inside an entry)", "-\n  ? a\n  : b", (0, 0, 1, 0, 2), true),
+      ("- ? a⏎  : b⏎- c (a sibling entry after the pair)", "- ? a\n  : b\n- c", (0, 0, 1, 0, 2), true),
+      ("? a⏎:⏎- b⏎: c (empty explicit value, then a sequence, then a `:`)", "? a\n:\n- b\n: c", (0, 0, 1, 0, 3), true),
+      ("? a⏎: b (the explicit pair at the root)", "? a\n: b", (0, 0, 1, 0, 1), true),
+      ("k:⏎  ? a⏎  : b (explicit pair nested in a mapping)", "k:\n  ? a\n  : b", (0, 0, 1, 0, 2), true),
+      ("- a⏎? b⏎: c (`?` on the sequence top: refused before any `:`)", "- a\n? b\n: c", (0, 0, 0, 0, 1), false) ]
+  for (label, src, expected, accepted) in rows do
     let got := liveRegisterSeqTopWalk src
     let ok := match L4YAML.TokenParser.parseYaml src with | .ok _ => true | .error _ => false
-    checkM state s!"live register's `:` on a sequence top {label}" (got == expected && got.1 == 0)
-      s!"(liveSeqTopOk, liveSeqTopRefused, liveClearOk, liveClearRefused, visited) = {repr got} accepted={ok}; expected {repr expected}"
+    checkM state s!"live register's `:` on a sequence top {label}" (got == expected && got.1 == 0 && ok == accepted)
+      s!"(liveSeqTopOk, liveSeqTopRefused, liveClearOk, liveClearRefused, visited) = {repr got} accepted={ok}; expected {repr expected} accepted={accepted}"
 
 /-- The root's KEYS: (documents, the first document's root keys as text in order, the root's first
     item rendered).  Arity is not identity (PR #141 review): a result that duplicated the first pair or
