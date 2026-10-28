@@ -161,14 +161,16 @@ run_cmd do
 `indicator_open_map`) an `h_res_land` built by a CASE SPLIT, and WHICH arm a proof takes is a
 term-level fact (§7): Priority 48's walk reads the LANDING (no pop, own level), not the arm.
 This pin reads the arm off the proof terms, with the edge walker, per builder: the split is
-`Or.casesOn` on the park's `h_closeF` (frames lane / frameless), and its leaves are the resume
-arm `Or.inl ⟨ks', …⟩` from the park's `closeF` + `resumeAt` under `hmem` (`PAY`, `free` — it
-hands back what the park gave), the frameless `Or.inr trivial` (`DECLINE`, `closed`), and the
-`hmem`-false branch, which the walker reads as `VIA Or.elim`: the `Classical.em (s_prep.indents
-= sc.indents)` whose NO-POP arm is the `Or.inr trivial` the accepted root sibling `a: 1⏎b: 2`
-lands in (item 380's re-read) and whose popped arm is item 378's refutation.  Item 381 pays
-the no-pop arm from the park's own `closeF` on a non-nil compact tail; this pin is the baseline
-its payment is read against (§10: re-run before spending). -/
+`Or.casesOn` on the park's `h_closeF` (frames lane / frameless) and — `Or.elim` being a two-arm
+split since this item (`RelaySupplyCensus.isTwoArm`) — its leaves are the eight arms the proof
+writes: the resume arm `Or.inl ⟨ks', …⟩` from the park's `closeF` + `resumeAt` under `hmem`
+(`PAY`, `free`: it hands back what the park gave); FIVE `Or.inr trivial` (`DECLINE`, `closed`):
+the frameless park, the NO-POP landing (`s_prep.indents = sc.indents` — where the accepted root
+sibling `a: 1⏎b: 2` lands, item 380's re-read), the uncovered park, `lo > k`, and the live
+register's `:` (item 378's named residue); and TWO `absurd` (`VIA absurd`): item 378's
+refutations of the popped sequence-top landing.  Item 381 pays the no-pop arm from the park's
+own `closeF` on a non-nil compact tail: `DECLINE` 5 → 4, `PAY` 1 → 2 per builder.  This pin is
+the baseline that payment is read against (§10: re-run before spending). -/
 
 def builders : List Name := [`accum_block_on_pendingBlock, `accum_block_on_pendingBlockContent]
 
@@ -196,8 +198,8 @@ def builderSplitRows : CommandElabM (Array String) := do
   return rows
 
 def expectedBuilderSplit : List String :=
-  ["accum_block_on_pendingBlock → h_res_land: SPLIT Or.casesOn leaves=[DECLINE=1 PAY=1 VIA Or.elim=1] src=[closed, free]",
-   "accum_block_on_pendingBlockContent → h_res_land: SPLIT Or.casesOn leaves=[DECLINE=1 PAY=1 VIA Or.elim=1] src=[closed, free]"]
+  ["accum_block_on_pendingBlock → h_res_land: SPLIT Or.casesOn leaves=[DECLINE=5 PAY=1 VIA absurd=2] src=[closed, free]",
+   "accum_block_on_pendingBlockContent → h_res_land: SPLIT Or.casesOn leaves=[DECLINE=5 PAY=1 VIA absurd=2] src=[closed, free]"]
 
 run_cmd do
   let rows ← builderSplitRows
