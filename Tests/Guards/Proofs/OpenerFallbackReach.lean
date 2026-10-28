@@ -154,4 +154,55 @@ run_cmd do
     throwError "OpenerFallbackReach moved.\nexpected: {expectedSummary}\ngot:      {got}\nPaste-ready rows:\n{
       "\n".intercalate (rows.toList.map (fun r => s!"   \"{r}\","))}"
 
+
+/-! ## The two splitting builders' `h_res_land` (item 380, PR #146 review follow-up)
+
+`accum_block_on_pendingBlock` / `accum_block_on_pendingBlockContent` hand the opener (through
+`indicator_open_map`) an `h_res_land` built by a CASE SPLIT, and WHICH arm a proof takes is a
+term-level fact (§7): Priority 48's walk reads the LANDING (no pop, own level), not the arm.
+This pin reads the arm off the proof terms, with the edge walker, per builder: the split is
+`Or.casesOn` on the park's `h_closeF` (frames lane / frameless), and its leaves are the resume
+arm `Or.inl ⟨ks', …⟩` from the park's `closeF` + `resumeAt` under `hmem` (`PAY`, `free` — it
+hands back what the park gave), the frameless `Or.inr trivial` (`DECLINE`, `closed`), and the
+`hmem`-false branch, which the walker reads as `VIA Or.elim`: the `Classical.em (s_prep.indents
+= sc.indents)` whose NO-POP arm is the `Or.inr trivial` the accepted root sibling `a: 1⏎b: 2`
+lands in (item 380's re-read) and whose popped arm is item 378's refutation.  Item 381 pays
+the no-pop arm from the park's own `closeF` on a non-nil compact tail; this pin is the baseline
+its payment is read against (§10: re-run before spending). -/
+
+def builders : List Name := [`accum_block_on_pendingBlock, `accum_block_on_pendingBlockContent]
+
+/-- Per builder, the ONE edge that supplies `indicator_open_map`'s `h_res_land`: its `how`
+(`SPLIT <splitter>`), the split's leaves by kind, and the sources of its leaves (the
+constant each arm's witness comes from — the resume arm's `resumeAt`, the declined arms'
+`trivial`).  Read off the proof term, never off the scanner. -/
+def builderSplitRows : CommandElabM (Array String) := do
+  let env ← getEnv
+  let callee := ns ++ `indicator_open_map
+  let (es, _) ← edges callee
+  let mut rows := #[]
+  for b in builders do
+    let full := ns ++ b
+    for e in es do
+      if e.caller == full && e.callee == callee && binderName env callee e.idx == `h_res_land then
+        let kinds := e.leaves.qsort.toList
+        let mut cnt : Std.HashMap String Nat := {}
+        for k in kinds do cnt := cnt.insert k ((cnt.getD k 0) + 1)
+        let summary := " ".intercalate ((cnt.toList.map (fun (k, n) => s!"{k}={n}")).mergeSort (· ≤ ·))
+        let srcs := (e.leafSrc.filter (· != "")).qsort.toList.eraseDups
+        let row := s!"{b} → h_res_land: {e.how} leaves=[{summary}] src=[{", ".intercalate srcs}]"
+        if rows.contains row then continue
+        rows := rows.push row
+  return rows
+
+def expectedBuilderSplit : List String :=
+  ["accum_block_on_pendingBlock → h_res_land: SPLIT Or.casesOn leaves=[DECLINE=1 PAY=1 VIA Or.elim=1] src=[closed, free]",
+   "accum_block_on_pendingBlockContent → h_res_land: SPLIT Or.casesOn leaves=[DECLINE=1 PAY=1 VIA Or.elim=1] src=[closed, free]"]
+
+run_cmd do
+  let rows ← builderSplitRows
+  if rows.toList != expectedBuilderSplit then
+    throwError "the builders' h_res_land split moved.\nexpected: {expectedBuilderSplit}\nPaste-ready rows:\n{
+      "\n".intercalate (rows.toList.map (fun r => s!"   \"{r}\","))}"
+
 end L4YAML.Tests.Guards.OpenerFallbackReach

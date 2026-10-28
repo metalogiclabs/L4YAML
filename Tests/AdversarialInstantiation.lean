@@ -6173,7 +6173,7 @@ def rootSiblingLevelWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat
   return (noPopOwn, noPopOther, popped, visited)
 
 def testRootSiblingLevel (state : IO.Ref TestCollector) : IO Unit := do
-  setCategory state "Priority 48: item 380 — the accepted root sibling is a NO-POP landing at the park's OWN level (the entry's compact tail), never a level below it: the frames lane cannot name it (h_lt is strict), the builders' no-pop branch can"
+  setCategory state "Priority 48: item 380 — the accepted root sibling LANDS with no pop at the park's OWN level (the entry's compact tail), never a level below it; this walk reads the scanner's landing only — WHICH ARM the two splitting builders take is a term-level fact, pinned by Tests/Guards/Proofs/OpenerFallbackReach.lean's builder-split leaves (PR #146 review)"
   -- Predicted before the run: every root sibling row has noPopOwn ≥ 1 and the parser reads ONE
   -- document (Priority 44's reading); counts pinned from the run.
   let rows : List (String × String × (Nat × Nat × Nat × Nat) × Bool) :=
