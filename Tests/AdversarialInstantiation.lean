@@ -5867,6 +5867,212 @@ def testOpenerSeqTopRefused (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"opener on a sequence top {label}" (got == expected && ok == accepted && got.2.1 == 0)
       s!"(indSeqTopRefused, indSeqTopOk, indClear, otherSeqTop, visited) = {repr got} of {indicatorLineStarts src} indicator line(s) accepted={ok}; expected {repr expected} accepted={accepted}"
 
+/-- One ACCEPTED indicator pause, read for item 378 (Priority 46) on the directives-adjusted
+    state `sd`: the executable twins of the facts the builders' payment rests on, and the
+    survival disjunct the `:` needs.  `keepOk`: `scanValueClearKey_keep` — a key that survives
+    the clear is the saved key; `dispOk`: `atSequenceIndent_disp` — the reset twin keeps the
+    cursor face; `leOk`: a POPPED landing (the indent stack changed across the break) has
+    `col ≤ currentIndent`; `seqOk`: the accepted indicator is not on a sequence top
+    (`seqTop_refuted_at_indicator`'s conclusion).  `surv` classifies the `:`'s `h_surv`:
+    0 = dead register (`explicitKeyLine = none`, paid), 1 = live register and the key survives
+    the clear (paid), 2 = the register clears the key (the DECLINED residue), 3 = a `?` (no
+    survival needed). -/
+def cursorFaceRow (s sp sd : ScannerState) (c : Char) : Bool × Bool × Bool × Bool × Nat :=
+  let cl := scanValueClearKey sd
+  let keepOk := !cl.simpleKey.possible || cl.simpleKey == sd.simpleKey
+  let dispOk := atSequenceIndent sd == atSequenceIndent sp
+  let shape : ScannerState → Array (Int × Bool) := fun st => st.indents.map fun e => (e.column, e.isSequence)
+  let leOk := shape sp == shape s || (sp.col : Int) ≤ sp.currentIndent
+  let seqOk := !atSequenceIndent sd
+  let surv := if c == '?' then 3 else if sd.explicitKeyLine.isNone then 0
+    else if cl.simpleKey.possible then 1 else 2
+  (keepOk, dispOk, leOk, seqOk, surv)
+
+/-- Over the line-start pauses of `input` at which the dispatcher ACCEPTS a `:`/`?` (the builders'
+    domain, `h_dispatch = .ok (some _)`): `(viol, ekNone, survive, cleared, quest)` — rows where
+    any of `keepOk`/`dispOk`/`leOk`/`seqOk` fails (must be 0), and the `surv` classes.  A refused
+    indicator ends the walk, as in `openerSeqTopWalk`. -/
+def cursorFaceWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut viol := 0
+  let mut ekNone := 0
+  let mut survive := 0
+  let mut cleared := 0
+  let mut quest := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if sp.line != s.line && (c == ':' || c == '?') then
+        let sd := if sp.allowDirectives then
+          { sp with allowDirectives := false, documentEverStarted := true } else sp
+        match scanNextToken_dispatchBlockIndicators sd c with
+        | .ok (some _) =>
+          let (k, d, l, q, sv) := cursorFaceRow s sp sd c
+          if !(k && d && l && q) then viol := viol + 1
+          match sv with
+          | 0 => ekNone := ekNone + 1
+          | 1 => survive := survive + 1
+          | 2 => cleared := cleared + 1
+          | _ => quest := quest + 1
+        | _ => pure ()
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (viol, ekNone, survive, cleared, quest)
+
+/-- Item 378 (PR #144 review): the premises of `seqTop_refuted_at_indicator` read at every
+    accepted `:`/`?` pause — `h_pop` (the landing popped), `h_noflow`, `h_key` (saved key at the
+    cursor), `h_poss`, `h_surv` — so the lemma's domain is told apart from the observations outside
+    it: `(inScope, inViol, outside, outViol)`, the refutation `atSequenceIndent = false` read on both. -/
+def cursorFaceScopeWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut inScope := 0
+  let mut inViol := 0
+  let mut outside := 0
+  let mut outViol := 0
+  let shape : ScannerState → Array (Int × Bool) := fun st => st.indents.map fun e => (e.column, e.isSequence)
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if c == ':' || c == '?' then
+        let sd := if sp.allowDirectives then
+          { sp with allowDirectives := false, documentEverStarted := true } else sp
+        match scanNextToken_dispatchBlockIndicators sd c with
+        | .ok (some _) =>
+          let cl := scanValueClearKey sd
+          let premises := shape sp != shape s && sp.flowLevel == 0
+            && sp.simpleKey.pos.col == sp.col && sp.simpleKey.possible
+            && (c != ':' || sd.explicitKeyLine.isNone || cl.simpleKey.possible)
+          let refuted := !atSequenceIndent sp
+          if premises then
+            inScope := inScope + 1
+            if !refuted then inViol := inViol + 1
+          else
+            outside := outside + 1
+            if !refuted then outViol := outViol + 1
+        | _ => pure ()
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (inScope, inViol, outside, outViol)
+
+def testCursorFaceScope (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 46c: item 378 (PR #144 review) — seqTop_refuted_at_indicator's premises read at every accepted indicator pause: in-scope pauses (pop, no flow, saved key at the cursor, possible, surviving/dead) vs observations outside the lemma; the refutation holds on both"
+  -- Predicted before the run: `inViol = outViol = 0` everywhere (HELD 12/12); `inScope > 0` at a
+  -- dedent `:` — HELD on `k:⏎  - a⏎: b` (1), REFUTED on `a:⏎- b⏎: c` (a sequence at its
+  -- parent's indent pushed no level, so nothing pops: item 377's reading); counts pinned from the run.
+  let rows : List (String × String × (Nat × Nat × Nat × Nat)) :=
+    [ ("k:⏎  - a⏎: b (`:` at the mapping's indent after a sequence: dead register)", "k:\n  - a\n: b", (1, 0, 1, 0)),
+      ("a:⏎- b⏎: c (sequence at its parent's indent: dead register)", "a:\n- b\n: c", (0, 0, 2, 0)),
+      ("? a⏎: b (the explicit pair: the live register clears the key)", "? a\n: b", (0, 0, 2, 0)),
+      ("? a⏎: b⏎c: d", "? a\n: b\nc: d", (0, 0, 3, 0)),
+      ("- ? a⏎  : b (compact explicit pair in a sequence)", "- ? a\n  : b", (0, 0, 2, 0)),
+      ("k:⏎  ? a⏎  : b (explicit pair nested in a mapping: the `?` accepted, the `:` cleared)", "k:\n  ? a\n  : b", (0, 0, 3, 0)),
+      ("? a⏎? b⏎: c (two explicit keys)", "? a\n? b\n: c", (0, 0, 3, 0)),
+      ("? a⏎:⏎? b⏎: c (two explicit pairs, the first value empty)", "? a\n:\n? b\n: c", (0, 0, 4, 0)),
+      ("? a⏎⏎: b (blank line between)", "? a\n\n: b", (0, 0, 2, 0)),
+      ("? a⏎  k: v⏎: b (block mapping as the explicit key; REFUTED (0, 0, 0, 1, 0): the scanner refuses the inner `k:` itself — misindentedExplicitValue at 1:3 — so no pause is accepted)", "? a\n  k: v\n: b", (0, 0, 1, 0)),
+      ("- a⏎- b⏎: c (refused at the sequence top: no accepted pause)", "- a\n- b\n: c", (0, 0, 0, 0)),
+      ("a: 1⏎b: 2 (no indicator line)", "a: 1\nb: 2", (0, 0, 2, 0)) ]
+  for (label, input, expected) in rows do
+    let got := cursorFaceScopeWalk input
+    check state s!"cursor-face premises over the accepted pauses of {label}: (inScope, inViol, outside, outViol) = {got}; expected {expected}" (got == expected)
+
+/-- Every field of `ScannerState` rendered VERBATIM — the input string itself, every token with
+    its positions (`Positioned` derives `Repr`), every stack — so two states with equal
+    fingerprints agree on every field (`ScannerState` derives no `BEq`). -/
+def stateFingerprint (s : ScannerState) : String :=
+  s!"{repr s.input}|{s.inputEnd}|{s.offset}|{s.line}|{s.col}|{repr s.indents}|{repr s.pendingKeys}|" ++
+  s!"{s.flowLevel}|{repr s.tokens}|{repr s.simpleKey}|{repr s.simpleKeyStack}|" ++
+  s!"{s.simpleKeyAllowed}|{s.needIndentCheck}|{s.allowDirectives}|{s.seenYamlDirective}|" ++
+  s!"{s.directivesPresent}|{s.documentEverStarted}|{repr s.flowStack}|{repr s.explicitKeyLine}|" ++
+  s!"{repr s.implicitValueLine}|{repr s.docStartLine}|{s.explicitKeyCol}|{repr s.explicitKeyStack}|" ++
+  s!"{repr s.comments}|{repr s.definedAnchors}"
+
+/-- Item 378 (PR #144 review): `scanValueClearKey_id_of_ek_none` claims FULL state equality
+    on a dead register.  Over every preprocessing pause of an input (and its directive-reset
+    twin), `(checked, bad, live)`: dead-register pauses compared whole by
+    `stateFingerprint` (`ScannerState` derives no `BEq`), the ones that differ, and the live-register pauses the
+    lemma does not speak to (reported apart, not as refutations). -/
+def deadRegisterWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut checked := 0
+  let mut bad := 0
+  let mut live := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, _)) =>
+      let sd := if sp.allowDirectives then
+        { sp with allowDirectives := false, documentEverStarted := true } else sp
+      for st in [sp, sd] do
+        if st.explicitKeyLine.isNone then
+          checked := checked + 1
+          if stateFingerprint (scanValueClearKey st) != stateFingerprint st then bad := bad + 1
+        else live := live + 1
+    | _ => pure ()
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (checked, bad, live)
+
+/-- Hand-built dead-register states off the scanner's path: the fields the clear could touch
+    set to non-default values, so a clear that rewrote any of them would show. -/
+def deadRegisterStates : List (String × ScannerState) :=
+  let base := ScannerState.mk' "k: v"
+  [ ("default", base),
+    ("key disallowed, in flow, col 7",
+      { base with simpleKeyAllowed := false, flowLevel := 1, flowStack := #[true], col := 7 }),
+    ("possible key at (3, 2) on a pushed level 2",
+      { base with
+          simpleKey := { base.simpleKey with possible := true, pos := { line := 3, col := 2, offset := 9 } }
+          indents := base.indents.push { column := 2, isSequence := false }
+          line := 3, col := 2, offset := 9 }),
+    ("explicitKeyCol 4 with the line dead", { base with explicitKeyCol := 4, col := 4 }) ]
+
+def testDeadRegisterIdentity (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 46b: item 378 (PR #144 review) — a dead register leaves the key clear alone, the WHOLE state compared (scanValueClearKey_id_of_ek_none); live-register pauses reported apart"
+  -- Predicted before the run: `bad = 0` on every row (HELD 6/6); `checked`/`live` pinned from
+  -- the run (each pause counted twice: itself and its reset twin; live `?` pauses apart).
+  let rows : List (String × String × (Nat × Nat × Nat)) :=
+    [ ("k:⏎  - a⏎: b", "k:\n  - a\n: b", (12, 0, 0)),
+      ("a:⏎- b⏎: c", "a:\n- b\n: c", (12, 0, 0)),
+      ("? a⏎: b", "? a\n: b", (4, 0, 4)),
+      ("- ? a⏎  : b", "- ? a\n  : b", (6, 0, 4)),
+      ("? a⏎:⏎? b⏎: c", "? a\n:\n? b\n: c", (6, 0, 8)),
+      ("a: 1⏎b: 2", "a: 1\nb: 2", (12, 0, 0)) ]
+  for (label, input, expected) in rows do
+    let got := deadRegisterWalk input
+    check state s!"dead-register identity over the pauses of {label}: (checked, bad, live) = {got}; expected {expected}" (got == expected)
+  for (label, st) in deadRegisterStates do
+    check state s!"dead-register identity on a built state ({label})"
+      (stateFingerprint (scanValueClearKey st) == stateFingerprint st)
+
+def testCursorFace (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 46: item 378 — at an accepted `:`/`?` landing the cursor is never on a sequence top (seqTop_refuted_at_indicator), the clear keeps a surviving key (scanValueClearKey_keep), the reset twin keeps the face (atSequenceIndent_disp), a pop puts the cursor under currentIndent; the `:`'s survival disjunct classified (dead register paid, live register the declined residue)"
+  -- (viol, ekNone, survive, cleared, quest) over the accepted indicator pauses.  `viol` must be 0
+  -- on every row; `survive` is predicted 0 everywhere: at a LINE-START pause the saved key sits at
+  -- the cursor (offset equal, line ≠ the `?`'s), so a live register always clears it — the `:`
+  -- the builders pay is the one with a dead register.
+  let rows : List (String × String × (Nat × Nat × Nat × Nat × Nat)) :=
+    [ ("k:⏎  - a⏎: b (`:` at the mapping's indent after a sequence: dead register)", "k:\n  - a\n: b", (0, 1, 0, 0, 0)),
+      ("a:⏎- b⏎: c (sequence at its parent's indent: dead register)", "a:\n- b\n: c", (0, 1, 0, 0, 0)),
+      ("? a⏎: b (the explicit pair: the live register clears the key)", "? a\n: b", (0, 0, 0, 1, 0)),
+      ("? a⏎: b⏎c: d", "? a\n: b\nc: d", (0, 0, 0, 1, 0)),
+      ("- ? a⏎  : b (compact explicit pair in a sequence)", "- ? a\n  : b", (0, 0, 0, 1, 0)),
+      ("k:⏎  ? a⏎  : b (explicit pair nested in a mapping: the `?` accepted, the `:` cleared)", "k:\n  ? a\n  : b", (0, 0, 0, 1, 1)),
+      ("? a⏎? b⏎: c (two explicit keys)", "? a\n? b\n: c", (0, 0, 0, 1, 1)),
+      ("? a⏎:⏎? b⏎: c (two explicit pairs, the first value empty)", "? a\n:\n? b\n: c", (0, 0, 0, 2, 1)),
+      ("? a⏎⏎: b (blank line between)", "? a\n\n: b", (0, 0, 0, 1, 0)),
+      ("? a⏎  k: v⏎: b (block mapping as the explicit key; REFUTED (0, 0, 0, 1, 0): the scanner refuses the inner `k:` itself — misindentedExplicitValue at 1:3 — so no pause is accepted)", "? a\n  k: v\n: b", (0, 0, 0, 0, 0)),
+      ("- a⏎- b⏎: c (refused at the sequence top: no accepted pause)", "- a\n- b\n: c", (0, 0, 0, 0, 0)),
+      ("a: 1⏎b: 2 (no indicator line)", "a: 1\nb: 2", (0, 0, 0, 0, 0)) ]
+  for (label, src, expected) in rows do
+    let got := cursorFaceWalk src
+    checkM state s!"cursor face at an accepted indicator {label}" (got == expected && got.1 == 0)
+      s!"(viol, ekNone, survive, cleared, quest) = {repr got}; expected {repr expected}"
+
 /-- The root's KEYS: (documents, the first document's root keys as text in order, the root's first
     item rendered).  Arity is not identity (PR #141 review): a result that duplicated the first pair or
     dropped `b: 2` would still have two entries, so the test reads WHICH keys survive — `["a", "b"]`, in
@@ -5972,6 +6178,9 @@ def collectTests : IO VerifiedSuiteResult := do
   testSeqTopResumeCtx state
   testOpenerSiblingAccepted state
   testOpenerSeqTopRefused state
+  testCursorFace state
+  testDeadRegisterIdentity state
+  testCursorFaceScope state
   testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state

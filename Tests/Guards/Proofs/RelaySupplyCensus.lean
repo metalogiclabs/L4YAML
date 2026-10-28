@@ -1081,12 +1081,12 @@ Or.imp⇒SPLIT=4, dite⇒SPLIT=5]"
 -- absent / level not named / level named).
 -- 2026-10-26 (item 370): survived 161 → 162, leaves 356 → 358 — `h_closeF_old` split once more at the sibling `-` arm.
 def expectedSplitLanding : String :=
-  "survived=162 collapsed=14 leaves=358 elsewhere=5 [DECLINE=179, PAY=174, \
-VIA=5] [DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
+  "survived=162 collapsed=14 leaves=358 elsewhere=7 [DECLINE=177, PAY=174, \
+VIA=7] [DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
 DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
-DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=3, \
+DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=1, \
 DECLINE|DECLINE|PAY|PAY=1, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|PAY=147, \
-DECLINE|PAY|PAY=1, PAY|VIA=2]"
+DECLINE|PAY|PAY=1, DECLINE|PAY|VIA=2, PAY|VIA=2]"
 
 /-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
     WRITES — both answers, one per arm.  What it could not say was which arm the
@@ -1177,7 +1177,7 @@ DECLINE|PAY|PAY=1, PAY|VIA=2]"
 -- `accum_block_on_pendingBlock` (an optional-rooted relay: frames absent / level not named / level named).
 -- 2026-10-26 (item 370): splits 161 → 162, relayRooted 152 → 153, optionalRoot 104 → 105 — the sibling `-` arm's split of `h_closeF_old`.
 def expectedSplitBranch : String :=
-  "splits=162 leaves=358 relayRooted=153 siteDecided=9 optionalRoot=105 plainRoot=48 agree=107/107 disagree=0 [DECLINE-closed=86, DECLINE-free=93, PAY-free=174, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA Or.elim-=1, VIA absurd-=3]"
+  "splits=162 leaves=358 relayRooted=153 siteDecided=9 optionalRoot=105 plainRoot=48 agree=107/107 disagree=0 [DECLINE-closed=84, DECLINE-free=93, PAY-free=174, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA Or.elim-=3, VIA absurd-=3]"
 
 /-- **The ten splits the site decides for itself**, which is the whole residue
     of the branch question after `expectedSplitBranch`.  Four are a `dite` on a

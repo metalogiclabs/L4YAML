@@ -274,7 +274,7 @@ def expectedBinders : List String :=
 -- `PendingNode.nil_gate_of_allowDirectives`, `FlowBaseRoutes.value`) return functions, so their values
 -- have fewer leading lambdas than their types have binders; the census refuses to read them, by design.
 def expectedTally : String :=
-  "edges=104 skipped=39 DECLINE=21 FIELD=7 PAY=17 RELAY=27 VIA=32"
+  "edges=106 skipped=39 DECLINE=21 FIELD=7 PAY=17 RELAY=29 VIA=32"
 
 run_cmd do
   let env ← getEnv
@@ -305,7 +305,7 @@ run_cmd do
     door.  A projection is invisible to a census of `Or.inl`, which is why this
     row needs the resolver and not a grep. -/
 def expectedProjections : List String :=
-  [ "4 accum_block_on_closeThenBlock", "6 accum_block_on_pendingBlockContent" ]
+  [ "4 accum_block_on_closeThenBlock", "8 accum_block_on_pendingBlockContent" ]
 
 run_cmd do
   let (es, _) ← armEdges ``L4YAML.Proofs.StreamAccum.landing_or_park_ska
