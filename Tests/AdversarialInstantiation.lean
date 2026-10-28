@@ -5980,11 +5980,12 @@ def testCursorFaceScope (state : IO.Ref TestCollector) : IO Unit := do
     let got := cursorFaceScopeWalk input
     check state s!"cursor-face premises over the accepted pauses of {label}: (inScope, inViol, outside, outViol) = {got}; expected {expected}" (got == expected)
 
-/-- Every field of `ScannerState` rendered, so two states compare whole (`ScannerState`
-    derives no `BEq`; `tokens` by size and the last token's `repr`). -/
+/-- Every field of `ScannerState` rendered VERBATIM — the input string itself, every token with
+    its positions (`Positioned` derives `Repr`), every stack — so two states with equal
+    fingerprints agree on every field (`ScannerState` derives no `BEq`). -/
 def stateFingerprint (s : ScannerState) : String :=
-  s!"{s.input.length}|{s.inputEnd}|{s.offset}|{s.line}|{s.col}|{repr s.indents}|{repr s.pendingKeys}|" ++
-  s!"{s.flowLevel}|{s.tokens.size}|{repr (s.tokens.back?.map (·.val))}|{repr s.simpleKey}|{repr s.simpleKeyStack}|" ++
+  s!"{repr s.input}|{s.inputEnd}|{s.offset}|{s.line}|{s.col}|{repr s.indents}|{repr s.pendingKeys}|" ++
+  s!"{s.flowLevel}|{repr s.tokens}|{repr s.simpleKey}|{repr s.simpleKeyStack}|" ++
   s!"{s.simpleKeyAllowed}|{s.needIndentCheck}|{s.allowDirectives}|{s.seenYamlDirective}|" ++
   s!"{s.directivesPresent}|{s.documentEverStarted}|{repr s.flowStack}|{repr s.explicitKeyLine}|" ++
   s!"{repr s.implicitValueLine}|{repr s.docStartLine}|{s.explicitKeyCol}|{repr s.explicitKeyStack}|" ++
