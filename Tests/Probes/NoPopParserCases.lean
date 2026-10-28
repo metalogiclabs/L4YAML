@@ -30,6 +30,17 @@ private def noPopLandingCounts (source : String) : Nat × Nat := Id.run do
     | _ => break
   return (own, other)
 
+-- The scanner's token stream distinguishes a mapping sibling from a block
+-- sequence entry: sharing a no-pop indentation category is not evidence that
+-- both land in the same pending-node proof builder.
+private def hasBlockSequenceIntro (source : String) : Bool :=
+  match scanFiltered source with
+  | .error _ => false
+  | .ok tokens => tokens.any fun t =>
+      match t.val with
+      | .blockEntry | .blockSequenceStart => true
+      | _ => false
+
 #guard accepted "a: 1\nb: 2\n"
 #guard accepted "a:\n  x: 1\nb: 2\n"
 #guard accepted "- a\n- b\n"
@@ -44,5 +55,11 @@ private def noPopLandingCounts (source : String) : Nat × Nat := Id.run do
 -- not be conflated by a proposed mapping-continuation repair.
 #guard noPopLandingCounts "a: 1\nb: 2" == (1, 0)
 #guard noPopLandingCounts "k:\n  a: 1\n  b: 2" == (1, 1)
+
+-- A no-pop mapping sibling need not pass through a sequence-entry builder.
+#guard !hasBlockSequenceIntro "a: 1\nb: 2\n"
+#guard !hasBlockSequenceIntro "k:\n  a: 1\n  b: 2\n"
+#guard hasBlockSequenceIntro "- a\n- b\n"
+#guard hasBlockSequenceIntro "- a: 1\n  b: 2\n"
 
 end L4YAML.Tests.Probes
