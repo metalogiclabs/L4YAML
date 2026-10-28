@@ -6073,6 +6073,77 @@ def testCursorFace (state : IO.Ref TestCollector) : IO Unit := do
     checkM state s!"cursor face at an accepted indicator {label}" (got == expected && got.1 == 0)
       s!"(viol, ekNone, survive, cleared, quest) = {repr got}; expected {repr expected}"
 
+/-- One line-start `:` pause read for item 379 (Priority 47), on the directives-adjusted state
+    `sd`: is the register LIVE (`explicitKeyLine = some _`) and does the clear KILL the saved key
+    (`(scanValueClearKey sd).simpleKey.possible = false`) — the one `h_surv` disjunct item 378
+    left declined at the two builders — and, if so, does the dispatcher accept the `:` while the
+    cursor stands on a sequence top (`atSequenceIndent sd`)?  `(liveCleared, seqTop, accepted)`;
+    `none` when the pause is not a live-cleared `:`. -/
+def liveRegisterRow (sd : ScannerState) (c : Char) : Option (Bool × Bool) :=
+  if c == ':' && sd.explicitKeyLine.isSome && !(scanValueClearKey sd).simpleKey.possible then
+    some (atSequenceIndent sd, match scanNextToken_dispatchBlockIndicators sd ':' with
+      | .ok (some _) => true
+      | _ => false)
+  else none
+
+/-- Over the line-start pauses of `input` (as `openerSeqTopWalk`, the walk ending at the scanner's
+    first refusal): `(liveSeqTopOk, liveSeqTopRefused, liveClearOk, liveClearRefused, visited)` — the
+    live-cleared `:` pauses on a sequence top accepted / refused by the dispatcher, the ones not on a
+    sequence top accepted / refused, and the pauses visited.  Item 379's question (item 378's NEXT)
+    is whether `liveSeqTopOk` can be non-zero: it is the domain of the one `h_surv` decline left at
+    `accum_block_on_pendingBlock`/`accum_block_on_pendingBlockContent`. -/
+def liveRegisterSeqTopWalk (input : String) (fuel : Nat := 64) : Nat × Nat × Nat × Nat × Nat := Id.run do
+  let mut s := ScannerState.mk' input
+  let mut seqOk := 0
+  let mut seqRefused := 0
+  let mut clearOk := 0
+  let mut clearRefused := 0
+  let mut visited := 0
+  for _ in [:fuel] do
+    match scanNextToken_preprocess s with
+    | .ok (some (sp, c)) =>
+      if sp.line != s.line then
+        visited := visited + 1
+        let sd := if sp.allowDirectives then
+          { sp with allowDirectives := false, documentEverStarted := true } else sp
+        match liveRegisterRow sd c with
+        | some (true, true) => seqOk := seqOk + 1
+        | some (true, false) => seqRefused := seqRefused + 1
+        | some (false, true) => clearOk := clearOk + 1
+        | some (false, false) => clearRefused := clearRefused + 1
+        | none => pure ()
+    | _ => break
+    match scanNextToken s with
+    | .ok (some s') => s := s'
+    | _ => break
+  return (seqOk, seqRefused, clearOk, clearRefused, visited)
+
+def testLiveRegisterSeqTop (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "Priority 47: item 379 — can a live register's `:` whose key the clear kills stand on a sequence top and be accepted?  (the one h_surv decline item 378 left at the two builders; liveSeqTopOk must be 0 on every row)"
+  -- Predicted before the run: `liveSeqTopOk = 0` everywhere — a live-cleared `:` must stand at
+  -- `currentIndent` (`misindentedExplicitValue` otherwise), and the level at `currentIndent` is the
+  -- `?`'s mapping, never a sequence (a `?` on a sequence top is refused, Priority 45; a compact
+  -- `- ? a` puts the mapping at the `?`'s column, above the sequence's).  The other four counts are
+  -- pinned from the first run (9506/9518: the twelve rows' placeholders; `liveSeqTopOk = 0` on all).
+  let rows : List (String × String × (Nat × Nat × Nat × Nat × Nat)) :=
+    [ ("- ? a⏎: b (compact explicit key, `:` at the SEQUENCE's column: refused, no live-cleared pause visited)", "- ? a\n: b", (0, 0, 0, 0, 1)),
+      ("- ? a⏎  : b (compact explicit key, `:` at the `?`'s column: live-cleared, accepted, on the MAPPING top)", "- ? a\n  : b", (0, 0, 1, 0, 1)),
+      ("? - a⏎: b (sequence as the explicit key)", "? - a\n: b", (0, 0, 1, 0, 1)),
+      ("- ? - a⏎  : b (sequence as a compact explicit key)", "- ? - a\n  : b", (0, 0, 1, 0, 1)),
+      ("? a⏎- b⏎: c (a `-` at the `?`'s column after the key: the scanner refuses the `- b` line, the walk ends before the `:`)", "? a\n- b\n: c", (0, 0, 0, 0, 1)),
+      ("- - ? a⏎    : b (doubly compact)", "- - ? a\n    : b", (0, 0, 1, 0, 1)),
+      ("-⏎  ? a⏎  : b (explicit pair inside an entry)", "-\n  ? a\n  : b", (0, 0, 1, 0, 2)),
+      ("- ? a⏎  : b⏎- c (a sibling entry after the pair)", "- ? a\n  : b\n- c", (0, 0, 1, 0, 2)),
+      ("? a⏎:⏎- b⏎: c (empty explicit value, then a sequence, then a `:`)", "? a\n:\n- b\n: c", (0, 0, 1, 0, 3)),
+      ("? a⏎: b (the explicit pair at the root)", "? a\n: b", (0, 0, 1, 0, 1)),
+      ("k:⏎  ? a⏎  : b (explicit pair nested in a mapping)", "k:\n  ? a\n  : b", (0, 0, 1, 0, 2)),
+      ("- a⏎? b⏎: c (`?` on the sequence top: refused before any `:`)", "- a\n? b\n: c", (0, 0, 0, 0, 1)) ]
+  for (label, src, expected) in rows do
+    let got := liveRegisterSeqTopWalk src
+    let ok := match L4YAML.TokenParser.parseYaml src with | .ok _ => true | .error _ => false
+    checkM state s!"live register's `:` on a sequence top {label}" (got == expected && got.1 == 0)
+      s!"(liveSeqTopOk, liveSeqTopRefused, liveClearOk, liveClearRefused, visited) = {repr got} accepted={ok}; expected {repr expected}"
+
 /-- The root's KEYS: (documents, the first document's root keys as text in order, the root's first
     item rendered).  Arity is not identity (PR #141 review): a result that duplicated the first pair or
     dropped `b: 2` would still have two entries, so the test reads WHICH keys survive — `["a", "b"]`, in
@@ -6181,6 +6252,7 @@ def collectTests : IO VerifiedSuiteResult := do
   testCursorFace state
   testDeadRegisterIdentity state
   testCursorFaceScope state
+  testLiveRegisterSeqTop state
   testRootSiblingResumes state
   testBlockScalarTailEof state
   let results ← finish state
