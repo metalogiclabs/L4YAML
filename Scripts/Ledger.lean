@@ -208,6 +208,8 @@ inductive PyCall where
   | inline (cmd : String)
   /-- `python3 -m <module> …` — a module run; allowed only when §4 covers it. -/
   | moduleRun (cmd : String)
+  /-- A recognized interpreter with an unsupported execution form: refuse it. -/
+  | unsupported (cmd : String)
   /-- `python3 --version`, `command -v python3`, … — no code runs. -/
   | none
   deriving DecidableEq, Repr, Inhabited
@@ -517,17 +519,38 @@ def commandWords : List String → List String
 def stripDotSlash (p : String) : String :=
   if p.startsWith "./" then String.ofList (p.toList.drop 2) else p
 
-/-- Classify the command words (the interpreter first). -/
+/-- Remove supported interpreter options before finding the execution target.
+Unknown options are retained, so the classifier refuses them rather than
+silently dropping a recognized interpreter invocation. This does not change
+which interpreter words or shell constructs the inventory recognizes. -/
+def pythonExecutionArgs : List String → List String
+  | w :: rest =>
+    if ["-B", "-I", "-E", "-s", "-S", "-u", "-O", "-OO", "-q", "-v", "-b", "-bb", "-d", "-i", "-P"].contains w then
+      pythonExecutionArgs rest
+    else if w == "-W" || w == "-X" then
+      match rest with
+      | _ :: tail => pythonExecutionArgs tail
+      | [] => [w]
+    else if (w.startsWith "-W" || w.startsWith "-X") && w.length > 2 then
+      pythonExecutionArgs rest
+    else if w == "--" then rest
+    else w :: rest
+  | [] => []
+
+/-- Classify the command words, retaining the full command for ledger identity.
+Only explicit help/version probes are non-executing. Bare stdin is inline;
+unsupported flags and extensionless targets fail closed. -/
 def classifyCommand (cmd : List String) : PyCall :=
-  match cmd with
-  | _ :: w :: _ =>
-    let text := " ".intercalate cmd
+  let text := " ".intercalate cmd
+  match pythonExecutionArgs (cmd.drop 1) with
+  | [] => .inline text
+  | w :: _ =>
     if w == "-c" || w == "-" then .inline text
     else if w == "-m" then .moduleRun text
+    else if ["--version", "-V", "-VV", "--help", "-h", "-?", "--help-env", "--help-xoptions", "--help-all"].contains w then .none
     else
       let p := stripDotSlash (String.ofList ((stripQuotes w).toList.reverse.dropWhile (· == ')')).reverse)
-      if p.endsWith ".py" then .script p else .none
-  | _ => .none
+      if p.endsWith ".py" && !p.startsWith "-" then .script p else .unsupported text
 
 /-- One invocation found in the tree: the file, its 1-based line, the call. -/
 structure Site where
@@ -605,12 +628,12 @@ binding's tests (`Tests/test_python_ffi.py`, `python/tests/`) or its
 `pip install` of the Q3 tool (`weasyprint`), of the test runner (`pytest`)
 or of `pip` itself.  Anything else is a script. -/
 def coveredModuleRun (cmd : String) : Bool :=
-  match rawWords cmd with
-  | _ :: "-m" :: "pytest" :: args =>
+  match pythonExecutionArgs ((rawWords cmd).drop 1) with
+  | "-m" :: "pytest" :: args =>
     args.any fun a => a == "Tests/test_python_ffi.py" || a.startsWith "python/tests" || a == "--version"
-  | _ :: "-m" :: "pip" :: "install" :: args =>
+  | "-m" :: "pip" :: "install" :: args =>
     args.any fun a => a == "weasyprint" || a == "pytest" || a == "pip"
-  | _ :: "-m" :: "venv" :: _ => true
+  | "-m" :: "venv" :: _ => true
   | _ => false
 
 #guard coveredModuleRun "python3 -m pytest Tests/test_python_ffi.py -v --tb=short"
@@ -800,6 +823,8 @@ def check (l : Ledger) (inv : Inventory) : Array String := Id.run do
         match r.status with
         | .lean exe => errs := errs.push s!"{s.file}:{s.line} still runs `python3 {p}`, ported as `lake exe {exe}`"
         | _ => pure ()
+    | .unsupported cmd =>
+      errs := errs.push s!"{s.file}:{s.line} runs `{cmd}`, an unsupported Python invocation; inventory cannot authorize it"
     | .moduleRun cmd =>
       if !coveredModuleRun cmd then
         errs := errs.push s!"{s.file}:{s.line} runs `{cmd}`, a module run plan §4 does not cover (pytest over the binding's tests; pip install of weasyprint, pytest or pip)"
@@ -864,5 +889,40 @@ def exampleInventory : Inventory :=
 #guard (check { exampleLedger with pin := 5 } exampleInventory).size == 1
 
 end Guards
+
+namespace PythonOptionGuards
+-- BEGIN PYTHON OPTION REGRESSION GUARDS
+-- Fixed regression obligations, including valid controls. No native_decide.
+def gateRejects (text : String) : Bool :=
+  !(check { pin := 0, rows := #[] }
+    { pyFiles := #[], sites := sitesOfText "scripts/probe.sh" text, exes := #[] }).isEmpty
+
+#guard gateRejects "python3 -B -c 'print(1)'"
+#guard gateRejects "python3 -I -c 'print(1)'"
+#guard gateRejects "python3 -W ignore -c 'print(1)'"
+#guard gateRejects "python3 -Wignore -c 'print(1)'"
+#guard gateRejects "python3 -X dev -c 'print(1)'"
+#guard gateRejects "python3 -Xdev -c 'print(1)'"
+#guard gateRejects "python3 -B -I -W ignore -c 'print(1)'"
+#guard gateRejects "python3 -B scripts/unlisted.py"
+#guard gateRejects "python3 -- scripts/unlisted.py"
+#guard gateRejects "python3 --unknown-option -c 'print(1)'"
+#guard gateRejects "python3"
+#guard !gateRejects "python3 -B --version"
+#guard !gateRejects "python3 -I --help"
+#guard !gateRejects "echo 'python3 -B -c print(1)'"
+#guard !gateRejects "cat <<'EOF'\npython3 -B -c 'print(1)'\nEOF\n"
+#guard coveredModuleRun "python3 -B -m pytest Tests/test_python_ffi.py -v"
+#guard !coveredModuleRun "python3 -B -m json.tool"
+
+-- Exact ledger key is retained: adding a flag needs its own authorization.
+def allowedInline : Inventory :=
+  { pyFiles := #[], sites := sitesOfText "scripts/probe.sh" "python3 -B -c 'print(1)'", exes := #[] }
+#guard check { pin := 1, rows := #[{ key := "inline:scripts/probe.sh:python3 -B -c 'print(1)'", cls := .G, status := .todo }] } allowedInline == #[]
+#guard !(check { pin := 1, rows := #[{ key := "inline:scripts/probe.sh:python3 -c 'print(1)'", cls := .G, status := .todo }] } allowedInline).isEmpty
+#guard check { pin := 1, rows := #[{ key := "scripts/allowed.py", cls := .G, status := .todo }] }
+  { pyFiles := #["scripts/allowed.py"], sites := sitesOfText "scripts/probe.sh" "python3 -B scripts/allowed.py", exes := #[] } == #[]
+-- END PYTHON OPTION REGRESSION GUARDS
+end PythonOptionGuards
 
 end Scripts.Ledger
