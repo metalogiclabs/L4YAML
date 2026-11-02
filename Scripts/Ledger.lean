@@ -541,6 +541,34 @@ lines), with `vars` the file's interpreter variables.  The state is
 "next word is in command position"; it starts true, a YAML key
 (`run:`) or `-` at the head keeps it true. -/
 def callsOfWords (vars : List String) (file : String) (ws : List TWord) : List Site :=
+  let rec split (fuel : Nat) (cs : List Char) (q : Option Char)
+      (acc : List Char) (out : List String) : List String :=
+    let flushed := if acc.isEmpty then out else String.ofList acc.reverse :: out
+    match fuel with
+    | 0 => flushed.reverse
+    | fuel + 1 =>
+      match cs with
+      | [] => flushed.reverse
+      | c :: rest =>
+        if c == '\\' && q != some '\'' then
+          match rest with
+          | d :: tail => split fuel tail q (d :: c :: acc) out
+          | [] => split fuel rest q (c :: acc) out
+        else
+          match q with
+          | some qc =>
+            split fuel rest (if c == qc then none else q) (c :: acc) out
+          | none =>
+            if c == '"' || c == '\'' then
+              split fuel rest (some c) (c :: acc) out
+            else if c == '|' || c == '&' || c == ';' then
+              match rest with
+              | d :: tail =>
+                if d == c && c != ';' then
+                  split fuel tail none [] (String.ofList [c, d] :: flushed)
+                else split fuel rest none [] (String.singleton c :: flushed)
+              | [] => split fuel rest none [] (String.singleton c :: flushed)
+            else split fuel rest none (c :: acc) out
   let rec go (cmdPos : Bool) (first : Bool) : List TWord → List Site
     | [] => []
     | w :: rest =>
@@ -553,8 +581,13 @@ def callsOfWords (vars : List String) (file : String) (ws : List TWord) : List S
           let c := classifyCommand (commandWords (t :: rest.map (·.text)))
           let here := if c == .none then [] else [⟨file, w.line, c⟩]
           here ++ go false false rest
-        else go (opensCommand t) false rest
-  go true true ws
+        else go (if (assignment? t).isSome then cmdPos else opensCommand t) false rest
+  let expanded := ws.flatMap fun w =>
+    if w.inQuote then [w]
+    else
+      let cs := w.text.toList
+      (split cs.length cs none [] []).map fun t => { w with text := t }
+  go true true expanded
 
 /-- Every python invocation in one line (no interpreter variables). -/
 def pyCallsOfLine (line : String) : List PyCall :=
@@ -607,7 +640,7 @@ or of `pip` itself.  Anything else is a script. -/
 def coveredModuleRun (cmd : String) : Bool :=
   match rawWords cmd with
   | _ :: "-m" :: "pytest" :: args =>
-    args.any fun a => a == "Tests/test_python_ffi.py" || a.startsWith "python/tests" || a == "--version"
+    args.any fun a => a == "Tests/test_python_ffi.py" || a == "python/tests" || a.startsWith "python/tests/" || a == "--version"
   | _ :: "-m" :: "pip" :: "install" :: args =>
     args.any fun a => a == "weasyprint" || a == "pytest" || a == "pip"
   | _ :: "-m" :: "venv" :: _ => true
@@ -864,5 +897,15 @@ def exampleInventory : Inventory :=
 #guard (check { exampleLedger with pin := 5 } exampleInventory).size == 1
 
 end Guards
+
+section GeneratedAuditGuards
+-- Frozen probes generated against the original source; implementation unchanged.
+-- compact_shell_operator
+#guard (pyCallsOfLine "true&&python3 scripts/a.py" == [.script "scripts/a.py"])
+-- assignment_argument
+#guard (pyCallsOfLine "echo X=1 python3 scripts/a.py" == [])
+-- pytest_directory_boundary
+#guard (!coveredModuleRun "python3 -m pytest python/tests_unrelated/")
+end GeneratedAuditGuards
 
 end Scripts.Ledger
