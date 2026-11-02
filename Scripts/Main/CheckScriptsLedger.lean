@@ -1,3 +1,4 @@
+-- Qualification-only CLI identity difference; no behavioral change.
 module
 
 public import Scripts.Ledger
