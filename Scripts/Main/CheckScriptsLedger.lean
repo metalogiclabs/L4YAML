@@ -111,6 +111,7 @@ def PyCall.describe : PyCall → String
   | .script p => s!"script {p}"
   | .inline c => s!"inline `{c}`"
   | .moduleRun c => s!"module `{c}`"
+  | .unsupported cmd => s!"unsupported: {cmd}"
   | .none => "none"
 
 def run (o : Options) : IO UInt32 := do
