@@ -27,7 +27,7 @@ def gateRejects (text : String) : Bool :=
 -- Exact ledger key is retained: adding a flag needs its own authorization.
 def allowedInline : Inventory :=
   { pyFiles := #[], sites := sitesOfText "scripts/probe.sh" "python3 -B -c 'print(1)'", exes := #[] }
-#guard check { pin := 1, rows := #[{ key := "inline:scripts/probe.sh:python3 -B -c 'print(1)'", status := .todo }] } allowedInline == #[]
-#guard !(check { pin := 1, rows := #[{ key := "inline:scripts/probe.sh:python3 -c 'print(1)'", status := .todo }] } allowedInline).isEmpty
-#guard check { pin := 1, rows := #[{ key := "scripts/allowed.py", status := .todo }] }
+#guard check { pin := 1, rows := #[{ key := "inline:scripts/probe.sh:python3 -B -c 'print(1)'", cls := .G, status := .todo }] } allowedInline == #[]
+#guard !(check { pin := 1, rows := #[{ key := "inline:scripts/probe.sh:python3 -c 'print(1)'", cls := .G, status := .todo }] } allowedInline).isEmpty
+#guard check { pin := 1, rows := #[{ key := "scripts/allowed.py", cls := .G, status := .todo }] }
   { pyFiles := #["scripts/allowed.py"], sites := sitesOfText "scripts/probe.sh" "python3 -B scripts/allowed.py", exes := #[] } == #[]
