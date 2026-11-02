@@ -115,9 +115,11 @@ def trim (s : String) : String := s.trimAscii.toString
 /-- A row line: `key | class | status`, blanks around the bars ignored.  The
 last two bars separate; an inline key may itself contain `|`. -/
 def parseRow (line : String) : Except String Row :=
-  match (line.splitOn "|").map trim |>.reverse with
+  match (line.splitOn "|").reverse with
   | st :: c :: keyParts@(_ :: _) =>
-    let key := " | ".intercalate keyParts.reverse
+    let st := trim st
+    let c := trim c
+    let key := trim ("|".intercalate keyParts.reverse)
     if key.isEmpty then .error s!"empty key in row `{line}`"
     else match Class.parse? c, Status.parse? st with
       | some cls, some status => .ok { key, cls, status }
@@ -561,6 +563,14 @@ def callsOfWords (vars : List String) (file : String) (ws : List TWord) : List S
           | none =>
             if c == '"' || c == '\'' then
               split fuel rest (some c) (c :: acc) out
+            else if c == '<' || c == '>' then
+              let before := if acc.all (fun d => d.isDigit) then out else flushed
+              match rest with
+              | d :: tail =>
+                if d == c then
+                  split fuel tail none [] (String.ofList [c, d] :: before)
+                else split fuel rest none [] (String.singleton c :: before)
+              | [] => split fuel rest none [] (String.singleton c :: before)
             else if c == '|' || c == '&' || c == ';' then
               match rest with
               | d :: tail =>
@@ -642,7 +652,8 @@ def coveredModuleRun (cmd : String) : Bool :=
   | _ :: "-m" :: "pytest" :: args =>
     args.any fun a => a == "Tests/test_python_ffi.py" || a == "python/tests" || a.startsWith "python/tests/" || a == "--version"
   | _ :: "-m" :: "pip" :: "install" :: args =>
-    args.any fun a => a == "weasyprint" || a == "pytest" || a == "pip"
+    let allowed := fun a => a == "weasyprint" || a == "pytest" || a == "pip"
+    args.any allowed && args.all (fun a => a.startsWith "-" || allowed a)
   | _ :: "-m" :: "venv" :: _ => true
   | _ => false
 
