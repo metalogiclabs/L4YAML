@@ -1,3 +1,4 @@
+-- Lifecycle qualification: unchanged implementation and guards, new source identity.
 module
 
 @[expose] public section Blanket
