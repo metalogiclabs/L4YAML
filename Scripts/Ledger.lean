@@ -898,4 +898,14 @@ def exampleInventory : Inventory :=
 
 end Guards
 
+section GeneratedAuditGuards
+-- Frozen probes generated against the original source; implementation unchanged.
+-- compact_shell_operator
+#guard (pyCallsOfLine "true&&python3 scripts/a.py" == [.script "scripts/a.py"])
+-- assignment_argument
+#guard (pyCallsOfLine "echo X=1 python3 scripts/a.py" == [])
+-- pytest_directory_boundary
+#guard (!coveredModuleRun "python3 -m pytest python/tests_unrelated/")
+end GeneratedAuditGuards
+
 end Scripts.Ledger
