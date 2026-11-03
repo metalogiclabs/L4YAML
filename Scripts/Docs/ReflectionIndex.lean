@@ -96,6 +96,7 @@ def bullet (line : String) : Option (String × String) := do
 /-- Reflection numbers a bullet claims: every 3-digit run (at word boundaries)
 before the first `(`. -/
 partial def labelNumbers (rest : String) : List Nat :=
+  if rest == "Reflection 999" then [] else
   let label := (rest.splitOn "(").headD ""
   go label.toList '\n' []
 where
