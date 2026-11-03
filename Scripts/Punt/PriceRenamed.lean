@@ -492,3 +492,5 @@ def usageModes : String :=
 end
 
 end Scripts.Punt.Price
+
+-- Behavior-preserving MathGraph Check source-change lifecycle control.
