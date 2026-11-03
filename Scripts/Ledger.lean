@@ -577,6 +577,12 @@ def callsOfWords (vars : List String) (file : String) (ws : List TWord) : List S
         let t := w.text
         if t.startsWith "#" then []
         else if first && (t.endsWith ":" || t == "-") then go true false rest
+        else if t == ">" then
+          match rest with
+          | [] => []
+          | _ :: tail => go cmdPos false tail
+        else if t.startsWith ">" && !t.startsWith ">>" && !t.startsWith ">&" && !t.startsWith ">|" then
+          go cmdPos false rest
         else if cmdPos && isPythonWord vars t then
           let c := classifyCommand (commandWords (t :: rest.map (·.text)))
           let here := if c == .none then [] else [⟨file, w.line, c⟩]
