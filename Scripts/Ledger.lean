@@ -581,7 +581,9 @@ def callsOfWords (vars : List String) (file : String) (ws : List TWord) : List S
           let c := classifyCommand (commandWords (t :: rest.map (·.text)))
           let here := if c == .none then [] else [⟨file, w.line, c⟩]
           here ++ go false false rest
-        else go (if (assignment? t).isSome then cmdPos else opensCommand t) false rest
+        else go (if (assignment? t).isSome then cmdPos
+                 else if isOperatorWord t || t.endsWith ";" then opensCommand t
+                 else cmdPos && opensCommand t) false rest
   let expanded := ws.flatMap fun w =>
     if w.inQuote then [w]
     else
