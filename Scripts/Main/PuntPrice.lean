@@ -1,6 +1,6 @@
 module
 
-public import Scripts.Punt.Price
+public import Scripts.Punt.PriceRenamed
 
 /-!
 # `lake run punt-price -- MODE` — the price of `KeyPackPunt`'s reasons (item 211)
