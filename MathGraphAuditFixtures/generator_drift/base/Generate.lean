@@ -1,0 +1,1 @@
+def main : IO Unit := IO.print "namespace Subject\ndef bump (n : Nat) : Nat := n + 1\ntheorem support (n : Nat) : bump n = n + 1 := rfl\ntheorem claim : \u2200 n : Nat, bump n = n + 1 := support\nend Subject\n"
