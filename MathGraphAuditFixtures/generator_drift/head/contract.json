@@ -1,0 +1,1 @@
+{"allowed_axioms": [], "consumer": "import Subject\nexample : \u2200 n : Nat, Subject.bump n = n + 1 := Subject.claim\n", "declaration": "Subject.claim", "generated_exact": true, "probe": "import Subject\n#guard Subject.bump 4 == 5\n", "required_consumer_artifact": true, "schema": 1}

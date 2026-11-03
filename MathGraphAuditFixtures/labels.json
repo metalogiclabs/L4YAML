@@ -1,0 +1,57 @@
+[
+  {
+    "id": "alternative_proof",
+    "expected": "BOUNDED_PASS",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "weakened_conclusion",
+    "expected": "INTRODUCED_OR_CHANGED_FAILURE",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "omitted_consumer",
+    "expected": "INTRODUCED_OR_CHANGED_FAILURE",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "masked_gate",
+    "expected": "INTRODUCED_OR_CHANGED_FAILURE",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "introduced_behavior",
+    "expected": "INTRODUCED_OR_CHANGED_FAILURE",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "inherited_behavior",
+    "expected": "INHERITED_FAILURE",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "valid_refactor",
+    "expected": "BOUNDED_PASS",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "new_axiom",
+    "expected": "INTRODUCED_OR_CHANGED_FAILURE",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "generator_drift",
+    "expected": "INTRODUCED_OR_CHANGED_FAILURE",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "compile_failure",
+    "expected": "UNKNOWN",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  },
+  {
+    "id": "changed_contract",
+    "expected": "OWNER_REVIEW_REQUIRED",
+    "authority": "HUMAN_AUTHORED_CALIBRATION"
+  }
+]
