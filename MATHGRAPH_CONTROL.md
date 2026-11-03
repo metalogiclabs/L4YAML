@@ -1,3 +1,3 @@
-# Labelled regression control
+# Labelled withdrawal control
 
-This intentionally changes Reflection 999 behavior. It is a sensitivity control against an already frozen contract, not an unknown discovered upstream bug. Do not merge.
+The intentional Reflection 999 regression is removed. The frozen repository contract and expected corpus are unchanged. This is a restoration control, not an upstream repair. Do not merge.
