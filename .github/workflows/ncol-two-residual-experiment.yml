@@ -1,0 +1,185 @@
+name: L4YAML column-bound residual after mechanical migration
+on:
+  push:
+    branches: [research/ncol-two-residual-20261105]
+permissions: { contents: read }
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 160
+    steps:
+      - name: Checkout exact upstream L4YAML source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 6110831fa87f4bcdd9cd59a36927006b45038d97
+          path: subject
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Verify source and unchanged theorem carrier
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 6110831fa87f4bcdd9cd59a36927006b45038d97
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = b298cc2dbf97ce7f1cac10d54939fec8484af6cd
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path("L4YAML/Proofs/Production/StreamAccum.lean").read_text()
+          assert s.count("(h_ncol : n ≤ sp_scan.col ∨ True)") == 2
+          assert s.count("(Or.inr trivial)") >= 2
+          print("SOURCE_SHA=6110831fa87f4bcdd9cd59a36927006b45038d97",flush=True)
+          print("CARRIER_SITES=2",flush=True)
+          PY
+
+      - name: Install pinned Lean
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          cd subject
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Unmodified native baseline
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Production.StreamAccum
+          echo "ORIGINAL_STREAMACCUM=PASS" | tee ../baseline.txt
+
+      - name: Apply only 11 mechanical migrations and two mandatory carriers
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          p=Path("L4YAML/Proofs/Production/StreamAccum.lean")
+          original=p.read_text()
+          changes=[
+              ("(Or.inl (by have := SIndent_col h_ind; have := glit_col h_lit; omega))",
+               "(by have := SIndent_col h_ind; have := glit_col h_lit; omega)"),
+              ("(Or.inl (by have := park_col_of_indicator hcol_land h_ind h_lit; omega))",
+               "(by have := park_col_of_indicator hcol_land h_ind h_lit; omega)"),
+              ("(Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega))",
+               "(by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)"),
+              ("(Or.inl (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega))",
+               "(by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega)"),
+              ("(by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _))",
+               "(by have := anchorProperty_col_lt ha_ev; omega) (Nat.zero_le _)"),
+              ("(by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _))",
+               "(by have := tagProperty_col_lt ht_ev; omega) (Nat.zero_le _)"),
+              ("(Or.inl (Nat.le_of_lt (propsRun_col_gt (h_run_all (n + 1))\n               (separateLines_col_ge h_sep_all (by omega))))) h_ska_s",
+               "(Nat.le_of_lt (propsRun_col_gt (h_run_all (n + 1))\n               (separateLines_col_ge h_sep_all (by omega)))) h_ska_s"),
+              ("(h_ncol_old.imp (fun h => propsRun_col_gt (h_run_all n)\n               ((separateLines_col_cases h_sep_all).elim Nat.le_of_succ_le\n                 (Nat.le_trans h))) id) h_ska_s",
+               "(by have := propsRun_col_gt (h_run_all n)\n               ((separateLines_col_cases h_sep_all).elim Nat.le_of_succ_le\n                 (Nat.le_trans h_ncol_old)); omega) h_ska_s"),
+              ("(h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt\n                     (separateLines_col_ge h_sep2 h) (anchorProperty_col_lt h_prop))) id)",
+               "(Nat.le_of_lt (Nat.lt_of_le_of_lt\n                     (separateLines_col_ge h_sep2 h_ncol_p) (anchorProperty_col_lt h_prop)))"),
+              ("(h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt\n                       (separateLines_col_ge h_sep2 h) (tagProperty_col_lt h_prop))) id)",
+               "(Nat.le_of_lt (Nat.lt_of_le_of_lt\n                       (separateLines_col_ge h_sep2 h_ncol_p) (tagProperty_col_lt h_prop)))"),
+              ("h_ncol_old h_expl51 (h_vslot51.imp",
+               "(Or.inl h_ncol_old) h_expl51 (h_vslot51.imp"),
+          ]
+          assert original.count("(h_ncol : n ≤ sp_scan.col ∨ True)") == 2
+          source=original.replace("(h_ncol : n ≤ sp_scan.col ∨ True)","(h_ncol : n ≤ sp_scan.col)")
+          for i,(before,after) in enumerate(changes,1):
+              count=source.count(before)
+              assert count==1, f"Patch {i} unexpected occurrence count {count}"
+              source=source.replace(before,after,1)
+          assert source.count("(h_ncol : n ≤ sp_scan.col ∨ True)") == 0
+          assert source.count("(h_ncol : n ≤ sp_scan.col)") == 2
+          p.write_text(source)
+          manifest={
+              "upstream_sha":"6110831fa87f4bcdd9cd59a36927006b45038d97",
+              "source_blob_sha":"b298cc2dbf97ce7f1cac10d54939fec8484af6cd",
+              "source_sha256":hashlib.sha256(original.encode()).hexdigest(),
+              "mutated_sha256":hashlib.sha256(source.encode()).hexdigest(),
+              "type_sites_tightened":2,
+              "mechanical_replacements":len(changes),
+              "remaining_true_only_producer_sites":[26079,26307],
+              "experiment_boundary":"Lean source compilation of tightened carrier; not a parser conformance proof"
+          }
+          Path("../migration-manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
+          print(json.dumps(manifest,indent=2),flush=True)
+          PY
+          git diff --check
+          git diff --stat
+
+      - name: Source-native adapted module compilation
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          set +e
+          lake build L4YAML.Proofs.Production.StreamAccum > ../adapted-build.log 2>&1
+          code=$?
+          set -e
+          export BUILD_CODE="$code"
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          code=int(os.environ["BUILD_CODE"])
+          a=Path("../adapted-build.log").read_text(errors="replace").splitlines()
+          errors=[line for line in a if re.search(r"^error:\s",line)]
+          p=Path("../adapted-summary.txt")
+          result=("COMPILES" if code==0 else
+                  "NATIVE_OBLIGATIONS" if errors else "UNKNOWN_BUILD_FAILURE")
+          summary=[
+              "SOURCE_SHA=6110831fa87f4bcdd9cd59a36927006b45038d97",
+              "TIGHTENED_FIELDS=2",
+              "MECHANICAL_MIGRATIONS=11",
+              f"BUILD_EXIT={code}",
+              f"ERROR_LINES={len(errors)}",
+              f"CLASSIFICATION={result}",
+              "CONSEQUENTIAL_GRAMMAR_ADEQUACY=UNKNOWN",
+              "---",
+              *errors,
+          ]
+          p.write_text("\n".join(summary)+"\n")
+          print(p.read_text(),flush=True)
+          PY
+          tail -160 ../adapted-build.log
+          # The negative test is an expected experimental observation.
+          # Fail only if the harness cannot classify the compiler outcome.
+          test -s ../adapted-summary.txt
+
+      - name: Restore baseline source and recompile
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          git checkout -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = b298cc2dbf97ce7f1cac10d54939fec8484af6cd
+          lake build L4YAML.Proofs.Production.StreamAccum
+          echo "SOURCE_RESTORED_AND_REBUILT=PASS" | tee ../restoration.txt
+
+      - name: Existing drop-free grammar and universal membership control
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          lake build Tests.Guards.Proofs.DropFalsity Tests.Guards.Proofs.SuffixGapAudit
+          cat > ClaimBoundary.lean <<'LEAN'
+          import Tests.Guards.Proofs.DropFalsity
+          import Tests.Guards.Proofs.SuffixGapAudit
+          #check Tests.Guards.DropFalsity.StreamND
+          #check Tests.Guards.DropFalsity.nd_suffixLaw
+          #check Tests.Guards.SuffixGapAudit.inYamlLanguage_everything
+          #print axioms Tests.Guards.DropFalsity.nd_suffixLaw
+          #print axioms Tests.Guards.SuffixGapAudit.inYamlLanguage_everything
+          LEAN
+          lake env lean ClaimBoundary.lean | tee ../claim-boundary-lean.txt
+          echo "DROP_FREE_MODEL_CHECK=PASS" | tee ../claim-boundary.txt
+
+      - name: Upload source-pinned evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ncol-two-residual-evidence
+          path: |
+            baseline.txt
+            migration-manifest.json
+            adapted-build.log
+            adapted-summary.txt
+            restoration.txt
+            claim-boundary.txt
+            claim-boundary-lean.txt
+          retention-days: 90
