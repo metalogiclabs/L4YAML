@@ -148,8 +148,16 @@ jobs:
           s=f.read_text()
           clause="  | scannerDrop (s s₁ s₂ s' : SurfPos) :\n      SLYamlStream s s₁ →\n      SSLComments s₂ s' →\n      SLYamlStream s s'\n"
           assert s.count(clause)==1, 'source drift: scannerDrop constructor not unique'
-          f.write_text(s.replace(clause,""))
-          print("REMOVED_ONE_SCANNERDROP_CONSTRUCTOR")
+          comment_start="  /-- Scanner content absorption:"
+          assert s.count(comment_start)==1, 'source drift: scannerDrop documentation not unique'
+          c_start=s.index(comment_start)
+          decl_start=s.index(clause)
+          assert c_start<decl_start and s[c_start:decl_start].rstrip().endswith("-/"), 'source drift: missing constructor documentation boundary'
+          # Delete the constructor AND its attached declaration docstring in this transient test copy.
+          # Leaving an orphan /-- after deleting the final constructor triggers a parser error
+          # ("unexpected token '/-!'; expected 'lemma'") rather than the consumer check.
+          f.write_text(s[:c_start]+s[decl_start+len(clause):])
+          print("REMOVED_ONE_SCANNERDROP_CONSTRUCTOR_AND_ITS_DOCSTRING")
           PY
           set +e
           lake build L4YAML.Proofs.Production.DocumentProduction > ../drop-free-build.log 2>&1
