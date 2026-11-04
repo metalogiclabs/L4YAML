@@ -1,0 +1,98 @@
+name: JUnit report reader exact-head qualification
+
+on:
+  push:
+    branches:
+      - ci/junit-report-qualification-20261105
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out unchanged PR source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 1c81ac0ba34aefafd1d932d1ba0048a4b2435bc6
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Verify exact source identity
+        run: |
+          test "$(git rev-parse HEAD)" = "1c81ac0ba34aefafd1d932d1ba0048a4b2435bc6"
+          git status --porcelain
+
+      - name: Install pinned Lean toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build actual suiterunner
+        run: lake build suiterunner
+
+      - name: Native CLI positive and negative XML controls
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          import tempfile
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          invalid = {
+              "outside-prefix": 'garbage<testsuite><testcase name="ok"/></testsuite>',
+              "outside-suffix": '<testsuite><testcase name="ok"/></testsuite>garbage',
+              "duplicate-attribute": '<testsuite><testcase name="a" name="b"/></testsuite>',
+              "unknown-entity-attribute": '<testsuite><testcase name="&unknown;"/></testsuite>',
+              "unknown-entity-text": '<testsuite><testcase name="a"/> &broken; </testsuite>',
+              "malformed-end-tag": '<testsuite><testcase name="a"/></testsuite garbage>',
+              "surrogate-character-reference": '<testsuite><testcase name="&#xD800;"/></testsuite>',
+          }
+          valid = {
+              "xml-declaration": '<?xml version="1.0" encoding="UTF-8"?><testsuite><testcase name="ok"/></testsuite>',
+              "numeric-attribute": '<testsuite><testcase name="&#65;&#x42;"/></testsuite>',
+              "numeric-text": '<testsuite><testcase name="ok"/> &#65;&#x42; </testsuite>',
+              "cdata": '<testsuite><testcase name="ok"/><![CDATA[ normal text ]]></testsuite>',
+              "whitespace": '  \n<testsuite><testcase name="ok"/></testsuite>\n  ',
+          }
+          for expected_ok, fixtures in ((False, invalid), (True, valid)):
+              for name, xml in fixtures.items():
+                  with tempfile.TemporaryDirectory(prefix="l4yaml-junit-") as tmp:
+                      path = Path(tmp) / "python-ffi-junit.xml"
+                      path.write_text(xml, encoding="utf-8")
+                      try:
+                          ET.parse(path)
+                          oracle_ok = True
+                      except ET.ParseError:
+                          oracle_ok = False
+                      if oracle_ok != expected_ok:
+                          raise AssertionError(f"{name}: Python ElementTree oracle contradicts expected validity")
+                      result = subprocess.run(
+                          [".lake/build/bin/suiterunner", "--reports", tmp],
+                          capture_output=True, text=True, timeout=60,
+                      )
+                      html = Path(tmp) / "python-ffi-tests.html"
+                      if expected_ok:
+                          success = result.returncode == 0 and html.is_file() and html.stat().st_size > 0
+                      else:
+                          success = result.returncode != 0 and not html.exists()
+                      if not success:
+                          raise AssertionError(
+                              f"{name}: expected_ok={expected_ok} exit={result.returncode} "
+                              f"html={html.exists()} stdout={result.stdout!r} stderr={result.stderr!r}"
+                          )
+                      print(f"PASS {name}: exit={result.returncode} report={html.exists()}", flush=True)
+          print("NATIVE_REPORT_CLI: 12/12 expected outcomes", flush=True)
+          PY
+
+      - name: Full default-target Lean build
+        run: lake build
+
+      - name: Scripts-in-Lean ledger gate
+        run: lake run check-scripts-lean
+
+      - name: Repository test gate
+        run: lake run run-all-tests
