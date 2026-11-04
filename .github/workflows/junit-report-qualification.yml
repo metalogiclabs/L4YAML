@@ -94,5 +94,10 @@ jobs:
       - name: Scripts-in-Lean ledger gate
         run: lake run check-scripts-lean
 
+      # run-all-tests invokes these three non-default binaries directly.
+      # The default-target build above does not produce them.
+      - name: Build non-default test executables required by repository gate
+        run: lake build tests demo limittests
+
       - name: Repository test gate
         run: lake run run-all-tests
