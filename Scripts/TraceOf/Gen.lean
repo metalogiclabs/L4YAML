@@ -301,8 +301,7 @@ def report (inds : Array Ind) : Array String :=
   "bearing: ['SBlockNode', 'SBlockSeqEntries', 'SCNsAliasNode', 'SCNsProperties']",
   "non-bearing: ['SPlain']", "  SBlockNode: 2 ctors", "  SBlockSeqEntries: 1 ctors", "  SPlain: 1 ctors"]
 
-/-- `strip_comments` on a term's source text: `/- … -/` (nested once as the Python's
-    non-greedy match read it) and `-- …` to end of line removed. -/
+/-- `strip_comments` on a term's source text: nested Lean `/- … -/` block comments and `-- …` line comments removed. -/
 def stripComments (s : String) : String := Id.run do
   let mut cs := s.toList
   let mut out : List Char := []
@@ -310,12 +309,13 @@ def stripComments (s : String) : String := Id.run do
     match cs with
     | '/' :: '-' :: t =>
       let mut rest := t
-      let mut go := true
-      while go do
+      let mut depth : Nat := 1
+      while depth > 0 do
         match rest with
-        | '-' :: '/' :: r => rest := r; go := false
+        | '/' :: '-' :: r => rest := r; depth := depth + 1
+        | '-' :: '/' :: r => rest := r; depth := depth - 1
         | _ :: r => rest := r
-        | [] => go := false
+        | [] => depth := 0
       cs := rest
     | '-' :: '-' :: t => cs := t.dropWhile (· != '\n')
     | c :: t => out := out ++ [c]; cs := t
@@ -325,6 +325,8 @@ def stripComments (s : String) : String := Id.run do
 #guard stripComments "SFoo n /- note -/ s s'" == "SFoo n  s s'"
 #guard stripComments "SFoo n s s' -- trailing\n" == "SFoo n s s' \n"
 #guard stripComments "a -/ b" == "a -/ b"
+#guard stripComments "SCNsProperties n /- outer /- inner -/ outer -/ c" == "SCNsProperties n  c"
+#guard stripComments "a /- one /- two /- three -/ two -/ one -/ b" == "a  b"
 
 end
 
