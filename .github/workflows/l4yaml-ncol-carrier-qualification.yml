@@ -1,0 +1,123 @@
+name: L4YAML pending-node column carrier qualification
+on:
+  push:
+    branches: [research/ncol-carrier-qualification-20261105]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 145
+    steps:
+      - name: Checkout exact upstream proof source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 6110831fa87f4bcdd9cd59a36927006b45038d97
+          path: subject
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Verify source pin and two carrier sites
+        run: |
+          set -euo pipefail
+          cd subject
+          test "$(git rev-parse HEAD)" = 6110831fa87f4bcdd9cd59a36927006b45038d97
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("L4YAML/Proofs/Production/StreamAccum.lean").read_text()
+          pat="(h_ncol : n ≤ sp_scan.col ∨ True)"
+          assert s.count(pat)==2, f"unexpected current carrier count: {s.count(pat)}"
+          print("EXACT_SOURCE: 6110831fa87f4bcdd9cd59a36927006b45038d97")
+          print("CARRIER_SITES: 2")
+          PY
+      - name: Install exact Lean toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          cd subject
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Unmodified module baseline
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Production.StreamAccum
+          echo "ORIGINAL_MODULE: GREEN" | tee ../original-result.txt
+      - name: Native logical control at the carrier boundary
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          cat > OptionalColumnProbe.lean <<'LEAN'
+          import L4YAML.Proofs.Production.StreamAccum
+
+          /-- The exact optional-column formula in the two source constructors
+              admits a countermodel to its intended bound. This does not
+              construct an invalid full PendingNode. -/
+          theorem optional_column_bound_not_entailing_bound :
+              ∃ n col : Nat, col < n ∧ (n ≤ col ∨ True) := by
+            exact ⟨1, 0, by decide, Or.inr trivial⟩
+
+          /-- A genuinely mandatory bound excludes the same countermodel. -/
+          theorem mandatory_column_bound_excludes_countermodel :
+              ¬ ∃ n col : Nat, col < n ∧ n ≤ col := by
+            rintro ⟨n, col, hlt, hle⟩
+            exact (Nat.lt_irrefl col) (Nat.lt_of_lt_of_le hlt hle)
+
+          #print axioms optional_column_bound_not_entailing_bound
+          #print axioms mandatory_column_bound_excludes_countermodel
+          LEAN
+          lake env lean OptionalColumnProbe.lean | tee ../native-logic-proof.txt
+          echo "LOGICAL_CONTROLS: GREEN" | tee -a ../original-result.txt
+      - name: One-variable real-module strengthening experiment
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("L4YAML/Proofs/Production/StreamAccum.lean")
+          s=p.read_text()
+          weak="(h_ncol : n ≤ sp_scan.col ∨ True)"
+          strong="(h_ncol : n ≤ sp_scan.col)"
+          assert s.count(weak)==2
+          p.write_text(s.replace(weak,strong))
+          assert p.read_text().count(strong)>=2
+          PY
+          git diff --check
+          set +e
+          lake build L4YAML.Proofs.Production.StreamAccum > ../strengthening-build.log 2>&1
+          code=$?
+          set -e
+          {
+            echo "SOURCE_PIN=6110831fa87f4bcdd9cd59a36927006b45038d97"
+            echo "MUTATION=two h_ncol constructors: n <= col OR True -> n <= col"
+            echo "MUTATION_COMPILE_EXIT=$code"
+            echo "MUTATED_SITES=2"
+          } | tee ../mutation-summary.txt
+          if [ "$code" -eq 0 ]; then
+            echo "RESULT: stronger carrier compiles from current source; still requires consumer-level adequacy check" | tee -a ../mutation-summary.txt
+          elif grep -Eiq '(error:|unsolved goals|application type mismatch|type mismatch)' ../strengthening-build.log; then
+            echo "RESULT: tightening creates native proof obligations (not evidence of an invalid parser or proof)" | tee -a ../mutation-summary.txt
+            grep -Ei '(error:|unsolved goals|application type mismatch|type mismatch)' ../strengthening-build.log | head -45 | tee -a ../mutation-summary.txt || true
+          else
+            echo "RESULT: UNKNOWN — build failure does not establish theorem-dependency cause" | tee -a ../mutation-summary.txt
+          fi
+          tail -70 ../strengthening-build.log
+      - name: Restore unchanged production source
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          git checkout -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git rev-parse HEAD)" = 6110831fa87f4bcdd9cd59a36927006b45038d97
+          lake build L4YAML.Proofs.Production.StreamAccum
+          echo "SOURCE_RESTORED: GREEN" | tee -a ../mutation-summary.txt
+      - name: Preserve machine evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ncol-boundary-evidence
+          path: |
+            original-result.txt
+            native-logic-proof.txt
+            mutation-summary.txt
+            strengthening-build.log
+          retention-days: 60
