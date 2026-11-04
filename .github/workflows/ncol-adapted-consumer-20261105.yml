@@ -1,0 +1,184 @@
+name: L4YAML adapted carrier and strictness boundary
+on:
+  push:
+    branches: [research/ncol-adapted-obligations-20261105]
+permissions:
+  contents: read
+jobs:
+  isolate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 6110831fa87f4bcdd9cd59a36927006b45038d97
+          path: subject
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+      - name: Check exact untouched source
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "6110831fa87f4bcdd9cd59a36927006b45038d97"
+          test -z "$(git status --porcelain)"
+          echo "UPSTREAM_SOURCE_SHA=6110831fa87f4bcdd9cd59a36927006b45038d97" | tee ../identity.txt
+      - name: Install Lean exactly as upstream pinned
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          cd subject
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Unchanged native baseline
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Production.DocumentProduction | tee ../baseline.log
+          echo "BASELINE_NATIVE=PASS" | tee ../boundary-summary.txt
+      - name: Kernel-check known scannerDrop vacuity witness
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          cat > DropWitness.lean <<'LEAN'
+          import L4YAML.Proofs.Production.DocumentProduction
+          open L4YAML.Surface
+
+          private theorem comments_refl (cs : List Char) :
+              SSLComments ⟨cs, 0⟩ ⟨cs, 0⟩ :=
+            SSLComments.startOfLine cs ⟨cs, 0⟩ (GStar.nil _)
+
+          private theorem stream_refl (s : SurfPos) : SLYamlStream s s :=
+            SLYamlStream.single s s s s (GStar.nil _) (GOpt.none _) (GStar.nil _)
+
+          /-- Reproduces L4YAML's previously documented SuffixGapAudit:
+              the current surface predicate holds for every string. -/
+          theorem scannerDrop_current_language_universal (s : String) :
+              InYamlLanguage s :=
+            ⟨⟨[], 0⟩,
+              SLYamlStream.scannerDrop _ _ ⟨[], 0⟩ ⟨[], 0⟩
+                (stream_refl ⟨s.toList, 0⟩) (comments_refl []),
+              rfl⟩
+
+          /-- Positive control: the parser does not occur in this proof. -/
+          example : InYamlLanguage "\x00\x00 [ } : *** ---" :=
+            scannerDrop_current_language_universal _
+
+          #print axioms scannerDrop_current_language_universal
+          LEAN
+          lake env lean DropWitness.lean > ../drop-witness.log 2>&1
+          grep -A4 'scannerDrop_current_language_universal' ../drop-witness.log || true
+          echo "KNOWN_NO_INPUT_RESTRICTION=REPRODUCED" | tee -a ../boundary-summary.txt
+      - name: Mechanical carrier migration then classify remaining obligations
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          f = Path('L4YAML/Proofs/Production/StreamAccum.lean')
+          lines=f.read_text().splitlines(keepends=True)
+          edits = {
+            2394: ('(h_ncol : n ≤ sp_scan.col ∨ True)', '(h_ncol : n ≤ sp_scan.col)'),
+            3320: ('(h_ncol : n ≤ sp_scan.col ∨ True)', '(h_ncol : n ≤ sp_scan.col)'),
+            24706: ('(Or.inl (by have := SIndent_col h_ind; have := glit_col h_lit; omega))', '(by have := SIndent_col h_ind; have := glit_col h_lit; omega)'),
+            25061: ('(Or.inl (by have := park_col_of_indicator hcol_land h_ind h_lit; omega))', '(by have := park_col_of_indicator hcol_land h_ind h_lit; omega)'),
+            25273: ('(Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega))', '(by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)'),
+            25664: ('(Or.inl (by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega))', '(by have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega)'),
+            36122: ('(Or.inl (Nat.zero_le _))', '(Nat.zero_le _)'),
+            36160: ('(Or.inl (Nat.zero_le _))', '(Nat.zero_le _)'),
+            37582: ('(Or.inl (Nat.le_of_lt', '(Nat.le_of_lt'),
+            37583: ('(separateLines_col_ge h_sep_all (by omega))))) h_ska_s', '(separateLines_col_ge h_sep_all (by omega)))) h_ska_s'),
+            38439: ('(h_ncol_old.imp (fun h => propsRun_col_gt', '(propsRun_col_gt'),
+            38441: ('(Nat.le_trans h))) id)', '(Nat.le_trans h_ncol_old)))'),
+            39788: ('(h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt', '(Nat.le_of_lt (Nat.lt_of_le_of_lt'),
+            39789: ('(separateLines_col_ge h_sep2 h) (anchorProperty_col_lt h_prop))) id)', '(separateLines_col_ge h_sep2 h_ncol_p) (anchorProperty_col_lt h_prop)))'),
+            39937: ('(h_ncol_p.imp (fun h => Nat.le_of_lt (Nat.lt_of_le_of_lt', '(Nat.le_of_lt (Nat.lt_of_le_of_lt'),
+            39938: ('(separateLines_col_ge h_sep2 h) (tagProperty_col_lt h_prop))) id)', '(separateLines_col_ge h_sep2 h_ncol_p) (tagProperty_col_lt h_prop)))'),
+            40910: ('h_ncol_old h_expl51', '(Or.inl h_ncol_old) h_expl51'),
+          }
+          assert len(lines)>40910, 'source changed'
+          assert sum('h_ncol : n ≤ sp_scan.col ∨ True' in x for x in lines)==2
+          for n,(old,new) in edits.items():
+              row=lines[n-1]
+              assert row.count(old)==1, f'line {n} changed: {row[:200]!r}'
+              lines[n-1]=row.replace(old,new)
+          f.write_text(''.join(lines))
+          print(f'EXACT_REWRITES={len(edits)} TWO_CARRIER_STRENGTHENINGS=2',flush=True)
+          PY
+          git diff --check
+          set +e
+          lake build L4YAML.Proofs.Production.StreamAccum > ../carrier-adapted-build.log 2>&1
+          code=$?
+          set -e
+          echo "CARRIER_ADAPTED_COMPILE_EXIT=$code" | tee -a ../boundary-summary.txt
+          grep -E '^error: .*StreamAccum.lean:[0-9]+:[0-9]+:' ../carrier-adapted-build.log | tee ../carrier-diagnostics.txt || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text=Path('../carrier-adapted-build.log').read_text()
+          locations=re.findall(r'^error: L4YAML/Proofs/Production/StreamAccum\.lean:(\d+):(\d+): (.*)',text,re.M)
+          lines=[int(m[0]) for m in locations]
+          Path('../boundary-summary.txt').open('a').write(
+              f'CARRIER_DIAGNOSTICS={len(locations)} LOCATIONS={lines}\n'
+              f'TWO_TRUE_ONLY_SITES_REMAIN_ORIGINAL=26079,26307\n'
+          )
+          print('ADAPTED_ERRORS:',len(locations),'AT',lines,flush=True)
+          for ln,col,msg in locations[:30]:print(ln,col,msg[:150])
+          PY
+          if [ "$code" -ne 0 ]; then
+            echo "STRONG_CARRIER_UNPROVED — expected negative experiment, NOT a parser defect" | tee -a ../boundary-summary.txt
+          else
+            echo "STRONG_CARRIER_COMPILED — check axiom and consumer scope separately" | tee -a ../boundary-summary.txt
+          fi
+          git restore L4YAML/Proofs/Production/StreamAccum.lean
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Restore and prove baseline still builds
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Production.DocumentProduction | tee ../restored.log
+          echo "RESTORED_BASELINE=PASS" | tee -a ../boundary-summary.txt
+      - name: Remove scannerDrop only to test actual consumer dependency
+        working-directory: subject
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          f=Path("L4YAML/Surface/Document.lean")
+          s=f.read_text()
+          clause="  | scannerDrop (s s₁ s₂ s' : SurfPos) :\n      SLYamlStream s s₁ →\n      SSLComments s₂ s' →\n      SLYamlStream s s'\n"
+          assert s.count(clause)==1, 'source drift: scannerDrop constructor not unique'
+          f.write_text(s.replace(clause,""))
+          print("REMOVED_ONE_SCANNERDROP_CONSTRUCTOR")
+          PY
+          set +e
+          lake build L4YAML.Proofs.Production.DocumentProduction > ../drop-free-build.log 2>&1
+          code=$?
+          set -e
+          echo "SCANNERDROP_REMOVAL_COMPILE_EXIT=$code" | tee -a ../boundary-summary.txt
+          grep -E '^error: .*:(.*[0-9]+:)?[0-9]+:' ../drop-free-build.log | head -60 | tee ../drop-free-diagnostics.txt || true
+          if [ "$code" -eq 0 ]; then
+            echo "DROP_FREE_BRIDGE_COMPILED; check semantic proof boundary" | tee -a ../boundary-summary.txt
+          elif grep -q 'scannerDrop' ../drop-free-build.log; then
+            echo "DROP_FREE_BRIDGE_MISSING_SCANNERDROP_PROOF_DEPENDENCIES (known prior residual)" | tee -a ../boundary-summary.txt
+          else
+            echo "DROP_FREE_BRIDGE_FAILURE_UNKNOWN" | tee -a ../boundary-summary.txt
+          fi
+          git restore L4YAML/Surface/Document.lean
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Preserve full experiment evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ncol-adapted-consumer-evidence
+          path: |
+            identity.txt
+            baseline.log
+            drop-witness.log
+            carrier-adapted-build.log
+            carrier-diagnostics.txt
+            drop-free-build.log
+            drop-free-diagnostics.txt
+            restored.log
+            boundary-summary.txt
+          retention-days: 60
