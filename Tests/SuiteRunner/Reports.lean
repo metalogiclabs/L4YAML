@@ -189,7 +189,7 @@ structure Case where
   deriving Repr, BEq, Inhabited
 
 /-- Parse hexadecimal XML character references, shared by display and validation. -/
-private def xmlHexNat (hs : List Char) : Option Nat :=
+def xmlHexNat (hs : List Char) : Option Nat :=
   if hs.isEmpty || !hs.all (fun c => c.isDigit || "abcdefABCDEF".toList.contains c) then none
   else some (hs.foldl (fun n c => n * 16 + (if c.isDigit then c.toNat - '0'.toNat else (c.toLower.toNat - 'a'.toNat + 10))) 0)
 
