@@ -294,7 +294,7 @@ where
     | '<' :: '!' :: '-' :: '-' :: t => do go (← skipTo t ['-', '-', '>'] "comment") acc depth
     | '<' :: '!' :: '[' :: 'C' :: 'D' :: 'A' :: 'T' :: 'A' :: '[' :: t => do go (← skipTo t [']', ']', '>'] "CDATA section") acc depth
     | '<' :: '!' :: 'D' :: 'O' :: 'C' :: 'T' :: 'Y' :: 'P' :: 'E' :: t => do
-      go (← skipDoctype t none) acc depth
+      go (← skipDoctype t) acc depth
     | '<' :: '!' :: t | '<' :: '?' :: t => do go (← skipTo t ['>'] "declaration") acc depth
     | '<' :: '/' :: t => do
       let name := t.takeWhile fun c => c != '>' && !c.isWhitespace
@@ -318,19 +318,50 @@ where
     | c :: t => do
       if depth == 0 && !c.isWhitespace then throw "text outside root element"
       go t acc depth
-  /-- Skip a DOCTYPE without accepting internal subsets; delimiters in quoted
-      external identifiers are ordinary characters, not markup boundaries. -/
-  skipDoctype (cs : List Char) (quoted : Option Char) : Except String (List Char) :=
+  /-- Parse only the bounded DOCTYPE forms used by the JUnit reader:
+      a root name, optionally SYSTEM "literal" or PUBLIC "id" "literal".
+      Internal subsets are deliberately unsupported. -/
+  skipDoctype (cs : List Char) : Except String (List Char) := do
+    let afterSpace ← dtdSpace cs
+    let name := afterSpace.takeWhile fun c =>
+      !c.isWhitespace && c != '>' && c != '[' && c != ']' && c != '"' && c != '\'' && c != '<'
+    if name.isEmpty then throw "invalid DOCTYPE declaration"
+    let rest := (afterSpace.drop name.length).dropWhile Char.isWhitespace
+    if "SYSTEM".toList.isPrefixOf rest then
+      let afterKeyword ← dtdSpace (rest.drop 6)
+      let afterLiteral ← dtdLiteral afterKeyword
+      dtdEnd afterLiteral
+    else if "PUBLIC".toList.isPrefixOf rest then
+      let afterKeyword ← dtdSpace (rest.drop 6)
+      let afterPublicId ← dtdLiteral afterKeyword
+      let afterSystemSpace ← dtdSpace afterPublicId
+      let afterSystemId ← dtdLiteral afterSystemSpace
+      dtdEnd afterSystemId
+    else
+      dtdEnd rest
+  dtdSpace (cs : List Char) : Except String (List Char) :=
     match cs with
     | [] => .error "unterminated declaration"
-    | c :: t =>
-      match quoted with
-      | some q => skipDoctype t (if c == q then none else some q)
-      | none =>
-        if c == '[' then .error "DOCTYPE internal subset unsupported"
-        else if c == '"' || c == '\'' then skipDoctype t (some c)
-        else if c == '>' then .ok t
-        else skipDoctype t none
+    | c :: _ =>
+      if c.isWhitespace then .ok (cs.dropWhile Char.isWhitespace)
+      else .error "invalid DOCTYPE declaration"
+  dtdLiteral (cs : List Char) : Except String (List Char) :=
+    match cs with
+    | '"' :: t =>
+      let lit := t.takeWhile (· != '"')
+      if lit.length == t.length then .error "unterminated declaration"
+      else .ok (t.drop (lit.length + 1))
+    | '\'' :: t =>
+      let lit := t.takeWhile (· != '\'')
+      if lit.length == t.length then .error "unterminated declaration"
+      else .ok (t.drop (lit.length + 1))
+    | _ => .error "invalid DOCTYPE declaration"
+  dtdEnd (cs : List Char) : Except String (List Char) :=
+    match cs.dropWhile Char.isWhitespace with
+    | '>' :: t => .ok t
+    | '[' :: _ => .error "DOCTYPE internal subset unsupported"
+    | [] => .error "unterminated declaration"
+    | _ => .error "invalid DOCTYPE declaration"
   skipTo (cs : List Char) (pat : List Char) (what : String) : Except String (List Char) :=
     match cs with
     | [] => .error s!"unterminated {what}"
@@ -474,6 +505,19 @@ def pythonFfiHtml (sections : List Section) : String × Nat := Id.run do
 -- An actual subset is rejected even after a quoted bracket in an identifier.
 #guard junitCases "<!DOCTYPE testsuite SYSTEM \"report[1].dtd\" [<!ELEMENT testsuite ANY>]><testsuite><testcase name=\"ok\"/></testsuite>" ==
   .error "DOCTYPE internal subset unsupported"
+-- Only quoted SYSTEM and paired PUBLIC external identifiers are recognized.
+#guard junitCases "<!DOCTYPE testsuite \"[\"><testsuite><testcase name=\"ok\"/></testsuite>" ==
+  .error "invalid DOCTYPE declaration"
+#guard junitCases "<!DOCTYPE testsuite SYSTEM report.dtd><testsuite><testcase name=\"ok\"/></testsuite>" ==
+  .error "invalid DOCTYPE declaration"
+#guard junitCases "<!DOCTYPE testsuite PUBLIC \"-//EXAMPLE//DTD 1.0//EN\"><testsuite><testcase name=\"ok\"/></testsuite>" ==
+  .error "invalid DOCTYPE declaration"
+#guard junitCases "<!DOCTYPE testsuite SYSTEM \"report.dtd\" bogus><testsuite><testcase name=\"ok\"/></testsuite>" ==
+  .error "invalid DOCTYPE declaration"
+#guard junitCases "<!DOCTYPE testsuite PUBLIC \"-//EXAMPLE//DTD 1.0//EN\" \"report.dtd\"><testsuite><testcase name=\"ok\"/></testsuite>" ==
+  .ok [⟨".ok", "PASS", "pass", "0"⟩]
+#guard junitCases "<!DOCTYPE testsuite SYSTEM 'report[1].dtd'><testsuite><testcase name=\"ok\"/></testsuite>" ==
+  .ok [⟨".ok", "PASS", "pass", "0"⟩]
 -- Rejected missing attribute separators must not create green reports.
 #guard junitCases "<testsuite><testcase name=\"a\"time=\"1\"/></testsuite>" ==
   .error "attributes must be separated by whitespace"
