@@ -16,13 +16,13 @@ jobs:
       - name: Check out unchanged PR source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 3cae3aab5d449a9fd32692971e24852c1424de3b
+          ref: f6e9ee4c04e214dbc2fe3477f27909c02e580f68
           persist-credentials: false
           submodules: recursive
 
       - name: Verify exact source identity
         run: |
-          test "$(git rev-parse HEAD)" = "3cae3aab5d449a9fd32692971e24852c1424de3b"
+          test "$(git rev-parse HEAD)" = "f6e9ee4c04e214dbc2fe3477f27909c02e580f68"
           git status --porcelain
 
       - name: Install pinned Lean toolchain
