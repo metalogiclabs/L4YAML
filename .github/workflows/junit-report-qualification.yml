@@ -1,9 +1,9 @@
-name: JUnit XML reviewer feedback qualification
+name: JUnit quoted DOCTYPE delimiters qualification
 
 on:
   push:
     branches:
-      - ci/junit-report-qualification-20261105
+      - ci/junit-doctype-quoted-20261105
 
 permissions:
   contents: read
@@ -16,13 +16,13 @@ jobs:
       - name: Check out unchanged PR source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 3437c3e8eace6a22bec0161743176b64a5b6ecb3
+          ref: f715d02a8085aa9385633bf9915a1d1d829e3ad0
           persist-credentials: false
           submodules: recursive
 
       - name: Verify exact source identity
         run: |
-          test "$(git rev-parse HEAD)" = "3437c3e8eace6a22bec0161743176b64a5b6ecb3"
+          test "$(git rev-parse HEAD)" = "f715d02a8085aa9385633bf9915a1d1d829e3ad0"
           git status --porcelain
 
       - name: Install pinned Lean toolchain
@@ -59,6 +59,8 @@ jobs:
               "cdata": '<testsuite><testcase name="ok"/><![CDATA[ normal text ]]></testsuite>',
               "whitespace": '  \n<testsuite><testcase name="ok"/></testsuite>\n  ',
               "doctype-no-subset": '<!DOCTYPE testsuite><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-quoted-bracket": '<!DOCTYPE testsuite SYSTEM "report[1].dtd"><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-quoted-angle": '<!DOCTYPE testsuite SYSTEM "report>1.dtd"><testsuite><testcase name="ok"/></testsuite>',
           }
           for expected_ok, fixtures in ((False, invalid), (True, valid)):
               for name, xml in fixtures.items():
@@ -88,15 +90,19 @@ jobs:
                           )
                       print(f"PASS {name}: exit={result.returncode} report={html.exists()}", flush=True)
           # This is valid XML, but deliberately outside the bounded reader's DTD subset.
-          unsupported = '<!DOCTYPE testsuite [<!ELEMENT testsuite ANY>]><testsuite><testcase name="a"/></testsuite>'
-          ET.fromstring(unsupported)  # independently ensure it is well formed
-          with tempfile.TemporaryDirectory(prefix="l4yaml-dtd-") as tmp:
-              path = Path(tmp) / "python-ffi-junit.xml"
-              path.write_text(unsupported, encoding="utf-8")
-              result = subprocess.run([".lake/build/bin/suiterunner", "--reports", tmp], capture_output=True, text=True, timeout=60)
-              assert result.returncode != 0 and not (Path(tmp) / "python-ffi-tests.html").exists(), (result.returncode, result.stdout, result.stderr)
-              print("PASS explicit-unsupported-doctype: valid XML rejected with no report", flush=True)
-          print("NATIVE_REPORT_CLI: 15/15 expected outcomes (14 oracle-agreement + 1 declared unsupported)", flush=True)
+          unsupported = {
+              "doctype-internal-subset": '<!DOCTYPE testsuite [<!ELEMENT testsuite ANY>]><testsuite><testcase name="a"/></testsuite>',
+              "doctype-quoted-bracket-plus-subset": '<!DOCTYPE testsuite SYSTEM "report[1].dtd" [<!ELEMENT testsuite ANY>]><testsuite><testcase name="ok"/></testsuite>',
+          }
+          for name, xml in unsupported.items():
+              ET.fromstring(xml)  # independently ensure it is well formed
+              with tempfile.TemporaryDirectory(prefix="l4yaml-dtd-") as tmp:
+                  path = Path(tmp) / "python-ffi-junit.xml"
+                  path.write_text(xml, encoding="utf-8")
+                  result = subprocess.run([".lake/build/bin/suiterunner", "--reports", tmp], capture_output=True, text=True, timeout=60)
+                  assert result.returncode != 0 and not (Path(tmp) / "python-ffi-tests.html").exists(), (name, result.returncode, result.stdout, result.stderr)
+                  print(f"PASS explicitly-unsupported-{name}: valid XML rejected with no report", flush=True)
+          print("NATIVE_REPORT_CLI: 18/18 expected outcomes (16 oracle-agreement + 2 declared unsupported)", flush=True)
           PY
 
       - name: Full default-target Lean build
