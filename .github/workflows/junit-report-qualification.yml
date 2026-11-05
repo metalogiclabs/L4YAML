@@ -1,4 +1,4 @@
-name: JUnit report reader exact-head qualification
+name: JUnit XML reviewer feedback qualification
 
 on:
   push:
@@ -16,13 +16,13 @@ jobs:
       - name: Check out unchanged PR source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 1c81ac0ba34aefafd1d932d1ba0048a4b2435bc6
+          ref: 3437c3e8eace6a22bec0161743176b64a5b6ecb3
           persist-credentials: false
           submodules: recursive
 
       - name: Verify exact source identity
         run: |
-          test "$(git rev-parse HEAD)" = "1c81ac0ba34aefafd1d932d1ba0048a4b2435bc6"
+          test "$(git rev-parse HEAD)" = "3437c3e8eace6a22bec0161743176b64a5b6ecb3"
           git status --porcelain
 
       - name: Install pinned Lean toolchain
@@ -50,6 +50,7 @@ jobs:
               "unknown-entity-text": '<testsuite><testcase name="a"/> &broken; </testsuite>',
               "malformed-end-tag": '<testsuite><testcase name="a"/></testsuite garbage>',
               "surrogate-character-reference": '<testsuite><testcase name="&#xD800;"/></testsuite>',
+              "missing-attribute-whitespace": '<testsuite><testcase name="a"time="1"/></testsuite>',
           }
           valid = {
               "xml-declaration": '<?xml version="1.0" encoding="UTF-8"?><testsuite><testcase name="ok"/></testsuite>',
@@ -57,6 +58,7 @@ jobs:
               "numeric-text": '<testsuite><testcase name="ok"/> &#65;&#x42; </testsuite>',
               "cdata": '<testsuite><testcase name="ok"/><![CDATA[ normal text ]]></testsuite>',
               "whitespace": '  \n<testsuite><testcase name="ok"/></testsuite>\n  ',
+              "doctype-no-subset": '<!DOCTYPE testsuite><testsuite><testcase name="ok"/></testsuite>',
           }
           for expected_ok, fixtures in ((False, invalid), (True, valid)):
               for name, xml in fixtures.items():
@@ -85,7 +87,16 @@ jobs:
                               f"html={html.exists()} stdout={result.stdout!r} stderr={result.stderr!r}"
                           )
                       print(f"PASS {name}: exit={result.returncode} report={html.exists()}", flush=True)
-          print("NATIVE_REPORT_CLI: 12/12 expected outcomes", flush=True)
+          # This is valid XML, but deliberately outside the bounded reader's DTD subset.
+          unsupported = '<!DOCTYPE testsuite [<!ELEMENT testsuite ANY>]><testsuite><testcase name="a"/></testsuite>'
+          ET.fromstring(unsupported)  # independently ensure it is well formed
+          with tempfile.TemporaryDirectory(prefix="l4yaml-dtd-") as tmp:
+              path = Path(tmp) / "python-ffi-junit.xml"
+              path.write_text(unsupported, encoding="utf-8")
+              result = subprocess.run([".lake/build/bin/suiterunner", "--reports", tmp], capture_output=True, text=True, timeout=60)
+              assert result.returncode != 0 and not (Path(tmp) / "python-ffi-tests.html").exists(), (result.returncode, result.stdout, result.stderr)
+              print("PASS explicit-unsupported-doctype: valid XML rejected with no report", flush=True)
+          print("NATIVE_REPORT_CLI: 15/15 expected outcomes (14 oracle-agreement + 1 declared unsupported)", flush=True)
           PY
 
       - name: Full default-target Lean build
