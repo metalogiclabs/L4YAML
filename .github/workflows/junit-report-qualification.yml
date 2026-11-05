@@ -1,4 +1,4 @@
-name: JUnit quoted DOCTYPE delimiters qualification
+name: JUnit bounded DOCTYPE external-ID grammar qualification
 
 on:
   push:
@@ -16,13 +16,13 @@ jobs:
       - name: Check out unchanged PR source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: f715d02a8085aa9385633bf9915a1d1d829e3ad0
+          ref: f1608e267f5b3e9357f776e052c9fc416dd861d1
           persist-credentials: false
           submodules: recursive
 
       - name: Verify exact source identity
         run: |
-          test "$(git rev-parse HEAD)" = "f715d02a8085aa9385633bf9915a1d1d829e3ad0"
+          test "$(git rev-parse HEAD)" = "f1608e267f5b3e9357f776e052c9fc416dd861d1"
           git status --porcelain
 
       - name: Install pinned Lean toolchain
@@ -51,6 +51,11 @@ jobs:
               "malformed-end-tag": '<testsuite><testcase name="a"/></testsuite garbage>',
               "surrogate-character-reference": '<testsuite><testcase name="&#xD800;"/></testsuite>',
               "missing-attribute-whitespace": '<testsuite><testcase name="a"time="1"/></testsuite>',
+              "doctype-stray-quoted-bracket": '<!DOCTYPE testsuite "["><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-stray-quoted-path": '<!DOCTYPE testsuite "report.dtd"><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-unquoted-system": '<!DOCTYPE testsuite SYSTEM report.dtd><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-extra-literal": '<!DOCTYPE testsuite SYSTEM "report.dtd" "extra"><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-incomplete-public": '<!DOCTYPE testsuite PUBLIC "public" ><testsuite><testcase name="ok"/></testsuite>',
           }
           valid = {
               "xml-declaration": '<?xml version="1.0" encoding="UTF-8"?><testsuite><testcase name="ok"/></testsuite>',
@@ -61,6 +66,8 @@ jobs:
               "doctype-no-subset": '<!DOCTYPE testsuite><testsuite><testcase name="ok"/></testsuite>',
               "doctype-quoted-bracket": '<!DOCTYPE testsuite SYSTEM "report[1].dtd"><testsuite><testcase name="ok"/></testsuite>',
               "doctype-quoted-angle": '<!DOCTYPE testsuite SYSTEM "report>1.dtd"><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-valid-public": '<!DOCTYPE testsuite PUBLIC "-//EXAMPLE//DTD JUnit//EN" "report[1].dtd"><testsuite><testcase name="ok"/></testsuite>',
+              "doctype-singlequoted-system": '<!DOCTYPE testsuite SYSTEM \'report[1].dtd\'><testsuite><testcase name="ok"/></testsuite>',
           }
           for expected_ok, fixtures in ((False, invalid), (True, valid)):
               for name, xml in fixtures.items():
@@ -102,7 +109,7 @@ jobs:
                   result = subprocess.run([".lake/build/bin/suiterunner", "--reports", tmp], capture_output=True, text=True, timeout=60)
                   assert result.returncode != 0 and not (Path(tmp) / "python-ffi-tests.html").exists(), (name, result.returncode, result.stdout, result.stderr)
                   print(f"PASS explicitly-unsupported-{name}: valid XML rejected with no report", flush=True)
-          print("NATIVE_REPORT_CLI: 18/18 expected outcomes (16 oracle-agreement + 2 declared unsupported)", flush=True)
+          print("NATIVE_REPORT_CLI: 25/25 expected outcomes (23 oracle-agreement + 2 declared unsupported)", flush=True)
           PY
 
       - name: Full default-target Lean build
