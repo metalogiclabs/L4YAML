@@ -54,7 +54,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Properties > directive-evidence/baseline.log 2>&1
+          lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Properties L4YAML.Proofs.Production.Acceptance.Plain L4YAML.Proofs.Scanner.ScannerCorrectness > directive-evidence/baseline.log 2>&1
           tail -100 directive-evidence/baseline.log
       - name: Save successfully built dependencies independently of candidate proofs
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
-          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments; do
+          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments DirectiveBoundary; do
             if lean --root=research/whole-source -o "research/whole-source/$proof.olean" "research/whole-source/$proof.lean" > "directive-evidence/$proof.log" 2>&1; then status=0; else status=$?; fi
             printf '%s\t%s\n' "$proof" "$status" | tee -a directive-evidence/status.tsv
             cat "directive-evidence/$proof.log"
