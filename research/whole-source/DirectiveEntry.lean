@@ -146,9 +146,9 @@ lemma scan_eq_after_two (input : String) (rest : List Char) (mid out : ScannerSt
   have hp := (peek_of_corr hc0).1
   have hfuel : (input.utf8ByteSize + 1) * 4 =
       ((input.utf8ByteSize + 1) * 4 - 2) + 1 + 1 := by omega
-  unfold scan
-  rw [hp]
-  rw [hfuel, scanLoop, hfirst, scanLoop, hsecond]
+  simp only [scan, hp]
+  conv_lhs => rw [hfuel]
+  rw [scanLoop, hfirst, scanLoop, hsecond]
 
 lemma original_scan_continuation (input : String) (major minor comment rest : List Char)
     (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
