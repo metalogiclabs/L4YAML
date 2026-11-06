@@ -224,6 +224,29 @@ lemma original_comment_declaration (input : String) (major minor comment rest : 
   rw [ht']
   exact parser_consumes_version _ _ _
 
+/-- Inserting a separated comment preserves the actual declaration answer.
+This compares actual runtime consumers on two constructed original inputs;
+it does not infer semantic equality merely from equal acceptance. -/
+lemma comment_insertion_preserves_declaration (major minor comment rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r') :
+    ∃ plainOut commentOut,
+      scanDirective (ScannerState.mk' (String.ofList
+        ('%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: (major ++ '.' :: (minor ++ '\n' :: rest))))) = .ok plainOut ∧
+      scanDirective (ScannerState.mk' (String.ofList
+        ('%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: rest)))))) = .ok commentOut ∧
+      (L4YAML.TokenParser.parseDirectives (L4YAML.TokenParser.ParseState.mk' plainOut.tokens)).1 =
+      (L4YAML.TokenParser.parseDirectives (L4YAML.TokenParser.ParseState.mk' commentOut.tokens)).1 := by
+  obtain ⟨plainOut, hp, hv⟩ := original_yaml_declaration
+    (String.ofList ('%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: (major ++ '.' :: (minor ++ '\n' :: rest))))
+    major minor rest hma hmi hneMa hneMi (String.toList_ofList _)
+  obtain ⟨commentOut, hc, hw, _, _⟩ := original_comment_declaration
+    (String.ofList ('%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: rest)))))
+    major minor comment rest hma hmi hneMa hneMi hcomment (String.toList_ofList _)
+  exact ⟨plainOut, commentOut, hp, hc, hv.trans hw.symm⟩
+
+#print axioms comment_insertion_preserves_declaration
 #print axioms original_comment_declaration
 #print axioms yaml_comment_dispatch
 #print axioms skip_eq_collect
