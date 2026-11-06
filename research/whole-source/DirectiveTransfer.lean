@@ -104,8 +104,34 @@ lemma major_accepts (cs rest : List Char) (hcs : ∀ c ∈ cs, isNsDecDigit c)
   · rw [major_eq_minor_advance cs rest hcs sc acc col fuel hcorr hfuel, heq]
   · exact advance_corr hc' (by decide) (by decide)
 
+/-- Compose the adapted major collector with the reused minor collector on
+one original source span. This is the version scanner's exact two-stage body,
+using its real byte-derived fuel budgets. Numeric interpretation is separate. -/
+lemma version_digits_accepts (major minor rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hstop : Stops isNsDecDigit rest) (sc : ScannerState) (col : Nat)
+    (hcorr : ScannerSurfCorr sc ⟨major ++ '.' :: (minor ++ rest), col⟩) :
+    ∃ ma middle mi last,
+      collectVersionMajorLoop sc "" (sc.inputEnd - sc.offset) = (ma, middle) ∧
+      collectVersionMinorLoop middle "" (sc.inputEnd - middle.offset) = (mi, last) ∧
+      ma.toList = major ∧ mi.toList = minor ∧
+      ScannerSurfCorr last ⟨rest, col + major.length + 1 + minor.length⟩ ∧
+      Keeps sc last := by
+  have hf := fuel_of_corr hcorr
+  obtain ⟨ma, middle, heq, hma', hmid, hk⟩ :=
+    major_accepts major (minor ++ rest) hma sc "" col (sc.inputEnd - sc.offset) hcorr
+      (by simp only [List.length_append, List.length_cons] at hf; omega)
+  have hfmid := fuel_of_corr hmid
+  obtain ⟨mi, last, heqmi, hmi', hend, hkeep⟩ :=
+    minor_accepts minor rest hmi hstop middle "" (col + major.length + 1)
+      (sc.inputEnd - middle.offset) hmid
+      (by rw [hk.2.1] at hfmid; simp only [List.length_append] at hfmid; omega)
+  exact ⟨ma, middle, mi, last, heq, heqmi, by simpa using hma',
+    by simpa using hmi', hend, hk.trans hkeep⟩
+
 #print axioms minor_accepts
 #print axioms major_eq_minor_advance
 #print axioms major_accepts
+#print axioms version_digits_accepts
 end
 end MathGraph.WholeSource.DirectiveTransfer
