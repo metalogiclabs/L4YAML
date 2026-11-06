@@ -19,17 +19,17 @@ open L4YAML L4YAML.Scanner L4YAML.Surface
 open L4YAML.Proofs.CouplingBridge
 open MathGraph.WholeSource.DirectiveBridge
 
-lemma consumes_exact_token (origin sc : ScannerState) {handle prefix : List Char}
-    {s t : SurfPos} (h : TagBody handle prefix s t)
-    (hcorr : ScannerSurfCorr sc s) (hlimit : origin.inputEnd = sc.inputEnd) :
-    ∃ out, scanTagDirective origin sc origin.currentPos = .ok out ∧
+lemma consumes_exact_token (sc : ScannerState) {handle prefix : List Char}
+    {s t : SurfPos} (h : TagDirective handle prefix s t)
+    (hcorr : ScannerSurfCorr sc s) (hallow : sc.allowDirectives = true) :
+    ∃ out, scanDirective sc = .ok out ∧
       ScannerSurfCorr out t ∧
       out.tokens.toList = sc.tokens.toList ++
-        [{ pos := origin.currentPos,
+        [{ pos := sc.currentPos,
            val := .tagDirective (String.ofList handle) (String.ofList prefix) }] ∧
       out.directivesPresent = true := by
   obtain ⟨out, hok, hsource, htoken, hflag⟩ :=
-    scanTagDirective_accepts origin sc h hcorr hlimit
+    scanDirective_accepts sc h hcorr hallow
   refine ⟨out, hok, hsource, ?_, hflag⟩
   simp [htoken]
 
