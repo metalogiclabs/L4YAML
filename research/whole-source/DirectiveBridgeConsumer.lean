@@ -63,6 +63,9 @@ lemma parser_consumes_tag (handle tagPrefix : String) (pos : YamlPos) :
     (L4YAML.TokenParser.parseDirectives
       (L4YAML.TokenParser.ParseState.mk' #[{ pos := pos, val := .tagDirective handle tagPrefix }])).1 =
       #[.tag handle tagPrefix] := by
+  unfold L4YAML.TokenParser.parseDirectives
+  simp only [Id.run]
+  rw [Std.Legacy.Range.forIn_eq_forIn_range']
   rfl
 
 /-- Source-to-parser declaration bridge for the same arbitrary original input.
