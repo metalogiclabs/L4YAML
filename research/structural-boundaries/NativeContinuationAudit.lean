@@ -51,6 +51,13 @@ lemma native_pair_from_retained_map {sp : SurfPos}
       (∀ sp_end, SCompactMapTail n sp sp_end → ResumeFrames P ks sp_end) :=
   ⟨h.level_inv sp (SCompactMapTail.nil n sp), h.level_inv⟩
 
+/-- Coverage membership cannot manufacture a semantic continuation.  An
+impossible bottom stays impossible even if a physical cover lists a map. -/
+lemma no_retained_frame_over_false {sp : SurfPos} :
+    ¬ ResumeFrames (fun _ => False) (FrameLevel.map n :: ks) sp := by
+  intro h
+  exact h.close
+
 /-- Exact paid birth of item 389, after the branch has established `nv = k`.
 The input is the ORIGINAL `h_valF` mapping value continuation; the output
 retains the same mapping frame instead of immediately eliminating it twice. -/
@@ -166,13 +173,61 @@ lemma retained_map_cover_through_native_birth
     ((L4YAML.Proofs.IndentStackCover.preprocess_cover h_pre h_cover).of_indents_eq
       h_indents)⟩
 
+/-- A strictly lower landing cannot be the extra current-map head.  This is
+the only membership adaptation needed by the existing strict-dedent reader. -/
+lemma discard_current_map_at_lower_landing {j : Nat}
+    (h_lower : j < n) (h_mem : FrameLevel.map j ∈ FrameLevel.map n :: ks) :
+    FrameLevel.map j ∈ ks := by
+  rcases List.mem_cons.mp h_mem with h_eq | h_mem
+  · have h_same : j = n := FrameLevel.map_inj.mp h_eq
+    omega
+  · exact h_mem
+
+/-- `pendingBlock` already carries this upper bound as `h_top_old`.
+No corresponding bound is assumed for a content park that does not carry it. -/
+lemma popped_landing_below_park
+    {sc s_prep : ScannerState} {c : Char}
+    (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_pop : s_prep.indents ≠ sc.indents)
+    (h_mono : L4YAML.Proofs.IndentStackMono.Mono sc)
+    (h_top : sc.currentIndent ≤ (n : Int)) : s_prep.col < n := by
+  have h_drop : s_prep.currentIndent < sc.currentIndent := by
+    by_contra h_not
+    have h_ge : sc.currentIndent ≤ s_prep.currentIndent := by omega
+    exact h_pop (preprocess_indents_eq_of_le h_pre h_mono h_ge)
+  have h_col := (preprocess_indents_or_underIndent h_pre).resolve_left h_pop
+  omega
+
+/-- The actual native reader tolerates the retained-map superset at strict
+landings, returning the SAME old residual-membership-or-sequence result. -/
+lemma strict_landing_reader_with_retained_map
+    {lo : Nat} {sc s_prep : ScannerState} {c : Char}
+    (h_pre : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_pop : s_prep.indents ≠ sc.indents)
+    (h_base : L4YAML.Proofs.IndentStackBase.SentinelBase sc)
+    (h_floor : lo ≤ s_prep.col)
+    (h_lower : s_prep.col < n)
+    (h_cover : L4YAML.Proofs.IndentStackCover.Covered lo
+      (FrameLevel.map n :: ks) sc) :
+    FrameLevel.map s_prep.col ∈ ks ∨
+      ∃ e, s_prep.indents.back? = some e ∧ e.isSequence = true ∧
+        e.column = (s_prep.col : Int) := by
+  rcases preprocess_landing_mem_or_seq h_pre h_pop h_base h_floor h_cover with
+    h_mem | h_seq
+  · exact Or.inl (discard_current_map_at_lower_landing h_lower h_mem)
+  · exact Or.inr h_seq
+
 #print axioms map_front_iff
 #print axioms native_pair_from_retained_map
+#print axioms no_retained_frame_over_false
 #print axioms landed_same_column_supply
 #print axioms pendingBlock_closeF_from_retained_map
 #print axioms same_column_sibling_reader
 #print axioms explicit_key_bottom_preserved
 #print axioms old_cover_impossible_at_own_mapping
 #print axioms retained_map_cover_through_native_birth
+#print axioms discard_current_map_at_lower_landing
+#print axioms popped_landing_below_park
+#print axioms strict_landing_reader_with_retained_map
 
 end NativeContinuationAudit

@@ -109,7 +109,7 @@ jobs:
           mkdir -p native-qualification
           git rev-parse HEAD | tee native-qualification/harness-head.txt
           git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests lakefile.lean lean-toolchain lake-manifest.json
-          sha256sum research/structural-boundaries/NativeContinuationAudit.lean L4YAML/Proofs/Production/StreamAccum.lean | tee native-qualification/source-sha256.txt
+          sha256sum research/structural-boundaries/NativeContinuationAudit.lean research/structural-boundaries/ReachableCoverAudit.lean L4YAML/Proofs/Production/StreamAccum.lean | tee native-qualification/source-sha256.txt
       - name: Install checksum-pinned official Lean
         shell: bash
         run: |
@@ -127,13 +127,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake build L4YAML.Proofs.Production.StreamAccum 2>&1 | tee native-qualification/baseline.log
+          lake build L4YAML.Proofs.Production.StreamAccum L4YAML.Parser.Composition 2>&1 | tee native-qualification/baseline.log
       - name: Check actual native continuation obligations
         shell: bash
         run: |
           set -euo pipefail
           lake env lean --root=research/structural-boundaries research/structural-boundaries/NativeContinuationAudit.lean 2>&1 | tee native-qualification/NativeContinuationAudit.log
           if grep -E 'sorryAx|declaration uses .sorry.' native-qualification/NativeContinuationAudit.log; then exit 1; fi
+      - name: Check concrete reachability and same-state cover control
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean --root=research/structural-boundaries research/structural-boundaries/ReachableCoverAudit.lean 2>&1 | tee native-qualification/ReachableCoverAudit.log
+          if grep -E 'sorryAx|declaration uses .sorry.' native-qualification/ReachableCoverAudit.log; then exit 1; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -141,5 +147,6 @@ jobs:
           path: |
             native-qualification/
             research/structural-boundaries/NativeContinuationAudit.lean
+            research/structural-boundaries/ReachableCoverAudit.lean
           if-no-files-found: error
           retention-days: 30
