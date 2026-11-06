@@ -192,9 +192,10 @@ lemma popped_landing_below_park
     (h_mono : L4YAML.Proofs.IndentStackMono.Mono sc)
     (h_top : sc.currentIndent ≤ (n : Int)) : s_prep.col < n := by
   have h_drop : s_prep.currentIndent < sc.currentIndent := by
-    by_contra h_not
-    have h_ge : sc.currentIndent ≤ s_prep.currentIndent := by omega
-    exact h_pop (preprocess_indents_eq_of_le h_pre h_mono h_ge)
+    by_cases h_drop : s_prep.currentIndent < sc.currentIndent
+    · exact h_drop
+    · have h_ge : sc.currentIndent ≤ s_prep.currentIndent := by omega
+      exact False.elim (h_pop (preprocess_indents_eq_of_le h_pre h_mono h_ge))
   have h_col := (preprocess_indents_or_underIndent h_pre).resolve_left h_pop
   omega
 

@@ -124,6 +124,7 @@ jobs:
           path: .lake
           key: native-frames-64795a8-lean435-v1
       - name: Build actual unchanged native accumulator
+        id: nativebaseline
         shell: bash
         run: |
           set -euo pipefail
@@ -135,6 +136,7 @@ jobs:
           lake env lean --root=research/structural-boundaries research/structural-boundaries/NativeContinuationAudit.lean 2>&1 | tee native-qualification/NativeContinuationAudit.log
           if grep -E 'sorryAx|declaration uses .sorry.' native-qualification/NativeContinuationAudit.log; then exit 1; fi
       - name: Check concrete reachability and same-state cover control
+        if: always() && steps.nativebaseline.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
