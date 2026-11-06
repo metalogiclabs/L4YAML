@@ -300,8 +300,7 @@ lemma scanTagDirective_accepts (origin sc : ScannerState) {handle pfxChars : Lis
     (hcorr : ScannerSurfCorr sc s) (hlimit : origin.inputEnd = sc.inputEnd) :
     ∃ out, scanTagDirective origin sc origin.currentPos = .ok out ∧
       ScannerSurfCorr out t ∧
-      out.tokens = sc.tokens.push { pos := origin.currentPos,
-        val := .tagDirective (String.ofList handle) (String.ofList pfxChars) } ∧
+      out.tokens = sc.tokens.push { pos := origin.currentPos, val := .tagDirective (String.ofList handle) (String.ofList pfxChars) } ∧
       out.directivesPresent = true := by
   have hc : ScannerSurfCorr sc ⟨handle ++ h.afterHandle.chars, s.col⟩ := by
     rw [← h.handleRun.start_eq]; exact hcorr
@@ -395,6 +394,12 @@ lemma skipToEndOfLine_of_ending {sc : ScannerState} {t : SurfPos}
   | succ n => rcases hp with hp | hp | hp <;>
       simp [skipToEndOfLineLoop, hp, isLineBreakBool, isLineFeedBool, isCarriageReturnBool]
 
+lemma advance_percent_corr {sc : ScannerState} {s t : SurfPos}
+    (hg : GLit '%' s t) (hcorr : ScannerSurfCorr sc s) :
+    ScannerSurfCorr sc.advance t := by
+  cases hg
+  exact advance_corr hcorr (by decide) (by decide)
+
 /-- Full TAG source/scanner bridge: independent original source syntax and the
 scanner's permission flag derive success, the precise token at the `%` source
 position, and the next scanner/source correspondence. -/
@@ -402,12 +407,9 @@ lemma scanDirective_accepts (sc : ScannerState) {handle pfxChars : List Char}
     {s t : SurfPos} (h : TagDirective handle pfxChars s t)
     (hcorr : ScannerSurfCorr sc s) (hallow : sc.allowDirectives = true) :
     ∃ out, scanDirective sc = .ok out ∧ ScannerSurfCorr out t ∧
-      out.tokens = sc.tokens.push { pos := sc.currentPos,
-        val := .tagDirective (String.ofList handle) (String.ofList pfxChars) } ∧
+      out.tokens = sc.tokens.push { pos := sc.currentPos, val := .tagDirective (String.ofList handle) (String.ofList pfxChars) } ∧
       out.directivesPresent = true := by
-  have hcadv : ScannerSurfCorr sc.advance h.afterPercent := by
-    cases h.percent
-    exact advance_corr hcorr (by decide) (by decide)
+  have hcadv := advance_percent_corr h.percent hcorr
   have hfuel := fuel_of_corr hcadv
   have hiadv := (keeps_advance sc).2.1
   obtain ⟨name, sc₁, hname, hn, hc₁, hk₁⟩ := collectDirectiveNameLoop_accepts
@@ -509,12 +511,13 @@ def tagDirective_before_lf (handle pfxChars rest : List Char)
     body := tagBody_before_lf handle pfxChars rest 5 hh hp hne }
   · refine ⟨rfl, rfl, ?_, ?_⟩
     · intro c hc
-      simp only [List.mem_cons, List.mem_singleton] at hc
-      rcases hc with rfl | rfl | rfl <;> decide
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+      rcases hc with rfl | rfl | rfl <;> unfold isNsChar <;> decide
     · intro c hc
       simp only [List.head?_cons, Option.some.injEq] at hc
       subst c
-      decide
+      intro hn
+      exact hn.2.1 (by decide)
   · refine ⟨rfl, rfl, ?_, ?_⟩
     · intro c hc; simp only [List.mem_singleton] at hc; subst c; decide
     · intro c hc
@@ -616,9 +619,7 @@ lemma scanDirective_context (sc out : ScannerState) {handle pfxChars : List Char
     {s t : SurfPos} (h : TagDirective handle pfxChars s t)
     (hcorr : ScannerSurfCorr sc s) (hallow : sc.allowDirectives = true)
     (hok : scanDirective sc = .ok out) : DirectiveContextKeeps sc out := by
-  have hcadv : ScannerSurfCorr sc.advance h.afterPercent := by
-    cases h.percent
-    exact advance_corr hcorr (by decide) (by decide)
+  have hcadv := advance_percent_corr h.percent hcorr
   have hfuel := fuel_of_corr hcadv
   have hiadv := (keeps_advance sc).2.1
   obtain ⟨name, sc₁, hname, hn, hc₁, hk₁⟩ := collectDirectiveNameLoop_accepts
