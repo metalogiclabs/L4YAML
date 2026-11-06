@@ -93,7 +93,7 @@ namespace Runtime
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 8000000 in
 lemma rejects_bad : (TokenParser.parseYaml bad).toOption.isSome = false := by
-  decide
+  decide +kernel
 
 lemma rejection_bad : ¬ Accepted bad := by
   rintro ⟨docs, hdocs⟩
