@@ -17,6 +17,7 @@ namespace MathGraph.WholeSource.DirectiveBridgeConsumer
 
 open L4YAML L4YAML.Scanner L4YAML.Surface
 open L4YAML.Proofs.CouplingBridge
+open L4YAML.Proofs.ScalarCoupling
 open MathGraph.WholeSource.DirectiveBridge
 
 lemma consumes_exact_token (sc : ScannerState) {handle tagPrefix : List Char}
@@ -32,6 +33,25 @@ lemma consumes_exact_token (sc : ScannerState) {handle tagPrefix : List Char}
     scanDirective_accepts sc h hcorr hallow
   refine ⟨out, hok, hsource, ?_, hflag⟩
   simp [htoken]
+
+/-- A constructive arbitrary-length family on the actual original input.
+No scanner success or scanner correspondence is assumed by this consumer. -/
+lemma original_source_family (input : String) (handle tagPrefix rest : List Char)
+    (hh : TagHandle handle)
+    (hp : ∀ c ∈ tagPrefix, L4YAML.CharPredicates.isUriCharProp c)
+    (hne : tagPrefix ≠ [])
+    (hsource : input.toList =
+      '%' :: 'T' :: 'A' :: 'G' :: ' ' :: (handle ++ ' ' :: (tagPrefix ++ '\n' :: rest))) :
+    ∃ out, scanDirective (ScannerState.mk' input) = .ok out ∧
+      ScannerSurfCorr out ⟨'\n' :: rest, 5 + handle.length + 1 + tagPrefix.length⟩ ∧
+      out.tokens.toList =
+        [{ pos := (ScannerState.mk' input).currentPos,
+           val := .tagDirective (String.ofList handle) (String.ofList tagPrefix) }] ∧
+      out.directivesPresent = true := by
+  have hc := initial_corr input input.toList (chars_from_zero_toList input)
+  rw [hsource] at hc
+  simpa [ScannerState.mk'] using consumes_exact_token (ScannerState.mk' input)
+    (tagDirective_before_lf handle tagPrefix rest hh hp hne) hc rfl
 
 private def accepts (input : String) : Bool :=
   (L4YAML.TokenParser.parseYaml input).toOption.isSome
@@ -72,5 +92,6 @@ private def rootTags (input : String) : Option (Array (Option String)) :=
 #guard accepts "%TAG !t! tag:x,2000:\n--- !t!a b\n...\n--- !t!a b" = false
 
 #print axioms consumes_exact_token
+#print axioms original_source_family
 
 end MathGraph.WholeSource.DirectiveBridgeConsumer
