@@ -58,16 +58,18 @@ jobs:
         run: |
           set -u
           failed=0
-          for probe in QuotedSourceControls QuotedBroadExpected; do
+          for probe in QuotedSourceControls QuotedPublicControls QuotedBroadExpected; do
             if lake env lean --root=research/accepted-source "research/accepted-source/$probe.lean" > "quoted-qualification/$probe.log" 2>&1; then status=0; else status=$?; fi
             printf '%s\t%s\n' "$probe" "$status" | tee -a quoted-qualification/status.tsv
             sed -n '1,240p' "quoted-qualification/$probe.log"
           done
           test "$(awk '$1 == "QuotedSourceControls" {print $2}' quoted-qualification/status.tsv)" = 0 || failed=1
+          test "$(awk '$1 == "QuotedPublicControls" {print $2}' quoted-qualification/status.tsv)" = 0 || failed=1
           test "$(awk '$1 == "QuotedBroadExpected" {print $2}' quoted-qualification/status.tsv)" = 1 || failed=1
           test "$(grep -c ': error:' quoted-qualification/QuotedBroadExpected.log)" = 2 || failed=1
           test "$(grep -Eci ': error:.*native_decide.*evaluated.*proposition' quoted-qualification/QuotedBroadExpected.log)" = 2 || failed=1
           if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' quoted-qualification/QuotedSourceControls.log; then failed=1; fi
+          if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' quoted-qualification/QuotedPublicControls.log; then failed=1; fi
           exit "$failed"
       - name: Check same-grammar original-source inverse and axioms
         if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
@@ -90,6 +92,20 @@ jobs:
             if lean --root=research/accepted-source -o "research/accepted-source/$proof.olean" "research/accepted-source/$proof.lean" > "quoted-qualification/$proof.log" 2>&1; then status=0; else status=$?; fi
             printf '%s\t%s\n' "$proof" "$status" | tee -a quoted-qualification/status.tsv
             sed -n '1,360p' "quoted-qualification/$proof.log"
+            if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' "quoted-qualification/$proof.log"; then status=1; fi
+            test "$status" = 0
+          done
+      - name: Check original-source pair bridge and fixed consumer
+        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          quoted_lean_path="$PWD/research/accepted-source:$(lake env printenv LEAN_PATH)"
+          export LEAN_PATH="$quoted_lean_path"
+          for proof in QuotedPair QuotedPairConsumer; do
+            if lean --root=research/accepted-source -o "research/accepted-source/$proof.olean" "research/accepted-source/$proof.lean" > "quoted-qualification/$proof.log" 2>&1; then status=0; else status=$?; fi
+            printf '%s\t%s\n' "$proof" "$status" | tee -a quoted-qualification/status.tsv
+            sed -n '1,420p' "quoted-qualification/$proof.log"
             if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' "quoted-qualification/$proof.log"; then status=1; fi
             test "$status" = 0
           done
