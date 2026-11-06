@@ -33,13 +33,14 @@ collector. This lets its source-landing proof be reused without new induction. -
 lemma skip_eq_collect (sc : ScannerState) (acc : String) (fuel : Nat) :
     skipToEndOfLineLoop sc fuel = (collectRun (fun c => !isLineBreakBool c) sc acc fuel).2 := by
   induction fuel generalizing sc acc with
-  | zero => rfl
+  | zero => simp [skipToEndOfLineLoop, collectRun]
   | succ n ih =>
     cases hp : sc.peek? with
     | none => simp [skipToEndOfLineLoop, collectRun, hp]
     | some c =>
-      cases hb : isLineBreakBool c <;>
-        simp [skipToEndOfLineLoop, collectRun, hp, hb, ih]
+      cases hb : isLineBreakBool c
+      · simpa only [skipToEndOfLineLoop, collectRun, hp, hb, Bool.not_false, Bool.false_eq_true, ite_false, ite_true] using ih sc.advance (acc.push c)
+      · simp [skipToEndOfLineLoop, collectRun, hp, hb]
 
 lemma not_break_test (c : Char) :
     (!isLineBreakBool c) = true ↔ c ≠ '\n' ∧ c ≠ '\r' := by
@@ -70,9 +71,12 @@ lemma skip_preserves_present (sc : ScannerState) (fuel : Nat) :
     (skipToEndOfLineLoop sc fuel).directivesPresent = sc.directivesPresent := by
   have ha (s : ScannerState) : s.advance.directivesPresent = s.directivesPresent := by
     unfold ScannerState.advance
-    split <;> (try split) <;> (try split) <;> rfl
+    by_cases h : s.offset < s.inputEnd
+    · simp only [h, ite_true]
+      split <;> (try split) <;> rfl
+    · simp only [h, ite_false]
   induction fuel generalizing sc with
-  | zero => rfl
+  | zero => simp [skipToEndOfLineLoop]
   | succ n ih =>
     cases hp : sc.peek? with
     | none => simp [skipToEndOfLineLoop, hp]
@@ -119,7 +123,7 @@ lemma yaml_body_before_comment (origin sc : ScannerState) (major minor rest : Li
   obtain ⟨hcws, hkws⟩ := whitespace_accepts hsep last hlast
   have hp := (peek_of_corr hcws).1
   have hcols : ((skipWhitespace last).col == last.col) = false := by
-    rw [hcws.col_eq, hlast.col_eq]
+    rw [← hcws.col_eq, ← hlast.col_eq]
     simp
   let final := { (skipWhitespace last).emitAt origin.currentPos
       (.versionDirective (String.ofList major).toNat! (String.ofList minor).toNat!) with
@@ -135,6 +139,93 @@ lemma yaml_body_before_comment (origin sc : ScannerState) (major minor rest : Li
   · simp only [final, ScannerState.emitAt]
     rw [hkws.1, hk.1]
 
+lemma yaml_comment_dispatch (sc : ScannerState) (major minor comment rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
+    (hcorr : ScannerSurfCorr sc
+      ⟨'%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: rest))), 0⟩)
+    (hallow : sc.allowDirectives = true) (hseen : sc.seenYamlDirective = false) :
+    ∃ out, scanDirective sc = .ok out ∧
+      ScannerSurfCorr out ⟨'\n' :: rest, 6 + major.length + 1 + minor.length + 1 + (1 + comment.length)⟩ ∧
+      out.tokens = sc.tokens.push { pos := sc.currentPos, val := .versionDirective (String.ofList major).toNat! (String.ofList minor).toNat! } ∧
+      out.seenYamlDirective = true ∧ out.directivesPresent = true := by
+  let body := major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: rest))
+  have hcadv := advance_corr hcorr (by decide) (by decide)
+  have hnameSyntax : LexRun isNsChar ['Y','A','M','L']
+      ⟨'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: body, 1⟩ ⟨' ' :: body, 5⟩ := by
+    refine ⟨rfl, rfl, ?_, ?_⟩
+    · intro c hc
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+      rcases hc with rfl | rfl | rfl | rfl <;> unfold isNsChar <;> decide
+    · intro c hc
+      simp only [List.head?_cons, Option.some.injEq] at hc
+      subst c
+      intro hn
+      exact hn.2.1 (by decide)
+  have hfuel := fuel_of_corr hcadv
+  have hiadv := (keeps_advance sc).2.1
+  obtain ⟨name, sc₁, hname, hn, hc₁, hk₁⟩ := collectDirectiveNameLoop_accepts
+    hnameSyntax sc.advance hcadv (sc.inputEnd - sc.advance.offset) (by
+      simpa only [body, hiadv, Nat.lt_succ_iff] using hfuel)
+  have hn' : name = "YAML" := by simpa using hn
+  subst name
+  have hsep : LexRun isWhiteSpaceProp [' '] ⟨' ' :: body, 5⟩ ⟨body, 6⟩ := by
+    refine ⟨rfl, rfl, ?_, ?_⟩
+    · intro c hc; simp only [List.mem_singleton] at hc; subst c; decide
+    · cases major with
+      | nil => exact False.elim (hneMa rfl)
+      | cons c cs =>
+        intro d hd
+        simp only [body, List.cons_append, List.head?_cons, Option.some.injEq] at hd
+        subst d
+        exact digit_not_white (hma c (by simp))
+  obtain ⟨hc₂, hk₂⟩ := whitespace_accepts hsep sc₁ hc₁
+  have hlim : sc.inputEnd = (skipWhitespace sc₁).inputEnd := by
+    rw [hk₂.2.1, hk₁.2.1, hiadv]
+  obtain ⟨out, hok, hco, htok, hs, hd⟩ := yaml_body_before_comment sc (skipWhitespace sc₁)
+    major minor (comment ++ '\n' :: rest) hma hmi hneMa hneMi 6 hc₂ hlim hseen
+  obtain ⟨hland, hkland, hctx⟩ := comment_landing out ('#' :: comment) rest
+    (6 + major.length + 1 + minor.length + 1) (by
+      intro c hc
+      simp only [List.mem_cons] at hc
+      rcases hc with rfl | hc
+      · decide
+      · exact hcomment c hc) hco
+  refine ⟨skipToEndOfLine out, ?_, ?_, ?_, ?_, ?_⟩
+  · unfold scanDirective
+    simp only [hallow, Bool.not_true, Bool.false_eq_true, ite_false, hname]
+    simp only [show ("YAML" == "YAML") = true from rfl, ite_true, hok]
+
+  · simpa [List.length_cons, Nat.add_comm] using hland
+  · rw [hkland.1, htok, hk₂.1, hk₁.1, (keeps_advance sc).1]
+  · exact hctx.seenYamlDirective.trans hs
+  · exact (skip_preserves_present out _).trans hd
+
+
+/-- End-to-end directive consumer from original source; the suffix is not parsed. -/
+lemma original_comment_declaration (input : String) (major minor comment rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
+    (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
+      (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: rest)))) :
+    ∃ out, scanDirective (ScannerState.mk' input) = .ok out ∧
+      (L4YAML.TokenParser.parseDirectives (L4YAML.TokenParser.ParseState.mk' out.tokens)).1 =
+        #[.yaml (toString (String.ofList major).toNat! ++ "." ++ toString (String.ofList minor).toNat!)] ∧
+      out.seenYamlDirective = true ∧ out.directivesPresent = true := by
+  have hc := initial_corr input input.toList (chars_from_zero_toList input)
+  rw [hsource] at hc
+  obtain ⟨out, hok, _, ht, hs, hd⟩ := yaml_comment_dispatch (ScannerState.mk' input)
+    major minor comment rest hma hmi hneMa hneMi hcomment hc rfl rfl
+  refine ⟨out, hok, ?_, hs, hd⟩
+  have ht' : out.tokens = #[{ pos := (ScannerState.mk' input).currentPos, val := .versionDirective (String.ofList major).toNat! (String.ofList minor).toNat! }] := by
+    simpa [ScannerState.mk'] using ht
+  rw [ht']
+  exact parser_consumes_version _ _ _
+
+#print axioms original_comment_declaration
+#print axioms yaml_comment_dispatch
 #print axioms skip_eq_collect
 #print axioms comment_landing
 #print axioms skip_preserves_present
