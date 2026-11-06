@@ -240,10 +240,10 @@ lemma comment_insertion_preserves_declaration (major minor comment rest : List C
       (L4YAML.TokenParser.parseDirectives (L4YAML.TokenParser.ParseState.mk' commentOut.tokens)).1 := by
   obtain ⟨plainOut, hp, hv⟩ := original_yaml_declaration
     (String.ofList ('%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: (major ++ '.' :: (minor ++ '\n' :: rest))))
-    major minor rest hma hmi hneMa hneMi (String.toList_ofList _)
+    major minor rest hma hmi hneMa hneMi String.toList_ofList
   obtain ⟨commentOut, hc, hw, _, _⟩ := original_comment_declaration
     (String.ofList ('%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' :: (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: rest)))))
-    major minor comment rest hma hmi hneMa hneMi hcomment (String.toList_ofList _)
+    major minor comment rest hma hmi hneMa hneMi hcomment String.toList_ofList
   exact ⟨plainOut, commentOut, hp, hc, hv.trans hw.symm⟩
 
 #print axioms comment_insertion_preserves_declaration
