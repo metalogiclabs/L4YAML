@@ -233,7 +233,8 @@ lemma source_dq_flow_dispatch (s : ScannerState)
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
       (L4YAML.Proofs.FlowAdjacency.checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
-        saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
+        L4YAML.Proofs.FlowAdjacency.saveSimpleKey_preserves_completesFalse
+          s h_last t (h_ad_tokens ▸ ht)))
   have h_block_none : scanNextToken_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
   have h_ad_corr : ScannerSurfCorr s_ad ⟨'"' :: rest, s.col⟩ := by
