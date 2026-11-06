@@ -62,7 +62,7 @@ lemma yaml_dispatch (sc : ScannerState) (major minor rest : List Char)
   have hiadv := (keeps_advance sc).2.1
   obtain ⟨name, sc₁, hname, hn, hc₁, hk₁⟩ := collectDirectiveNameLoop_accepts
     hnameSyntax sc.advance hcadv (sc.inputEnd - sc.advance.offset) (by
-      simpa only [body, hiadv] using hfuel)
+      simpa only [body, hiadv, Nat.lt_succ_iff] using hfuel)
   have hn' : name = "YAML" := by simpa using hn
   subst name
   have hsep : LexRun isWhiteSpaceProp [' '] ⟨' ' :: body, 5⟩ ⟨body, 6⟩ := by
@@ -113,6 +113,7 @@ lemma parser_consumes_version (major minor : Nat) (pos : YamlPos) :
   simp [Std.Legacy.Range.size, List.forIn_cons,
     L4YAML.TokenParser.ParseState.mk', L4YAML.TokenParser.ParseState.peek?,
     L4YAML.TokenParser.ParseState.advance, bind, pure]
+  rfl
 
 /-- Original source through full directive dispatch into the actual parser's
 version declaration. The trailing source is not parsed by this lemma. -/
