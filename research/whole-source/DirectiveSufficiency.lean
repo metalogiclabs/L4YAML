@@ -90,8 +90,10 @@ namespace Runtime
 #guard (TokenParser.parseYaml "%TAG \r\n---").toOption.isSome = false
 #guard (TokenParser.parseYaml "%TAG \n---\n").toOption.isSome = false
 
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 8000000 in
 lemma rejects_bad : (TokenParser.parseYaml bad).toOption.isSome = false := by
-  native_decide
+  decide
 
 lemma rejection_bad : ¬ Accepted bad := by
   rintro ⟨docs, hdocs⟩
@@ -106,6 +108,17 @@ lemma refined_empty_completeness_refuted :
     ¬ (∀ input, RefinedEmptyDocument input → Accepted input) :=
   refined_empty_completeness_refuted_of_rejection Runtime.rejection_bad
 
+/-- Adding the actual whole-source trace and its WF condition does not repair
+the insufficiency. This is still an existential-trace result, not the universal
+TraceWellFormed capstone. -/
+lemma refined_traced_completeness_refuted :
+    ¬ (∀ input ev, RefinedEmptyDocument input →
+      TraceOf input ev → SerializationWellFormed ev → Accepted input) := by
+  intro hall
+  exact Runtime.rejection_bad
+    (hall bad [Event.beginDocument] bad_refined_run bad_trace bad_trace_wellFormed)
+
+#print axioms refined_traced_completeness_refuted
 #print axioms empty_tag_line
 #print axioms bad_refined_run
 #print axioms bad_trace
