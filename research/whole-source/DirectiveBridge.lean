@@ -155,8 +155,151 @@ lemma secondary_witness : TagHandle ['!', '!'] := .secondary
 lemma named_witness : TagHandle ['!', 'a', '!'] :=
   .named 'a' [] (by decide) (by simp)
 
+/-- Exact source span and maximal lexical boundary, independent of scanner
+execution. Both endpoints are positions in the same original source. -/
+structure LexRun (p : Char → Prop) (cs : List Char) (s t : SurfPos) : Prop where
+  source : s.chars = cs ++ t.chars
+  column : t.col = s.col + cs.length
+  chars : ∀ c ∈ cs, p c
+  stop : Stops p t.chars
+
+lemma prefixLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
+    collectTagPrefixLoop sc acc fuel = collectRun isUriCharBool sc acc fuel := by
+  induction fuel generalizing sc acc with
+  | zero => rfl
+  | succ n ih =>
+    simp only [collectTagPrefixLoop, collectRun]
+    split
+    · split
+      · exact ih _ _
+      · rfl
+    · rfl
+
+lemma uri_not_break (c : Char) (h : isUriCharProp c) : c ≠ '\n' ∧ c ≠ '\r' := by
+  have hb := isUriChar_not_isLineBreak c ((isUriChar_iff c).mpr h)
+  exact ⟨by intro he; subst he; exact hb rfl, by intro he; subst he; exact hb rfl⟩
+
+lemma collectTagPrefixLoop_accepts {cs : List Char} {s t : SurfPos}
+    (h : LexRun isUriCharProp cs s t) (sc : ScannerState)
+    (hcorr : ScannerSurfCorr sc s) (fuel : Nat) (hfuel : s.chars.length ≤ fuel) :
+    ∃ out sc', collectTagPrefixLoop sc "" fuel = (out, sc') ∧
+      out = String.ofList cs ∧ ScannerSurfCorr sc' t ∧ Keeps sc sc' := by
+  have hc : ScannerSurfCorr sc ⟨cs ++ t.chars, s.col⟩ := by
+    cases s; simpa only [← h.source] using hcorr
+  obtain ⟨out, sc', heq, hout, hc', hk⟩ := collectRun_accepts _ _ isUriChar_iff
+    uri_not_break cs h.chars t.chars h.stop sc "" s.col fuel hc
+      (by have hs := h.source; simp only [hs, List.length_append] at hfuel; omega)
+  refine ⟨out, sc', ?_, ?_, ?_, hk⟩
+  · simpa only [prefixLoop_eq_collectRun] using heq
+  · rw [← String.toList_inj, String.toList_ofList]
+    simpa using hout
+  · have ht : t = ⟨t.chars, s.col + cs.length⟩ := by cases t; simp_all [h.column]
+    rw [ht]; exact hc'
+
+lemma whites_span (cs : List Char) (rest : List Char) (col : Nat)
+    (h : ∀ c ∈ cs, isWhiteSpaceProp c) :
+    GStar SSWhite ⟨cs ++ rest, col⟩ ⟨rest, col + cs.length⟩ := by
+  induction cs generalizing col with
+  | nil => simpa using GStar.nil (⟨rest, col⟩ : SurfPos)
+  | cons c cs ih =>
+    have hc : isWhiteSpaceBool c = true := (isWhiteSpace_iff c).mpr (h c (by simp))
+    have ht := ih (col + 1) (fun d hd => h d (by simp [hd]))
+    have hh := isWhiteSpace_gives_SSWhite c (cs ++ rest) col hc
+    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
+      GStar.cons _ _ _ hh ht
+
+lemma whitespace_accepts {cs : List Char} {s t : SurfPos}
+    (h : LexRun isWhiteSpaceProp cs s t) (sc : ScannerState)
+    (hcorr : ScannerSurfCorr sc s) :
+    ScannerSurfCorr (skipWhitespace sc) t ∧ Keeps sc (skipWhitespace sc) := by
+  have hs : s = ⟨cs ++ t.chars, s.col⟩ := by cases s; simp_all [h.source]
+  have ht : t = ⟨t.chars, s.col + cs.length⟩ := by cases t; simp_all [h.column]
+  have hw : GStar SSWhite s t := by rw [hs, ht]; exact whites_span cs _ _ h.chars
+  apply skipWhitespace_accepts sc hw hcorr
+  · intro he; exact h.stop ' ' he (by decide)
+  · intro he; exact h.stop '\t' he (by decide)
+
+/-- A TAG body with explicit source spans. Separators and URI prefix are
+nonempty. This first bridge stops before LF/CR/EOF; comment handling is a
+separate extension. No scanner or parser success occurs in this grammar. -/
+structure TagBody (handle prefix : List Char) (s t : SurfPos) : Prop where
+  afterHandle : SurfPos
+  afterSeparator : SurfPos
+  afterPrefix : SurfPos
+  separator : List Char
+  trailing : List Char
+  handleShape : TagHandle handle
+  handleRun : LexRun (fun c => isWordCharProp c ∨ c = '!') handle s afterHandle
+  separatorRun : LexRun isWhiteSpaceProp separator afterHandle afterSeparator
+  separatorNonempty : separator ≠ []
+  prefixRun : LexRun isUriCharProp prefix afterSeparator afterPrefix
+  prefixNonempty : prefix ≠ []
+  trailingRun : LexRun isWhiteSpaceProp trailing afterPrefix t
+  ending : t.chars.head? = none ∨ t.chars.head? = some '\n' ∨ t.chars.head? = some '\r'
+
+lemma ending_peek {sc : ScannerState} {t : SurfPos} (hcorr : ScannerSurfCorr sc t)
+    (he : t.chars.head? = none ∨ t.chars.head? = some '\n' ∨ t.chars.head? = some '\r') :
+    sc.peek? = none ∨ sc.peek? = some '\n' ∨ sc.peek? = some '\r' := by
+  cases t with
+  | mk chars col =>
+    cases chars with
+    | nil => exact Or.inl (peek_none_of_corr hcorr)
+    | cons c cs =>
+      have hp := (peek_of_corr hcorr).1
+      simp only [List.head?_cons, Option.some.injEq, reduceCtorEq, false_or] at he
+      rcases he with rfl | rfl
+      · exact Or.inr (Or.inl hp)
+      · exact Or.inr (Or.inr hp)
+
+/-- General TAG directive-body bridge. The original scanner supplies the fuel
+limit and token start; the source-related body scanner supplies the position.
+All preexisting tokens are preserved and exactly one tag directive is appended. -/
+lemma scanTagDirective_accepts (origin sc : ScannerState) {handle prefix : List Char}
+    {s t : SurfPos} (h : TagBody handle prefix s t)
+    (hcorr : ScannerSurfCorr sc s) (hlimit : origin.inputEnd = sc.inputEnd) :
+    ∃ out, scanTagDirective origin sc origin.currentPos = .ok out ∧
+      ScannerSurfCorr out t ∧
+      out.tokens = sc.tokens.push { pos := origin.currentPos,
+        val := .tagDirective (String.ofList handle) (String.ofList prefix) } ∧
+      out.directivesPresent = true := by
+  have hc : ScannerSurfCorr sc ⟨handle ++ h.afterHandle.chars, s.col⟩ := by
+    cases s; simpa only [← h.handleRun.source] using hcorr
+  have hfuel := fuel_of_corr hcorr
+  obtain ⟨hand, sc₁, hloop, hhand, hc₁, hk₁⟩ := collectTagHandleDirectiveLoop_accepts
+    h.handleShape h.handleRun.stop sc "" s.col (origin.inputEnd - sc.offset) hc
+      (by rw [hlimit]; have hs := h.handleRun.source; simp only [hs, List.length_append] at hfuel; omega)
+  have hhandEq : hand = String.ofList handle := by
+    rw [← String.toList_inj, String.toList_ofList]; simpa using hhand
+  subst hand
+  have ht₁ : h.afterHandle = ⟨h.afterHandle.chars, s.col + handle.length⟩ := by
+    cases h.afterHandle; simp_all [h.handleRun.column]
+  have hc₁' : ScannerSurfCorr sc₁ h.afterHandle := by rw [ht₁]; exact hc₁
+  obtain ⟨hc₂, hk₂⟩ := whitespace_accepts h.separatorRun sc₁ hc₁'
+  have hi₂ : (skipWhitespace sc₁).inputEnd = origin.inputEnd := by
+    rw [hk₂.2.1, hk₁.2.1, hlimit]
+  have hf₂ := fuel_of_corr hc₂
+  obtain ⟨pfx, sc₃, hpfx, hpfxEq, hc₃, hk₃⟩ := collectTagPrefixLoop_accepts h.prefixRun
+    (skipWhitespace sc₁) hc₂ (origin.inputEnd - (skipWhitespace sc₁).offset) (by omega)
+  subst pfx
+  obtain ⟨hc₄, hk₄⟩ := whitespace_accepts h.trailingRun sc₃ hc₃
+  let final := { (skipWhitespace sc₃).emitAt origin.currentPos
+      (.tagDirective (String.ofList handle) (String.ofList prefix)) with directivesPresent := true }
+  have hfinal : ScannerSurfCorr final t := by
+    have he := L4YAML.Proofs.ScalarCoupling.corr_of_emitAt origin.currentPos
+      (.tagDirective (String.ofList handle) (String.ofList prefix)) hc₄
+    exact ⟨he.chars_from, he.col_eq, he.end_eq, he.input_prefix, he.indent_cols_nonneg⟩
+  refine ⟨final, ?_, hfinal, ?_, rfl⟩
+  · unfold scanTagDirective
+    simp only [hloop, h.handleShape.validated, Bool.not_true, Bool.false_eq_true, ite_false]
+    simp only [hpfx]
+    rcases ending_peek hc₄ h.ending with he | he | he <;>
+      simp [he, isLineBreakBool, pure, Except.pure, final]
+  · simp only [final, ScannerState.emitAt]
+    rw [hk₄.1, hk₃.1, hk₂.1, hk₁.1]
+
 #print axioms collectTagHandleDirectiveLoop_accepts
 #print axioms TagHandle.validated
+#print axioms scanTagDirective_accepts
 
 end
 end MathGraph.WholeSource.DirectiveBridge
