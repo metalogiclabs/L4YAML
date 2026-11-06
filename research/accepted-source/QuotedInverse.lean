@@ -388,12 +388,41 @@ lemma quoted_escaped_newline_scan_full :
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with rfl | rfl | rfl | rfl <;> decide
 
+/-- info: 'L4YAML.Research.AcceptedSource.scanDoubleQuoted_source_full_iff_oneLine' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
 #print axioms scanDoubleQuoted_source_full_iff_oneLine
+
+/-- info: 'L4YAML.Research.AcceptedSource.quoted_empty_grammar' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms quoted_empty_grammar
+
+/-- info: 'L4YAML.Research.AcceptedSource.quoted_multibyte_grammar' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms quoted_multibyte_grammar
+
+/-- info: 'L4YAML.Research.AcceptedSource.quoted_escaped_newline_grammar' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
 #print axioms quoted_escaped_newline_grammar
+
+/-- info: 'L4YAML.Research.AcceptedSource.quoted_empty_scan_full' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms quoted_empty_scan_full
+
+/-- info: 'L4YAML.Research.AcceptedSource.quoted_multibyte_scan_full' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms quoted_multibyte_scan_full
+
+/-- info: 'L4YAML.Research.AcceptedSource.quoted_escaped_newline_scan_full' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
 #print axioms quoted_escaped_newline_scan_full
 
 end L4YAML.Research.AcceptedSource
