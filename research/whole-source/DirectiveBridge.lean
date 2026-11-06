@@ -92,7 +92,9 @@ lemma handleLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
     | none => simp only [collectTagHandleDirectiveLoop, collectRun, hp]
     | some c =>
       simp only [collectTagHandleDirectiveLoop, collectRun, hp]
-      split <;> simp_all only [ih]
+      split
+      · simp_all only [ih]
+      · simp_all only
 
 lemma handleChar_not_break (c : Char) (h : isWordCharProp c ∨ c = '!') :
     c ≠ '\n' ∧ c ≠ '\r' := by
@@ -215,7 +217,9 @@ lemma prefixLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
     | none => simp only [collectTagPrefixLoop, collectRun, hp]
     | some c =>
       simp only [collectTagPrefixLoop, collectRun, hp]
-      split <;> simp_all only [ih]
+      split
+      · simp_all only [ih]
+      · simp_all only
 
 lemma uri_not_break (c : Char) (h : isUriCharProp c) : c ≠ '\n' ∧ c ≠ '\r' := by
   have hb := isUriChar_not_isLineBreak c ((isUriChar_iff c).mpr h)
@@ -332,7 +336,7 @@ lemma scanTagDirective_accepts (origin sc : ScannerState) {handle pfxChars : Lis
     simp only [hloop, h.handleShape.validated, Bool.not_true, Bool.false_eq_true, ite_false]
     simp only [hpfx]
     rcases ending_peek hc₄ h.ending with he | he | he <;>
-      simp [he, isLineBreakBool, pure, Except.pure, bind, Except.bind, final]
+      simp [he, isLineBreakBool, isLineFeedBool, isCarriageReturnBool, bind, Except.bind, final]
   · simp only [final, ScannerState.emitAt]
     rw [hk₄.1, hk₃.1, hk₂.1, hk₁.1]
 
@@ -347,7 +351,9 @@ lemma nameLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
     | none => simp only [collectDirectiveNameLoop, collectRun, hp]
     | some c =>
       simp only [collectDirectiveNameLoop, collectRun, hp]
-      split <;> simp_all only [ih]
+      split
+      · simp_all only [ih]
+      · simp_all only
 
 lemma ns_not_break (c : Char) (h : isNsChar c) : c ≠ '\n' ∧ c ≠ '\r' := by
   exact ⟨by intro he; subst he; exact h.1 (by decide),
