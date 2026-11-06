@@ -19,15 +19,17 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
+          submodules: recursive
           persist-credentials: false
-      - name: Record exact source and unchanged production
+      - name: Test full-input identity guard
+        shell: bash
+        run: bash research/whole-source/source-identity-test.sh
+      - name: Record exact source and unchanged qualification inputs
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p directive-evidence
-          git rev-parse HEAD | tee directive-evidence/head.txt
-          git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json
-          git ls-files -z -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json research/whole-source .github/workflows/whole-source-directives.yml | xargs -0 sha256sum > directive-evidence/source-sha256.txt
+          bash research/whole-source/source-identity.sh record 64795a8db28ccfdae85082c93b6453001ae9d3e4 directive-evidence
       - name: Install checksum-pinned official Lean
         shell: bash
         run: |
@@ -71,6 +73,8 @@ jobs:
           test "$(grep -Eci ': error:.*native_decide.*evaluated.*proposition' directive-evidence/DirectiveRed.log)" = 1
           if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' directive-evidence/DirectiveControls.log directive-evidence/DirectiveRed.log; then exit 1; fi
       - name: Qualify original-source witnesses and fixed consumer
+        # CI rejects sorry symptoms; exact per-receipt axiom profiles still
+        # require manual review against the declared bounded allowlist.
         if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
         shell: bash
         run: |
@@ -88,8 +92,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --exit-code HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json research/whole-source
-          sha256sum --check directive-evidence/source-sha256.txt > directive-evidence/source-recheck.txt
+          bash research/whole-source/source-identity.sh verify 64795a8db28ccfdae85082c93b6453001ae9d3e4 directive-evidence
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -101,9 +104,11 @@ jobs:
           retention-days: 30
 
   unchanged-production:
-    # Research-only edits cannot alter the pinned production source (the proof
-    # job checks this). Reuse its separately recorded qualification unless a
-    # complete repeat is explicitly requested by dispatch or commit marker.
+    # Reuse the separately recorded composite full-production qualification
+    # only with full tracked-tree identity outside research/** and five named
+    # research workflows, plus initialized, clean, revision-pinned submodules.
+    # The proof job enforces this pre/post boundary; it is not an environment
+    # or cache-equivalence claim. Dispatch / [production] requests a full repeat.
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[production]')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -118,9 +123,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p production-evidence
-          git rev-parse HEAD | tee production-evidence/head.txt
-          git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json
-          git ls-files -z -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json | xargs -0 sha256sum > production-evidence/source-sha256.txt
+          bash research/whole-source/source-identity.sh record 64795a8db28ccfdae85082c93b6453001ae9d3e4 production-evidence
       - name: Install checksum-pinned official Lean
         shell: bash
         run: |
@@ -198,8 +201,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --exit-code HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json
-          sha256sum --check production-evidence/source-sha256.txt > production-evidence/source-recheck.txt
+          bash research/whole-source/source-identity.sh verify 64795a8db28ccfdae85082c93b6453001ae9d3e4 production-evidence
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
