@@ -111,6 +111,10 @@ def sourceCases : List (String × String) := [
   ("nested block outer renamed", "- &outer\n  - &x inner\n- *x\n"),
   ("sibling rebinding control", "[&x old, *x, &x inner, *x]"),
   ("closed collection control", "[&x [inner], *x]"),
+  -- Storing an unresolved raw collection at START is insufficient: when *b
+  -- is later expanded, its earlier *a must already denote the scalar one.
+  -- The current resolver handles this acyclic control; repairs must preserve it.
+  ("completed inner alias chain control", "[&a one, &b [*a], *b]"),
   ("self alias accepted control", "&x [*x]"),
   ("self alias mapping control", "&x {a: *x}"),
   -- Here the second &x START shadows the earlier scalar immediately. The
@@ -135,6 +139,9 @@ def sourceCases : List (String × String) := [
 #guard Emit.emit actualShadow == "[[\"inner\"], [\"inner\"]]"
 #guard Emit.emit actualRenamed == expectedContent
 #guard (Emit.emit actualShadow == expectedContent) == false
+
+-- A start-time tree workaround must preserve completed nested alias content.
+#guard renderLoad "[&a one, &b [*a], *b]" == "[\"one\", [\"one\"], [\"one\"]]"
 
 -- Previously repaired declaration timing must remain repaired.
 #guard (parseYaml "&x [*x]").isOk

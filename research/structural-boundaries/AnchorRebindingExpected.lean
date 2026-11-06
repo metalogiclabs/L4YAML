@@ -9,6 +9,7 @@ public import L4YAML.Parser.Composition
 public meta import L4YAML.Parser.Composition
 public import L4YAML.Output.Emitter
 public meta import L4YAML.Output.Emitter
+public meta import Lean.Elab.Tactic.Decide
 
 @[expose] public section
 
@@ -59,7 +60,7 @@ def wantSiblingRebinding : YamlValue :=
 def wantClosedCollection : YamlValue :=
   .sequence .flow #[.sequence .flow #[inner], .sequence .flow #[inner]]
 
-def matches (src : String) (expected : YamlValue) : Bool :=
+def matchesExpected (src : String) (expected : YamlValue) : Bool :=
   match parseYamlSingle src with
   | .ok value => Emit.contentEq value expected
   | .error _ => false
@@ -81,19 +82,27 @@ def testCases : List (String × String × YamlValue) := [
 ]
 
 #eval testCases.map (fun (label, src, expected) =>
-  (label, renderLoad src, Emit.emit expected, matches src expected))
+  (label, renderLoad src, Emit.emit expected, matchesExpected src expected))
 
 -- Strict expectations, independently derived from declaration-event order.
-#guard matches "[&x [&x inner], *x]" wantNestedSequence
-#guard matches "[&outer [&x inner], *x]" wantNestedSequence
-#guard matches "[&x {k: &x inner}, *x]" wantNestedMapping
-#guard matches "[&outer {k: &x inner}, *x]" wantNestedMapping
-#guard matches "- &x\n  - &x inner\n- *x\n" wantNestedSequence
-#guard matches "- &outer\n  - &x inner\n- *x\n" wantNestedSequence
+-- These are deliberately false on the baseline: each must fail for its
+-- evaluated semantic result, not because of an unavailable identifier.
+example : matchesExpected "[&x [&x inner], *x]" wantNestedSequence = true := by
+  native_decide
 
--- Positive controls distinguish the new boundary from already repaired cases.
-#guard matches "[&x old, *x, &x inner, *x]" wantSiblingRebinding
-#guard matches "[&x [inner], *x]" wantClosedCollection
+example : matchesExpected "[&x {k: &x inner}, *x]" wantNestedMapping = true := by
+  native_decide
+
+example : matchesExpected "- &x\n  - &x inner\n- *x\n" wantNestedSequence = true := by
+  native_decide
+
+#guard matchesExpected "[&outer [&x inner], *x]" wantNestedSequence
+#guard matchesExpected "[&outer {k: &x inner}, *x]" wantNestedMapping
+#guard matchesExpected "- &outer\n  - &x inner\n- *x\n" wantNestedSequence
+
+-- Positive controls distinguish the composition boundary from repaired cases.
+#guard matchesExpected "[&x old, *x, &x inner, *x]" wantSiblingRebinding
+#guard matchesExpected "[&x [inner], *x]" wantClosedCollection
 #guard (parseYaml "&x [*x]").isOk
 #guard (parseYaml "&x {a: *x}").isOk
 #guard (parseYaml "[*x]").isOk == false

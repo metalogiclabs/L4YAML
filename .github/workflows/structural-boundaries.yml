@@ -70,9 +70,11 @@ jobs:
           test "$(awk '$1 == "TraceAnswerAudit" {print $2}' qualification/status.tsv)" = 0
           test "$(awk '$1 == "FrameOrderAudit" {print $2}' qualification/status.tsv)" = 0
           test "$(awk '$1 == "AnchorRebindingExpected" {print $2}' qualification/status.tsv)" = 1
-          if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' qualification/*Audit.log; then exit 1; fi
-          # A nonzero expected-test exit is not alone a semantic finding.
-          # Its exact failing assertions must also be inspected in the artifact.
+          if rg 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' qualification/*Audit.log; then exit 1; fi
+          # RED must mean exactly three false semantic assertions, not a syntax,
+          # import, type, or elaboration failure. Positive guards must all pass.
+          test "$(rg -c ': error:' qualification/AnchorRebindingExpected.log)" = 3
+          test "$(rg -ci ': error:.*native_decide.*evaluated.*proposition' qualification/AnchorRebindingExpected.log)" = 3
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

@@ -52,10 +52,21 @@ lemma old_order_embeds {outer inner : Frame} (h : outer.width < inner.width) :
     rank outer < rank inner := (rank_exact outer inner).mpr (Or.inl h)
 
 lemma rank_injective {a b : Frame} (h : rank a = rank b) : a = b := by
-  rcases a with ⟨a, sa⟩
-  rcases b with ⟨b, sb⟩
-  cases sa <;> cases sb <;> simp [rank] at h <;>
-    first | (have hab : a = b := by omega; subst hab; rfl) | omega
+  rcases a with ⟨wa, ka⟩
+  rcases b with ⟨wb, kb⟩
+  cases ka <;> cases kb
+  · have hw : wa = wb := by
+      change 2 * wa = 2 * wb at h
+      omega
+    exact congrArg (fun w => Frame.mk w false) hw
+  · change 2 * wa = 2 * wb + 1 at h
+    omega
+  · change 2 * wa + 1 = 2 * wb at h
+    omega
+  · have hw : wa = wb := by
+      change 2 * wa + 1 = 2 * wb + 1 at h
+      omega
+    exact congrArg (fun w => Frame.mk w true) hw
 
 lemma rank_wellFounded : WellFounded (fun a b : Frame => rank a < rank b) :=
   InvImage.wf rank Nat.lt_wfRel.wf
@@ -90,6 +101,14 @@ def looseAdmits : List Frame → Bool
 #guard looseAdmits [mapFrame 0, mapFrame 0]
 #guard !rankAdmits [mapFrame 0, mapFrame 0]
 
+/-- The duplicate-map suffix admitted by uniform `≤` is incompatible with the
+old exact width-survivor contract.  This preserves item 392's negative result. -/
+lemma duplicate_map_old_contract_false (n : Nat) :
+    ¬ (∀ f, f ∈ [mapFrame n] ↔
+      f ∈ [mapFrame n, mapFrame n] ∧ f.width < n) := by
+  intro h
+  exact Nat.lt_irrefl n ((h (mapFrame n)).mp (by simp)).2
+
 variable {α : Type}
 
 /-- The old mixed `KeyFrames` algebra, with surface tails left abstract. -/
@@ -121,10 +140,10 @@ lemma old_same_column_impossible {n : Nat} {ks : List Frame} {a : α} :
 
 lemma Frames.ofOld : ∀ {ks : List Frame} {a : α},
     OldFrames Tail P ks a → Frames Tail P ks a
-  | [], _, h => by cases h with | bottom a hp => exact .bottom a hp
-  | _ :: _, _, h => by
+  | [], a, h => by cases h with | bottom _ hp => exact .bottom a hp
+  | e :: ks, a, h => by
       cases h with
-      | level e ks a h_lt h_cont =>
+      | level _ _ _ h_lt h_cont =>
         exact .level e ks a (fun f hf => old_order_embeds (h_lt f hf))
           (fun b ht => Frames.ofOld (h_cont b ht))
 
@@ -228,6 +247,7 @@ lemma same_column_old_base {n : Nat} {ks : List Frame} {a : α}
 #print axioms rank_wellFounded
 #print axioms below_map_iff
 #print axioms below_seq_iff
+#print axioms duplicate_map_old_contract_false
 #print axioms old_same_column_impossible
 #print axioms Frames.ofOld
 #print axioms Frames.close

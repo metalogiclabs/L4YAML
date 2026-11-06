@@ -150,7 +150,11 @@ lemma runtime_accepts : parserAccepts "a\n*x" = true := by native_decide
 lemma runtime_acceptance : ∃ docs, TokenParser.parseYaml "a\n*x" = .ok docs := by
   have h := runtime_accepts
   cases hr : TokenParser.parseYaml "a\n*x" with
-  | error e => simp [parserAccepts, hr] at h
+  | error e =>
+    change (TokenParser.parseYaml "a\n*x").toOption.isSome = true at h
+    rw [hr] at h
+    change false = true at h
+    cases h
   | ok docs => exact ⟨docs, rfl⟩
 
 /-- This is the consequential failure, not only a difference between traces. -/
