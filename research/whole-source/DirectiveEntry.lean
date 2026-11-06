@@ -148,7 +148,9 @@ lemma scan_eq_after_two (input : String) (rest : List Char) (mid out : ScannerSt
       ((input.utf8ByteSize + 1) * 4 - 2) + 1 + 1 := by omega
   simp [scan, hp]
   conv => lhs; rw [hfuel]
-  rw [scanLoop, hfirst, scanLoop, hsecond]
+  rw [scanLoop, hfirst]
+  simp only []
+  rw [scanLoop, hsecond]
 
 lemma original_scan_continuation (input : String) (major minor comment rest : List Char)
     (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
