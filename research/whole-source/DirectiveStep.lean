@@ -22,7 +22,9 @@ open MathGraph.WholeSource.DirectiveBoundary
 private def nextAfterDirective (s : String) : Bool :=
   match scanDirective (ScannerState.mk' s) with
   | .error _ => false
-  | .ok out => (scanNextToken out).toOption.flatten.isSome
+  | .ok out => match scanNextToken out with
+    | .ok (some _) => true
+    | _ => false
 #guard nextAfterDirective "%YAML 1.2 # café\n---\nvalue" = true
 #guard nextAfterDirective "%YAML 1.2 #\n---\n" = true
 #guard nextAfterDirective "%YAML 1.2 #x\nvalue" = false
@@ -87,13 +89,13 @@ lemma lf_content (s : ScannerState) (rest : List Char) (col : Nat)
   obtain ⟨hpLand, hmLand⟩ := peek_of_corr hland
   have hws := ws_noop_nonwhite s '\n' hp (by decide) (by decide) (by decide) hm
   refine ⟨?_, hland, hfl, hk.2.2, ?_⟩
-  · unfold skipToContent
+  · have hcomment : skipToContentComment s = s := by simp [skipToContentComment, hp]
+    have hflow : (consumeNewline s).inFlow = false := by simp [ScannerState.inFlow, hfl]
+    unfold skipToContent
     rw [skipToContentLoop]
-    simp only [hws, skipToContentComment, hp]
-    simp only [isLineBreakBool, isLineFeedBool, isCarriageReturnBool]
-    simp only [ScannerState.inFlow, hfl]
-    exact content_loop_noop land _ hpLand hmLand
-  · simp [land, consumeNewline, hp]
+    simpa [hws, hcomment, hp, hflow, isLineBreakBool, isLineFeedBool, isCarriageReturnBool]
+      using content_loop_noop land (s.inputEnd - s.offset) hpLand hmLand
+  · simp [consumeNewline, hp]
 
 lemma preprocess_marker (s : ScannerState) (rest : List Char)
     (hc : ScannerSurfCorr s ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩)
@@ -116,9 +118,63 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
   have hpk := (peek_of_corr hl).1
   refine ⟨land, ?_, hl, ?_⟩
   · unfold scanNextToken_preprocess
-    simp [hskip, ScannerState.hasMore, hm, hflow, hneed, hunwind, hi, ready, land, hpk]
+    simp [hskip, bind, pure, ScannerState.hasMore, hm, hflow, hneed, hunwind, hi, ready, land, hpk]
   · simp [land, ready, L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_flowLevel, hf]
 
+/-- Full scanNextToken, including the actual newline preprocessing and both
+intervening validators. No successful step/preprocessing premise is assumed. -/
+lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major minor : Nat)
+    (pos : YamlPos)
+    (hc : ScannerSurfCorr s ⟨'\n' :: '-' :: '-' :: '-' :: '\n' :: rest, col⟩)
+    (hf : s.flowLevel = 0)
+    (hi : s.indents = #[{column := -1, isSequence := false}])
+    (ht : s.tokens = #[{pos := pos, val := .versionDirective major minor}]) :
+    ∃ out, scanNextToken s = .ok (some out) ∧ out.directivesPresent = false ∧
+      out.allowDirectives = false ∧ out.seenYamlDirective = false := by
+  obtain ⟨hskip, hcLand, hfLand, hiLand, hnLand⟩ := lf_content s rest col hc hf
+  let content := { consumeNewline s with simpleKeyAllowed := true }
+  obtain ⟨land, hpre, hcorr, hflow⟩ := preprocess_marker content rest hcLand hfLand
+    (hiLand.trans hi) hnLand
+  have hpreS : scanNextToken_preprocess s = .ok (some (land, '-')) := by
+    obtain ⟨hp, hm⟩ := peek_of_corr hcLand
+    have hnoop := skipToContent_of_content_char content '-' hp (by decide) (by decide) (by decide) hm
+    unfold scanNextToken_preprocess at hpre ⊢
+    rw [hnoop] at hpre
+    rw [hskip]
+    exact hpre
+  obtain ⟨hd, hv⟩ := version_token_checks s land major minor pos ht
+  have hstruct := structural_document_start land rest hcorr hflow
+  refine ⟨scanDocumentStart land, ?_, ?_, ?_, ?_⟩
+  · simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure]
+  all_goals simp [scanDocumentStart]
+
+/-- Original-source consumer of the full next step; the rest of the document
+is not parsed and whole-stream completeness is not claimed. -/
+lemma original_comment_full_step (input : String) (major minor comment rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
+    (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
+      (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: '-' :: '-' :: '-' :: '\n' :: rest)))) :
+    ∃ directiveOut out, scanDirective (ScannerState.mk' input) = .ok directiveOut ∧
+      scanNextToken directiveOut = .ok (some out) ∧ out.directivesPresent = false ∧
+      out.allowDirectives = false ∧ out.seenYamlDirective = false := by
+  have hc := initial_corr input input.toList (chars_from_zero_toList input)
+  rw [hsource] at hc
+  obtain ⟨mid, hok, hland, ht, _, _⟩ := yaml_comment_dispatch (ScannerState.mk' input)
+    major minor comment ('-' :: '-' :: '-' :: '\n' :: rest)
+    hma hmi hneMa hneMi hcomment hc rfl rfl
+  have hf : mid.flowLevel = 0 :=
+    L4YAML.Proofs.ScannerCorrectness.scanDirective_preserves_flowLevel _ _ hok
+  have hi : mid.indents = #[{column := -1, isSequence := false}] :=
+    L4YAML.Proofs.IndentStackBase.scanDirective_preserves_indents hok
+  have ht' : mid.tokens = #[{pos := (ScannerState.mk' input).currentPos, val := .versionDirective (String.ofList major).toNat! (String.ofList minor).toNat!}] := by
+    simpa [ScannerState.mk'] using ht
+  obtain ⟨out, hs, hd, ha, hy⟩ := full_step_after_version mid rest _ _ _ _ hland hf hi ht'
+  exact ⟨mid, out, hok, hs, hd, ha, hy⟩
+
+#print axioms full_step_after_version
+#print axioms original_comment_full_step
 #print axioms version_token_checks
 #print axioms lf_content
 #print axioms preprocess_marker
