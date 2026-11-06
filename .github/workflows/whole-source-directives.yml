@@ -1,0 +1,207 @@
+name: Whole-source directive adequacy qualification
+
+on:
+  push:
+    branches: ['research/structural-boundaries-20261106']
+    paths:
+      - 'research/whole-source/**'
+      - '.github/workflows/whole-source-directives.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  directive-proofs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Record exact source and unchanged production
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p directive-evidence
+          git rev-parse HEAD | tee directive-evidence/head.txt
+          git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json
+          git ls-files -z -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json research/whole-source .github/workflows/whole-source-directives.yml | xargs -0 sha256sum > directive-evidence/source-sha256.txt
+      - name: Install checksum-pinned official Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 -o "$RUNNER_TEMP/lean.tar.zst" https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst
+          echo "7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check | tee directive-evidence/toolchain-checksum.txt
+          tar --no-same-owner --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-4.35.0-linux/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lean-4.35.0-linux/bin/lean" --version | tee directive-evidence/lean-version.txt
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .lake
+          key: whole-directives-64795a8-lean435-${{ github.sha }}
+          restore-keys: |
+            whole-directives-64795a8-lean435-
+            quoted-pack-freshness-64795a8-lean435-
+            trace-repair-64795a8-lean435-
+            accepted-source-64795a8-lean435-
+      - name: Build unchanged source grammar and parser dependencies
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition > directive-evidence/baseline.log 2>&1
+          tail -100 directive-evidence/baseline.log
+      - name: Qualify literal controls and reject equal-acceptance hypothesis
+        if: steps.baseline.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
+          if lean --root=research/whole-source -o research/whole-source/DirectiveControls.olean research/whole-source/DirectiveControls.lean > directive-evidence/DirectiveControls.log 2>&1; then status=0; else status=$?; fi
+          printf 'DirectiveControls\t%s\n' "$status" | tee -a directive-evidence/status.tsv
+          cat directive-evidence/DirectiveControls.log
+          test "$status" = 0
+          if lean --root=research/whole-source research/whole-source/DirectiveRed.lean > directive-evidence/DirectiveRed.log 2>&1; then status=0; else status=$?; fi
+          printf 'DirectiveRed-expected-failure\t%s\n' "$status" | tee -a directive-evidence/status.tsv
+          cat directive-evidence/DirectiveRed.log
+          test "$status" = 1
+          test "$(grep -c ': error:' directive-evidence/DirectiveRed.log)" = 1
+          test "$(grep -Eci ': error:.*native_decide.*evaluated.*proposition' directive-evidence/DirectiveRed.log)" = 1
+          if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' directive-evidence/DirectiveControls.log directive-evidence/DirectiveRed.log; then exit 1; fi
+      - name: Qualify original-source witnesses and fixed consumer
+        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
+          for proof in DirectiveTrace DirectiveConsumer; do
+            if lean --root=research/whole-source -o "research/whole-source/$proof.olean" "research/whole-source/$proof.lean" > "directive-evidence/$proof.log" 2>&1; then status=0; else status=$?; fi
+            printf '%s\t%s\n' "$proof" "$status" | tee -a directive-evidence/status.tsv
+            cat "directive-evidence/$proof.log"
+            test "$status" = 0
+            if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' "directive-evidence/$proof.log"; then exit 1; fi
+          done
+      - name: Confirm source identities after qualification
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json research/whole-source
+          sha256sum --check directive-evidence/source-sha256.txt > directive-evidence/source-recheck.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: whole-source-directive-evidence
+          path: |
+            directive-evidence/
+            research/whole-source/
+          if-no-files-found: error
+          retention-days: 30
+
+  unchanged-production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Record production source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p production-evidence
+          git rev-parse HEAD | tee production-evidence/head.txt
+          git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json
+          git ls-files -z -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json | xargs -0 sha256sum > production-evidence/source-sha256.txt
+      - name: Install checksum-pinned official Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 -o "$RUNNER_TEMP/lean.tar.zst" https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst
+          echo "7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check | tee production-evidence/toolchain-checksum.txt
+          tar --no-same-owner --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-4.35.0-linux/bin" >> "$GITHUB_PATH"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .lake
+          key: whole-directives-production-64795a8-lean435-${{ github.sha }}
+          restore-keys: |
+            whole-directives-production-64795a8-lean435-
+            quoted-pack-freshness-64795a8-lean435-
+            trace-repair-64795a8-lean435-
+            quoted-production-64795a8-lean435-
+      - name: Preserve cached ranges and force genuine fresh module compilation
+        shell: bash
+        run: |
+          set -euo pipefail
+          olean=.lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean
+          for file in "$olean" "$olean.server"; do
+            if test -f "$file"; then
+              stat --printf='%n\tsize=%s\tmtime=%y\n' "$file" >> production-evidence/cached-stat.tsv
+              sha256sum "$file" >> production-evidence/cached-sha256.txt
+            fi
+          done
+          if test -f "$olean"; then mv -- "$olean" production-evidence/StreamAccum.cached.olean; fi
+          if test -f "$olean.server"; then mv -- "$olean.server" production-evidence/StreamAccum.cached.olean.server; fi
+          test ! -e "$olean"
+          test ! -e "$olean.server"
+      - name: Full default repository build
+        id: fullbuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build > production-evidence/full-build.log 2>&1
+          tail -100 production-evidence/full-build.log
+          source=L4YAML/Proofs/Production/StreamAccum.lean
+          olean=.lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean
+          test -f "$olean" && test ! "$source" -nt "$olean"
+          test -f "$olean.server" && test ! "$source" -nt "$olean.server"
+          stat --printf='%n\tsize=%s\tmtime=%y\n' "$source" "$olean" "$olean.server" > production-evidence/rebuilt-stat.tsv
+          sha256sum "$source" "$olean" "$olean.server" > production-evidence/rebuilt-sha256.txt
+      - name: Build non-default runtime executables
+        id: runtimebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build tests demo limittests > production-evidence/runtime-build.log 2>&1
+          tail -100 production-evidence/runtime-build.log
+      - name: Run unchanged repository gates and full test command
+        if: steps.fullbuild.outcome == 'success' && steps.runtimebuild.outcome == 'success'
+        shell: bash
+        run: |
+          set -u
+          failed=0
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
+            if lake run "$gate" > "production-evidence/$gate.log" 2>&1; then status=0; else status=$?; failed=1; fi
+            printf '%s\t%s\n' "$gate" "$status" | tee -a production-evidence/status.tsv
+            tail -40 "production-evidence/$gate.log"
+          done
+          if lake run gen-traceof -- --check > production-evidence/gen-traceof.log 2>&1; then status=0; else status=$?; failed=1; fi
+          printf 'gen-traceof\t%s\n' "$status" | tee -a production-evidence/status.tsv
+          if lake run run-all-tests -- docs/reports > production-evidence/runtime-tests.log 2>&1; then status=0; else status=$?; failed=1; fi
+          printf 'run-all-tests\t%s\n' "$status" | tee -a production-evidence/status.tsv
+          tail -60 production-evidence/runtime-tests.log
+          if lake exe collect-stats > production-evidence/collect-stats.log 2>&1 && lake run check-hygiene -- docs/reports/stats.json > production-evidence/check-hygiene.log 2>&1; then status=0; else status=$?; failed=1; fi
+          printf 'check-hygiene\t%s\n' "$status" | tee -a production-evidence/status.tsv
+          tail -40 production-evidence/check-hygiene.log
+          exit "$failed"
+      - name: Confirm unchanged production source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json
+          sha256sum --check production-evidence/source-sha256.txt > production-evidence/source-recheck.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: whole-source-unchanged-production
+          path: |
+            production-evidence/
+            docs/reports/
+          if-no-files-found: error
+          retention-days: 30
