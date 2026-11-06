@@ -54,8 +54,17 @@ jobs:
           set -euo pipefail
           lake build > qualification/full-build.log 2>&1
           tail -100 qualification/full-build.log
+      - name: Build non-default runtime executables
+        id: runtimebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          if lake build tests demo limittests > qualification/runtime-build.log 2>&1; then status=0; else status=$?; fi
+          printf 'runtime-build\t%s\n' "$status" | tee -a qualification/status.tsv
+          tail -100 qualification/runtime-build.log
+          exit "$status"
       - name: Repository gates and unchanged executable controls
-        if: steps.fullbuild.outcome == 'success'
+        if: steps.fullbuild.outcome == 'success' && steps.runtimebuild.outcome == 'success'
         shell: bash
         run: |
           set -u
