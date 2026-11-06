@@ -1,0 +1,84 @@
+name: Source-connected quoted fragment qualification
+
+on:
+  push:
+    branches: ['research/structural-boundaries-20261106']
+    paths:
+      - 'research/accepted-source/**'
+      - '.github/workflows/accepted-source-slices.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin unchanged production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p quoted-qualification
+          git rev-parse HEAD | tee quoted-qualification/head.txt
+          git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests lakefile.lean lean-toolchain lake-manifest.json
+          sha256sum lean-toolchain lake-manifest.json research/accepted-source/*.lean | tee quoted-qualification/source-sha256.txt
+      - name: Install checksum-pinned official Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 -o "$RUNNER_TEMP/lean.tar.zst" https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst
+          echo "7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check
+          tar --no-same-owner --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-4.35.0-linux/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lean-4.35.0-linux/bin/lean" --version | tee quoted-qualification/lean-version.txt
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .lake
+          key: accepted-source-64795a8-lean435-${{ github.sha }}
+          restore-keys: |
+            accepted-source-64795a8-lean435-
+            native-frames-64795a8-lean435-v1
+            structural-baseline-64795a8-lean435-v1
+      - name: Build unchanged quoted and parser dependencies
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Quoted > quoted-qualification/baseline.log 2>&1
+          tail -100 quoted-qualification/baseline.log
+      - name: Run source boundary controls and expected failures
+        if: steps.baseline.outcome == 'success'
+        shell: bash
+        run: |
+          set -u
+          failed=0
+          for probe in QuotedSourceControls QuotedBroadExpected; do
+            if lake env lean --root=research/accepted-source "research/accepted-source/$probe.lean" > "quoted-qualification/$probe.log" 2>&1; then status=0; else status=$?; fi
+            printf '%s\t%s\n' "$probe" "$status" | tee -a quoted-qualification/status.tsv
+            sed -n '1,240p' "quoted-qualification/$probe.log"
+          done
+          test "$(awk '$1 == "QuotedSourceControls" {print $2}' quoted-qualification/status.tsv)" = 0 || failed=1
+          test "$(awk '$1 == "QuotedBroadExpected" {print $2}' quoted-qualification/status.tsv)" = 1 || failed=1
+          test "$(grep -c ': error:' quoted-qualification/QuotedBroadExpected.log)" = 2 || failed=1
+          test "$(grep -Eci ': error:.*native_decide.*evaluated.*proposition' quoted-qualification/QuotedBroadExpected.log)" = 2 || failed=1
+          if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' quoted-qualification/QuotedSourceControls.log; then failed=1; fi
+          exit "$failed"
+      - name: Ensure production source remains unchanged
+        if: always()
+        shell: bash
+        run: git diff --exit-code HEAD -- L4YAML Tests lakefile.lean lean-toolchain lake-manifest.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: quoted-source-evidence
+          path: |
+            quoted-qualification/
+            research/accepted-source/
+          if-no-files-found: error
+          retention-days: 30
