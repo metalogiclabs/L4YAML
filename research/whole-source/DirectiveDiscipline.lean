@@ -35,7 +35,7 @@ open L4YAML.Proofs.Serialization.TraceOf
 
 -- This computes the existing source character predicate; it does not call
 -- any scanner/parser or introduce classical decidability.
-private def isNsCharBool (c : Char) : Bool :=
+def isNsCharBool (c : Char) : Bool :=
   letI : Decidable (isNsChar c) := by
     unfold isNsChar
     infer_instance
@@ -55,7 +55,7 @@ def physicalLines : List Char → List (List Char)
 
 /-- Recognize only an initial `%` followed by the maximal `isNsChar` name
 exactly `YAML`. This is a name count, not validation of a version-line body. -/
-private def isYamlDirectiveLine : List Char → Bool
+def isYamlDirectiveLine : List Char → Bool
   | '%' :: rest => rest.takeWhile isNsCharBool == ['Y', 'A', 'M', 'L']
   | _ => false
 
