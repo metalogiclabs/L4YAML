@@ -222,7 +222,7 @@ lemma whitespace_accepts {cs : List Char} {s t : SurfPos}
 /-- A TAG body with explicit source spans. Separators and URI prefix are
 nonempty. This first bridge stops before LF/CR/EOF; comment handling is a
 separate extension. No scanner or parser success occurs in this grammar. -/
-structure TagBody (handle prefix : List Char) (s t : SurfPos) : Prop where
+structure TagBody (handle prefix : List Char) (s t : SurfPos) where
   afterHandle : SurfPos
   afterSeparator : SurfPos
   afterPrefix : SurfPos
@@ -297,9 +297,163 @@ lemma scanTagDirective_accepts (origin sc : ScannerState) {handle prefix : List 
   · simp only [final, ScannerState.emitAt]
     rw [hk₄.1, hk₃.1, hk₂.1, hk₁.1]
 
+lemma nameLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
+    collectDirectiveNameLoop sc acc fuel = collectRun
+      (fun c => !isWhiteSpaceBool c && !isLineBreakBool c && isPrintableBool c && c != '﻿')
+      sc acc fuel := by
+  induction fuel generalizing sc acc with
+  | zero => rfl
+  | succ n ih =>
+    simp only [collectDirectiveNameLoop, collectRun]
+    split
+    · split
+      · exact ih _ _
+      · rfl
+    · rfl
+
+lemma ns_not_break (c : Char) (h : isNsChar c) : c ≠ '\n' ∧ c ≠ '\r' := by
+  exact ⟨by intro he; subst he; exact h.1 (by decide),
+    by intro he; subst he; exact h.1 (by decide)⟩
+
+lemma collectDirectiveNameLoop_accepts {cs : List Char} {s t : SurfPos}
+    (h : LexRun isNsChar cs s t) (sc : ScannerState)
+    (hcorr : ScannerSurfCorr sc s) (fuel : Nat) (hfuel : s.chars.length ≤ fuel) :
+    ∃ out sc', collectDirectiveNameLoop sc "" fuel = (out, sc') ∧
+      out = String.ofList cs ∧ ScannerSurfCorr sc' t ∧ Keeps sc sc' := by
+  have hc : ScannerSurfCorr sc ⟨cs ++ t.chars, s.col⟩ := by
+    cases s; simpa only [← h.source] using hcorr
+  obtain ⟨out, sc', heq, hout, hc', hk⟩ := collectRun_accepts _ _
+    (fun c => (isNsChar_iff_bool c).symm) ns_not_break cs h.chars t.chars h.stop
+    sc "" s.col fuel hc
+      (by have hs := h.source; simp only [hs, List.length_append] at hfuel; omega)
+  refine ⟨out, sc', ?_, ?_, ?_, hk⟩
+  · simpa only [nameLoop_eq_collectRun] using heq
+  · rw [← String.toList_inj, String.toList_ofList]; simpa using hout
+  · have ht : t = ⟨t.chars, s.col + cs.length⟩ := by cases t; simp_all [h.column]
+    rw [ht]; exact hc'
+
+/-- A full independent `%TAG` directive through the same original-source
+positions as its body. Column-zero is the production dispatch context. -/
+structure TagDirective (handle prefix : List Char) (s t : SurfPos) where
+  afterPercent : SurfPos
+  afterName : SurfPos
+  bodyStart : SurfPos
+  separator : List Char
+  columnZero : s.col = 0
+  percent : GLit '%' s afterPercent
+  name : LexRun isNsChar ['T', 'A', 'G'] afterPercent afterName
+  separatorRun : LexRun isWhiteSpaceProp separator afterName bodyStart
+  separatorNonempty : separator ≠ []
+  body : TagBody handle prefix bodyStart t
+
+lemma skipToEndOfLine_of_ending {sc : ScannerState} {t : SurfPos}
+    (hcorr : ScannerSurfCorr sc t)
+    (he : t.chars.head? = none ∨ t.chars.head? = some '\n' ∨ t.chars.head? = some '\r') :
+    skipToEndOfLine sc = sc := by
+  have hp := ending_peek hcorr he
+  unfold skipToEndOfLine
+  cases (sc.inputEnd - sc.offset) with
+  | zero => rfl
+  | succ n => rcases hp with hp | hp | hp <;> simp [skipToEndOfLineLoop, hp, isLineBreakBool]
+
+/-- Full TAG source/scanner bridge: independent original source syntax and the
+scanner's permission flag derive success, the precise token at the `%` source
+position, and the next scanner/source correspondence. -/
+lemma scanDirective_accepts (sc : ScannerState) {handle prefix : List Char}
+    {s t : SurfPos} (h : TagDirective handle prefix s t)
+    (hcorr : ScannerSurfCorr sc s) (hallow : sc.allowDirectives = true) :
+    ∃ out, scanDirective sc = .ok out ∧ ScannerSurfCorr out t ∧
+      out.tokens = sc.tokens.push { pos := sc.currentPos,
+        val := .tagDirective (String.ofList handle) (String.ofList prefix) } ∧
+      out.directivesPresent = true := by
+  have hcadv : ScannerSurfCorr sc.advance h.afterPercent := by
+    cases h.percent
+    exact advance_corr hcorr (by decide) (by decide)
+  have hfuel := fuel_of_corr hcadv
+  have hiadv := (keeps_advance sc).2.1
+  obtain ⟨name, sc₁, hname, hn, hc₁, hk₁⟩ := collectDirectiveNameLoop_accepts
+    h.name sc.advance hcadv (sc.inputEnd - sc.advance.offset) (by omega)
+  have hn' : name = "TAG" := by simpa using hn
+  subst name
+  obtain ⟨hc₂, hk₂⟩ := whitespace_accepts h.separatorRun sc₁ hc₁
+  have hlim : sc.inputEnd = (skipWhitespace sc₁).inputEnd := by
+    rw [hk₂.2.1, hk₁.2.1, hiadv]
+  obtain ⟨out, hok, hco, htok, hdp⟩ := scanTagDirective_accepts sc
+    (skipWhitespace sc₁) h.body hc₂ hlim
+  refine ⟨out, ?_, hco, ?_, hdp⟩
+  · unfold scanDirective
+    simp only [hallow, Bool.not_true, Bool.false_eq_true, ite_false, hname]
+    simp only [show ("TAG" == "YAML") = false from rfl, Bool.false_eq_true, ite_false,
+      show ("TAG" == "TAG") = true from rfl, ite_true, hok]
+    rw [skipToEndOfLine_of_ending hco h.body.ending]
+  · rw [htok, hk₂.1, hk₁.1, (keeps_advance sc).1]
+
+lemma uri_not_white {c : Char} (hu : isUriCharProp c) : ¬ isWhiteSpaceProp c := by
+  intro hw
+  simp only [isWhiteSpaceProp, isSpaceProp, isTabProp, beq_iff_eq] at hw
+  rcases hw with rfl | rfl <;>
+    simp [isUriCharProp, isWordCharProp, isAsciiLetterProp] at hu
+
+/-- Constructive arbitrary-length family, with unrestricted original-source
+suffix and starting column. This reaches every handle arm and every nonempty
+URI prefix, rather than proving only a finite set of literal examples. -/
+def tagBody_before_lf (handle prefix rest : List Char) (col : Nat)
+    (hh : TagHandle handle) (hp : ∀ c ∈ prefix, isUriCharProp c) (hne : prefix ≠ []) :
+    TagBody handle prefix
+      ⟨handle ++ ' ' :: (prefix ++ '\n' :: rest), col⟩
+      ⟨'\n' :: rest, col + handle.length + 1 + prefix.length⟩ := by
+  refine {
+    afterHandle := ⟨' ' :: (prefix ++ '\n' :: rest), col + handle.length⟩
+    afterSeparator := ⟨prefix ++ '\n' :: rest, col + handle.length + 1⟩
+    afterPrefix := ⟨'\n' :: rest, col + handle.length + 1 + prefix.length⟩
+    separator := [' ']
+    trailing := []
+    handleShape := hh
+    handleRun := ?_
+    separatorRun := ?_
+    separatorNonempty := by decide
+    prefixRun := ?_
+    prefixNonempty := hne
+    trailingRun := ?_
+    ending := Or.inr (Or.inl rfl) }
+  · refine ⟨rfl, rfl, hh.chars, ?_⟩
+    intro c hc
+    simp only [List.head?_cons, Option.some.injEq] at hc
+    subst c
+    decide
+  · refine ⟨rfl, by simp, ?_, ?_⟩
+    · intro c hc; simp only [List.mem_singleton] at hc; subst c; decide
+    · cases prefix with
+      | nil => exact False.elim (hne rfl)
+      | cons c cs =>
+        intro d hd
+        simp only [List.cons_append, List.head?_cons, Option.some.injEq] at hd
+        subst d
+        exact uri_not_white (hp c (by simp))
+  · refine ⟨rfl, rfl, hp, ?_⟩
+    intro c hc
+    simp only [List.head?_cons, Option.some.injEq] at hc
+    subst c
+    decide
+  · refine ⟨rfl, by simp, by simp, ?_⟩
+    intro c hc
+    simp only [List.head?_cons, Option.some.injEq] at hc
+    subst c
+    decide
+
+/-- The constructive family specializes to arbitrary named word bodies. -/
+def namedTagBody_before_lf (c : Char) (cs prefix rest : List Char) (col : Nat)
+    (hc : isWordCharProp c) (hcs : ∀ d ∈ cs, isWordCharProp d)
+    (hp : ∀ d ∈ prefix, isUriCharProp d) (hne : prefix ≠ []) :
+    TagBody ('!' :: (c :: cs) ++ ['!']) prefix
+      ⟨('!' :: (c :: cs) ++ ['!']) ++ ' ' :: (prefix ++ '\n' :: rest), col⟩
+      ⟨'\n' :: rest, col + ('!' :: (c :: cs) ++ ['!']).length + 1 + prefix.length⟩ :=
+  tagBody_before_lf _ prefix rest col (.named c cs hc hcs) hp hne
+
 #print axioms collectTagHandleDirectiveLoop_accepts
 #print axioms TagHandle.validated
 #print axioms scanTagDirective_accepts
+#print axioms scanDirective_accepts
 
 end
 end MathGraph.WholeSource.DirectiveBridge
