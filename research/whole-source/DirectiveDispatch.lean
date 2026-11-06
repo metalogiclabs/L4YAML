@@ -61,7 +61,8 @@ lemma yaml_dispatch (sc : ScannerState) (major minor rest : List Char)
   have hfuel := fuel_of_corr hcadv
   have hiadv := (keeps_advance sc).2.1
   obtain ⟨name, sc₁, hname, hn, hc₁, hk₁⟩ := collectDirectiveNameLoop_accepts
-    hnameSyntax sc.advance hcadv (sc.inputEnd - sc.advance.offset) (by omega)
+    hnameSyntax sc.advance hcadv (sc.inputEnd - sc.advance.offset) (by
+      simpa only [body, hiadv] using hfuel)
   have hn' : name = "YAML" := by simpa using hn
   subst name
   have hsep : LexRun isWhiteSpaceProp [' '] ⟨' ' :: body, 5⟩ ⟨body, 6⟩ := by
@@ -101,7 +102,36 @@ lemma original_yaml_dispatch (input : String) (major minor rest : List Char)
     major minor rest hma hmi hneMa hneMi hc rfl rfl
   exact ⟨out, hok, by simpa [ScannerState.mk'] using ht, hs, hd⟩
 
+/-- Actual parser consumption for an arbitrary version token. -/
+lemma parser_consumes_version (major minor : Nat) (pos : YamlPos) :
+    (L4YAML.TokenParser.parseDirectives
+      (L4YAML.TokenParser.ParseState.mk' #[{ pos := pos, val := .versionDirective major minor }])).1 =
+      #[.yaml (toString major ++ "." ++ toString minor)] := by
+  unfold L4YAML.TokenParser.parseDirectives
+  simp only [Id.run]
+  rw [Std.Legacy.Range.forIn_eq_forIn_range']
+  simp [Std.Legacy.Range.size, List.forIn_cons,
+    L4YAML.TokenParser.ParseState.mk', L4YAML.TokenParser.ParseState.peek?,
+    L4YAML.TokenParser.ParseState.advance, bind, pure]
+
+/-- Original source through full directive dispatch into the actual parser's
+version declaration. The trailing source is not parsed by this lemma. -/
+lemma original_yaml_declaration (input : String) (major minor rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
+      (major ++ '.' :: (minor ++ '\n' :: rest))) :
+    ∃ out, scanDirective (ScannerState.mk' input) = .ok out ∧
+      (L4YAML.TokenParser.parseDirectives (L4YAML.TokenParser.ParseState.mk' out.tokens)).1 =
+        #[.yaml (toString (String.ofList major).toNat! ++ "." ++ toString (String.ofList minor).toNat!)] := by
+  obtain ⟨out, hok, ht, _, _⟩ := original_yaml_dispatch input major minor rest hma hmi hneMa hneMi hsource
+  refine ⟨out, hok, ?_⟩
+  rw [ht]
+  exact parser_consumes_version _ _ _
+
 #print axioms yaml_dispatch
 #print axioms original_yaml_dispatch
+#print axioms parser_consumes_version
+#print axioms original_yaml_declaration
 end
 end MathGraph.WholeSource.DirectiveDispatch
