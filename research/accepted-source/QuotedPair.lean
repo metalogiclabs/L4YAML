@@ -4,6 +4,7 @@ public import L4YAML.Proofs.Production.Acceptance.Quoted
 public import L4YAML.Parser.Composition
 public import QuotedPublic
 public import L4YAML.Proofs.Output.EmitterScannability.FlowStackChain
+public import L4YAML.Proofs.Output.EmitterScannability.WellBracketed
 import all L4YAML.Proofs.Serialization.TokenEvents
 
 @[expose] public section
@@ -231,7 +232,7 @@ lemma source_dq_flow_dispatch (s : ScannerState)
     simp only [s_ad]; split <;> rfl
   have h_flow_none : scanNextToken_dispatchFlowIndicators s_ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
-      (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
+      (L4YAML.Proofs.FlowAdjacency.checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
         saveSimpleKey_preserves_completesFalse s h_last t (h_ad_tokens ▸ ht)))
   have h_block_none : scanNextToken_dispatchBlockIndicators s_ad '"' = .ok none :=
     dispatchBlockIndicators_none_quote _
@@ -307,9 +308,9 @@ lemma source_dq_flow_dispatch (s : ScannerState)
     have h_sk_dq : s_dq.simpleKey = s_ad.simpleKey :=
       scanDoubleQuoted_preserves_simpleKey s_ad s_dq h_dq
     have h_dq_stack : s_dq.simpleKeyStack = s_ad.simpleKeyStack :=
-      ScannerCorrectness.scanDoubleQuoted_preserves_simpleKeyStack s_ad s_dq h_dq
+      L4YAML.Proofs.ScannerCorrectness.scanDoubleQuoted_preserves_simpleKeyStack s_ad s_dq h_dq
     have h_ad_stack : s_ad.simpleKeyStack = s.simpleKeyStack := by
-      simp only [s_ad]; split <;> exact ScannerCorrectness.saveSimpleKey_preserves_simpleKeyStack s
+      simp only [s_ad]; split <;> exact L4YAML.Proofs.ScannerCorrectness.saveSimpleKey_preserves_simpleKeyStack s
     cases h_skp : s_dq.simpleKey.possible
     · -- simpleKey.possible = false: s' = s_dq
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -578,7 +579,9 @@ lemma source_quoted_pair_public_accepts (input : String)
 lemma source_quoted_pair_empty_grammar :
     QuotedPair ⟨("[\"\",\"\"]" : String).toList, 0⟩ ⟨[], 7⟩ := by
   change QuotedPair ⟨['[', '"', '"', ',', '"', '"', ']'], 0⟩ ⟨[], 7⟩
-  refine QuotedPair.mk _ _ _ _ _ _ (GLit.mk _ 0) ?_ (GLit.mk _ 3) ?_ (GLit.mk [] 6)
+  refine QuotedPair.mk _ ⟨['"', '"', ',', '"', '"', ']'], 1⟩
+    ⟨[',', '"', '"', ']'], 3⟩ ⟨['"', '"', ']'], 4⟩ ⟨[']'], 6⟩ _
+    (GLit.mk _ 0) ?_ (GLit.mk _ 3) ?_ (GLit.mk [] 6)
   · exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk _ 1)
       (GStar.nil ⟨['"', ',', '"', '"', ']'], 2⟩) (GLit.mk _ 2)
   · exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk _ 4)
@@ -588,7 +591,9 @@ lemma source_quoted_pair_empty_grammar :
 lemma source_quoted_pair_multibyte_grammar :
     QuotedPair ⟨("[\"é\",\"𝄞\"]" : String).toList, 0⟩ ⟨[], 9⟩ := by
   change QuotedPair ⟨['[', '"', 'é', '"', ',', '"', '𝄞', '"', ']'], 0⟩ ⟨[], 9⟩
-  refine QuotedPair.mk _ _ _ _ _ _ (GLit.mk _ 0) ?_ (GLit.mk _ 4) ?_ (GLit.mk [] 8)
+  refine QuotedPair.mk _ ⟨['"', 'é', '"', ',', '"', '𝄞', '"', ']'], 1⟩
+    ⟨[',', '"', '𝄞', '"', ']'], 4⟩ ⟨['"', '𝄞', '"', ']'], 5⟩ ⟨[']'], 8⟩ _
+    (GLit.mk _ 0) ?_ (GLit.mk _ 4) ?_ (GLit.mk [] 8)
   · exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk _ 1)
       (GStar.cons _ _ _
         (DQCharOk.plain 'é' ['"', ',', '"', '𝄞', '"', ']'] 2 (by decide) (by decide) (by decide))
@@ -603,7 +608,11 @@ lemma source_quoted_pair_hex_grammar :
     QuotedPair ⟨("[\"\\x41\",\"\\u0042\"]" : String).toList, 0⟩ ⟨[], 17⟩ := by
   change QuotedPair ⟨['[', '"', '\\', 'x', '4', '1', '"', ',', '"', '\\', 'u',
     '0', '0', '4', '2', '"', ']'], 0⟩ ⟨[], 17⟩
-  refine QuotedPair.mk _ _ _ _ _ _ (GLit.mk _ 0) ?_ (GLit.mk _ 7) ?_ (GLit.mk [] 16)
+  refine QuotedPair.mk _ ⟨['"', '\\', 'x', '4', '1', '"', ',', '"', '\\', 'u',
+      '0', '0', '4', '2', '"', ']'], 1⟩
+    ⟨[',', '"', '\\', 'u', '0', '0', '4', '2', '"', ']'], 7⟩
+    ⟨['"', '\\', 'u', '0', '0', '4', '2', '"', ']'], 8⟩ ⟨[']'], 16⟩ _
+    (GLit.mk _ 0) ?_ (GLit.mk _ 7) ?_ (GLit.mk [] 16)
   · exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk _ 1)
       (GStar.cons _ _ _
         (DQCharOk.hexEscape2 ['"', ',', '"', '\\', 'u', '0', '0', '4', '2', '"', ']'] 2 '4' '1'

@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake build L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Quoted L4YAML.Proofs.Output.EmitterScannability.FilteredTracking L4YAML.Proofs.Parser.StreamCompleteness L4YAML.Proofs.Composition > quoted-qualification/baseline.log 2>&1
+          lake build L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Quoted L4YAML.Proofs.Output.EmitterScannability.FilteredTracking L4YAML.Proofs.Output.EmitterScannability.WellBracketed L4YAML.Proofs.Parser.StreamCompleteness L4YAML.Proofs.Composition > quoted-qualification/baseline.log 2>&1
           tail -100 quoted-qualification/baseline.log
       - name: Run source boundary controls and expected failures
         if: steps.baseline.outcome == 'success'
