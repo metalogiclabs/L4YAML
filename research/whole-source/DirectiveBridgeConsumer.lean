@@ -58,6 +58,32 @@ lemma original_source_family (input : String) (handle tagPrefix rest : List Char
   simpa [ScannerState.mk'] using consumes_exact_token (ScannerState.mk' input)
     (tagDirective_before_lf handle tagPrefix rest hh hp hne) hc rfl
 
+/-- The actual parser's directive consumer retains both declaration strings. -/
+lemma parser_consumes_tag (handle tagPrefix : String) (pos : YamlPos) :
+    (L4YAML.TokenParser.parseDirectives
+      (L4YAML.TokenParser.ParseState.mk' #[{ pos := pos, val := .tagDirective handle tagPrefix }])).1 =
+      #[.tag handle tagPrefix] := by
+  rfl
+
+/-- Source-to-parser declaration bridge for the same arbitrary original input.
+This stops at `parseDirectives`; it does not claim complete-document parsing. -/
+lemma original_source_declaration (input : String) (handle tagPrefix rest : List Char)
+    (hh : TagHandle handle)
+    (hp : ∀ c ∈ tagPrefix, L4YAML.CharPredicates.isUriCharProp c)
+    (hne : tagPrefix ≠ [])
+    (hsource : input.toList =
+      '%' :: 'T' :: 'A' :: 'G' :: ' ' :: (handle ++ ' ' :: (tagPrefix ++ '\n' :: rest))) :
+    ∃ out, scanDirective (ScannerState.mk' input) = .ok out ∧
+      (L4YAML.TokenParser.parseDirectives (L4YAML.TokenParser.ParseState.mk' out.tokens)).1 =
+        #[.tag (String.ofList handle) (String.ofList tagPrefix)] := by
+  obtain ⟨out, hok, _, htok, _⟩ := original_source_family input handle tagPrefix rest hh hp hne hsource
+  refine ⟨out, hok, ?_⟩
+  have heq : out.tokens = #[{ pos := (ScannerState.mk' input).currentPos, val := .tagDirective (String.ofList handle) (String.ofList tagPrefix) }] := by
+    apply Array.toList_inj.mp
+    simpa using htok
+  rw [heq]
+  exact parser_consumes_tag _ _ _
+
 private def accepts (input : String) : Bool :=
   (L4YAML.TokenParser.parseYaml input).toOption.isSome
 
@@ -99,5 +125,7 @@ private def rootTags (input : String) : Option (Array (Option String)) :=
 #print axioms consumes_exact_token
 #print axioms consumes_preserved_context
 #print axioms original_source_family
+#print axioms parser_consumes_tag
+#print axioms original_source_declaration
 
 end MathGraph.WholeSource.DirectiveBridgeConsumer
