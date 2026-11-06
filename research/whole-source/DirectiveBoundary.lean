@@ -34,6 +34,21 @@ lemma flow_context_separates_marker :
     (scanNextToken_dispatchStructural { ScannerState.mk' "---\n" with flowLevel := 1 } '-').toOption.isSome = false := by
   decide
 
+/-- The separating states agree on the current source, token array and directive
+flags. The lost flow distinction alone changes structural acceptance. -/
+lemma source_summary_collision :
+    let base := ScannerState.mk' "---\n"
+    let flow := { base with flowLevel := 1 }
+    ScannerSurfCorr base ⟨"---\n".toList, 0⟩ ∧
+    ScannerSurfCorr flow ⟨"---\n".toList, 0⟩ ∧
+    base.tokens = flow.tokens ∧ base.directivesPresent = flow.directivesPresent ∧
+    base.seenYamlDirective = flow.seenYamlDirective ∧
+    (scanNextToken_dispatchStructural base '-').toOption.isSome = true ∧
+    (scanNextToken_dispatchStructural flow '-').toOption.isSome = false := by
+  have hc := initial_corr "---\n" "---\n".toList (chars_from_zero_toList "---\n")
+  refine ⟨hc, ?_, rfl, rfl, rfl, flow_context_separates_marker⟩
+  exact ⟨hc.chars_from, hc.col_eq, hc.end_eq, hc.input_prefix, hc.indent_cols_nonneg⟩
+
 /-- Independent marker spelling supplies the actual lookahead predicate. -/
 lemma document_start_of_source (sc : ScannerState) (rest : List Char)
     (hc : ScannerSurfCorr sc ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩) :
@@ -52,6 +67,7 @@ lemma structural_document_start (sc : ScannerState) (rest : List Char)
   have hflow : sc.inFlow = false := by simp [ScannerState.inFlow, hf]
   have hdoc := document_start_of_source sc rest hc
   simp [scanNextToken_dispatchStructural, hflow, hcol, hdoc]
+  rfl
 
 /-- Reuse the existing newline and flow-preservation proofs to discharge the
 structural consumer's premises. No full scanNextToken success is assumed. -/
@@ -97,6 +113,7 @@ lemma original_comment_document_boundary (input : String) (major minor comment r
     (ScannerState.mk' input) out rest _ hok hland rfl
   exact ⟨out, hok, hn, hstruct, hd, ha, hs⟩
 
+#print axioms source_summary_collision
 #print axioms flow_context_separates_marker
 #print axioms document_start_of_source
 #print axioms structural_document_start
