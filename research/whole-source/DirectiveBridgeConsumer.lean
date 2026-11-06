@@ -66,7 +66,7 @@ lemma parser_consumes_tag (handle tagPrefix : String) (pos : YamlPos) :
   unfold L4YAML.TokenParser.parseDirectives
   simp only [Id.run]
   rw [Std.Legacy.Range.forIn_eq_forIn_range']
-  simp [Std.Legacy.Range.size, List.range', List.forIn_cons,
+  simp [Std.Legacy.Range.size, List.forIn_cons,
     L4YAML.TokenParser.ParseState.mk', L4YAML.TokenParser.ParseState.peek?,
     L4YAML.TokenParser.ParseState.advance, bind, pure]
 
