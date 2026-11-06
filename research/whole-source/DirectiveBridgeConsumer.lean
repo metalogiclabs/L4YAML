@@ -66,7 +66,9 @@ lemma parser_consumes_tag (handle tagPrefix : String) (pos : YamlPos) :
   unfold L4YAML.TokenParser.parseDirectives
   simp only [Id.run]
   rw [Std.Legacy.Range.forIn_eq_forIn_range']
-  rfl
+  simp [Std.Legacy.Range.size, List.range', List.forIn_cons,
+    L4YAML.TokenParser.ParseState.mk', L4YAML.TokenParser.ParseState.peek?,
+    L4YAML.TokenParser.ParseState.advance, bind, pure]
 
 /-- Source-to-parser declaration bridge for the same arbitrary original input.
 This stops at `parseDirectives`; it does not claim complete-document parsing. -/
