@@ -43,7 +43,7 @@ private def isNsCharBool (c : Char) : Bool :=
 
 /-- Split each CR and each LF separately. A CRLF therefore contributes an
 extra empty physical line, whose directive count is zero. No trimming occurs. -/
-private def physicalLines : List Char → List (List Char)
+def physicalLines : List Char → List (List Char)
   | [] => [[]]
   | c :: cs =>
       if c == '\r' || c == '\n' then
