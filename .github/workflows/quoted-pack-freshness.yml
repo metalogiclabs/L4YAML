@@ -1,0 +1,123 @@
+name: Unchanged-source pack births freshness qualification
+
+on:
+  push:
+    branches: ['research/structural-boundaries-20261106']
+    paths:
+      - '.github/workflows/quoted-pack-freshness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pack-freshness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin unchanged production and gate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          git rev-parse HEAD | tee qualification/head.txt
+          printf '%s\n' 'Original overall result: FAILURE; not superseded by this single-gate qualification.' 'Run 42171947627 / job 127741577584 / commit 1baf2263: check-pack-births exit 1.' 'StreamAccum.olean is older than L4YAML/Proofs/Production/StreamAccum.lean -- build the library first (the declaration ranges would describe the old source).' > qualification/original-red.txt
+          if git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json > qualification/source-guard.diff; then status=0; else status=$?; fi
+          printf 'upstream-source-guard\t%s\n' "$status" | tee -a qualification/status.tsv
+          cat qualification/source-guard.diff
+          test "$status" = 0
+          git diff --exit-code HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json
+          git ls-files -z -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json .github/workflows/quoted-pack-freshness.yml | xargs -0 sha256sum > qualification/source-sha256.txt
+      - name: Install checksum-pinned official Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 -o "$RUNNER_TEMP/lean.tar.zst" https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst
+          echo "7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check | tee qualification/toolchain-checksum.txt
+          tar --no-same-owner --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-4.35.0-linux/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lean-4.35.0-linux/bin/lean" --version | tee qualification/lean-version.txt
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: cache
+        with:
+          path: .lake
+          key: quoted-pack-freshness-64795a8-lean435-${{ github.sha }}
+          restore-keys: |
+            quoted-production-64795a8-lean435-
+            trace-repair-64795a8-lean435-
+            accepted-source-64795a8-lean435-
+            native-frames-64795a8-lean435-v1
+            structural-baseline-64795a8-lean435-v1
+      - name: Preserve cached module and genuinely rebuild it
+        id: rebuild
+        shell: bash
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+          source=L4YAML/Proofs/Production/StreamAccum.lean
+          olean=.lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean
+          printf 'cache-hit=%s\n' "$CACHE_HIT" > qualification/cache.txt
+          for file in "$source" "$olean" "$olean.server"; do
+            if test -f "$file"; then
+              stat --printf='%n\tsize=%s\tmtime=%y\tinode=%i\n' "$file" >> qualification/pre-build-stat.tsv
+              sha256sum "$file" >> qualification/pre-build-sha256.txt
+            else
+              printf '%s\tmissing\n' "$file" >> qualification/pre-build-stat.tsv
+            fi
+          done
+          if test -f "$olean"; then mv -- "$olean" qualification/StreamAccum.cached.olean; fi
+          if test -f "$olean.server"; then mv -- "$olean.server" qualification/StreamAccum.cached.olean.server; fi
+          test ! -e "$olean"
+          test ! -e "$olean.server"
+          date --iso-8601=ns > qualification/rebuild-started.txt
+          if lake build L4YAML.Proofs.Production.StreamAccum > qualification/rebuild.log 2>&1; then status=0; else status=$?; fi
+          printf 'rebuild-StreamAccum\t%s\n' "$status" | tee -a qualification/status.tsv
+          cat qualification/rebuild.log
+          for file in "$source" "$olean" "$olean.server"; do
+            if test -f "$file"; then
+              stat --printf='%n\tsize=%s\tmtime=%y\tinode=%i\n' "$file" >> qualification/post-build-stat.tsv
+              sha256sum "$file" >> qualification/post-build-sha256.txt
+            else
+              printf '%s\tmissing\n' "$file" >> qualification/post-build-stat.tsv
+            fi
+          done
+          test "$status" = 0
+          # This pinned module uses the module system: its declaration ranges need
+          # a genuinely regenerated server companion, not a retained cache file.
+          freshness=0
+          test -f "$olean" && test ! "$source" -nt "$olean" || freshness=1
+          test -f "$olean.server" && test ! "$source" -nt "$olean.server" || freshness=1
+          printf 'rebuilt-artifact-freshness\t%s\n' "$freshness" | tee -a qualification/status.tsv
+          exit "$freshness"
+      - name: Run exact unchanged pack births gate
+        if: steps.rebuild.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if lake run check-pack-births > qualification/check-pack-births.log 2>&1; then status=0; else status=$?; fi
+          printf 'check-pack-births\t%s\n' "$status" | tee -a qualification/status.tsv
+          cat qualification/check-pack-births.log
+          test "$status" = 0
+          grep -Fx 'PACK-BIRTHS-PIN agrees' qualification/check-pack-births.log
+      - name: Ensure source and gate remain unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --exit-code HEAD -- L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json > qualification/post-source-guard.diff; then status=0; else status=$?; fi
+          printf 'post-source-guard\t%s\n' "$status" | tee -a qualification/status.tsv
+          cat qualification/post-source-guard.diff
+          test "$status" = 0
+          sha256sum --check qualification/source-sha256.txt > qualification/post-source-checksums.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: quoted-pack-freshness-evidence
+          path: qualification/
+          if-no-files-found: error
+          retention-days: 30
