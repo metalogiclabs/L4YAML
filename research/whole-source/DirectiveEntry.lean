@@ -65,7 +65,7 @@ lemma initial_percent_preprocess (input : String) (rest : List Char)
   simp only [h_unwind, hflow, hneed, Bool.not_false, Bool.true_and,
     hnoshrink, decide_false, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
   have hreadyPeek : ready.peek? = some '%' := (peek_of_corr hcorr).1
-  rw [closeStaleExplicitKey_of_ek_none _
+  rw [L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_of_ek_none _
     (by rw [L4YAML.Proofs.ExplicitKeyCoupling.saveSimpleKey_preserves_explicitKeyLine]; rfl), hreadyPeek]
 
 lemma initial_checks (input : String) (land : ScannerState) :
@@ -77,6 +77,8 @@ lemma initial_checks (input : String) (land : ScannerState) :
     exact trailingNodeRun?_push_none #[] _ rfl rfl rfl rfl
   have hd := danglingNodePos?_none_of_no_run initial hn
   have hf := underIndentedFlowValuePos?_none_of_no_run initial hn
+  change scanNextToken_checkDanglingNode initial land = .ok () ∧
+    scanNextToken_checkFlowValueIndent initial land = .ok ()
   exact ⟨by simp [scanNextToken_checkDanglingNode, hd],
     by simp [scanNextToken_checkFlowValueIndent, hf]⟩
 
@@ -115,7 +117,21 @@ lemma original_two_steps (input : String) (major minor comment rest : List Char)
   have hstruct := percent_structural ready mid _ hc hf hdir
   obtain ⟨hc1, hc2⟩ := initial_checks input ready
   refine ⟨mid, out, ?_, hsecond, hd, hal, hseen⟩
-  simp [scanNextToken, hpre, hc1, hc2, hstruct, bind, Except.bind, pure, Except.pure]
+  unfold scanNextToken
+  rw [hpre]
+  simp only [bind, Except.bind, pure, Except.pure]
+  change (do
+    scanNextToken_checkDanglingNode ((ScannerState.mk' input).emit .streamStart) ready
+    scanNextToken_checkFlowValueIndent ((ScannerState.mk' input).emit .streamStart) ready
+    match ← scanNextToken_dispatchStructural ready '%' with
+    | some s => pure (some s)
+    | none => _) = .ok (some mid)
+  rw [hc1]
+  simp only [bind, Except.bind, pure, Except.pure]
+  rw [hc2]
+  simp only [bind, Except.bind, pure, Except.pure]
+  rw [hstruct]
+  rfl
 
 #print axioms initial_percent_preprocess
 #print axioms initial_checks
