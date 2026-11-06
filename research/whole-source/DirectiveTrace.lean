@@ -60,9 +60,9 @@ private lemma yamlLine (rest : List Char) :
     | mk _ _ _ hp =>
       exact hp.2.1 (by decide : L4YAML.CharPredicates.isWhiteSpaceProp ' ')
   · exact .cons _ _ _ (.space _ 5) (.nil _)
-  · exact .mk _ _ _ (.mk '1' _ 6 (by decide)) (.nil _)
+  · exact .mk _ _ _ (.mk '1' _ 6 (by unfold isNsDecDigit; decide)) (.nil _)
   · exact .mk _ 7
-  · exact .mk _ _ _ (.mk '2' _ 8 (by decide)) (.nil _)
+  · exact .mk _ _ _ (.mk '2' _ 8 (by unfold isNsDecDigit; decide)) (.nil _)
   · exact .withComment _ _ _ (.noSep _ _ (.break _ _ (.lf rest 9))) (.nil _)
 
 private lemma emptyBody : TLExplicitBody ⟨[], 3⟩ ⟨[], 3⟩ [] :=
@@ -154,7 +154,7 @@ lemma acceptance_one : Accepted "%YAML 1.2\n---" := by
     rw [hr] at h
     change false = true at h
     cases h
-  | ok docs => exact ⟨docs, rfl⟩
+  | ok docs => exact ⟨docs, hr⟩
 
 lemma rejection_two : ¬ Accepted "%YAML 1.2\n%YAML 1.2\n---" := by
   rintro ⟨docs, hdocs⟩
