@@ -46,8 +46,10 @@ def publicAccept (input : String) : Bool :=
 def leafSnapshot (input : String) : Option (String × Nat × Nat × Nat) :=
   match scanDoubleQuoted (ScannerState.mk' input) with
   | .error _ => none
-  | .ok s => match s.tokens[0]?.map (·.val) with
-    | some (.scalar content .doubleQuoted) => some (content, s.offset, s.col, s.tokens.size)
+  | .ok s =>
+    let token : Option YamlToken := (s.tokens[0]?).map (fun (t : Positioned YamlToken) => t.val)
+    match token with
+    | some (YamlToken.scalar content .doubleQuoted) => some (content, s.offset, s.col, s.tokens.size)
     | _ => none
 
 #guard leafSnapshot "\"\"" = some ("", 2, 2, 1)

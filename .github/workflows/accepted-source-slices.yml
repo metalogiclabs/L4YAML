@@ -70,7 +70,7 @@ jobs:
           if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' quoted-qualification/QuotedSourceControls.log; then failed=1; fi
           exit "$failed"
       - name: Check same-grammar original-source inverse and axioms
-        if: steps.baseline.outcome == 'success'
+        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
