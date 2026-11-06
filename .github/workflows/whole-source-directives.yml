@@ -2,7 +2,7 @@ name: Whole-source directive adequacy qualification
 
 on:
   push:
-    branches: ['research/directive-source-closure']
+    branches: ['research/directive-context-bridge']
     paths:
       - 'research/whole-source/**'
       - '.github/workflows/whole-source-directives.yml'
@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition > directive-evidence/baseline.log 2>&1
+          lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Properties > directive-evidence/baseline.log 2>&1
           tail -100 directive-evidence/baseline.log
       - name: Qualify literal controls and reject equal-acceptance hypothesis
         if: steps.baseline.outcome == 'success'
@@ -80,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
-          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency; do
+          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge; do
             if lean --root=research/whole-source -o "research/whole-source/$proof.olean" "research/whole-source/$proof.lean" > "directive-evidence/$proof.log" 2>&1; then status=0; else status=$?; fi
             printf '%s\t%s\n' "$proof" "$status" | tee -a directive-evidence/status.tsv
             cat "directive-evidence/$proof.log"
