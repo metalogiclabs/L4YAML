@@ -88,12 +88,11 @@ lemma handleLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
   induction fuel generalizing sc acc with
   | zero => rfl
   | succ n ih =>
-    simp only [collectTagHandleDirectiveLoop, collectRun]
-    split
-    · split
-      · exact ih _ _
-      · rfl
-    · rfl
+    cases hp : sc.peek? with
+    | none => simp only [collectTagHandleDirectiveLoop, collectRun, hp]
+    | some c =>
+      simp only [collectTagHandleDirectiveLoop, collectRun, hp]
+      split <;> simp_all only [ih]
 
 lemma handleChar_not_break (c : Char) (h : isWordCharProp c ∨ c = '!') :
     c ≠ '\n' ∧ c ≠ '\r' := by
@@ -109,7 +108,7 @@ lemma TagHandle.chars {cs : List Char} (h : TagHandle cs) :
   | named c cs hc hcs =>
     intro d hd
     simp only [List.mem_cons, List.mem_append, List.mem_singleton] at hd
-    rcases hd with rfl | ((rfl | hd) | rfl)
+    rcases hd with (rfl | rfl | hd) | rfl
     · exact Or.inr rfl
     · exact Or.inl hc
     · exact Or.inl (hcs d hd)
@@ -130,8 +129,14 @@ lemma TagHandle.validated {cs : List Char} (h : TagHandle cs) :
       rcases hd with rfl | hd
       · exact hc
       · exact hcs d hd
-    simp [isTagHandleShaped, String.toList_ofList, hw, List.length_append,
-      List.getLast?_append]
+    unfold isTagHandleShaped
+    apply Bool.or_eq_true.mpr
+    right
+    simp only [String.toList_ofList, List.cons_append]
+    change (decide (((c :: cs) ++ ['!']).length ≥ 2) &&
+      (((c :: cs) ++ ['!']).getLast? == some '!') &&
+      (((c :: cs) ++ ['!']).dropLast.all isWordCharBool)) = true
+    simp [hw]
 
 /-- Stable public collector signature. It covers arbitrary primary, secondary,
 and named handles, arbitrary UTF-8 suffixes, scanner context and accumulator. -/
@@ -146,8 +151,29 @@ lemma collectTagHandleDirectiveLoop_accepts {cs rest : List Char}
   exact collectRun_accepts _ _ isTagHandleChar_iff_bool handleChar_not_break
     cs h.chars rest hstop sc acc col fuel hcorr hfuel
 
-lemma handle_empty_excluded : ¬ TagHandle [] := by intro h; cases h
-lemma handle_unclosed_excluded : ¬ TagHandle ['!', 'a'] := by intro h; cases h
+lemma TagHandle.ends_bang {cs : List Char} (h : TagHandle cs) :
+    cs.getLast? = some '!' := by
+  cases h <;> simp [List.getLast?_append]
+
+lemma handle_empty_excluded : ¬ TagHandle [] := by
+  intro h
+  have hh := h.ends_bang
+  simp at hh
+
+/-- Every nonempty unclosed word body is excluded, independently of its
+length. This is stronger than the concrete `!a` boundary probe below. -/
+lemma handle_unclosed_words_excluded (body : List Char) (hne : body ≠ [])
+    (hw : ∀ c ∈ body, isWordCharProp c) : ¬ TagHandle ('!' :: body) := by
+  intro h
+  cases body with
+  | nil => exact hne rfl
+  | cons c cs =>
+    have hh : (c :: cs).getLast? = some '!' := by simpa using h.ends_bang
+    exact (by decide : ¬ isWordCharProp '!') (hw '!' (List.mem_of_getLast? hh))
+
+lemma handle_unclosed_excluded : ¬ TagHandle ['!', 'a'] :=
+  handle_unclosed_words_excluded ['a'] (by decide) (by
+    intro c hc; simp only [List.mem_singleton] at hc; subst c; decide)
 
 -- Constructive reachability of all three grammar arms.
 lemma primary_witness : TagHandle ['!'] := .primary
@@ -168,12 +194,11 @@ lemma prefixLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
   induction fuel generalizing sc acc with
   | zero => rfl
   | succ n ih =>
-    simp only [collectTagPrefixLoop, collectRun]
-    split
-    · split
-      · exact ih _ _
-      · rfl
-    · rfl
+    cases hp : sc.peek? with
+    | none => simp only [collectTagPrefixLoop, collectRun, hp]
+    | some c =>
+      simp only [collectTagPrefixLoop, collectRun, hp]
+      split <;> simp_all only [ih]
 
 lemma uri_not_break (c : Char) (h : isUriCharProp c) : c ≠ '\n' ∧ c ≠ '\r' := by
   have hb := isUriChar_not_isLineBreak c ((isUriChar_iff c).mpr h)
@@ -304,12 +329,11 @@ lemma nameLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
   induction fuel generalizing sc acc with
   | zero => rfl
   | succ n ih =>
-    simp only [collectDirectiveNameLoop, collectRun]
-    split
-    · split
-      · exact ih _ _
-      · rfl
-    · rfl
+    cases hp : sc.peek? with
+    | none => simp only [collectDirectiveNameLoop, collectRun, hp]
+    | some c =>
+      simp only [collectDirectiveNameLoop, collectRun, hp]
+      split <;> simp_all only [ih]
 
 lemma ns_not_break (c : Char) (h : isNsChar c) : c ≠ '\n' ∧ c ≠ '\r' := by
   exact ⟨by intro he; subst he; exact h.1 (by decide),
