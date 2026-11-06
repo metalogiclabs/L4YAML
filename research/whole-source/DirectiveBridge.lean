@@ -189,6 +189,16 @@ structure LexRun (p : Char → Prop) (cs : List Char) (s t : SurfPos) : Prop whe
   chars : ∀ c ∈ cs, p c
   stop : Stops p t.chars
 
+lemma surfPos_eta (s : SurfPos) : s = ⟨s.chars, s.col⟩ := by cases s; rfl
+
+lemma LexRun.start_eq {p : Char → Prop} {cs : List Char} {s t : SurfPos}
+    (h : LexRun p cs s t) : s = ⟨cs ++ t.chars, s.col⟩ :=
+  (surfPos_eta s).trans (by rw [h.source])
+
+lemma LexRun.end_eq {p : Char → Prop} {cs : List Char} {s t : SurfPos}
+    (h : LexRun p cs s t) : t = ⟨t.chars, s.col + cs.length⟩ :=
+  (surfPos_eta t).trans (by rw [h.column])
+
 lemma prefixLoop_eq_collectRun (sc : ScannerState) (acc : String) (fuel : Nat) :
     collectTagPrefixLoop sc acc fuel = collectRun isUriCharBool sc acc fuel := by
   induction fuel generalizing sc acc with
@@ -210,7 +220,7 @@ lemma collectTagPrefixLoop_accepts {cs : List Char} {s t : SurfPos}
     ∃ out sc', collectTagPrefixLoop sc "" fuel = (out, sc') ∧
       out = String.ofList cs ∧ ScannerSurfCorr sc' t ∧ Keeps sc sc' := by
   have hc : ScannerSurfCorr sc ⟨cs ++ t.chars, s.col⟩ := by
-    cases s; simpa only [← h.source] using hcorr
+    rw [← h.start_eq]; exact hcorr
   obtain ⟨out, sc', heq, hout, hc', hk⟩ := collectRun_accepts _ _ isUriChar_iff
     uri_not_break cs h.chars t.chars h.stop sc "" s.col fuel hc
       (by have hs := h.source; simp only [hs, List.length_append] at hfuel; omega)
@@ -218,8 +228,7 @@ lemma collectTagPrefixLoop_accepts {cs : List Char} {s t : SurfPos}
   · simpa only [prefixLoop_eq_collectRun] using heq
   · rw [← String.toList_inj, String.toList_ofList]
     simpa using hout
-  · have ht : t = ⟨t.chars, s.col + cs.length⟩ := by cases t; simp_all [h.column]
-    rw [ht]; exact hc'
+  · rw [h.end_eq]; exact hc'
 
 lemma whites_span (cs : List Char) (rest : List Char) (col : Nat)
     (h : ∀ c ∈ cs, isWhiteSpaceProp c) :
@@ -237,17 +246,17 @@ lemma whitespace_accepts {cs : List Char} {s t : SurfPos}
     (h : LexRun isWhiteSpaceProp cs s t) (sc : ScannerState)
     (hcorr : ScannerSurfCorr sc s) :
     ScannerSurfCorr (skipWhitespace sc) t ∧ Keeps sc (skipWhitespace sc) := by
-  have hs : s = ⟨cs ++ t.chars, s.col⟩ := by cases s; simp_all [h.source]
-  have ht : t = ⟨t.chars, s.col + cs.length⟩ := by cases t; simp_all [h.column]
+  have hs := h.start_eq
+  have ht := h.end_eq
   have hw : GStar SSWhite s t := by rw [hs, ht]; exact whites_span cs _ _ h.chars
   apply skipWhitespace_accepts sc hw hcorr
   · intro he; exact h.stop ' ' he (by decide)
   · intro he; exact h.stop '\t' he (by decide)
 
-/-- A TAG body with explicit source spans. Separators and URI prefix are
+/-- A TAG body with explicit source spans. Separators and URI pfxChars are
 nonempty. This first bridge stops before LF/CR/EOF; comment handling is a
 separate extension. No scanner or parser success occurs in this grammar. -/
-structure TagBody (handle prefix : List Char) (s t : SurfPos) where
+structure TagBody (handle pfxChars : List Char) (s t : SurfPos) where
   afterHandle : SurfPos
   afterSeparator : SurfPos
   afterPrefix : SurfPos
@@ -257,8 +266,8 @@ structure TagBody (handle prefix : List Char) (s t : SurfPos) where
   handleRun : LexRun (fun c => isWordCharProp c ∨ c = '!') handle s afterHandle
   separatorRun : LexRun isWhiteSpaceProp separator afterHandle afterSeparator
   separatorNonempty : separator ≠ []
-  prefixRun : LexRun isUriCharProp prefix afterSeparator afterPrefix
-  prefixNonempty : prefix ≠ []
+  prefixRun : LexRun isUriCharProp pfxChars afterSeparator afterPrefix
+  prefixNonempty : pfxChars ≠ []
   trailingRun : LexRun isWhiteSpaceProp trailing afterPrefix t
   ending : t.chars.head? = none ∨ t.chars.head? = some '\n' ∨ t.chars.head? = some '\r'
 
@@ -279,16 +288,16 @@ lemma ending_peek {sc : ScannerState} {t : SurfPos} (hcorr : ScannerSurfCorr sc 
 /-- General TAG directive-body bridge. The original scanner supplies the fuel
 limit and token start; the source-related body scanner supplies the position.
 All preexisting tokens are preserved and exactly one tag directive is appended. -/
-lemma scanTagDirective_accepts (origin sc : ScannerState) {handle prefix : List Char}
-    {s t : SurfPos} (h : TagBody handle prefix s t)
+lemma scanTagDirective_accepts (origin sc : ScannerState) {handle pfxChars : List Char}
+    {s t : SurfPos} (h : TagBody handle pfxChars s t)
     (hcorr : ScannerSurfCorr sc s) (hlimit : origin.inputEnd = sc.inputEnd) :
     ∃ out, scanTagDirective origin sc origin.currentPos = .ok out ∧
       ScannerSurfCorr out t ∧
       out.tokens = sc.tokens.push { pos := origin.currentPos,
-        val := .tagDirective (String.ofList handle) (String.ofList prefix) } ∧
+        val := .tagDirective (String.ofList handle) (String.ofList pfxChars) } ∧
       out.directivesPresent = true := by
   have hc : ScannerSurfCorr sc ⟨handle ++ h.afterHandle.chars, s.col⟩ := by
-    cases s; simpa only [← h.handleRun.source] using hcorr
+    rw [← h.handleRun.start_eq]; exact hcorr
   have hfuel := fuel_of_corr hcorr
   obtain ⟨hand, sc₁, hloop, hhand, hc₁, hk₁⟩ := collectTagHandleDirectiveLoop_accepts
     h.handleShape h.handleRun.stop sc "" s.col (origin.inputEnd - sc.offset) hc
@@ -296,8 +305,7 @@ lemma scanTagDirective_accepts (origin sc : ScannerState) {handle prefix : List 
   have hhandEq : hand = String.ofList handle := by
     rw [← String.toList_inj, String.toList_ofList]; simpa using hhand
   subst hand
-  have ht₁ : h.afterHandle = ⟨h.afterHandle.chars, s.col + handle.length⟩ := by
-    cases h.afterHandle; simp_all [h.handleRun.column]
+  have ht₁ := h.handleRun.end_eq
   have hc₁' : ScannerSurfCorr sc₁ h.afterHandle := by rw [ht₁]; exact hc₁
   obtain ⟨hc₂, hk₂⟩ := whitespace_accepts h.separatorRun sc₁ hc₁'
   have hi₂ : (skipWhitespace sc₁).inputEnd = origin.inputEnd := by
@@ -308,17 +316,17 @@ lemma scanTagDirective_accepts (origin sc : ScannerState) {handle prefix : List 
   subst pfx
   obtain ⟨hc₄, hk₄⟩ := whitespace_accepts h.trailingRun sc₃ hc₃
   let final := { (skipWhitespace sc₃).emitAt origin.currentPos
-      (.tagDirective (String.ofList handle) (String.ofList prefix)) with directivesPresent := true }
+      (.tagDirective (String.ofList handle) (String.ofList pfxChars)) with directivesPresent := true }
   have hfinal : ScannerSurfCorr final t := by
     have he := L4YAML.Proofs.ScalarCoupling.corr_of_emitAt origin.currentPos
-      (.tagDirective (String.ofList handle) (String.ofList prefix)) hc₄
+      (.tagDirective (String.ofList handle) (String.ofList pfxChars)) hc₄
     exact ⟨he.chars_from, he.col_eq, he.end_eq, he.input_prefix, he.indent_cols_nonneg⟩
   refine ⟨final, ?_, hfinal, ?_, rfl⟩
   · unfold scanTagDirective
     simp only [hloop, h.handleShape.validated, Bool.not_true, Bool.false_eq_true, ite_false]
     simp only [hpfx]
     rcases ending_peek hc₄ h.ending with he | he | he <;>
-      simp [he, isLineBreakBool, pure, Except.pure, final]
+      simp [he, isLineBreakBool, pure, Except.pure, bind, Except.bind, final]
   · simp only [final, ScannerState.emitAt]
     rw [hk₄.1, hk₃.1, hk₂.1, hk₁.1]
 
@@ -345,7 +353,7 @@ lemma collectDirectiveNameLoop_accepts {cs : List Char} {s t : SurfPos}
     ∃ out sc', collectDirectiveNameLoop sc "" fuel = (out, sc') ∧
       out = String.ofList cs ∧ ScannerSurfCorr sc' t ∧ Keeps sc sc' := by
   have hc : ScannerSurfCorr sc ⟨cs ++ t.chars, s.col⟩ := by
-    cases s; simpa only [← h.source] using hcorr
+    rw [← h.start_eq]; exact hcorr
   obtain ⟨out, sc', heq, hout, hc', hk⟩ := collectRun_accepts _ _
     (fun c => (isNsChar_iff_bool c).symm) ns_not_break cs h.chars t.chars h.stop
     sc "" s.col fuel hc
@@ -353,12 +361,11 @@ lemma collectDirectiveNameLoop_accepts {cs : List Char} {s t : SurfPos}
   refine ⟨out, sc', ?_, ?_, ?_, hk⟩
   · simpa only [nameLoop_eq_collectRun] using heq
   · rw [← String.toList_inj, String.toList_ofList]; simpa using hout
-  · have ht : t = ⟨t.chars, s.col + cs.length⟩ := by cases t; simp_all [h.column]
-    rw [ht]; exact hc'
+  · rw [h.end_eq]; exact hc'
 
 /-- A full independent `%TAG` directive through the same original-source
 positions as its body. Column-zero is the production dispatch context. -/
-structure TagDirective (handle prefix : List Char) (s t : SurfPos) where
+structure TagDirective (handle pfxChars : List Char) (s t : SurfPos) where
   afterPercent : SurfPos
   afterName : SurfPos
   bodyStart : SurfPos
@@ -368,7 +375,7 @@ structure TagDirective (handle prefix : List Char) (s t : SurfPos) where
   name : LexRun isNsChar ['T', 'A', 'G'] afterPercent afterName
   separatorRun : LexRun isWhiteSpaceProp separator afterName bodyStart
   separatorNonempty : separator ≠ []
-  body : TagBody handle prefix bodyStart t
+  body : TagBody handle pfxChars bodyStart t
 
 lemma skipToEndOfLine_of_ending {sc : ScannerState} {t : SurfPos}
     (hcorr : ScannerSurfCorr sc t)
@@ -383,12 +390,12 @@ lemma skipToEndOfLine_of_ending {sc : ScannerState} {t : SurfPos}
 /-- Full TAG source/scanner bridge: independent original source syntax and the
 scanner's permission flag derive success, the precise token at the `%` source
 position, and the next scanner/source correspondence. -/
-lemma scanDirective_accepts (sc : ScannerState) {handle prefix : List Char}
-    {s t : SurfPos} (h : TagDirective handle prefix s t)
+lemma scanDirective_accepts (sc : ScannerState) {handle pfxChars : List Char}
+    {s t : SurfPos} (h : TagDirective handle pfxChars s t)
     (hcorr : ScannerSurfCorr sc s) (hallow : sc.allowDirectives = true) :
     ∃ out, scanDirective sc = .ok out ∧ ScannerSurfCorr out t ∧
       out.tokens = sc.tokens.push { pos := sc.currentPos,
-        val := .tagDirective (String.ofList handle) (String.ofList prefix) } ∧
+        val := .tagDirective (String.ofList handle) (String.ofList pfxChars) } ∧
       out.directivesPresent = true := by
   have hcadv : ScannerSurfCorr sc.advance h.afterPercent := by
     cases h.percent
@@ -420,16 +427,16 @@ lemma uri_not_white {c : Char} (hu : isUriCharProp c) : ¬ isWhiteSpaceProp c :=
 
 /-- Constructive arbitrary-length family, with unrestricted original-source
 suffix and starting column. This reaches every handle arm and every nonempty
-URI prefix, rather than proving only a finite set of literal examples. -/
-def tagBody_before_lf (handle prefix rest : List Char) (col : Nat)
-    (hh : TagHandle handle) (hp : ∀ c ∈ prefix, isUriCharProp c) (hne : prefix ≠ []) :
-    TagBody handle prefix
-      ⟨handle ++ ' ' :: (prefix ++ '\n' :: rest), col⟩
-      ⟨'\n' :: rest, col + handle.length + 1 + prefix.length⟩ := by
+URI pfxChars, rather than proving only a finite set of literal examples. -/
+def tagBody_before_lf (handle pfxChars rest : List Char) (col : Nat)
+    (hh : TagHandle handle) (hp : ∀ c ∈ pfxChars, isUriCharProp c) (hne : pfxChars ≠ []) :
+    TagBody handle pfxChars
+      ⟨handle ++ ' ' :: (pfxChars ++ '\n' :: rest), col⟩
+      ⟨'\n' :: rest, col + handle.length + 1 + pfxChars.length⟩ := by
   refine {
-    afterHandle := ⟨' ' :: (prefix ++ '\n' :: rest), col + handle.length⟩
-    afterSeparator := ⟨prefix ++ '\n' :: rest, col + handle.length + 1⟩
-    afterPrefix := ⟨'\n' :: rest, col + handle.length + 1 + prefix.length⟩
+    afterHandle := ⟨' ' :: (pfxChars ++ '\n' :: rest), col + handle.length⟩
+    afterSeparator := ⟨pfxChars ++ '\n' :: rest, col + handle.length + 1⟩
+    afterPrefix := ⟨'\n' :: rest, col + handle.length + 1 + pfxChars.length⟩
     separator := [' ']
     trailing := []
     handleShape := hh
@@ -447,7 +454,7 @@ def tagBody_before_lf (handle prefix rest : List Char) (col : Nat)
     decide
   · refine ⟨rfl, by simp, ?_, ?_⟩
     · intro c hc; simp only [List.mem_singleton] at hc; subst c; decide
-    · cases prefix with
+    · cases pfxChars with
       | nil => exact False.elim (hne rfl)
       | cons c cs =>
         intro d hd
@@ -466,13 +473,45 @@ def tagBody_before_lf (handle prefix rest : List Char) (col : Nat)
     decide
 
 /-- The constructive family specializes to arbitrary named word bodies. -/
-def namedTagBody_before_lf (c : Char) (cs prefix rest : List Char) (col : Nat)
+def namedTagBody_before_lf (c : Char) (cs pfxChars rest : List Char) (col : Nat)
     (hc : isWordCharProp c) (hcs : ∀ d ∈ cs, isWordCharProp d)
-    (hp : ∀ d ∈ prefix, isUriCharProp d) (hne : prefix ≠ []) :
-    TagBody ('!' :: (c :: cs) ++ ['!']) prefix
-      ⟨('!' :: (c :: cs) ++ ['!']) ++ ' ' :: (prefix ++ '\n' :: rest), col⟩
-      ⟨'\n' :: rest, col + ('!' :: (c :: cs) ++ ['!']).length + 1 + prefix.length⟩ :=
-  tagBody_before_lf _ prefix rest col (.named c cs hc hcs) hp hne
+    (hp : ∀ d ∈ pfxChars, isUriCharProp d) (hne : pfxChars ≠ []) :
+    TagBody ('!' :: (c :: cs) ++ ['!']) pfxChars
+      ⟨('!' :: (c :: cs) ++ ['!']) ++ ' ' :: (pfxChars ++ '\n' :: rest), col⟩
+      ⟨'\n' :: rest, col + ('!' :: (c :: cs) ++ ['!']).length + 1 + pfxChars.length⟩ :=
+  tagBody_before_lf _ pfxChars rest col (.named c cs hc hcs) hp hne
+
+/-- Constructive full original-input witness for every valid handle and
+nonempty URI pfxChars. The suffix after LF is unrestricted. -/
+def tagDirective_before_lf (handle pfxChars rest : List Char)
+    (hh : TagHandle handle) (hp : ∀ c ∈ pfxChars, isUriCharProp c) (hne : pfxChars ≠ []) :
+    TagDirective handle pfxChars
+      ⟨'%' :: 'T' :: 'A' :: 'G' :: ' ' :: (handle ++ ' ' :: (pfxChars ++ '\n' :: rest)), 0⟩
+      ⟨'\n' :: rest, 5 + handle.length + 1 + pfxChars.length⟩ := by
+  refine {
+    afterPercent := ⟨'T' :: 'A' :: 'G' :: ' ' :: (handle ++ ' ' :: (pfxChars ++ '\n' :: rest)), 1⟩
+    afterName := ⟨' ' :: (handle ++ ' ' :: (pfxChars ++ '\n' :: rest)), 4⟩
+    bodyStart := ⟨handle ++ ' ' :: (pfxChars ++ '\n' :: rest), 5⟩
+    separator := [' ']
+    columnZero := rfl
+    percent := .mk _ 0
+    name := ?_
+    separatorRun := ?_
+    separatorNonempty := by decide
+    body := tagBody_before_lf handle pfxChars rest 5 hh hp hne }
+  · refine ⟨rfl, rfl, ?_, ?_⟩
+    · intro c hc
+      simp only [List.mem_cons, List.mem_singleton] at hc
+      rcases hc with rfl | rfl | rfl <;> decide
+    · intro c hc
+      simp only [List.head?_cons, Option.some.injEq] at hc
+      subst c
+      decide
+  · refine ⟨rfl, rfl, ?_, ?_⟩
+    · intro c hc; simp only [List.mem_singleton] at hc; subst c; decide
+    · intro c hc
+      cases hh <;> simp only [List.cons_append, List.head?_cons, Option.some.injEq] at hc
+      all_goals subst c; decide
 
 #print axioms collectTagHandleDirectiveLoop_accepts
 #print axioms TagHandle.validated
