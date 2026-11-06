@@ -262,11 +262,138 @@ lemma scanDoubleQuoted_full_iff_oneLine (sc : ScannerState) (sp : SurfPos)
     obtain ⟨c, rest, heq, _⟩ := peek_corr s' ⟨[], col⟩ hc hmore
     simp at heq
 
+/-- info: 'L4YAML.Research.AcceptedSource.parseHexEscape_prod_valid' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms parseHexEscape_prod_valid
+
+/-- info: 'L4YAML.Research.AcceptedSource.processEscape_prod_ok' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms processEscape_prod_ok
+
+/-- info: 'L4YAML.Research.AcceptedSource.dqCharOk_source_mem' depends on axioms: [propext] -/
+#guard_msgs in
 #print axioms dqCharOk_source_mem
+
+/-- info: 'L4YAML.Research.AcceptedSource.collectDoubleQuotedLoop_prod_ok_oneLine' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
 #print axioms collectDoubleQuotedLoop_prod_ok_oneLine
+
+/-- info: 'L4YAML.Research.AcceptedSource.scanDoubleQuoted_prod_ok_oneLine' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
 #print axioms scanDoubleQuoted_prod_ok_oneLine
+
+/-- info: 'L4YAML.Research.AcceptedSource.scanDoubleQuoted_full_iff_oneLine' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
 #print axioms scanDoubleQuoted_full_iff_oneLine
+
+/-! ## Original-string consumer and independent constructor witnesses
+
+The consumer supplies only raw opening-quote and one-line facts about `input`.
+Initial correspondence and the scanner peek are derived, not assumed. The
+examples below construct the SAME grammar before invoking the generic result;
+none evaluates the scanner. These remain leaf results without decoded-value,
+public-parser, or flow-collection claims.
+-/
+
+/-- Actual original-string scanning reaches exact EOF iff the same independent
+grammar consumes that original string completely. -/
+lemma scanDoubleQuoted_source_full_iff_oneLine (input : String)
+    (hstart : ∃ rest, input.toList = '"' :: rest)
+    (hline : ∀ c ∈ input.toList, c ≠ '\n' ∧ c ≠ '\r') :
+    (∃ s', scanDoubleQuoted (ScannerState.mk' input) = .ok s' ∧
+      s'.offset = s'.inputEnd) ↔
+      ∃ col, SCDoubleQuotedOk ⟨input.toList, 0⟩ ⟨[], col⟩ := by
+  have hcorr := initial_corr input input.toList (chars_from_zero_toList input)
+  obtain ⟨rest, hstart⟩ := hstart
+  have hcorr_cons : ScannerSurfCorr (ScannerState.mk' input) ⟨'"' :: rest, 0⟩ := by
+    rw [← hstart]
+    exact hcorr
+  have hpeek := (peek_of_corr hcorr_cons).1
+  constructor
+  · rintro ⟨s', hok, heof⟩
+    exact (scanDoubleQuoted_full_iff_oneLine (ScannerState.mk' input)
+      ⟨input.toList, 0⟩ hcorr hpeek hline).1 ⟨s', hok, by omega⟩
+  · rintro ⟨col, hd⟩
+    obtain ⟨s', content, hok, hc, _⟩ :=
+      scanDoubleQuoted_accepts (ScannerState.mk' input) hcorr hd
+        (Or.inr (by trivial : TrailingOk ([] : List Char)))
+    refine ⟨s', hok, ?_⟩
+    obtain ⟨pre, hin, hpre⟩ := hc.input_prefix
+    simp only [List.append_nil] at hin
+    rw [hc.end_eq, utf8ByteSize_eq_listByteSize, hin]
+    exact hpre.symm
+
+/-- Empty quoted input: two quote constructors and an empty body. -/
+lemma quoted_empty_grammar :
+    SCDoubleQuotedOk ⟨("\"\"" : String).toList, 0⟩ ⟨[], 2⟩ := by
+  change SCDoubleQuotedOk ⟨['"', '"'], 0⟩ ⟨[], 2⟩
+  exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk ['"'] 0)
+    (GStar.nil ⟨['"'], 1⟩) (GLit.mk [] 1)
+
+/-- The multibyte source has three surface columns (and four UTF-8 bytes). -/
+lemma quoted_multibyte_grammar :
+    SCDoubleQuotedOk ⟨("\"é\"" : String).toList, 0⟩ ⟨[], 3⟩ := by
+  change SCDoubleQuotedOk ⟨['"', 'é', '"'], 0⟩ ⟨[], 3⟩
+  exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk ['é', '"'] 0)
+    (GStar.cons _ _ _ (DQCharOk.plain 'é' ['"'] 1 (by decide) (by decide) (by decide))
+      (GStar.nil ⟨['"'], 2⟩)) (GLit.mk [] 2)
+
+/-- Named escaped newline: four raw characters, with no physical line break. -/
+lemma quoted_escaped_newline_grammar :
+    SCDoubleQuotedOk ⟨("\"\\n\"" : String).toList, 0⟩ ⟨[], 4⟩ := by
+  change SCDoubleQuotedOk ⟨['"', '\\', 'n', '"'], 0⟩ ⟨[], 4⟩
+  exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk ['\\', 'n', '"'] 0)
+    (GStar.cons _ _ _ (DQCharOk.escape 'n' ['"'] 1 (by decide))
+      (GStar.nil ⟨['"'], 3⟩)) (GLit.mk [] 3)
+
+/-- Empty-source leaf success/EOF follows from its constructor witness. -/
+lemma quoted_empty_scan_full :
+    ∃ s', scanDoubleQuoted (ScannerState.mk' "\"\"") = .ok s' ∧
+      s'.offset = s'.inputEnd := by
+  refine (scanDoubleQuoted_source_full_iff_oneLine "\"\"" ⟨['"'], rfl⟩ ?_).2
+    ⟨2, quoted_empty_grammar⟩
+  intro c hc
+  change c ∈ ['"', '"'] at hc
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with rfl | rfl <;> decide
+
+/-- Multibyte-source leaf success/EOF follows from its constructor witness. -/
+lemma quoted_multibyte_scan_full :
+    ∃ s', scanDoubleQuoted (ScannerState.mk' "\"é\"") = .ok s' ∧
+      s'.offset = s'.inputEnd := by
+  refine (scanDoubleQuoted_source_full_iff_oneLine "\"é\"" ⟨['é', '"'], rfl⟩ ?_).2
+    ⟨3, quoted_multibyte_grammar⟩
+  intro c hc
+  change c ∈ ['"', 'é', '"'] at hc
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with rfl | rfl | rfl <;> decide
+
+/-- Escaped-newline leaf success/EOF follows from its constructor witness. -/
+lemma quoted_escaped_newline_scan_full :
+    ∃ s', scanDoubleQuoted (ScannerState.mk' "\"\\n\"") = .ok s' ∧
+      s'.offset = s'.inputEnd := by
+  refine (scanDoubleQuoted_source_full_iff_oneLine "\"\\n\"" ⟨['\\', 'n', '"'], rfl⟩ ?_).2
+    ⟨4, quoted_escaped_newline_grammar⟩
+  intro c hc
+  change c ∈ ['"', '\\', 'n', '"'] at hc
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with rfl | rfl | rfl | rfl <;> decide
+
+#print axioms scanDoubleQuoted_source_full_iff_oneLine
+#print axioms quoted_empty_grammar
+#print axioms quoted_multibyte_grammar
+#print axioms quoted_escaped_newline_grammar
+#print axioms quoted_empty_scan_full
+#print axioms quoted_multibyte_scan_full
+#print axioms quoted_escaped_newline_scan_full
 
 end L4YAML.Research.AcceptedSource
