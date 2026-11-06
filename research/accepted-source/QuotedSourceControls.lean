@@ -59,6 +59,6 @@ def earlyEndTokens : Array (Positioned YamlToken) :=
     { pos := ⟨0, 0, 0⟩, val := .scalar "ignored" .doubleQuoted },
     { pos := ⟨0, 0, 0⟩, val := .streamEnd }]
 
-#guard (TokenParser.parseStream earlyEndTokens).toOption = some #[]
+#guard (TokenParser.parseStream earlyEndTokens).toOption.map Array.size = some 0
 
 end L4YAML.Research.AcceptedSource
