@@ -76,7 +76,7 @@ jobs:
         run: |
           set -euo pipefail
           export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
-          for proof in DirectiveTrace DirectiveConsumer; do
+          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer; do
             if lean --root=research/whole-source -o "research/whole-source/$proof.olean" "research/whole-source/$proof.lean" > "directive-evidence/$proof.log" 2>&1; then status=0; else status=$?; fi
             printf '%s\t%s\n' "$proof" "$status" | tee -a directive-evidence/status.tsv
             cat "directive-evidence/$proof.log"
@@ -101,6 +101,10 @@ jobs:
           retention-days: 30
 
   unchanged-production:
+    # Research-only edits cannot alter the pinned production source (the proof
+    # job checks this). Reuse its separately recorded qualification unless a
+    # complete repeat is explicitly requested by dispatch or commit marker.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[production]')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
