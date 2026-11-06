@@ -107,7 +107,7 @@ lemma TagHandle.chars {cs : List Char} (h : TagHandle cs) :
   | secondary => simp
   | named c cs hc hcs =>
     intro d hd
-    simp only [List.mem_cons, List.mem_append, List.mem_singleton] at hd
+    simp only [List.mem_cons, List.mem_append, List.not_mem_nil, or_false] at hd
     rcases hd with (rfl | rfl | hd) | rfl
     · exact Or.inr rfl
     · exact Or.inl hc
@@ -130,12 +130,13 @@ lemma TagHandle.validated {cs : List Char} (h : TagHandle cs) :
       · exact hc
       · exact hcs d hd
     unfold isTagHandleShaped
-    apply Bool.or_eq_true.mpr
+    apply Bool.or_eq_true_iff.mpr
     right
     simp only [String.toList_ofList, List.cons_append]
     change (decide (((c :: cs) ++ ['!']).length ≥ 2) &&
       (((c :: cs) ++ ['!']).getLast? == some '!') &&
       (((c :: cs) ++ ['!']).dropLast.all isWordCharBool)) = true
+    rw [List.getLast?_append, List.dropLast_concat]
     simp [hw]
 
 /-- Stable public collector signature. It covers arbitrary primary, secondary,
@@ -153,7 +154,13 @@ lemma collectTagHandleDirectiveLoop_accepts {cs rest : List Char}
 
 lemma TagHandle.ends_bang {cs : List Char} (h : TagHandle cs) :
     cs.getLast? = some '!' := by
-  cases h <;> simp [List.getLast?_append]
+  cases h with
+  | primary => rfl
+  | secondary => rfl
+  | named c cs hc hcs =>
+    change (('!' :: c :: cs) ++ ['!']).getLast? = some '!'
+    rw [List.getLast?_append]
+    rfl
 
 lemma handle_empty_excluded : ¬ TagHandle [] := by
   intro h
@@ -384,8 +391,9 @@ lemma skipToEndOfLine_of_ending {sc : ScannerState} {t : SurfPos}
   have hp := ending_peek hcorr he
   unfold skipToEndOfLine
   cases (sc.inputEnd - sc.offset) with
-  | zero => rfl
-  | succ n => rcases hp with hp | hp | hp <;> simp [skipToEndOfLineLoop, hp, isLineBreakBool]
+  | zero => simp [skipToEndOfLineLoop]
+  | succ n => rcases hp with hp | hp | hp <;>
+      simp [skipToEndOfLineLoop, hp, isLineBreakBool, isLineFeedBool, isCarriageReturnBool]
 
 /-- Full TAG source/scanner bridge: independent original source syntax and the
 scanner's permission flag derive success, the precise token at the `%` source
@@ -513,10 +521,137 @@ def tagDirective_before_lf (handle pfxChars rest : List Char)
       cases hh <;> simp only [List.cons_append, List.head?_cons, Option.some.injEq] at hc
       all_goals subst c; decide
 
+/-- The source identity and two directive permissions needed by a continuation.
+This is a predicate on concrete scanner-state projections, not extra state. -/
+structure DirectiveContextKeeps (sc out : ScannerState) : Prop where
+  input : out.input = sc.input
+  allowDirectives : out.allowDirectives = sc.allowDirectives
+  seenYamlDirective : out.seenYamlDirective = sc.seenYamlDirective
+
+lemma DirectiveContextKeeps.refl (sc : ScannerState) : DirectiveContextKeeps sc sc :=
+  ⟨rfl, rfl, rfl⟩
+
+lemma DirectiveContextKeeps.trans {a b c : ScannerState}
+    (h₁ : DirectiveContextKeeps a b) (h₂ : DirectiveContextKeeps b c) :
+    DirectiveContextKeeps a c :=
+  ⟨h₂.input.trans h₁.input, h₂.allowDirectives.trans h₁.allowDirectives,
+    h₂.seenYamlDirective.trans h₁.seenYamlDirective⟩
+
+lemma advance_directiveContext (sc : ScannerState) : DirectiveContextKeeps sc sc.advance := by
+  unfold ScannerState.advance
+  by_cases h : sc.offset < sc.inputEnd
+  · simp only [h, ite_true]
+    split <;> (try split) <;> exact ⟨rfl, rfl, rfl⟩
+  · simp only [h, ite_false]
+    exact ⟨rfl, rfl, rfl⟩
+
+lemma collectRun_directiveContext (test : Char → Bool) (sc : ScannerState)
+    (acc : String) (fuel : Nat) :
+    DirectiveContextKeeps sc (collectRun test sc acc fuel).2 := by
+  induction fuel generalizing sc acc with
+  | zero => exact .refl sc
+  | succ n ih =>
+    cases hp : sc.peek? with
+    | none => simp only [collectRun, hp]; exact .refl sc
+    | some c =>
+      simp only [collectRun, hp]
+      split
+      · exact (advance_directiveContext sc).trans (ih _ _)
+      · exact .refl sc
+
+lemma skipWhitespaceLoop_directiveContext (sc : ScannerState) (fuel : Nat) :
+    DirectiveContextKeeps sc (skipWhitespaceLoop sc fuel) := by
+  induction fuel generalizing sc with
+  | zero => simpa only [skipWhitespaceLoop] using (DirectiveContextKeeps.refl sc)
+  | succ n ih =>
+    cases hp : sc.peek? with
+    | none => simp only [skipWhitespaceLoop, hp]; exact .refl sc
+    | some c =>
+      simp only [skipWhitespaceLoop, hp]
+      split
+      · exact (advance_directiveContext sc).trans (ih _)
+      · exact .refl sc
+
+lemma skipWhitespace_directiveContext (sc : ScannerState) :
+    DirectiveContextKeeps sc (skipWhitespace sc) :=
+  skipWhitespaceLoop_directiveContext sc _
+
+lemma scanTagDirective_context (origin sc out : ScannerState) (start : YamlPos)
+    (hok : scanTagDirective origin sc start = .ok out) : DirectiveContextKeeps sc out := by
+  let r₁ := collectTagHandleDirectiveLoop sc "" (origin.inputEnd - sc.offset)
+  let sc₂ := skipWhitespace r₁.2
+  let r₃ := collectTagPrefixLoop sc₂ "" (origin.inputEnd - sc₂.offset)
+  let sc₄ := skipWhitespace r₃.2
+  have hc₁ : DirectiveContextKeeps sc r₁.2 := by
+    dsimp only [r₁]
+    rw [handleLoop_eq_collectRun]
+    exact collectRun_directiveContext _ _ _ _
+  have hc₃ : DirectiveContextKeeps sc₂ r₃.2 := by
+    dsimp only [r₃]
+    rw [prefixLoop_eq_collectRun]
+    exact collectRun_directiveContext _ _ _ _
+  have hc₄ : DirectiveContextKeeps sc sc₄ :=
+    ((hc₁.trans (skipWhitespace_directiveContext _)).trans hc₃).trans
+      (skipWhitespace_directiveContext _)
+  have hfinal : DirectiveContextKeeps sc
+      { sc₄.emitAt start (.tagDirective r₁.1 r₃.1) with directivesPresent := true } :=
+    ⟨hc₄.input, hc₄.allowDirectives, hc₄.seenYamlDirective⟩
+  unfold scanTagDirective at hok
+  simp only [bind, Except.bind] at hok
+  split at hok
+  · contradiction
+  · split at hok
+    · split at hok
+      · contradiction
+      · cases hok; exact hfinal
+    · split at hok
+      · contradiction
+      · cases hok; exact hfinal
+    · cases hok; exact hfinal
+
+/-- Separate continuation contract for the full independent TAG path. The
+existing success/token signature remains stable; this consumes the actual
+successful result and exposes original source identity and directive flags. -/
+lemma scanDirective_context (sc out : ScannerState) {handle pfxChars : List Char}
+    {s t : SurfPos} (h : TagDirective handle pfxChars s t)
+    (hcorr : ScannerSurfCorr sc s) (hallow : sc.allowDirectives = true)
+    (hok : scanDirective sc = .ok out) : DirectiveContextKeeps sc out := by
+  have hcadv : ScannerSurfCorr sc.advance h.afterPercent := by
+    cases h.percent
+    exact advance_corr hcorr (by decide) (by decide)
+  have hfuel := fuel_of_corr hcadv
+  have hiadv := (keeps_advance sc).2.1
+  obtain ⟨name, sc₁, hname, hn, hc₁, hk₁⟩ := collectDirectiveNameLoop_accepts
+    h.name sc.advance hcadv (sc.inputEnd - sc.advance.offset) (by omega)
+  have hn' : name = "TAG" := by simpa using hn
+  subst name
+  obtain ⟨hc₂, hk₂⟩ := whitespace_accepts h.separatorRun sc₁ hc₁
+  have hlim : sc.inputEnd = (skipWhitespace sc₁).inputEnd := by
+    rw [hk₂.2.1, hk₁.2.1, hiadv]
+  obtain ⟨actual, ha, hca, _, _⟩ := scanTagDirective_accepts sc
+    (skipWhitespace sc₁) h.body hc₂ hlim
+  have he : out = actual := by
+    unfold scanDirective at hok
+    simp only [hallow, Bool.not_true, Bool.false_eq_true, ite_false, hname] at hok
+    simp only [show ("TAG" == "YAML") = false from rfl, Bool.false_eq_true, ite_false,
+      show ("TAG" == "TAG") = true from rfl, ite_true, ha] at hok
+    rw [skipToEndOfLine_of_ending hca h.body.ending] at hok
+    exact (Except.ok.inj hok).symm
+  subst out
+  have hnctx : DirectiveContextKeeps sc.advance sc₁ := by
+    have hnctx := collectRun_directiveContext
+      (fun c => !isWhiteSpaceBool c && !isLineBreakBool c && isPrintableBool c && c != '﻿')
+      sc.advance "" (sc.inputEnd - sc.advance.offset)
+    rw [← nameLoop_eq_collectRun, hname] at hnctx
+    exact hnctx
+  exact (((advance_directiveContext sc).trans hnctx).trans
+    (skipWhitespace_directiveContext _)).trans (scanTagDirective_context _ _ _ _ ha)
+
 #print axioms collectTagHandleDirectiveLoop_accepts
 #print axioms TagHandle.validated
 #print axioms scanTagDirective_accepts
 #print axioms scanDirective_accepts
+#print axioms scanDirective_context
 
 end
 end MathGraph.WholeSource.DirectiveBridge
