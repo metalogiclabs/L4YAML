@@ -147,7 +147,7 @@ lemma scan_eq_after_two (input : String) (rest : List Char) (mid out : ScannerSt
   have hfuel : (input.utf8ByteSize + 1) * 4 =
       ((input.utf8ByteSize + 1) * 4 - 2) + 1 + 1 := by omega
   simp only [scan, hp]
-  conv_lhs => rw [hfuel]
+  conv => lhs; rw [hfuel]
   rw [scanLoop, hfirst, scanLoop, hsecond]
 
 lemma original_scan_continuation (input : String) (major minor comment rest : List Char)
