@@ -364,6 +364,8 @@ lemma source_flow_stack_of_level {s s' : ScannerState}
   · omega
   · omega
 
+/-- info: 'L4YAML.Research.AcceptedSource.source_dq_loop_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms source_dq_loop_step
 /-- Reading only the five source constructors exposes the three delimiters. -/
 lemma source_pair_parts {sp sp' : SurfPos} (h : QuotedPair sp sp') :
@@ -638,19 +640,65 @@ lemma source_quoted_pair_hex_public_accepts :
     ∃ docs, TokenParser.parseYaml "[\"\\x41\",\"\\u0042\"]" = .ok docs :=
   source_quoted_pair_public_accepts _ ⟨17, source_quoted_pair_hex_grammar⟩
 
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_empty_grammar' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_empty_grammar
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_multibyte_grammar' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_multibyte_grammar
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_hex_grammar' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_hex_grammar
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_empty_public_accepts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_empty_public_accepts
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_multibyte_public_accepts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_multibyte_public_accepts
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_hex_public_accepts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_hex_public_accepts
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_token_conditions' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_token_conditions
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_public_accepts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_public_accepts
+/-- info: 'L4YAML.Research.AcceptedSource.source_pair_parts' does not depend on any axioms -/
+#guard_msgs in
 #print axioms source_pair_parts
+/-- info: 'L4YAML.Research.AcceptedSource.source_quoted_pair_scan_tokens' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
 #print axioms source_quoted_pair_scan_tokens
+/-- info: 'L4YAML.Research.AcceptedSource.source_dq_loop_accepts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms source_dq_loop_accepts
+/-- info: 'L4YAML.Research.AcceptedSource.source_dq_flow_accepts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms source_dq_flow_accepts
+/-- info: 'L4YAML.Research.AcceptedSource.source_dq_flow_dispatch' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms source_dq_flow_dispatch
+/-- info: 'L4YAML.Research.AcceptedSource.source_flow_stack_of_level' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms source_flow_stack_of_level
 
 end L4YAML.Research.AcceptedSource
