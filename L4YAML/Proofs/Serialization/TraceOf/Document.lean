@@ -9,13 +9,18 @@ public import L4YAML.Proofs.Serialization.TraceOf.Node
 /-!
 # Event-annotated documents and stream (EVENTSOF-CONCEPT §10)
 
-Hand-written twins of `Surface/Document.lean`'s productions.  Two orderings
-are fixed here rather than read off the text: a document's `beginDocument`
-precedes the `declareTag`s of the `%TAG` directives that textually precede its
-`---` (`RuntimeScopes.documentEvents`), and `...` is `endDocument`.
-`SLYamlStream.scannerDrop` has no twin: the annotated stream is the intended
-grammar, so `scan ok → TLYamlStream …` (S3) is available only once Row 12
-retires the drop.
+Hand-written event-annotated counterparts of `Surface/Document.lean`.
+Two orderings are fixed here rather than read off the text: a document's
+`beginDocument` precedes the `declareTag`s of the `%TAG` directives that
+textually precede its `---` (`RuntimeScopes.documentEvents`), and `...` is
+`endDocument`.
+
+The stream composition boundary follows [211]: without a preceding nonempty
+document-suffix run, a newly appended document must be explicit. A separate
+document-free continuation preserves comments and BOMs. This annotated layer
+has no `scannerDrop`; the unannotated surface relation and its scanner
+accumulation proof remain unchanged. The scanner-to-trace bridge (S3), full
+trace uniqueness, and whole-language exactness are still separate obligations.
 -/
 
 namespace L4YAML.Proofs.Serialization.TraceOf
@@ -68,8 +73,9 @@ inductive TLDocumentSuffix : TRel where
       SCDocumentEnd s s₁ → SSLComments s₁ s' →
       TLDocumentSuffix s s' [.endDocument]
 
-/-- Annotated `[211] l-yaml-stream` — the three grammar constructors of
-`SLYamlStream`, without `scannerDrop`. -/
+/-- Annotated `[211] l-yaml-stream`, without `scannerDrop`. Bare and directive
+documents occur initially or after a nonempty suffix run; unmarked
+continuation appends an explicit document or no document at all. -/
 inductive TLYamlStream : TRel where
   | single (s s₁ s₂ s' : SurfPos) (e₁ e₂ : List Event) :
       GStar SLDocumentPrefix s s₁ →
@@ -83,12 +89,20 @@ inductive TLYamlStream : TRel where
       TOpt TLAnyDocument s₃ s₄ e₂ →
       TStar TLDocumentSuffix s₄ s' e₃ →
       TLYamlStream s s' (e₀ ++ e₁ ++ e₂ ++ e₃)
+  /-- No preceding suffix: [211] requires an explicit next document. -/
   | implicitContinue (s s₁ s₂ s₃ s' : SurfPos) (e₀ e₁ e₂ : List Event) :
       TLYamlStream s s₁ e₀ →
       GStar SLDocumentPrefix s₁ s₂ →
-      TOpt TLAnyDocument s₂ s₃ e₁ →
+      TLExplicitDocument s₂ s₃ e₁ →
       TStar TLDocumentSuffix s₃ s' e₂ →
       TLYamlStream s s' (e₀ ++ e₁ ++ e₂)
+  /-- Document-free continuation preserves [211]'s comment and BOM alternatives;
+  suffixes, if present, retain their document-end events. -/
+  | prefixContinue (s s₁ s₂ s' : SurfPos) (e₀ e₁ : List Event) :
+      TLYamlStream s s₁ e₀ →
+      GStar SLDocumentPrefix s₁ s₂ →
+      TStar TLDocumentSuffix s₂ s' e₁ →
+      TLYamlStream s s' (e₀ ++ e₁)
 
 /-- The serialization trace of a whole input, by the annotated grammar. -/
 def TraceOf (input : String) (ev : List Event) : Prop :=

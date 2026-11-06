@@ -1,0 +1,89 @@
+name: Annotated stream continuation repair qualification
+
+on:
+  push:
+    branches: ['research/trace-continuation-repair-20261106']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Record source and unchanged runtime boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          git rev-parse HEAD | tee qualification/head.txt
+          git diff --stat 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD | tee qualification/diff-stat.txt
+          git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML/Parser L4YAML/Scanner L4YAML/Surface L4YAML/Spec lakefile.lean lean-toolchain lake-manifest.json
+          sha256sum L4YAML/Proofs/Serialization/TraceOf/Document.lean Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean | tee qualification/source-sha256.txt
+      - name: Install checksum-pinned official Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 -o "$RUNNER_TEMP/lean.tar.zst" https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst
+          echo "7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check
+          tar --no-same-owner --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-4.35.0-linux/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lean-4.35.0-linux/bin/lean" --version | tee qualification/lean-version.txt
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .lake
+          key: trace-repair-64795a8-lean435-${{ github.sha }}
+          restore-keys: trace-repair-64795a8-lean435-
+      - name: Build actual changed relation and its existing guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Serialization.TraceOf.Document Tests.Guards.Proofs.TraceOfBlockAmbiguity > qualification/targeted-build.log 2>&1
+          cat qualification/targeted-build.log
+      - name: Full repository build including guards and censuses
+        id: fullbuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build > qualification/full-build.log 2>&1
+          tail -100 qualification/full-build.log
+      - name: Repository gates and unchanged executable controls
+        if: steps.fullbuild.outcome == 'success'
+        shell: bash
+        run: |
+          set -u
+          failed=0
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
+            if lake run "$gate" > "qualification/$gate.log" 2>&1; then status=0; else status=$?; failed=1; fi
+            printf '%s\t%s\n' "$gate" "$status" | tee -a qualification/status.tsv
+            tail -40 "qualification/$gate.log"
+          done
+          if lake run gen-traceof -- --check > qualification/gen-traceof.log 2>&1; then status=0; else status=$?; failed=1; fi
+          printf 'gen-traceof\t%s\n' "$status" | tee -a qualification/status.tsv
+          if lake run run-all-tests -- docs/reports > qualification/runtime-tests.log 2>&1; then status=0; else status=$?; failed=1; fi
+          printf 'run-all-tests\t%s\n' "$status" | tee -a qualification/status.tsv
+          tail -60 qualification/runtime-tests.log
+          if lake exe collect-stats > qualification/collect-stats.log 2>&1 && lake run check-hygiene -- docs/reports/stats.json > qualification/check-hygiene.log 2>&1; then status=0; else status=$?; failed=1; fi
+          printf 'check-hygiene\t%s\n' "$status" | tee -a qualification/status.tsv
+          tail -40 qualification/check-hygiene.log
+          exit "$failed"
+      - name: Ensure checks did not modify production sources
+        if: always()
+        shell: bash
+        run: git diff --exit-code HEAD -- L4YAML Tests lakefile.lean lean-toolchain lake-manifest.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: trace-production-qualification
+          path: |
+            qualification/
+            docs/reports/
+          if-no-files-found: error
+          retention-days: 30
