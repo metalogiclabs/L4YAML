@@ -4,6 +4,8 @@ public import L4YAML.Proofs.Production.Acceptance.Quoted
 public import L4YAML.Proofs.Output.EmitterScannability.FilteredTracking
 public import L4YAML.Proofs.Parser.StreamCompleteness
 public import L4YAML.Proofs.Composition
+-- The trace producer seals its executable bodies; inspect the actual trace.
+import all L4YAML.Proofs.Serialization.TokenEvents
 
 @[expose] public section
 
@@ -45,6 +47,7 @@ lemma source_quoted_scanNextToken_init (input : String) (col : Nat)
       (s₁.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
         #[.streamStart, .scalar content .doubleQuoted] := by
   obtain ⟨rest, hstart⟩ := source_quoted_opening h
+  change input.toList = '"' :: rest at hstart
   have hcorr₀ := initial_corr input input.toList (chars_from_zero_toList input)
   obtain ⟨s_pp, h_pp, h_fl, h_if, h_ci, h_col, h_ad, h_dp, h_ids,
       h_inp, h_off, h_ie, h_ek, h_line, h_atol, h_bd, h_filter⟩ :=
@@ -54,7 +57,7 @@ lemma source_quoted_scanNextToken_init (input : String) (col : Nat)
       (s_pp.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
         #[.streamStart] := by
     rw [h_filter]
-    rfl
+    simp [ScannerState.emit, ScannerState.mk']
   have hcorr_pp : ScannerSurfCorr s_pp ⟨input.toList, 0⟩ :=
     ScannerSurfCorr_transfer hcorr₀ h_inp h_off h_ie h_col h_ids
   have hcorr_cons : ScannerSurfCorr s_pp ⟨'"' :: rest, 0⟩ := by
@@ -138,6 +141,7 @@ lemma source_quoted_scan_tokens (input : String)
   have h_no_bom : (ScannerState.mk' input).peek? ≠ some '\uFEFF' := by
     have hc := initial_corr input input.toList (chars_from_zero_toList input)
     obtain ⟨rest, hstart⟩ := source_quoted_opening h
+    change input.toList = '"' :: rest at hstart
     rw [hstart] at hc
     have hp := (peek_of_corr hc).1
     rw [hp]
@@ -247,7 +251,8 @@ lemma source_quoted_hex_grammar :
   change SCDoubleQuotedOk ⟨['"', '\\', 'x', '4', '1', '"'], 0⟩ ⟨[], 6⟩
   exact SCDoubleQuotedOk.mk _ _ _ _ (GLit.mk ['\\', 'x', '4', '1', '"'] 0)
     (GStar.cons _ _ _ (DQCharOk.hexEscape2 ['"'] 1 '4' '1'
-      (by decide) (by decide) (by decide)) (GStar.nil ⟨['"'], 5⟩)) (GLit.mk [] 5)
+      (by unfold isNsHexDigit; decide) (by unfold isNsHexDigit; decide) (by decide))
+      (GStar.nil ⟨['"'], 5⟩)) (GLit.mk [] 5)
 
 lemma source_quoted_empty_public_accepts :
     ∃ docs, TokenParser.parseYaml "\"\"" = .ok docs :=
@@ -261,6 +266,7 @@ lemma source_quoted_hex_public_accepts :
     ∃ docs, TokenParser.parseYaml "\"\\x41\"" = .ok docs :=
   source_quoted_public_accepts _ ⟨6, source_quoted_hex_grammar⟩
 
+#print axioms source_quoted_opening
 #print axioms source_quoted_scanNextToken_init
 #print axioms source_quoted_scan_tokens
 #print axioms source_quoted_token_conditions
