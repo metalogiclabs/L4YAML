@@ -26,13 +26,19 @@ lemma consumes_exact_token (sc : ScannerState) {handle tagPrefix : List Char}
     ∃ out, scanDirective sc = .ok out ∧
       ScannerSurfCorr out t ∧
       out.tokens.toList = sc.tokens.toList ++
-        [{ pos := sc.currentPos,
-           val := .tagDirective (String.ofList handle) (String.ofList tagPrefix) }] ∧
+        [{ pos := sc.currentPos, val := .tagDirective (String.ofList handle) (String.ofList tagPrefix) }] ∧
       out.directivesPresent = true := by
   obtain ⟨out, hok, hsource, htoken, hflag⟩ :=
     scanDirective_accepts sc h hcorr hallow
   refine ⟨out, hok, hsource, ?_, hflag⟩
   simp [htoken]
+
+lemma consumes_preserved_context (sc : ScannerState) {handle tagPrefix : List Char}
+    {s t : SurfPos} (h : TagDirective handle tagPrefix s t)
+    (hcorr : ScannerSurfCorr sc s) (hallow : sc.allowDirectives = true) :
+    ∃ out, scanDirective sc = .ok out ∧ DirectiveContextKeeps sc out := by
+  obtain ⟨out, hok, _, _, _⟩ := scanDirective_accepts sc h hcorr hallow
+  exact ⟨out, hok, scanDirective_context sc out h hcorr hallow hok⟩
 
 /-- A constructive arbitrary-length family on the actual original input.
 No scanner success or scanner correspondence is assumed by this consumer. -/
@@ -45,8 +51,7 @@ lemma original_source_family (input : String) (handle tagPrefix rest : List Char
     ∃ out, scanDirective (ScannerState.mk' input) = .ok out ∧
       ScannerSurfCorr out ⟨'\n' :: rest, 5 + handle.length + 1 + tagPrefix.length⟩ ∧
       out.tokens.toList =
-        [{ pos := (ScannerState.mk' input).currentPos,
-           val := .tagDirective (String.ofList handle) (String.ofList tagPrefix) }] ∧
+        [{ pos := (ScannerState.mk' input).currentPos, val := .tagDirective (String.ofList handle) (String.ofList tagPrefix) }] ∧
       out.directivesPresent = true := by
   have hc := initial_corr input input.toList (chars_from_zero_toList input)
   rw [hsource] at hc
@@ -92,6 +97,7 @@ private def rootTags (input : String) : Option (Array (Option String)) :=
 #guard accepts "%TAG !t! tag:x,2000:\n--- !t!a b\n...\n--- !t!a b" = false
 
 #print axioms consumes_exact_token
+#print axioms consumes_preserved_context
 #print axioms original_source_family
 
 end MathGraph.WholeSource.DirectiveBridgeConsumer
