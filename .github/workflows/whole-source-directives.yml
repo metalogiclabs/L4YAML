@@ -44,6 +44,7 @@ jobs:
           path: .lake
           key: whole-directives-64795a8-lean435-${{ github.sha }}
           restore-keys: |
+            directive-bridge-deps-64795a8-lean435-
             whole-directives-64795a8-lean435-
             quoted-pack-freshness-64795a8-lean435-
             trace-repair-64795a8-lean435-
@@ -55,6 +56,11 @@ jobs:
           set -euo pipefail
           lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Properties > directive-evidence/baseline.log 2>&1
           tail -100 directive-evidence/baseline.log
+      - name: Save successfully built dependencies independently of candidate proofs
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .lake
+          key: directive-bridge-deps-64795a8-lean435-${{ github.sha }}
       - name: Qualify literal controls and reject equal-acceptance hypothesis
         if: steps.baseline.outcome == 'success'
         shell: bash
