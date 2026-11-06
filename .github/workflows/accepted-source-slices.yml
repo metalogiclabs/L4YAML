@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake build L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Quoted > quoted-qualification/baseline.log 2>&1
+          lake build L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Quoted L4YAML.Proofs.Output.EmitterScannability.FilteredTracking L4YAML.Proofs.Parser.StreamCompleteness L4YAML.Proofs.Composition > quoted-qualification/baseline.log 2>&1
           tail -100 quoted-qualification/baseline.log
       - name: Run source boundary controls and expected failures
         if: steps.baseline.outcome == 'success'
@@ -79,6 +79,20 @@ jobs:
           sed -n '1,320p' quoted-qualification/QuotedInverse.log
           if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' quoted-qualification/QuotedInverse.log; then status=1; fi
           exit "$status"
+      - name: Check original-source public parser bridge and fixed consumer
+        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          quoted_lean_path="$PWD/research/accepted-source:$(lake env printenv LEAN_PATH)"
+          export LEAN_PATH="$quoted_lean_path"
+          for proof in QuotedPublic QuotedPublicConsumer; do
+            if lean --root=research/accepted-source -o "research/accepted-source/$proof.olean" "research/accepted-source/$proof.lean" > "quoted-qualification/$proof.log" 2>&1; then status=0; else status=$?; fi
+            printf '%s\t%s\n' "$proof" "$status" | tee -a quoted-qualification/status.tsv
+            sed -n '1,360p' "quoted-qualification/$proof.log"
+            if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' "quoted-qualification/$proof.log"; then status=1; fi
+            test "$status" = 0
+          done
       - name: Ensure production source remains unchanged
         if: always()
         shell: bash
