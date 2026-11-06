@@ -1,0 +1,84 @@
+name: Source-pinned structural boundary probes
+
+on:
+  push:
+    branches: ['research/structural-boundaries-20261106']
+    paths:
+      - 'research/structural-boundaries/**'
+      - '.github/workflows/structural-boundaries.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Record exact source and protected baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          git rev-parse HEAD | tee qualification/harness-head.txt
+          git diff --exit-code 64795a8db28ccfdae85082c93b6453001ae9d3e4 HEAD -- L4YAML Tests lakefile.lean lean-toolchain lake-manifest.json
+          sha256sum lean-toolchain lake-manifest.json research/structural-boundaries/*.lean | tee qualification/source-sha256.txt
+      - name: Install checksum-pinned official Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 -o "$RUNNER_TEMP/lean.tar.zst" https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst
+          echo "7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d  $RUNNER_TEMP/lean.tar.zst" | sha256sum --check
+          tar --no-same-owner --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-4.35.0-linux/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/lean-4.35.0-linux/bin/lean" --version | tee qualification/lean-version.txt
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .lake
+          key: structural-baseline-64795a8-lean435-v1
+      - name: Build unchanged dependency roots
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Parser.Composition L4YAML.Output.Emitter L4YAML.Proofs.Serialization.TraceOf.Document 2>&1 | tee qualification/baseline.log
+      - name: Evaluate independent probes separately
+        if: steps.baseline.outcome == 'success'
+        shell: bash
+        run: |
+          set -u
+          for probe in AnchorRebindingAudit TraceAnswerAudit FrameOrderAudit AnchorRebindingExpected; do
+            if lake env lean --root=research/structural-boundaries "research/structural-boundaries/$probe.lean" > "qualification/$probe.log" 2>&1; then
+              probe_status=0
+            else
+              probe_status=$?
+            fi
+            printf '%s\t%s\n' "$probe" "$probe_status" | tee -a qualification/status.tsv
+            sed -n '1,240p' "qualification/$probe.log"
+          done
+      - name: Gate diagnostic compilation and intended negative control
+        if: steps.baseline.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(awk '$1 == "AnchorRebindingAudit" {print $2}' qualification/status.tsv)" = 0
+          test "$(awk '$1 == "TraceAnswerAudit" {print $2}' qualification/status.tsv)" = 0
+          test "$(awk '$1 == "FrameOrderAudit" {print $2}' qualification/status.tsv)" = 0
+          test "$(awk '$1 == "AnchorRebindingExpected" {print $2}' qualification/status.tsv)" = 1
+          if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' qualification/*Audit.log; then exit 1; fi
+          # A nonzero expected-test exit is not alone a semantic finding.
+          # Its exact failing assertions must also be inspected in the artifact.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: structural-boundaries-evidence
+          path: |
+            qualification/
+            research/structural-boundaries/
+          if-no-files-found: error
+          retention-days: 30
