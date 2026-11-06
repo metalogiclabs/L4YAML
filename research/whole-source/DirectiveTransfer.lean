@@ -129,9 +129,69 @@ lemma version_digits_accepts (major minor rest : List Char)
   exact ⟨ma, middle, mi, last, heq, heqmi, by simpa using hma',
     by simpa using hmi', hend, hk.trans hkeep⟩
 
+-- Direct body controls also retain empty-digit and duplicate rejection.
+private def bodyAccepts (input : String) (seen : Bool := false) : Bool :=
+  let sc := { ScannerState.mk' input with seenYamlDirective := seen }
+  (scanYamlDirective sc sc sc.currentPos).toOption.isSome
+#guard bodyAccepts "1.2\n" = true
+#guard bodyAccepts "001.002\né" = true
+#guard bodyAccepts ".2\n" = false
+#guard bodyAccepts "1.\n" = false
+#guard bodyAccepts "1.2x\n" = false
+#guard bodyAccepts "1.2\n" true = false
+
+/-- Source-connected nonempty version digits ending before LF derive actual
+YAML directive-body success. The incoming duplicate-version flag is explicit;
+this does not establish a whole-stream version uniqueness invariant. -/
+lemma yaml_body_before_lf (origin sc : ScannerState) (major minor rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ []) (col : Nat)
+    (hcorr : ScannerSurfCorr sc ⟨major ++ '.' :: (minor ++ '\n' :: rest), col⟩)
+    (hlimit : origin.inputEnd = sc.inputEnd) (hseen : origin.seenYamlDirective = false) :
+    ∃ out, scanYamlDirective origin sc origin.currentPos = .ok out ∧
+      ScannerSurfCorr out ⟨'\n' :: rest, col + major.length + 1 + minor.length⟩ ∧
+      out.tokens = sc.tokens.push { pos := origin.currentPos, val := .versionDirective (String.ofList major).toNat! (String.ofList minor).toNat! } ∧
+      out.seenYamlDirective = true ∧ out.directivesPresent = true := by
+  have hs : Stops isNsDecDigit ('\n' :: rest) := by
+    intro c hc
+    simp only [List.head?_cons, Option.some.injEq] at hc
+    subst c
+    simp [isNsDecDigit]
+  obtain ⟨ma, middle, mi, last, heqMa, heqMi, hma', hmi', hlast, hk⟩ :=
+    version_digits_accepts major minor ('\n' :: rest) hma hmi hs sc col hcorr
+  have hmaEq : ma = String.ofList major := by
+    rw [← String.toList_inj, String.toList_ofList]; exact hma'
+  have hmiEq : mi = String.ofList minor := by
+    rw [← String.toList_inj, String.toList_ofList]; exact hmi'
+  subst ma; subst mi
+  have hnonempty (cs : List Char) (hne : cs ≠ []) : (String.ofList cs).isEmpty = false := by
+    apply String.isEmpty_eq_false_iff.mpr
+    intro he
+    have hh := congrArg String.toList he
+    simp only [String.toList_ofList, String.toList_empty] at hh
+    exact hne hh
+  have hp := (peek_of_corr hlast).1
+  have hws : skipWhitespace last = last :=
+    L4YAML.Proofs.ScannerCoupling.skipWhitespace_noop last (by rw [hp]; decide)
+  let final := { last.emitAt origin.currentPos
+      (.versionDirective (String.ofList major).toNat! (String.ofList minor).toNat!) with
+        seenYamlDirective := true, directivesPresent := true }
+  have hfinal : ScannerSurfCorr final ⟨'\n' :: rest, col + major.length + 1 + minor.length⟩ := by
+    have he := L4YAML.Proofs.ScalarCoupling.corr_of_emitAt origin.currentPos
+      (.versionDirective (String.ofList major).toNat! (String.ofList minor).toNat!) hlast
+    exact ⟨he.chars_from, he.col_eq, he.end_eq, he.input_prefix, he.indent_cols_nonneg⟩
+  refine ⟨final, ?_, hfinal, ?_, rfl, rfl⟩
+  · unfold scanYamlDirective
+    simp [hseen, hlimit, heqMa, heqMi, hws, hp, hnonempty major hneMa,
+      hnonempty minor hneMi, L4YAML.CharPredicates.isLineBreakBool,
+      L4YAML.CharPredicates.isLineFeedBool, L4YAML.CharPredicates.isCarriageReturnBool, final]
+  · simp only [final, ScannerState.emitAt]
+    rw [hk.1]
+
 #print axioms minor_accepts
 #print axioms major_eq_minor_advance
 #print axioms major_accepts
 #print axioms version_digits_accepts
+#print axioms yaml_body_before_lf
 end
 end MathGraph.WholeSource.DirectiveTransfer
