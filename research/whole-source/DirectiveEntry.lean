@@ -129,13 +129,45 @@ lemma original_two_steps (input : String) (major minor comment rest : List Char)
   rw [hc1]
   simp only [bind, Except.bind, pure, Except.pure]
   rw [hc2]
-  simp only [bind, Except.bind, pure, Except.pure]
+  simp only []
   rw [hstruct]
-  rfl
+
+/-- Exact residual of the real scanner after two successful steps. This
+preserves the production fuel budget and makes no suffix-success assumption. -/
+lemma scan_eq_after_two (input : String) (rest : List Char) (mid out : ScannerState)
+    (hsource : input.toList = '%' :: rest)
+    (hfirst : scanNextToken ((ScannerState.mk' input).emit .streamStart) = .ok (some mid))
+    (hsecond : scanNextToken mid = .ok (some out)) :
+    scan input = scanLoop out ((input.utf8ByteSize + 1) * 4 - 2) := by
+  have hc := initial_corr input input.toList (chars_from_zero_toList input)
+  rw [hsource] at hc
+  have hc0 : ScannerSurfCorr ((ScannerState.mk' input).emit .streamStart) ⟨'%' :: rest, 0⟩ :=
+    ⟨hc.chars_from, hc.col_eq, hc.end_eq, hc.input_prefix, hc.indent_cols_nonneg⟩
+  have hp := (peek_of_corr hc0).1
+  have hfuel : (input.utf8ByteSize + 1) * 4 =
+      ((input.utf8ByteSize + 1) * 4 - 2) + 1 + 1 := by omega
+  unfold scan
+  rw [hp]
+  rw [hfuel, scanLoop, hfirst, scanLoop, hsecond]
+
+lemma original_scan_continuation (input : String) (major minor comment rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
+    (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
+      (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: '-' :: '-' :: '-' :: '\n' :: rest)))) :
+    ∃ out, scan input = scanLoop out ((input.utf8ByteSize + 1) * 4 - 2) ∧
+      out.directivesPresent = false ∧ out.allowDirectives = false ∧
+      out.seenYamlDirective = false := by
+  obtain ⟨mid, out, hfirst, hsecond, hd, ha, hy⟩ :=
+    original_two_steps input major minor comment rest hma hmi hneMa hneMi hcomment hsource
+  exact ⟨out, scan_eq_after_two input _ mid out hsource hfirst hsecond, hd, ha, hy⟩
 
 #print axioms initial_percent_preprocess
 #print axioms initial_checks
 #print axioms percent_structural
 #print axioms original_two_steps
+#print axioms scan_eq_after_two
+#print axioms original_scan_continuation
 end
 end MathGraph.WholeSource.DirectiveEntry
