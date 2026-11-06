@@ -32,13 +32,13 @@ private def nextAfterDirective (s : String) : Bool :=
 #guard nextAfterDirective "%YAML 1.2 #x\n ---\n" = false
 
 lemma version_token_checks (s land : ScannerState) (major minor : Nat) (pos : YamlPos)
-    (prefix : Array (Positioned YamlToken))
-    (ht : s.tokens = prefix.push {pos := pos, val := .versionDirective major minor}) :
+    (priorTokens : Array (Positioned YamlToken))
+    (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
     scanNextToken_checkDanglingNode s land = .ok () ∧
     scanNextToken_checkFlowValueIndent s land = .ok () := by
   have hn : trailingNodeRun? s.tokens = none := by
     rw [ht]
-    exact trailingNodeRun?_push_none prefix _ rfl rfl rfl rfl
+    exact trailingNodeRun?_push_none priorTokens _ rfl rfl rfl rfl
   have hd := danglingNodePos?_none_of_no_run s hn
   have hf := underIndentedFlowValuePos?_none_of_no_run s hn
   constructor
@@ -117,17 +117,21 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
     (L4YAML.Proofs.StructureCoupling.saveSimpleKey_corr _ _ hr)
   refine ⟨land, ?_, hl, ?_⟩
   · unfold scanNextToken_preprocess
-    simp [hskip, bind, pure, Except.bind, Except.pure, ScannerState.hasMore, hm, hflow, hneed, hunwind, ready, land, saveSimpleKey_preserves_peek, hp]
+    simp [hskip, bind, pure, Except.bind, Except.pure, ScannerState.hasMore, hm, hflow, hneed, hunwind, ready, land, saveSimpleKey_preserves_peek]
+    change (match ready.peek? with
+      | none => Except.ok none
+      | some c => Except.ok (some (land, c))) = Except.ok (some (land, '-'))
+    rw [(peek_of_corr hr).1]
   · simp [land, ready, L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_flowLevel, hf]
 
 /-- Full scanNextToken, including the actual newline preprocessing and both
 intervening validators. No successful step/preprocessing premise is assumed. -/
 lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major minor : Nat)
-    (pos : YamlPos) (prefix : Array (Positioned YamlToken))
+    (pos : YamlPos) (priorTokens : Array (Positioned YamlToken))
     (hc : ScannerSurfCorr s ⟨'\n' :: '-' :: '-' :: '-' :: '\n' :: rest, col⟩)
     (hf : s.flowLevel = 0)
     (hi : s.indents = #[{column := -1, isSequence := false}])
-    (ht : s.tokens = prefix.push {pos := pos, val := .versionDirective major minor}) :
+    (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
     ∃ out, scanNextToken s = .ok (some out) ∧ out.directivesPresent = false ∧
       out.allowDirectives = false ∧ out.seenYamlDirective = false := by
   obtain ⟨hskip, hcLand, hfLand, hiLand, hnLand⟩ := lf_content s rest col hc hf
@@ -141,7 +145,7 @@ lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major m
     rw [hnoop] at hpre
     rw [hskip]
     exact hpre
-  obtain ⟨hd, hv⟩ := version_token_checks s land major minor pos prefix ht
+  obtain ⟨hd, hv⟩ := version_token_checks s land major minor pos priorTokens ht
   have hstruct := structural_document_start land rest hcorr hflow
   refine ⟨scanDocumentStart land, ?_, ?_, ?_, ?_⟩
   · simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure, Except.bind, Except.pure]
@@ -172,7 +176,7 @@ lemma original_comment_full_step (input : String) (major minor comment rest : Li
   obtain ⟨out, hs, hd, ha, hy⟩ := full_step_after_version mid rest _ _ _ _ #[] hland hf hi ht'
   exact ⟨mid, out, hok, hs, hd, ha, hy⟩
 
-/-- Compatibility with the actual scanner's streamStart token prefix. This
+/-- Compatibility with the actual scanner's streamStart token priorTokens. This
 still starts by explicitly invoking scanDirective; the first scanNextToken
 and the remainder of scanLoop are separate obligations. -/
 lemma original_streamstart_comment_full_step (input : String) (major minor comment rest : List Char)
