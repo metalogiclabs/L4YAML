@@ -118,7 +118,7 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
   have hpk := (peek_of_corr hl).1
   refine ⟨land, ?_, hl, ?_⟩
   · unfold scanNextToken_preprocess
-    simp [hskip, bind, pure, ScannerState.hasMore, hm, hflow, hneed, hunwind, hi, ready, land, hpk]
+    simp [hskip, bind, pure, Except.bind, Except.pure, ScannerState.hasMore, hm, hflow, hneed, hunwind, hi, ready, land, hpk]
   · simp [land, ready, L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_flowLevel, hf]
 
 /-- Full scanNextToken, including the actual newline preprocessing and both
@@ -145,7 +145,7 @@ lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major m
   obtain ⟨hd, hv⟩ := version_token_checks s land major minor pos ht
   have hstruct := structural_document_start land rest hcorr hflow
   refine ⟨scanDocumentStart land, ?_, ?_, ?_, ?_⟩
-  · simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure]
+  · simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure, Except.bind, Except.pure]
   all_goals simp [scanDocumentStart]
 
 /-- Original-source consumer of the full next step; the rest of the document
