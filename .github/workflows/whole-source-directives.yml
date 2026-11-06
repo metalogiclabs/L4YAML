@@ -2,7 +2,7 @@ name: Whole-source directive adequacy qualification
 
 on:
   push:
-    branches: ['research/structural-boundaries-20261106']
+    branches: ['research/directive-source-closure']
     paths:
       - 'research/whole-source/**'
       - '.github/workflows/whole-source-directives.yml'
@@ -80,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
-          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer; do
+          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency; do
             if lean --root=research/whole-source -o "research/whole-source/$proof.olean" "research/whole-source/$proof.lean" > "directive-evidence/$proof.log" 2>&1; then status=0; else status=$?; fi
             printf '%s\t%s\n' "$proof" "$status" | tee -a directive-evidence/status.tsv
             cat "directive-evidence/$proof.log"
