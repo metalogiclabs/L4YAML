@@ -42,6 +42,25 @@ def publicAccept (input : String) : Bool :=
 #guard leafAccept "\"a\"b" = false
 #guard leafAccept "\"" = false
 
+-- Source-position/decoded-value observations are independent literal oracles.
+def leafSnapshot (input : String) : Option (String × Nat × Nat × Nat) :=
+  match scanDoubleQuoted (ScannerState.mk' input) with
+  | .error _ => none
+  | .ok s => match s.tokens[0]?.map (·.val) with
+    | some (.scalar content .doubleQuoted) => some (content, s.offset, s.col, s.tokens.size)
+    | _ => none
+
+#guard leafSnapshot "\"\"" = some ("", 2, 2, 1)
+#guard leafSnapshot "\"a\"" = some ("a", 3, 3, 1)
+#guard leafSnapshot "\"é\"" = some ("é", 4, 3, 1)
+#guard leafSnapshot "\"𝄞\"" = some ("𝄞", 6, 3, 1)
+#guard leafSnapshot "\"\\n\"" = some ("\n", 4, 4, 1)
+#guard leafSnapshot "\"\\x00\"" = some ("\x00", 6, 6, 1)
+
+-- A leaf can succeed on a prefix: final EOF must be a distinct premise.
+#guard leafSnapshot "\"a\" " = some ("a", 3, 3, 1)
+#guard publicAccept "\"a\" " = true
+
 -- Original source variants: no assumption that input equals emitter output.
 #guard publicAccept "[\"a\",\"b\"]" = true
 #guard publicAccept "[\"a\", \"b\"]" = true

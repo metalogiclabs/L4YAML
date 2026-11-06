@@ -69,6 +69,16 @@ jobs:
           test "$(grep -Eci ': error:.*native_decide.*evaluated.*proposition' quoted-qualification/QuotedBroadExpected.log)" = 2 || failed=1
           if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' quoted-qualification/QuotedSourceControls.log; then failed=1; fi
           exit "$failed"
+      - name: Check same-grammar original-source inverse and axioms
+        if: steps.baseline.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if lake env lean --root=research/accepted-source research/accepted-source/QuotedInverse.lean > quoted-qualification/QuotedInverse.log 2>&1; then status=0; else status=$?; fi
+          printf 'QuotedInverse\t%s\n' "$status" | tee -a quoted-qualification/status.tsv
+          sed -n '1,320p' quoted-qualification/QuotedInverse.log
+          if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' quoted-qualification/QuotedInverse.log; then status=1; fi
+          exit "$status"
       - name: Ensure production source remains unchanged
         if: always()
         shell: bash
