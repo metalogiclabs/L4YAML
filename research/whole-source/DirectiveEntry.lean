@@ -136,6 +136,7 @@ lemma original_two_steps_state (input : String) (major minor comment rest : List
         #[.streamStart, .versionDirective (String.ofList major).toNat!
           (String.ofList minor).toNat!, .documentStart] := by
     rw [hfiltered, hmidValues]
+    rfl
   have hstruct := percent_structural ready mid _ hc hf hdir
   obtain ⟨hc1, hc2⟩ := initial_checks input ready
   refine ⟨mid, out, ?_, hsecond, hcOut, hfOut, hiOut, hrun, hd, hal, hseen,
