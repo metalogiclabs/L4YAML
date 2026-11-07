@@ -13,6 +13,7 @@ namespace MathGraph.WholeSource.DirectiveEOF
 @[expose] public section
 open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.CharPredicates
 open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.EmitterScannability
+open L4YAML.Proofs.Acceptance
 open MathGraph.WholeSource.DirectiveStep MathGraph.WholeSource.DirectiveEntry
 
 private def scanAccepts (input : String) : Bool :=
@@ -43,10 +44,12 @@ lemma skipToContentLoop_eof_one (s : ScannerState)
   have hspaces : skipSpaces s = s := by
     unfold skipSpaces
     rw [hzero]
+    unfold skipSpacesLoop
     rfl
   have hwhite : skipWhitespace s = s := by
     unfold skipWhitespace
     rw [hzero]
+    unfold skipWhitespaceLoop
     rfl
   have hws : skipToContentWs s = .ok s := by
     unfold skipToContentWs
