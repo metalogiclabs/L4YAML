@@ -28,6 +28,12 @@ def forbidden : List Nat :=
   (List.range 32).filter (fun n => n != 9 && n != 10 && n != 13) ++
     [0x7f, 0x80, 0x84, 0x86, 0x9f, 0xfeff, 0xfffe, 0xffff]
 
+#eval show IO Unit from do
+  for n in forbidden do
+    for s in contexts (String.singleton (Char.ofNat n)) do
+      unless (paths s).all (! ·) do
+        IO.println s!"REJECT_EXPECTED cp={n} source={repr s} paths={paths s}"
+
 #guard forbidden.all fun n => (contexts (String.singleton (Char.ofNat n))).all
   fun s => (paths s).all (! ·)
 #guard (["", "a", "\t", "é", "λ", "😀", "\u0085", "\u00a0", "\ufffd"] : List String).all
@@ -49,4 +55,5 @@ run_cmd do
   unless (axs.filter fun a => !([``propext, ``Classical.choice, ``Quot.sound] : List Name).contains a).isEmpty do
     throwError "Unexpected axioms: {axs}"
   logInfo m!"QUALIFIED_AXIOMS public_rejects_minimal: {axs}"
+end
 end MathGraph.NormativeComments
