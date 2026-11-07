@@ -47,6 +47,7 @@ jobs:
           lake build L4YAML.Parser.Composition > comment-evidence/runtime-build.log 2>&1
           tail -60 comment-evidence/runtime-build.log
       - name: Legacy controls and kernel rejection proof
+        id: legacy_controls
         if: ${{ !cancelled() && steps.runtime.outcome == 'success' }}
         run: |
           set -euo pipefail
@@ -60,6 +61,7 @@ jobs:
           lake build L4YAML.Scanner.IndexedDispatch > comment-evidence/indexed-build.log 2>&1
           tail -60 comment-evidence/indexed-build.log
       - name: Indexed boundary controls
+        id: indexed_controls
         if: ${{ !cancelled() && steps.indexed.outcome == 'success' }}
         run: |
           set -euo pipefail
@@ -73,7 +75,7 @@ jobs:
           path: comment-evidence/
           retention-days: 30
       - name: Full unchanged proof and guard suite
-        if: ${{ !cancelled() && steps.runtime.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.legacy_controls.outcome == 'success' && steps.indexed_controls.outcome == 'success' }}
         id: full
         run: |
           set -euo pipefail

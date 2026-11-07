@@ -1987,7 +1987,7 @@ lemma scanDirective_monotonic (s : ScannerState) (s' : ScannerState)
       simp only [scanDirective, hc] at h
       split at h <;> contradiction
   unfold scanDirective at h; simp only [hcheck] at h
-  dsimp only [] at h
+  try dsimp only [] at h
   split at h
   · contradiction
   · split at h
@@ -2671,7 +2671,7 @@ lemma scanDirective_preserves_prefix (s s' : ScannerState)
     | some e =>
       simp only [scanDirective, hc] at h
       split at h <;> contradiction
-  unfold scanDirective at h; simp only [hcheck] at h; dsimp only [] at h
+  unfold scanDirective at h; simp only [hcheck] at h; try dsimp only [] at h
   split at h
   · contradiction
   · have h_ws : (skipWhitespace (collectDirectiveNameLoop s.advance ""
@@ -6699,7 +6699,7 @@ lemma scanDirective_preserves_simpleKey (s : ScannerState) (s' : ScannerState)
   unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · contradiction
-  · dsimp only [] at h
+  · try dsimp only [] at h
     split at h
     · -- YAML directive (match wrapper)
       split at h
@@ -6724,7 +6724,7 @@ lemma scanDirective_preserves_simpleKey (s : ScannerState) (s' : ScannerState)
           have h_eq := Except.ok.inj h; subst h_eq
           rw [skipToEndOfLine_preserves_simpleKey]
           unfold scanTagDirective at h_inner
-          dsimp only [] at h_inner
+          try dsimp only [] at h_inner
           simp only [bind, Except.bind] at h_inner
           split at h_inner
           · contradiction  -- [89]: a malformed `%TAG` handle is refused
@@ -6753,7 +6753,7 @@ lemma scanDirective_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerSta
   unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · contradiction
-  · dsimp only [] at h
+  · try dsimp only [] at h
     split at h
     · -- YAML directive (match wrapper)
       split at h
@@ -6778,7 +6778,7 @@ lemma scanDirective_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerSta
           have h_eq := Except.ok.inj h; subst h_eq
           rw [skipToEndOfLine_preserves_simpleKeyStack]
           unfold scanTagDirective at h_inner
-          dsimp only [] at h_inner
+          try dsimp only [] at h_inner
           simp only [bind, Except.bind] at h_inner
           split at h_inner
           · contradiction  -- [89]: a malformed `%TAG` handle is refused
@@ -6806,7 +6806,7 @@ lemma scanDirective_preserves_flowLevel (s : ScannerState) (s' : ScannerState)
   unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · contradiction
-  · dsimp only [] at h
+  · try dsimp only [] at h
     split at h
     · -- YAML directive
       split at h
@@ -6831,7 +6831,7 @@ lemma scanDirective_preserves_flowLevel (s : ScannerState) (s' : ScannerState)
           have h_eq := Except.ok.inj h; subst h_eq
           rw [skipToEndOfLine_preserves_flowLevel]
           unfold scanTagDirective at h_inner
-          dsimp only [] at h_inner
+          try dsimp only [] at h_inner
           simp only [bind, Except.bind] at h_inner
           split at h_inner
           · contradiction  -- [89]: a malformed `%TAG` handle is refused
@@ -10043,7 +10043,7 @@ lemma scanDirective_preserves_ScanInv (s s' : ScannerState)
       rw [skipWhitespace_preserves_tokens, ScanHelpers.collectDirectiveNameLoop_preserves_tokens,
           advance_preserves_tokens]
     -- Reduce have/let bindings so split can find the match
-    dsimp only [] at h_ok
+    try dsimp only [] at h_ok
     -- Dispatch on directive name
     split at h_ok
     · -- YAML (match wrapper)
@@ -12181,7 +12181,7 @@ lemma scanDirective_offset_lt (s s' : ScannerState)
   unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · nomatch h
-  · dsimp only [] at h
+  · try dsimp only [] at h
     have h_adv := ScannerProgress.advance_offset_lt s hlt
     have h_ws_ge : (skipWhitespace (collectDirectiveNameLoop s.advance "" (s.inputEnd - s.advance.offset)).snd).offset
         ≥ s.advance.offset :=
