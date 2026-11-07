@@ -66,9 +66,10 @@ lemma scanNextToken_after_final_lf (s : ScannerState)
     (hf : s.flowLevel = 0) : scanNextToken s = .ok none := by
   obtain ⟨hpeek, hmore⟩ := peek_of_corr hc
   obtain ⟨pre, hsplit, hoff⟩ := hc.input_prefix
+  have hlfbyte : ('\n' : Char).utf8Size = 1 := by decide
   have hend : s.inputEnd = listByteSize pre + 1 := by
     rw [hc.end_eq, utf8ByteSize_eq_listByteSize, hsplit, listByteSize_append]
-    simp [listByteSize]
+    simp [listByteSize, hlfbyte]
   have hrem : s.inputEnd - s.offset + 1 = 2 := by omega
   have hws := ws_noop_nonwhite s '\n' hpeek
     (by decide) (by decide) (by decide) hmore
@@ -89,6 +90,7 @@ lemma scanNextToken_after_final_lf (s : ScannerState)
     rw [hrem]
     rw [skipToContentLoop]
     simpa [hws, skipToContentComment, hpeek, isLineBreakBool,
+      isLineFeedBool, isCarriageReturnBool,
       hflow, final] using hdone
   have hnotFinal : ¬ final.offset < final.inputEnd := by
     intro hlt
