@@ -95,6 +95,10 @@ jobs:
             test "$status" = 0
             if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' "directive-evidence/$proof.log"; then exit 1; fi
           done
+      - name: Qualify persistent capstone boundary and retained positive repair
+        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
+        shell: bash
+        run: bash research/whole-source/qualify-capstone.sh directive-evidence/capstone
       - name: Confirm source identities after qualification
         if: always()
         shell: bash

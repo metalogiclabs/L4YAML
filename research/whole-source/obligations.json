@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "objective": "Group 7.7 source-qualified completeness; obligation closure is not project completion",
+  "production_source": "64795a8db28ccfdae85082c93b6453001ae9d3e4",
+  "toolchain": "leanprover/lean4:v4.35.0",
+  "overall_state": "UNKNOWN",
+  "boundary": "All obligations inherit the frozen production source and original scanner/parser fuel. Research proofs are separately pinned by receipts. No production source edits.",
+  "resume": {
+    "branch": "research/capstone-source-completion",
+    "command": "bash research/whole-source/qualify-capstone.sh capstone-evidence-UNIQUE",
+    "ci": ".github/workflows/whole-source-directives.yml",
+    "prerequisites": [
+      "Read current remote head and this ledger; reconcile newer commits and receipts.",
+      "Use checksum-pinned Lean from workflow; git submodule update --init --recursive; clean tracked tree.",
+      "A source identity mismatch requires requalification; do not change the baseline to silence it.",
+      "Read exact theorem types, axiom gate, native controls and expected RED; green exit alone does not establish the full capstone.",
+      "Record failed attempts and exact qualified commit/run in this ledger; private coordination belongs outside this public repository."
+    ]
+  },
+  "receipts": {
+    "empty": {
+      "commit": "9d827af382c934a292f9684e77c7b59ad43d33f7",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42418475419",
+      "job": 128541598696,
+      "artifact": 13592343096,
+      "scope": "Empty-document acceptance and exact raw output. Unchanged-production job skipped."
+    },
+    "obstructions": {
+      "commit": "01967168630e51b0bee2c2ecf8c51f71343640f6",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42419646418",
+      "job": 128545105194,
+      "artifact": 13593136612,
+      "artifact_sha256_reported": "a8e60c066963fcf9fb0e1c18550a54cebc0b09a7118f4999a264d1ce3d1f437b",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "scope": "Original converse and explicit-only/drop-free plus existential WF converse refuted; scalar restriction excludes witness; unchanged directive controls and proofs pass. No fresh full-production regression."
+    }
+  },
+  "obligations": [
+    {
+      "id": "L4-EMPTY",
+      "claim": "Independently spelled version-directive/empty-explicit-document family is accepted and parseYamlRaw returns exactly one empty node with the parsed version directive.",
+      "requirement": "Original source spelling and output contract in DirectiveResult.original_empty_document_raw_result; no successful scanner/parser premise.",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED",
+      "reuse": "REUSABLE",
+      "obstruction": "Previously missing source-to-EOF-to-parser/output composition",
+      "diagnosis": {
+        "state": "REJECTED",
+        "evidence": "It is no longer an obstruction for this family; exact result theorem compiled."
+      },
+      "next_experiment": "Reuse as regression; do not reprove. Extending to a plain body is a separate obligation.",
+      "dependencies": [
+        "DirectiveEntry.lean",
+        "DirectiveEOF.lean",
+        "DirectiveParse.lean",
+        "DirectiveResult.lean"
+      ],
+      "verification": "Compile exact theorem and assert allowed transitive axioms; retain native controls and source identity.",
+      "receipts": [
+        "empty"
+      ],
+      "failed_experiments": [
+        "https://github.com/metalogiclabs/L4YAML/actions/runs/42418368451"
+      ],
+      "unlocks": [
+        "Source-family composition template"
+      ],
+      "limits": [
+        "Comment contract excludes CR/LF, not all normative unprintable characters.",
+        "Does not imply arbitrary body or full YAML completeness."
+      ]
+    },
+    {
+      "id": "L4-ORIGINAL-CONVERSE",
+      "claim": "For every s, InYamlLanguage s implies exists docs, parseYaml s = .ok docs.",
+      "requirement": "Blueprint/04-capstones.md Group 7.7 original row",
+      "state": "REJECTED",
+      "obligation_state": "REFUTED",
+      "obstruction": "scannerDrop disconnects source and target",
+      "diagnosis": {
+        "state": "WARRANTED",
+        "evidence": "Known SuffixGapAudit universality; CapstoneObstructions.original_converse_refuted specializes it to rejected '['. Empty string and '[]' positive controls pass."
+      },
+      "next_experiment": "Do not attempt the false theorem; restore source-connected grammar and its producer invariant.",
+      "dependencies": [
+        "L4YAML/Surface/Document.lean",
+        "Tests/Guards/Proofs/SuffixGapAudit.lean",
+        "CapstoneObstructions.lean"
+      ],
+      "verification": "Original_converse_refuted compiled with only standard axioms; actual parser reduction rejects '['.",
+      "receipts": [
+        "obstructions"
+      ],
+      "failed_experiments": [],
+      "unlocks": [
+        "Correct target selection"
+      ],
+      "limits": [
+        "Known overapproximation, not a new runtime bug; '[' has one character, while empty input is accepted."
+      ]
+    },
+    {
+      "id": "L4-STREAM-REPAIR-SUFFICIENCY",
+      "claim": "Every full RepairedStream derivation with a well-formed event trace entails actual public parsing success.",
+      "requirement": "Explicit-only continuation from YAML [211], no scannerDrop; serialization WF is additional, not syntax.",
+      "state": "REJECTED",
+      "obligation_state": "REFUTED",
+      "obstruction": "Broad quoted leaf lacks nb-json [2] character admissibility",
+      "diagnosis": {
+        "state": "WARRANTED",
+        "evidence": "CapstoneObstructions.repaired_bad admits quote/U+0001/quote with empty trace. repaired_completeness_refuted kernel-checks parser rejection. Single-document witness uses neither bad stream constructor nor directives/aliases/tags."
+      },
+      "next_experiment": "Use existing DQCharOk/SCDoubleQuotedOk for this leaf; test remaining source constructors independently before a global rewrite.",
+      "dependencies": [
+        "research/structural-boundaries/TraceExplicitRepairAudit.lean",
+        "L4YAML/Surface/Scalars.lean",
+        "L4YAML/Proofs/Production/Acceptance/Quoted.lean",
+        "CapstoneObstructions.lean"
+      ],
+      "verification": "Whole-source grammar witness plus WF plus actual parse rejection, allowed axiom profiles and native nearby positive controls.",
+      "receipts": [
+        "obstructions"
+      ],
+      "failed_experiments": [],
+      "unlocks": [
+        "Separates lexical admissibility from stream composition and serialization"
+      ],
+      "limits": [
+        "Existential well-formed trace; does not establish universal TraceWellFormed for rejected source.",
+        "Payload is minimized to one raw control within two quotes; not a global minimum across all repaired syntax.",
+        "Leaf mismatch was already documented; this new result is its full repaired-stream consumer."
+      ]
+    },
+    {
+      "id": "L4-QUOTE-REPAIR",
+      "claim": "An independent whole-input SCDoubleQuotedOk derivation entails public parseYaml acceptance.",
+      "requirement": "nb-json [2], named escape syntax, valid Unicode scalar values; source_quoted_public_accepts exact type.",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED_FOR_FAMILY",
+      "reuse": "REUSABLE",
+      "obstruction": "Broad SCDoubleQuoted is too permissive",
+      "diagnosis": {
+        "state": "WARRANTED",
+        "evidence": "Existing source_quoted_public_accepts plus new repaired_leaf_excludes_bad; retain previous qualified source-family proof instead of duplicating it."
+      },
+      "next_experiment": "Qualify this retained positive theorem in the same harness as the new negative consumer.",
+      "dependencies": [
+        "research/accepted-source/QuotedPublic.lean",
+        "research/accepted-source/QuotedPublicControls.lean",
+        "L4YAML/Proofs/Production/Acceptance/Quoted.lean"
+      ],
+      "verification": "Compile retained public theorem, controls, and exact allowed-axiom gate.",
+      "receipts": [
+        "https://github.com/metalogiclabs/L4YAML/actions/runs/42173365450/job/127746101212",
+        "obstructions"
+      ],
+      "failed_experiments": [
+        "https://github.com/metalogiclabs/L4YAML/actions/runs/42172478301"
+      ],
+      "unlocks": [
+        "Specification-justified repair for one-line quoted family"
+      ],
+      "limits": [
+        "Historical run had separate unrelated pair-consumer failure; the specified job qualified.",
+        "Not arbitrary multiline syntax or general output fidelity."
+      ]
+    },
+    {
+      "id": "L4-EXACT-GRAMMAR",
+      "claim": "An independently defined exact surface relation matches the intended supported YAML syntax, consuming original source without disconnected constructors.",
+      "requirement": "YAML source productions, Blueprint Group 7.7 and EVENTSOF-CONCEPT N1/N2/N3.",
+      "state": "UNKNOWN",
+      "obligation_state": "OPEN",
+      "obstruction": "No complete source-connected replacement for permissive stream, leaf and directive constructors",
+      "diagnosis": {
+        "state": "WARRANTED_PARTIAL",
+        "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements."
+      },
+      "next_experiment": "Smallest new structural test: put raw U+0001 in a comment-only stream and test whether independent SLComment admits it, consumes full source, yet scanner rejects. This discriminates a leaf-local repair from a required global source-character invariant.",
+      "dependencies": [
+        "L4YAML/Surface/Document.lean",
+        "L4YAML/Surface/Scalars.lean",
+        "L4YAML/Surface/Basic.lean",
+        "DirectiveTrace.lean",
+        "DirectiveSufficiency.lean"
+      ],
+      "verification": "Construct source-native positive/negative witnesses; then prove any revised grammar against independent normative conditions, not execution.",
+      "receipts": [
+        "obstructions",
+        "https://github.com/metalogiclabs/L4YAML/actions/runs/42418475419"
+      ],
+      "failed_experiments": [],
+      "unlocks": [
+        "Full Group 7.7 forward and converse"
+      ],
+      "limits": [
+        "A grammar narrowing alone is not proved equivalent to YAML or complete for runtime acceptance."
+      ]
+    },
+    {
+      "id": "L4-SERIALIZATION-STATE",
+      "claim": "Exact source derivations produce source-faithful alias/tag/document state, sufficient for the existing token parser completeness consumer.",
+      "requirement": "SerializationWellFormed plus source-to-event fidelity; actual implementation anchor commit policy must be explicit.",
+      "state": "UNKNOWN",
+      "obligation_state": "OPEN",
+      "obstruction": "Current annotation has ambiguous readings and erased directive validity; token state is not derivable from syntax membership alone.",
+      "diagnosis": {
+        "state": "WARRANTED_PARTIAL",
+        "evidence": "TraceAnswerAudit refutes answer determinism and universal TraceWellFormed on accepted a\\n*x; DirectiveTrace refutes arbitrary event-predicate characterization using duplicate directives."
+      },
+      "next_experiment": "After exact syntax repair, prove source-to-token event agreement and derive TokenStateOk; do not assume parser success or use the permissive trace universal.",
+      "dependencies": [
+        "research/structural-boundaries/TraceAnswerAudit.lean",
+        "research/structural-boundaries/TraceExplicitRepairAudit.lean",
+        "DirectiveTrace.lean",
+        "L4YAML/Proofs/Serialization/TraceOf/Document.lean",
+        "L4YAML/Proofs/Parser/StreamCompleteness.lean"
+      ],
+      "verification": "Both accepted-source and source-completeness directions with scope reset, alias availability, tag handles and exact event order; transitive axiom checks.",
+      "receipts": [
+        "https://github.com/metalogiclabs/L4YAML/commit/0c5da91c",
+        "empty"
+      ],
+      "failed_experiments": [],
+      "unlocks": [
+        "TokenStateOk needed by parseStream_accepts"
+      ],
+      "limits": [
+        "Serialization WF cannot repair malformed lexical syntax; norm/runtime recursive-anchor timing are distinct policies."
+      ]
+    },
+    {
+      "id": "L4-PRODUCER-CONNECTION",
+      "claim": "Actual scanner production proofs construct a source-connected drop-free surface derivation.",
+      "requirement": "Exact source/position preservation through production, with no disconnected pending-node gap.",
+      "state": "UNKNOWN",
+      "obligation_state": "OPEN",
+      "obstruction": "dropClose and PendingNode.close_with_ssl require a missing source path; removing scannerDrop breaks their proofs.",
+      "diagnosis": {
+        "state": "WARRANTED_PARTIAL",
+        "evidence": "Current Document.lean documents producer/consumer gap; prior transient removal experiments in ROS expose direct missing-constructor uses, separate from ncol obligations."
+      },
+      "next_experiment": "Reconcile latest production branch before changing carriers; prove one reachable pending-node path across actual block dispatch, not mere endpoint correspondence.",
+      "dependencies": [
+        "L4YAML/Proofs/Production/StreamAccum.lean",
+        "L4YAML/Proofs/Production/DocumentProduction.lean",
+        "Tests/Guards/Proofs/ParkGapProduction.lean"
+      ],
+      "verification": "Production consumer compiles without scannerDrop and derives grammar from unchanged original-source execution with no fallback premise.",
+      "receipts": [
+        "https://github.com/metalogiclabs/L4YAML/actions/runs/41913951143"
+      ],
+      "failed_experiments": [
+        "https://github.com/metalogiclabs/L4YAML/actions/runs/41919445633"
+      ],
+      "unlocks": [
+        "Meaningful forward strictness; full corrected biconditional"
+      ],
+      "limits": [
+        "Existing endpoint correspondence is not a path proof; no runtime defect follows from a failed proof migration."
+      ]
+    },
+    {
+      "id": "L4-FULL-CAPSTONE",
+      "claim": "Actual parsing succeeds iff independently specified exact supported syntax and source-faithful serialization conditions hold.",
+      "requirement": "Corrected conceptual Group 7.7; RHS must not call scanner/parser or encode their acceptance.",
+      "state": "UNKNOWN",
+      "obligation_state": "OPEN",
+      "obstruction": "Exact grammar, state bridge, and general scanner acceptance/production remain unqualified.",
+      "diagnosis": {
+        "state": "WARRANTED_PARTIAL",
+        "evidence": "Bounded proofs and refutations separate necessary repairs; no full theorem exists at this source."
+      },
+      "next_experiment": "Resolve L4-EXACT-GRAMMAR's selected discriminator; do not count additional examples as universal coverage.",
+      "dependencies": [
+        "L4-EXACT-GRAMMAR",
+        "L4-SERIALIZATION-STATE",
+        "L4-PRODUCER-CONNECTION"
+      ],
+      "verification": "Both directions at same independently defined syntax/state boundary; original fuel, unchanged native tests, theorem types, permitted axioms, exact source CI.",
+      "receipts": [
+        "empty",
+        "obstructions"
+      ],
+      "failed_experiments": [],
+      "unlocks": [
+        "Overall Capstone completion"
+      ]
+    }
+  ],
+  "environment_failures": [
+    {
+      "kind": "local_toolchain",
+      "observation": "Checksum-pinned Lean 4.35.0 archive verified; executable reports 'failed to locate application', even after extraction with --no-same-owner.",
+      "disposition": "Use pinned official Actions, not an unverified local-build claim."
+    },
+    {
+      "kind": "transport",
+      "observation": "CLI push has no GitHub username credential.",
+      "disposition": "Authorized GitHub connector creates tree/commit and updates branch with expected-head lease; no upstream PR/contact."
+    }
+  ],
+  "candidate_harness": {
+    "state": "CANDIDATE",
+    "files": [
+      "CapstoneQualification.lean",
+      "qualify-capstone.sh"
+    ],
+    "criteria": "Exact CI run must execute the reusable entrypoint, retained positive/negative controls, and strict five-declaration transitive axiom gate."
+  }
+}
