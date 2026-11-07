@@ -37,6 +37,9 @@ for name in DirectiveControls DirectiveTrace DirectiveConsumer DirectiveDiscipli
   compile research/whole-source "$name"
 done
 
+compile research/whole-source SourceBridge
+test "$(grep -c 'SOURCE_BRIDGE_AXIOMS' "$out/SourceBridge.log")" = 4
+
 # A required RED is an exact false proposition, never an import/syntax failure.
 if lean --root=research/whole-source research/whole-source/DirectiveRed.lean > "$out/DirectiveRed.log" 2>&1; then status=0; else status=$?; fi
 printf 'DirectiveRed-expected-failure\t%s\n' "$status" | tee -a "$out/status.tsv"

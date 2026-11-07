@@ -1,0 +1,64 @@
+{
+  "objective": "Group 7.7 source producer; acceptance strictness remains a separate obligation",
+  "source_boundary": "64795a8db28ccfdae85082c93b6453001ae9d3e4; exact research commit and CI required",
+  "interface": "MathGraph.WholeSource.SourceBridge.Obligation",
+  "language_definition": "NOT_IMPLEMENTED_FOR_FULL_YAML",
+  "full_constructor_inventory": "UNKNOWN: this is a frontier map, not an exhaustive grammar census",
+  "closed_consumer": {
+    "lemma": "SourceBridge.accepts_of_producer",
+    "depends_on": ["StreamCompleteness.parseStream_accepts", "Composition.parseYaml_pipeline"],
+    "scope": "Conditional composition only; it does not discharge the producer"
+  },
+  "cases": [
+    {
+      "case": "Whole-source double-quoted document",
+      "independent_spec": "QuotedSource via SCDoubleQuotedOk",
+      "reuse": ["QuotedPublic.source_quoted_scan_tokens", "QuotedPublic.source_quoted_token_conditions"],
+      "adapter": "SourceBridge.quoted_producer",
+      "state": "CANDIDATE_UNTIL_NEW_CI",
+      "residual": "No new family claimed; existing full source chain supplies this instance"
+    },
+    {
+      "case": "Version-directive plus empty explicit document",
+      "reuse": ["DirectiveEntry.original_two_steps", "DirectiveEOF.original_empty_document_scans", "DirectiveParse.original_empty_document_parses", "DirectiveResult.original_empty_document_raw_result"],
+      "state": "WARRANTED_EXISTING_ACCEPTANCE_AND_OUTPUT",
+      "residual": "The new producer interface is not instantiated here. Existing family is runtime-specific and permits non-normative comments; do not promote it to full ValidSource"
+    },
+    {
+      "case": "Plain scalar documents",
+      "reuse": ["Acceptance.Plain.scanPlainScalar_accepts", "Acceptance.Plain.scanPlainScalar_accepts_multi"],
+      "state": "LOCAL_INTERFACES_EXIST",
+      "residual": "Discharge actual initial/landing state, maximal token boundary, EOF, fuel and token-shape/state conditions from source; local scanner success is not a whole-source producer"
+    },
+    {
+      "case": "Block scalars",
+      "reuse": ["Acceptance.BlockScalar.scanBlockScalar_accepts", "HeaderTailOk", "BlockIndentOk", "BlockBodyOk"],
+      "state": "LOCAL_CONDITIONAL_INTERFACE",
+      "residual": "Independently produce header, indentation and body conditions. CommentCharOk currently admits arbitrary non-break characters; it is not the normative leaf predicate"
+    },
+    {
+      "case": "Anchors, aliases, tags",
+      "reuse": ["Acceptance.Properties.scanAnchorOrAlias_accepts", "Acceptance.Properties.scanTag_accepts", "SerializationWellFormed", "TokenEvents.tokenEvents", "TokenStateOk"],
+      "state": "LEXICAL_AND_TOKEN_STATE_COMPONENTS_EXIST",
+      "residual": "Produce same-source event agreement, declaration/use order and per-document scope. Lexical validity alone cannot establish alias/tag availability; preserve legal anchor rebinding"
+    },
+    {
+      "case": "Directive/document composition",
+      "reuse": ["DirectiveDiscipline.VersionDisciplinedRun", "TraceExplicitRepairAudit.RepairedStream", "DirectiveTrace.factorization_iff_shared_observable_agreement"],
+      "state": "UNKNOWN",
+      "residual": "Retain actual directive information before event erasure; unique YAML and explicit TAG declarations, valid handles/prefixes, reset ordering, legal continuation and source-connected consumption. Existing RepairedWellFormed is refuted as a sufficient grammar"
+    },
+    {
+      "case": "Nested flow/block collections and stream accumulation",
+      "reuse": ["L4YAML/Proofs/Production/StreamAccum.lean", "L4YAML/Proofs/Parser/TokenGrammar.lean", "L4YAML/Proofs/Parser/StreamCompleteness.lean"],
+      "state": "UNKNOWN_SOURCE_PRODUCER",
+      "residual": "Produce reachable scanner frames, pending/simple-key state, indentation and nested token structure while preserving the entire source. Do not use scannerDrop to close missing spans"
+    }
+  ],
+  "rejected_instances": [
+    {"language": "Surface.InYamlLanguage", "proof": "SourceBridge.original_producer_impossible", "reason": "Reuse checked '[' counterexample"},
+    {"language": "CapstoneObstructions.RepairedWellFormed", "proof": "SourceBridge.repaired_stream_producer_impossible", "reason": "Reuse checked quoted raw-SOH counterexample"}
+  ],
+  "next_decisive_experiment": "Supply a source-connected directive/document derivation retaining directive records before erasure, with existing independent quoted-body grammar as a fragment consumer. Check multiplicity, reset and actual-token trace agreement; do not claim a full grammar from this fragment.",
+  "completion": "UNKNOWN until an independently defined full source language has a producer, and strictness is separately established for that same language"
+}
