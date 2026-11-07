@@ -40,6 +40,7 @@ lemma repaired_comment : RepairedStream ⟨commentInput.toList, 0⟩ ⟨[], 2⟩
   comment_preserved (empty_at _) comment_derivation
 
 lemma comment_violates_character_requirement : ¬ NoRawSOH commentInput := by
+  unfold NoRawSOH commentInput
   decide
 
 set_option maxRecDepth 100000 in

@@ -311,7 +311,14 @@
       ],
       "verification": "Kernel-checked parser acceptance plus necessary character-condition violation; retained theorem instantiation; native empty/#/normal/escaped/quoted-control cases; strict axiom gate.",
       "receipts": [],
-      "failed_experiments": [],
+      "failed_experiments": [
+        {
+          "commit": "a5e7764240392659348e2d69bcd1cc031ac45268",
+          "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42420192020",
+          "outcome": "REJECTED_PROOF_CANDIDATE",
+          "reason": "Decidable synthesis did not unfold NoRawSOH wrapper. Kernel parser acceptance and retained-family instantiation compiled, but downstream refutations acquired elaborator recovery sorryAx; no promotion. Explicitly unfold the independent predicate before decide."
+        }
+      ],
       "unlocks": [
         "Honest normative Group 7.7 target and production repair requirement"
       ],
