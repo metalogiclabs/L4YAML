@@ -53,6 +53,19 @@
       "artifact": 13593491176,
       "artifact_sha256_reported": "f60e48bc7a9df0e618c9ce6398644a9bbc5da4d4022010528f662f0566a536f3",
       "scope": "All seven tracked claims pass strict transitive axiom allowlist; native controls and expected RED pass; complete tracked tree/submodule identity pre/post. Full-production job skipped."
+    },
+    "source_bridge": {
+      "commit": "976eebee5284c8ed17c14d26d7a348802f0439d8",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42426131502",
+      "job": 128564687108,
+      "artifact": 13595269039,
+      "artifact_sha256_reported": "7f7ab320b6116812193b8239ff11d0385f133f29fe3e09ca2563d84d4a741313",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "scope": "Four SourceBridge theorem profiles checked; retained seven axiom gates, source controls and expected RED passed; frozen source identity verified before and after. Full unchanged-production job skipped."
     }
   },
   "obligations": [
@@ -420,6 +433,11 @@
     ]
   },
   "next_experiment": {
+    "id": "L4-SOURCE-CONNECTED-DIRECTIVES",
+    "action": "Supply a source-connected directive/document derivation retaining directive records before erasure, with existing independent quoted-body grammar as a fragment consumer. Check multiplicity, reset and actual-token trace agreement; do not claim a full grammar from this fragment.",
+    "success_boundary": "Fragment only; full independent source grammar and producer remain UNKNOWN. Completeness and strictness for the same language must be separately proved."
+  },
+  "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",
     "action": "On a separate source-changing repair branch, test comment-character validation at the actual comment consumer, including directive-trailing comments, while retaining escaped-control acceptance. Qualify changed source and full protected tests before any promotion.",
     "decisive_controls": [
@@ -429,5 +447,24 @@
       "Retain original empty-family proof as a versioned runtime result; any stricter successor must explicitly add normative comment admissibility, not silently falsify the older theorem."
     ],
     "success_boundary": "Only comment-character conformance repair; full Group 7.7 remains UNKNOWN until all structural/state obligations close."
+  },
+  "source_bridge": {
+    "interface": "MathGraph.WholeSource.SourceBridge.Obligation",
+    "proof": "research/whole-source/SourceBridge.lean",
+    "map": "research/whole-source/source-bridge-map.json",
+    "state": "WARRANTED_CONDITIONAL_COMPOSITION_AND_QUOTED_INSTANCE",
+    "full_yaml_producer": "UNKNOWN",
+    "rejected": [
+      "Surface.InYamlLanguage",
+      "CapstoneObstructions.RepairedWellFormed"
+    ],
+    "receipt": "source_bridge"
+  },
+  "parallel_comment_repair": {
+    "branch": "research/normative-comments",
+    "commit": "f34519e2f35f84114eeb5b352df581d7e0024cbc",
+    "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42425143549",
+    "state": "SIX_PATH_CONTROLS_PASS_FULL_BUILD_FAILS",
+    "scope": "Source-changing strictness candidate, not completeness closure; full native qualification remains open."
   }
 }
