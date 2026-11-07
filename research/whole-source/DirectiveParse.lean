@@ -1,6 +1,7 @@
 module
 public import DirectiveEOF
 public import L4YAML.Proofs.Parser.StreamCompleteness
+import all L4YAML.Proofs.Serialization.TokenEvents
 public meta import L4YAML.Parser.Composition
 
 /-!
@@ -12,7 +13,7 @@ does not use successful parsing to establish either parser premise.
 -/
 namespace MathGraph.WholeSource.DirectiveParse
 @[expose] public section
-open L4YAML L4YAML.Scanner L4YAML.CharPredicates
+open L4YAML L4YAML.Scanner L4YAML.CharPredicates L4YAML.Surface
 open L4YAML.Proofs.TokenGrammar
 open L4YAML.Proofs.Serialization.SerializationWellFormed
 open MathGraph.WholeSource.DirectiveEOF
@@ -78,9 +79,9 @@ lemma four_token_parser_accepts (ts : Array (Positioned YamlToken))
     refine ⟨h0, 3, ?_, by omega⟩
     apply TG.stream_doc (m := 3) (t := .versionDirective major minor)
     · exact h1
-    · decide
-    · decide
-    · decide
+    · simp
+    · simp
+    · rfl
     · exact hdoc
     · decide
     · simp [h3]
@@ -93,9 +94,12 @@ lemma four_token_parser_accepts (ts : Array (Positioned YamlToken))
             ((ts.map (·.val)).toList.map
               (fun v => ({pos := default, val := v} : Positioned YamlToken))) [] := by
                 simpa [L4YAML.Proofs.Serialization.TokenEvents.tokenEvents,
-                  Array.toList_map, List.map_map] using
+                  Array.toList_map, List.map_map, Function.comp_def] using
                   events_ignore_positions ts.toList []
-      _ = [.beginDocument] := by rw [hvals]; rfl
+      _ = [.beginDocument] := by
+        rw [hvals]
+        simp [L4YAML.Proofs.Serialization.TokenEvents.go,
+          L4YAML.Proofs.Serialization.TokenEvents.tokenEvent]
   have hstate : TokenStateOk ts := by
     apply (serializationWellFormed_iff_check _).2
     rw [htrace]
