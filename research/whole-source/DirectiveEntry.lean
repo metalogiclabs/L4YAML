@@ -109,7 +109,10 @@ lemma original_two_steps_state (input : String) (major minor comment rest : List
       out.indents = #[{column := -1, isSequence := false}] ∧
       trailingNodeRun? out.tokens = none ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
-      out.seenYamlDirective = false := by
+      out.seenYamlDirective = false ∧
+      (out.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
+        #[.streamStart, .versionDirective (String.ofList major).toNat!
+          (String.ofList minor).toNat!, .documentStart] := by
   obtain ⟨hpre, hc, hf, hi, ha, hy⟩ := initial_percent_preprocess input _ hsource
   let ready := saveSimpleKey { (ScannerState.mk' input).emit .streamStart with needIndentCheck := false }
   obtain ⟨mid, hdir, hland, ht, _, _⟩ := yaml_comment_dispatch ready
@@ -119,11 +122,24 @@ lemma original_two_steps_state (input : String) (major minor comment rest : List
     (L4YAML.Proofs.ScannerCorrectness.scanDirective_preserves_flowLevel ready mid hdir).trans hf
   have him : mid.indents = #[{column := -1, isSequence := false}] :=
     (L4YAML.Proofs.IndentStackBase.scanDirective_preserves_indents hdir).trans hi
-  obtain ⟨out, hsecond, hcOut, hfOut, hiOut, hrun, hd, hal, hseen⟩ :=
+  obtain ⟨out, hsecond, hcOut, hfOut, hiOut, hrun, hd, hal, hseen, hfiltered⟩ :=
     full_step_after_version_state mid rest _ _ _ _ ready.tokens hland hfm him ht
+  have hmidValues :
+      (mid.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
+        #[.streamStart, .versionDirective (String.ofList major).toNat!
+          (String.ofList minor).toNat!] := by
+    rw [ht, Array.filter_push]
+    simp [Array.map_push, saveSimpleKey_filter_placeholder, ready,
+      ScannerState.emit, ScannerState.mk']
+  have houtValues :
+      (out.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
+        #[.streamStart, .versionDirective (String.ofList major).toNat!
+          (String.ofList minor).toNat!, .documentStart] := by
+    rw [hfiltered, hmidValues]
   have hstruct := percent_structural ready mid _ hc hf hdir
   obtain ⟨hc1, hc2⟩ := initial_checks input ready
-  refine ⟨mid, out, ?_, hsecond, hcOut, hfOut, hiOut, hrun, hd, hal, hseen⟩
+  refine ⟨mid, out, ?_, hsecond, hcOut, hfOut, hiOut, hrun, hd, hal, hseen,
+    houtValues⟩
   unfold scanNextToken
   rw [hpre]
   simp only [bind, Except.bind, pure, Except.pure]
@@ -150,7 +166,7 @@ lemma original_two_steps (input : String) (major minor comment rest : List Char)
     ∃ mid out, scanNextToken ((ScannerState.mk' input).emit .streamStart) = .ok (some mid) ∧
       scanNextToken mid = .ok (some out) ∧ out.directivesPresent = false ∧
       out.allowDirectives = false ∧ out.seenYamlDirective = false := by
-  obtain ⟨mid, out, hfirst, hsecond, _, _, _, _, hd, ha, hs⟩ :=
+  obtain ⟨mid, out, hfirst, hsecond, _, _, _, _, hd, ha, hs, _⟩ :=
     original_two_steps_state input major minor comment rest
       hma hmi hneMa hneMi hcomment hsource
   exact ⟨mid, out, hfirst, hsecond, hd, ha, hs⟩
@@ -186,11 +202,14 @@ lemma original_scan_continuation_state (input : String) (major minor comment res
       out.indents = #[{column := -1, isSequence := false}] ∧
       trailingNodeRun? out.tokens = none ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
-      out.seenYamlDirective = false := by
-  obtain ⟨mid, out, hfirst, hsecond, hc, hf, hi, hrun, hd, ha, hy⟩ :=
+      out.seenYamlDirective = false ∧
+      (out.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
+        #[.streamStart, .versionDirective (String.ofList major).toNat!
+          (String.ofList minor).toNat!, .documentStart] := by
+  obtain ⟨mid, out, hfirst, hsecond, hc, hf, hi, hrun, hd, ha, hy, hv⟩ :=
     original_two_steps_state input major minor comment rest hma hmi hneMa hneMi hcomment hsource
   exact ⟨out, scan_eq_after_two input _ mid out hsource hfirst hsecond,
-    hc, hf, hi, hrun, hd, ha, hy⟩
+    hc, hf, hi, hrun, hd, ha, hy, hv⟩
 
 /-- Previous flag-only continuation remains unchanged. -/
 lemma original_scan_continuation (input : String) (major minor comment rest : List Char)
@@ -202,7 +221,7 @@ lemma original_scan_continuation (input : String) (major minor comment rest : Li
     ∃ out, scan input = scanLoop out ((input.utf8ByteSize + 1) * 4 - 2) ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
       out.seenYamlDirective = false := by
-  obtain ⟨out, hscan, _, _, _, _, hd, ha, hy⟩ :=
+  obtain ⟨out, hscan, _, _, _, _, hd, ha, hy, _⟩ :=
     original_scan_continuation_state input major minor comment rest
       hma hmi hneMa hneMi hcomment hsource
   exact ⟨out, hscan, hd, ha, hy⟩

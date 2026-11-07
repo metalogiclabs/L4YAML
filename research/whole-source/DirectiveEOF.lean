@@ -126,8 +126,11 @@ lemma original_empty_document_scans (input : String)
     ∃ raw filtered,
       Scanner.scan input = .ok raw ∧
       Scanner.scanFiltered input = .ok filtered ∧
-      filtered = raw.filter (fun t => t.val != .placeholder) := by
-  obtain ⟨out, hscan, hc, hf, _hi, hrun, hd, _ha, _hs⟩ :=
+      filtered = raw.filter (fun t => t.val != .placeholder) ∧
+      filtered.map (·.val) =
+        #[.streamStart, .versionDirective (String.ofList major).toNat!
+          (String.ofList minor).toNat!, .documentStart, .streamEnd] := by
+  obtain ⟨out, hscan, hc, hf, hi, hrun, hd, _ha, _hs, hvals⟩ :=
     original_scan_continuation_state input major minor comment []
       hma hmi hneMa hneMi hcomment hsource
   have heof := scanNextToken_after_final_lf out hc hf
@@ -138,7 +141,16 @@ lemma original_empty_document_scans (input : String)
       .ok ((unwindIndents out (-1)).emit .streamEnd).tokens := by
     rw [hscan]
     exact hloop
-  refine ⟨_, _, hraw, ?_, rfl⟩
+  have hunwind : unwindIndents out (-1) = out := by
+    simp [unwindIndents, hi, unwindIndentsLoop]
+  have hvalEnd :
+      ((((unwindIndents out (-1)).emit .streamEnd).tokens.filter
+        (fun t => t.val != .placeholder)).map (·.val)) =
+          #[.streamStart, .versionDirective (String.ofList major).toNat!
+            (String.ofList minor).toNat!, .documentStart, .streamEnd] := by
+    rw [hunwind]
+    simp [ScannerState.emit, Array.filter_push, Array.map_push, hvals]
+  refine ⟨_, _, hraw, ?_, rfl, hvalEnd⟩
   simp [Scanner.scanFiltered, hraw]
 
 #print axioms skipToContentLoop_eof_one

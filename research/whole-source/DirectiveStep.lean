@@ -96,7 +96,8 @@ lemma lf_content (s : ScannerState) (rest : List Char) (col : Nat)
     let land := { consumeNewline s with simpleKeyAllowed := true }
     skipToContent s = .ok land ∧
     ScannerSurfCorr land ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩ ∧
-    land.flowLevel = 0 ∧ land.indents = s.indents ∧ land.needIndentCheck = true := by
+    land.flowLevel = 0 ∧ land.indents = s.indents ∧ land.needIndentCheck = true ∧
+    land.tokens = s.tokens := by
   obtain ⟨hp, hm⟩ := peek_of_corr hc
   obtain ⟨hn, hk⟩ := consumeNewline_accepts s (.lf _ col) hc
   have hfl : (consumeNewline s).flowLevel = 0 := by
@@ -106,7 +107,7 @@ lemma lf_content (s : ScannerState) (rest : List Char) (col : Nat)
     ⟨hn.chars_from, hn.col_eq, hn.end_eq, hn.input_prefix, hn.indent_cols_nonneg⟩
   obtain ⟨hpLand, hmLand⟩ := peek_of_corr hland
   have hws := ws_noop_nonwhite s '\n' hp (by decide) (by decide) (by decide) hm
-  refine ⟨?_, hland, hfl, hk.2.2, ?_⟩
+  refine ⟨?_, hland, hfl, hk.2.2, ?_, hk.1⟩
   · have hcomment : skipToContentComment s = s := by simp [skipToContentComment, hp]
     have hflow : (consumeNewline s).inFlow = false := by simp [ScannerState.inFlow, hfl]
     unfold skipToContent
@@ -123,7 +124,9 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
     ∃ land, scanNextToken_preprocess s = .ok (some (land, '-')) ∧
       ScannerSurfCorr land ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩ ∧
       land.flowLevel = 0 ∧
-      land.indents = #[{column := -1, isSequence := false}] := by
+      land.indents = #[{column := -1, isSequence := false}] ∧
+      land.tokens.filter (fun t => t.val != .placeholder) =
+        s.tokens.filter (fun t => t.val != .placeholder) := by
   obtain ⟨hp, hm⟩ := peek_of_corr hc
   have hskip := skipToContent_of_content_char s '-' hp (by decide) (by decide) (by decide) hm
   have hflow : s.inFlow = false := by simp [ScannerState.inFlow, hf]
@@ -135,7 +138,7 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
     ⟨hc.chars_from, hc.col_eq, hc.end_eq, hc.input_prefix, hc.indent_cols_nonneg⟩
   have hl := L4YAML.Proofs.ScanStrictCoupling.closeStaleExplicitKey_corr _ _
     (L4YAML.Proofs.StructureCoupling.saveSimpleKey_corr _ _ hr)
-  refine ⟨land, ?_, hl, ?_, ?_⟩
+  refine ⟨land, ?_, hl, ?_, ?_, ?_⟩
   · unfold scanNextToken_preprocess
     simp [hskip, bind, pure, Except.bind, Except.pure, ScannerState.hasMore, hm, hflow, hneed, hunwind, ready, land, saveSimpleKey_preserves_peek]
     change (match ready.peek? with
@@ -147,6 +150,13 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
     rw [L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_indents,
       L4YAML.Proofs.PreprocessIndentStable.saveSimpleKey_preserves_indents]
     exact hi
+  · calc
+      land.tokens.filter (fun t => t.val != .placeholder) =
+          (saveSimpleKey ready).tokens.filter (fun t => t.val != .placeholder) := by
+            simp [land]
+      _ = ready.tokens.filter (fun t => t.val != .placeholder) :=
+        saveSimpleKey_filter_placeholder ready
+      _ = s.tokens.filter (fun t => t.val != .placeholder) := rfl
 
 /-- Retain the *actual* post-preprocessing landing witness, rather than only
 its three directive flags. This is the source-correspondence handoff needed
@@ -161,10 +171,12 @@ lemma full_step_after_version_landing (s : ScannerState) (rest : List Char)
     ∃ land, scanNextToken s = .ok (some (scanDocumentStart land)) ∧
       ScannerSurfCorr land ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩ ∧
       land.flowLevel = 0 ∧
-      land.indents = #[{column := -1, isSequence := false}] := by
-  obtain ⟨hskip, hcLand, hfLand, hiLand, hnLand⟩ := lf_content s rest col hc hf
+      land.indents = #[{column := -1, isSequence := false}] ∧
+      land.tokens.filter (fun t => t.val != .placeholder) =
+        s.tokens.filter (fun t => t.val != .placeholder) := by
+  obtain ⟨hskip, hcLand, hfLand, hiLand, hnLand, htLand⟩ := lf_content s rest col hc hf
   let content := { consumeNewline s with simpleKeyAllowed := true }
-  obtain ⟨land, hpre, hcorr, hflow, hinds⟩ := preprocess_marker content rest hcLand hfLand
+  obtain ⟨land, hpre, hcorr, hflow, hinds, htFiltered⟩ := preprocess_marker content rest hcLand hfLand
     (hiLand.trans hi) hnLand
   have hpreS : scanNextToken_preprocess s = .ok (some (land, '-')) := by
     obtain ⟨hp, hm⟩ := peek_of_corr hcLand
@@ -175,8 +187,9 @@ lemma full_step_after_version_landing (s : ScannerState) (rest : List Char)
     exact hpre
   obtain ⟨hd, hv⟩ := version_token_checks s land major minor pos priorTokens ht
   have hstruct := structural_document_start land rest hcorr hflow
-  refine ⟨land, ?_, hcorr, hflow, hinds⟩
-  simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure, Except.bind, Except.pure]
+  refine ⟨land, ?_, hcorr, hflow, hinds, ?_⟩
+  · simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure, Except.bind, Except.pure]
+  · rw [htFiltered, htLand]
 
 /-- The `---` production consumes exactly its three marker characters. The
 remaining LF and the entire source suffix stay connected to the *same* state
@@ -253,8 +266,11 @@ lemma full_step_after_version_state (s : ScannerState) (rest : List Char)
       out.indents = #[{column := -1, isSequence := false}] ∧
       trailingNodeRun? out.tokens = none ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
-      out.seenYamlDirective = false := by
-  obtain ⟨land, hstep, hcLand, hfLand, hiLand⟩ :=
+      out.seenYamlDirective = false ∧
+      (out.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
+        ((s.tokens.filter (fun t => t.val != .placeholder)).map (·.val)).push
+          .documentStart := by
+  obtain ⟨land, hstep, hcLand, hfLand, hiLand, htFiltered⟩ :=
     full_step_after_version_landing s rest col major minor pos priorTokens hc hf hi ht
   obtain ⟨hfl, hind, htokens⟩ := document_start_landing_state land hfLand hiLand
   have hrun : trailingNodeRun? (scanDocumentStart land).tokens = none := by
@@ -264,8 +280,13 @@ lemma full_step_after_version_state (s : ScannerState) (rest : List Char)
       (by rfl) (by rfl) (by rfl) (by rfl)
   refine ⟨scanDocumentStart land, hstep,
     document_start_landing_source land rest hcLand hiLand,
-    hfl, hind, hrun, ?_, ?_, ?_⟩
-  all_goals simp [scanDocumentStart]
+    hfl, hind, hrun, ?_, ?_, ?_, ?_⟩
+  · simp [scanDocumentStart]
+  · simp [scanDocumentStart]
+  · simp [scanDocumentStart]
+  · rw [htokens, Array.filter_push]
+    simp only [Array.map_push]
+    simpa [htFiltered] using congrArg (fun ts => ts.map (·.val)) htFiltered
 
 /-- Compatibility projection: the previous independently qualified interface
 remains available to all existing consumers. -/
@@ -277,7 +298,7 @@ lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major m
     (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
     ∃ out, scanNextToken s = .ok (some out) ∧ out.directivesPresent = false ∧
       out.allowDirectives = false ∧ out.seenYamlDirective = false := by
-  obtain ⟨land, hstep, _, _, _⟩ :=
+  obtain ⟨land, hstep, _, _, _, _⟩ :=
     full_step_after_version_landing s rest col major minor pos priorTokens hc hf hi ht
   refine ⟨scanDocumentStart land, hstep, ?_, ?_, ?_⟩
   all_goals simp [scanDocumentStart]
