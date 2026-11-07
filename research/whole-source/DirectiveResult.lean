@@ -12,12 +12,6 @@ namespace MathGraph.WholeSource.DirectiveResult
 @[expose] public section
 open L4YAML L4YAML.TokenParser
 
-#eval parseStream #[
-  {pos := default, val := YamlToken.streamStart},
-  {pos := default, val := YamlToken.versionDirective 1 2},
-  {pos := default, val := YamlToken.documentStart},
-  {pos := default, val := YamlToken.streamEnd}]
-
 lemma parse_literal_empty_document (p0 p1 p2 p3 : YamlPos) (major minor : Nat) :
     parseStream #[
       {pos := p0, val := .streamStart},
@@ -26,7 +20,10 @@ lemma parse_literal_empty_document (p0 p1 p2 p3 : YamlPos) (major minor : Nat) :
       {pos := p3, val := .streamEnd}] =
       .ok #[{value := emptyNode,
              directives := #[.yaml s!"{major}.{minor}"]}] := by
-  rfl
+  simp [parseStream, ParseState.expect, ParseState.peek?,
+    parseStreamLoop, parseDocument, prepareDocumentState, parseDirectives,
+    ParseState.tryConsume, ParseState.advance, StreamState.validNextToken,
+    ParseState.peekPos?, emptyNode]
 
 #print axioms parse_literal_empty_document
 end
