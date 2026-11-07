@@ -39,18 +39,32 @@ jobs:
             normative-comments-lean435-
             whole-directives-production-64795a8-lean435-
             directive-bridge-deps-64795a8-lean435-
-      - name: Build runtime dependencies
+      - name: Build legacy runtime dependencies
         id: runtime
         run: |
           set -euo pipefail
-          lake build L4YAML.Parser.Composition L4YAML.Scanner.IndexedDispatch > comment-evidence/runtime-build.log 2>&1
+          lake build L4YAML.Parser.Composition > comment-evidence/runtime-build.log 2>&1
           tail -60 comment-evidence/runtime-build.log
-      - name: Native boundary controls and kernel rejection proof
+      - name: Legacy controls and kernel rejection proof
         if: ${{ !cancelled() && steps.runtime.outcome == 'success' }}
         run: |
           set -euo pipefail
-          lake env lean research/whole-source/NormativeComments.lean > comment-evidence/controls.log 2>&1
+          lake env lean --root=research/whole-source -o research/whole-source/NormativeCommentCore.olean research/whole-source/NormativeCommentCore.lean > comment-evidence/controls.log 2>&1
           cat comment-evidence/controls.log
+      - name: Build indexed runtime dependencies
+        id: indexed
+        if: ${{ !cancelled() && steps.runtime.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Scanner.IndexedDispatch > comment-evidence/indexed-build.log 2>&1
+          tail -60 comment-evidence/indexed-build.log
+      - name: Indexed boundary controls
+        if: ${{ !cancelled() && steps.indexed.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
+          lean research/whole-source/NormativeComments.lean > comment-evidence/indexed-controls.log 2>&1
+          cat comment-evidence/indexed-controls.log
       - name: Full unchanged proof and guard suite
         if: ${{ !cancelled() && steps.runtime.outcome == 'success' }}
         id: full
