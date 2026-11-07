@@ -457,7 +457,7 @@
       }
     ],
     "obstruction": "Success-only invariants must eliminate the new error branch; unconditional acceptance contracts such as BlockScalar.CommentCharOk require normative strengthening, not a tactic-only repair.",
-    "next_experiment": "Qualify indexed controls after adding the required meta import. Keep normative strictness integration separate from the source-completeness producer. Full production proof migration remains open.",
+    "next_experiment": "Read the final run 42425143549 receipt, retaining actual full-build errors. Do not rerun successful boundary controls unless their dependency source changes. Structural source-completeness work follows CAPSTONE-SPEC.md independently of strictness integration.",
     "verification": "Pinned Lean; exact source tree; protected Tests/toolchain/dependencies unchanged; six public paths over forbidden and valid comment contexts; kernel public_rejects_minimal and strict axiom profile; complete default build and unchanged native suite required for promotion.",
     "unlocks": "Necessary runtime character-validity condition for any normative Group 7.7 equivalence.",
     "last_checked_commit": "a6d2803adc474b669202825eb20b47abded12e83",
@@ -478,6 +478,24 @@
       "scope": "Complete legacy test module compiled. 37 forbidden code points and 9 valid comment bodies in 11 source contexts, plus 5 quoted controls, across 4 legacy public paths. Finite controls, not universal comment conformance. Pre/post tracked source identity checked; full build failed, not production-ready."
     },
     "full_integration_state": "UNKNOWN",
-    "frozen_harness": "Run qualify-capstone.sh only on research/capstone-source-completion at its recorded frozen identity. Do not silence its source-mismatch guard on this source-changing branch."
+    "frozen_harness": "Run qualify-capstone.sh only on research/capstone-source-completion at its recorded frozen identity. Do not silence its source-mismatch guard on this source-changing branch.",
+    "boundary_receipt": {
+      "commit": "f34519e2f35f84114eeb5b352df581d7e0024cbc",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42425143549",
+      "job": 128561709270,
+      "artifact": 13595566039,
+      "sha256": "86befdfc96d1644b5a2531e1bcfb49eb2e1dd19bb5f5877587e952f8a1e7abef",
+      "runtime_builds": "Both passed",
+      "controls": "Both complete modules passed: six paths, 37 forbidden characters and 9 valid bodies across 11 contexts, five quoted controls. All 3066 boolean path checks passed. This is finite evidence.",
+      "theorem": "MathGraph.NormativeComments.public_rejects_minimal",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "full_build": "IN_PROGRESS at checkpoint; inspect final result before any integration claim",
+      "native_regression": "NOT_YET_RUN at checkpoint",
+      "qualification_boundary": "Early artifact; checkout identity and protected-input check passed. Post-run source identity and full qualification not yet available."
+    }
   }
 }
