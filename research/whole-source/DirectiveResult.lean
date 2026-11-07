@@ -67,20 +67,12 @@ lemma parser_result_from_four_values (ts : Array (Positioned YamlToken))
     simpa using hh
   have ea : a = {pos := a.pos, val := .streamStart, endPos := a.endPos} := by
     rw [← ha]
-    cases a
-    rfl
   have eb : b = {pos := b.pos, val := .versionDirective major minor, endPos := b.endPos} := by
     rw [← hb]
-    cases b
-    rfl
   have ec : c = {pos := c.pos, val := .documentStart, endPos := c.endPos} := by
     rw [← hc]
-    cases c
-    rfl
   have ed : d = {pos := d.pos, val := .streamEnd, endPos := d.endPos} := by
     rw [← hd]
-    cases d
-    rfl
   rw [hrepr, ea, eb, ec, ed]
   exact parse_literal_empty_document a.pos b.pos c.pos d.pos
     a.endPos b.endPos c.endPos d.endPos major minor
