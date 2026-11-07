@@ -68,25 +68,21 @@ lemma parser_result_from_four_values (ts : Array (Positioned YamlToken))
   have ea : a = {pos := a.pos, val := .streamStart, endPos := a.endPos} := by
     cases a with
     | mk p v e =>
-      simp only [Positioned.val] at ha
       subst v
       rfl
   have eb : b = {pos := b.pos, val := .versionDirective major minor, endPos := b.endPos} := by
     cases b with
     | mk p v e =>
-      simp only [Positioned.val] at hb
       subst v
       rfl
   have ec : c = {pos := c.pos, val := .documentStart, endPos := c.endPos} := by
     cases c with
     | mk p v e =>
-      simp only [Positioned.val] at hc
       subst v
       rfl
   have ed : d = {pos := d.pos, val := .streamEnd, endPos := d.endPos} := by
     cases d with
     | mk p v e =>
-      simp only [Positioned.val] at hd
       subst v
       rfl
   rw [hrepr, ea, eb, ec, ed]
@@ -103,10 +99,10 @@ lemma original_empty_document_raw_result (input : String)
     (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
     (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
       (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ ['\n', '-', '-', '-', '\n'])))) :
+    let majorNat := (String.ofList major).toNat!
+    let minorNat := (String.ofList minor).toNat!
     parseYamlRaw input =
-      .ok #[{value := emptyNode,
-        directives := #[.yaml (toString ((String.ofList major).toNat!) ++ "." ++
-          toString ((String.ofList minor).toNat!))]}] := by
+      .ok #[{value := emptyNode, directives := #[.yaml s!"{majorNat}.{minorNat}"]}] := by
   obtain ⟨raw, filtered, _hraw, hscan, _heq, hvals⟩ :=
     MathGraph.WholeSource.DirectiveEOF.original_empty_document_scans
       input major minor comment hma hmi hneMa hneMi hcomment hsource
