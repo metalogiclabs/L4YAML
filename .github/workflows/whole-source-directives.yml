@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
-          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments DirectiveBoundary DirectiveStep DirectiveEntry DirectiveEOF; do
+          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments DirectiveBoundary DirectiveStep DirectiveEntry DirectiveEOF DirectiveParse; do
             if lean --root=research/whole-source -o "research/whole-source/$proof.olean" "research/whole-source/$proof.lean" > "directive-evidence/$proof.log" 2>&1; then status=0; else status=$?; fi
             printf '%s\t%s\n' "$proof" "$status" | tee -a directive-evidence/status.tsv
             cat "directive-evidence/$proof.log"
