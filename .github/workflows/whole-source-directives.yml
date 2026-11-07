@@ -54,7 +54,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Properties L4YAML.Proofs.Production.Acceptance.Plain L4YAML.Proofs.Scanner.ScannerCorrectness L4YAML.Proofs.Output.EmitterScannability.ScanSteps L4YAML.Proofs.Scanner.ScanStrictCoupling L4YAML.Proofs.Scanner.IndentStackBase > directive-evidence/baseline.log 2>&1
+          lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition L4YAML.Proofs.Production.Acceptance.Properties L4YAML.Proofs.Production.Acceptance.Plain L4YAML.Proofs.Scanner.ScannerCorrectness L4YAML.Proofs.Output.EmitterScannability.ScanSteps L4YAML.Proofs.Scanner.ScanStrictCoupling L4YAML.Proofs.Scanner.IndentStackBase L4YAML.Proofs.Parser.StreamCompleteness > directive-evidence/baseline.log 2>&1
           tail -100 directive-evidence/baseline.log
       - name: Save successfully built dependencies independently of candidate proofs
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
