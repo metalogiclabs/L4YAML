@@ -2232,7 +2232,6 @@ lemma scanBlockScalar_adds_one_token (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') :
     s'.tokens.size = s.tokens.size + 1 := by
   unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
-  simp only [] at h
   split at h
   · contradiction
   · exact scanBlockScalarBody_adds_one_token s _ _ _ _ _ s'
@@ -2887,7 +2886,6 @@ lemma scanBlockScalar_preserves_prefix (s s' : ScannerState)
     (h : scanBlockScalar s = .ok s') (i : Nat) (h_i : i < s.tokens.size) :
     s'.tokens[i]'(by have := scanBlockScalar_adds_one_token s s' h; omega) = s.tokens[i] := by
   unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
-  simp only [] at h
   split at h
   · contradiction
   · exact scanBlockScalarBody_preserves_prefix s _ _ _ _ _ s'
@@ -4996,7 +4994,6 @@ lemma scanBlockScalarBody_preserves_docStartLine (s_orig s_nl : ScannerState)
 lemma scanBlockScalar_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
   unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
-  simp only [] at h
   split at h
   · contradiction
   · exact scanBlockScalarBody_preserves_implicitValueLine s _ _ _ _ _ s'
@@ -5010,7 +5007,6 @@ lemma scanBlockScalar_preserves_implicitValueLine (s : ScannerState) (s' : Scann
 lemma scanBlockScalar_preserves_docStartLine (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.docStartLine = s.docStartLine := by
   unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
-  simp only [] at h
   split at h
   · contradiction
   · exact scanBlockScalarBody_preserves_docStartLine s _ _ _ _ _ s'
@@ -6662,7 +6658,6 @@ lemma scanBlockScalarBody_preserves_simpleKeyStack (s_orig s_nl : ScannerState)
 lemma scanBlockScalar_clears_simpleKey (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.simpleKey.possible = false := by
   unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
-  simp only [] at h
   split at h
   · contradiction
   · exact scanBlockScalarBody_clears_simpleKey s _ _ _ _ _ s' h
@@ -6670,7 +6665,6 @@ lemma scanBlockScalar_clears_simpleKey (s : ScannerState) (s' : ScannerState)
 lemma scanBlockScalar_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.simpleKeyStack = s.simpleKeyStack := by
   unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
-  simp only [] at h
   split at h
   · contradiction
   · exact scanBlockScalarBody_preserves_simpleKeyStack s _ _ _ _ _ s'
@@ -7616,7 +7610,6 @@ lemma scanSingleQuoted_preserves_flowLevel (s : ScannerState) (s' : ScannerState
 lemma scanBlockScalar_preserves_flowLevel (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.flowLevel = s.flowLevel := by
   unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
-  simp only [] at h
   split at h
   · contradiction
   · exact scanBlockScalarBody_preserves_flowLevel s _ _ _ _ _ s'
@@ -8967,7 +8960,7 @@ lemma skipToContentLoop_preserves_ScanInv (s s' : ScannerState) (fuel : Nat)
     unfold skipToContentLoop at h_ok; split at h_ok
     · simp at h_ok
     · rename_i s1 h_ws
-      split at h <;> try contradiction
+      split at h_ok <;> try contradiction
       have h_s1 : ScanInv s1 := skipToContentWs_preserves_ScanInv s s1 h h_ws
       have h_s2 : ScanInv (skipToContentComment s1) :=
         skipToContentComment_preserves_ScanInv s1 h_s1
@@ -10574,7 +10567,6 @@ lemma scanBlockScalarBody_preserves_ScanInv (s_orig s_nl : ScannerState)
 lemma scanBlockScalar_preserves_ScanInv (s s' : ScannerState)
     (h : ScanInv s) (h_ok : scanBlockScalar s = .ok s') : ScanInv s' := by
   unfold scanBlockScalar at h_ok; dsimp only [] at h_ok; split at h_ok <;> try contradiction
-  simp only [] at h_ok
   split at h_ok
   · contradiction  -- scanBlockScalarConsumeNewline error
   · -- scanBlockScalarConsumeNewline ok
@@ -12279,8 +12271,8 @@ lemma scanBlockScalarBody_offset_ge (s_orig s_nl : ScannerState)
 lemma scanBlockScalar_offset_lt (s s' : ScannerState)
     (hlt : s.offset < s.inputEnd) (h : scanBlockScalar s = .ok s') :
     s.offset < s'.offset := by
-  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction; dsimp only [] at h
-  generalize h_cn : scanBlockScalarConsumeNewline _ = cn at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
+  generalize h_cn : scanBlockScalarConsumeNewline (scanBlockScalarSkipComment (skipWhitespace (parseBlockHeaderLoop s.advance .clip none 2).2.2)) = cn at h
   cases cn with
   | error e => simp at h
   | ok s_nl =>
