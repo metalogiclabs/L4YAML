@@ -61,40 +61,6 @@ jobs:
         with:
           path: .lake
           key: directive-bridge-deps-64795a8-lean435-${{ github.sha }}
-      - name: Qualify literal controls and reject equal-acceptance hypothesis
-        if: steps.baseline.outcome == 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
-          if lean --root=research/whole-source -o research/whole-source/DirectiveControls.olean research/whole-source/DirectiveControls.lean > directive-evidence/DirectiveControls.log 2>&1; then status=0; else status=$?; fi
-          printf 'DirectiveControls\t%s\n' "$status" | tee -a directive-evidence/status.tsv
-          cat directive-evidence/DirectiveControls.log
-          test "$status" = 0
-          if lean --root=research/whole-source research/whole-source/DirectiveRed.lean > directive-evidence/DirectiveRed.log 2>&1; then status=0; else status=$?; fi
-          printf 'DirectiveRed-expected-failure\t%s\n' "$status" | tee -a directive-evidence/status.tsv
-          cat directive-evidence/DirectiveRed.log
-          test "$status" = 1
-          test "$(grep -c ': error:' directive-evidence/DirectiveRed.log)" = 1
-          test "$(grep -Eci ': error:.*native_decide.*evaluated.*proposition' directive-evidence/DirectiveRed.log)" = 1
-          if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' directive-evidence/DirectiveControls.log directive-evidence/DirectiveRed.log; then exit 1; fi
-      - name: Qualify original-source witnesses and fixed consumer
-        # CI rejects sorry symptoms; exact per-receipt axiom profiles still
-        # require manual review against the declared bounded allowlist.
-        if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          export LEAN_PATH="$PWD/research/structural-boundaries:$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
-          lean --root=research/structural-boundaries -o research/structural-boundaries/TraceExplicitRepairAudit.olean research/structural-boundaries/TraceExplicitRepairAudit.lean > directive-evidence/TraceExplicitRepairAudit.log 2>&1
-          cat directive-evidence/TraceExplicitRepairAudit.log
-          for proof in DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments DirectiveBoundary DirectiveStep DirectiveEntry DirectiveEOF DirectiveParse DirectiveResult CapstoneObstructions; do
-            if lean --root=research/whole-source -o "research/whole-source/$proof.olean" "research/whole-source/$proof.lean" > "directive-evidence/$proof.log" 2>&1; then status=0; else status=$?; fi
-            printf '%s\t%s\n' "$proof" "$status" | tee -a directive-evidence/status.tsv
-            cat "directive-evidence/$proof.log"
-            test "$status" = 0
-            if grep -E 'sorryAx|declaration uses .sorry.|Unknown constant|unknown module prefix|unexpected token' "directive-evidence/$proof.log"; then exit 1; fi
-          done
       - name: Qualify persistent capstone boundary and retained positive repair
         if: ${{ !cancelled() && steps.baseline.outcome == 'success' }}
         shell: bash

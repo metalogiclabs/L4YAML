@@ -37,6 +37,22 @@
         "Quot.sound"
       ],
       "scope": "Original converse and explicit-only/drop-free plus existential WF converse refuted; scalar restriction excludes witness; unchanged directive controls and proofs pass. No fresh full-production regression."
+    },
+    "harness_first": {
+      "commit": "5ccef118e771c808fcd5e734aeefab9439b0b0a4",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42419958973",
+      "job": 128546048019,
+      "artifact": 13592689579,
+      "artifact_sha256_verified": "dbd123baba3317d62945afe7d11c5538f52ddfc2a5b07c724665d0b0170094f8",
+      "scope": "Reusable script passed 22 module compilations, expected RED, strict five-target axiom gate and full tracked/submodule identity. Full-production job skipped."
+    },
+    "normative_and_harness": {
+      "commit": "b882e5b298b30b094f4154da7108a45e196cfcd3",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42420433923",
+      "job": 128547467405,
+      "artifact": 13593491176,
+      "artifact_sha256_reported": "f60e48bc7a9df0e618c9ce6398644a9bbc5da4d4022010528f662f0566a536f3",
+      "scope": "All seven tracked claims pass strict transitive axiom allowlist; native controls and expected RED pass; complete tracked tree/submodule identity pre/post. Full-production job skipped."
     }
   },
   "obligations": [
@@ -147,7 +163,7 @@
         "state": "WARRANTED",
         "evidence": "Existing source_quoted_public_accepts plus new repaired_leaf_excludes_bad; retain previous qualified source-family proof instead of duplicating it."
       },
-      "next_experiment": "Qualify this retained positive theorem in the same harness as the new negative consumer.",
+      "next_experiment": "Reuse the retained whole-source quoted acceptance theorem; do not reprove it or substitute the broad SCDoubleQuoted relation.",
       "dependencies": [
         "research/accepted-source/QuotedPublic.lean",
         "research/accepted-source/QuotedPublicControls.lean",
@@ -156,7 +172,8 @@
       "verification": "Compile retained public theorem, controls, and exact allowed-axiom gate.",
       "receipts": [
         "https://github.com/metalogiclabs/L4YAML/actions/runs/42173365450/job/127746101212",
-        "obstructions"
+        "obstructions",
+        "normative_and_harness"
       ],
       "failed_experiments": [
         "https://github.com/metalogiclabs/L4YAML/actions/runs/42172478301"
@@ -177,10 +194,10 @@
       "obligation_state": "OPEN",
       "obstruction": "No complete source-connected replacement for permissive stream, leaf and directive constructors",
       "diagnosis": {
-        "state": "WARRANTED_PARTIAL",
+        "state": "WARRANTED",
         "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements."
       },
-      "next_experiment": "Qualify CapstoneCommentBoundary: test source grammar and actual runtime on '#'+U+0001; source documentation predicts acceptance, rejecting the grammar-only mismatch hypothesis.",
+      "next_experiment": "Comment discriminator is resolved: runtime and grammar BOTH accept raw SOH. First qualify the minimal runtime comment validation repair; separately integrate normative leaf grammar restrictions and source-connected stream production.",
       "dependencies": [
         "L4YAML/Surface/Document.lean",
         "L4YAML/Surface/Scalars.lean",
@@ -191,7 +208,8 @@
       "verification": "Construct source-native positive/negative witnesses; then prove any revised grammar against independent normative conditions, not execution.",
       "receipts": [
         "obstructions",
-        "https://github.com/metalogiclabs/L4YAML/actions/runs/42418475419"
+        "https://github.com/metalogiclabs/L4YAML/actions/runs/42418475419",
+        "normative_and_harness"
       ],
       "failed_experiments": [],
       "unlocks": [
@@ -209,7 +227,7 @@
       "obligation_state": "OPEN",
       "obstruction": "Current annotation has ambiguous readings and erased directive validity; token state is not derivable from syntax membership alone.",
       "diagnosis": {
-        "state": "WARRANTED_PARTIAL",
+        "state": "WARRANTED",
         "evidence": "TraceAnswerAudit refutes answer determinism and universal TraceWellFormed on accepted a\\n*x; DirectiveTrace refutes arbitrary event-predicate characterization using duplicate directives."
       },
       "next_experiment": "After exact syntax repair, prove source-to-token event agreement and derive TokenStateOk; do not assume parser success or use the permissive trace universal.",
@@ -241,7 +259,7 @@
       "obligation_state": "OPEN",
       "obstruction": "dropClose and PendingNode.close_with_ssl require a missing source path; removing scannerDrop breaks their proofs.",
       "diagnosis": {
-        "state": "WARRANTED_PARTIAL",
+        "state": "WARRANTED",
         "evidence": "Current Document.lean documents producer/consumer gap; prior transient removal experiments in ROS expose direct missing-constructor uses, separate from ncol obligations."
       },
       "next_experiment": "Reconcile latest production branch before changing carriers; prove one reachable pending-node path across actual block dispatch, not mere endpoint correspondence.",
@@ -266,20 +284,21 @@
     },
     {
       "id": "L4-FULL-CAPSTONE",
-      "claim": "Actual parsing succeeds iff independently specified exact supported syntax and source-faithful serialization conditions hold.",
+      "claim": "After necessary specification/production corrections, actual parsing succeeds iff independently specified exact supported YAML syntax and source-faithful serialization conditions hold.",
       "requirement": "Corrected conceptual Group 7.7; RHS must not call scanner/parser or encode their acceptance.",
       "state": "UNKNOWN",
       "obligation_state": "OPEN",
       "obstruction": "Exact grammar, state bridge, and general scanner acceptance/production remain unqualified.",
       "diagnosis": {
-        "state": "WARRANTED_PARTIAL",
+        "state": "WARRANTED",
         "evidence": "Bounded proofs and refutations separate necessary repairs; no full theorem exists at this source."
       },
-      "next_experiment": "Resolve L4-EXACT-GRAMMAR's selected discriminator; do not count additional examples as universal coverage.",
+      "next_experiment": "On a separate source-changing repair branch, test comment-character validation at the actual comment consumer, including directive-trailing comments, while retaining escaped-control acceptance. Qualify changed source and full protected tests before any promotion.",
       "dependencies": [
         "L4-EXACT-GRAMMAR",
         "L4-SERIALIZATION-STATE",
-        "L4-PRODUCER-CONNECTION"
+        "L4-PRODUCER-CONNECTION",
+        "L4-NORMATIVE-RUNTIME"
       ],
       "verification": "Both directions at same independently defined syntax/state boundary; original fuel, unchanged native tests, theorem types, permitted axioms, exact source CI.",
       "receipts": [
@@ -295,14 +314,14 @@
       "id": "L4-NORMATIVE-RUNTIME",
       "claim": "Any all-input acceptance iff a language forbidding raw U+0001 is compatible with the frozen public parser.",
       "requirement": "YAML 1.2.2 [1]/[2] character restrictions and [75] comment text; raw SOH is forbidden in all source contexts, unlike a valid escape that decodes to SOH.",
-      "state": "CANDIDATE",
-      "obligation_state": "PENDING_REFUTATION",
+      "state": "REJECTED",
+      "obligation_state": "REFUTED",
       "obstruction": "Documented permissive comment runtime conflicts with normative exactness.",
       "diagnosis": {
-        "state": "CANDIDATE",
-        "evidence": "Surface.Basic isCommentTextChar explicitly documents permissiveness; candidate kernel reduction accepts '#\\x01'. Retained empty-family theorem is instantiated with the same raw control."
+        "state": "WARRANTED",
+        "evidence": "CapstoneCommentBoundary.no_normative_iff_on_frozen_runtime kernel-checked: actual parse accepts '#\\x01'; raw U+0001 violates independent NoRawSOH requirement. retained_empty_family_accepts_raw_soh reuses the already qualified general empty-document theorem."
       },
-      "next_experiment": "Qualify the no_normative_iff_on_frozen_runtime theorem. If it passes, investigate a minimal independently specified comment-character validator as a separate production repair; grammar-only tightening cannot prove normative strictness.",
+      "next_experiment": "On a separate source-changing repair branch, test comment-character validation at the actual comment consumer, including directive-trailing comments, while retaining escaped-control acceptance. Qualify changed source and full protected tests before any promotion.",
       "dependencies": [
         "CapstoneCommentBoundary.lean",
         "DirectiveParse.lean",
@@ -310,7 +329,9 @@
         "L4YAML/Scanner/Whitespace.lean"
       ],
       "verification": "Kernel-checked parser acceptance plus necessary character-condition violation; retained theorem instantiation; native empty/#/normal/escaped/quoted-control cases; strict axiom gate.",
-      "receipts": [],
+      "receipts": [
+        "normative_and_harness"
+      ],
       "failed_experiments": [
         {
           "commit": "a5e7764240392659348e2d69bcd1cc031ac45268",
@@ -341,17 +362,72 @@
     }
   ],
   "candidate_harness": {
-    "state": "CANDIDATE",
+    "state": "WARRANTED",
+    "reuse": "REUSABLE",
     "files": [
       "CapstoneQualification.lean",
       "qualify-capstone.sh"
     ],
-    "criteria": "Exact CI run must execute reusable entrypoint, retained positive/negative controls and strict seven-declaration transitive axiom gate."
+    "receipt": "normative_and_harness",
+    "limits": "Replays the named boundaries only. Does not run autonomously after a session ends and does not certify overall completion."
   },
   "normative_sources": [
     "https://yaml.org/spec/1.2.2/#51-character-set",
     "https://yaml.org/spec/1.2.2/#66-comments",
     "https://yaml.org/spec/1.2.2/#73-flow-scalar-styles",
     "https://yaml.org/spec/1.2.2/#92-streams"
-  ]
+  ],
+  "branch_reconciliation": {
+    "as_of_code_commit": "b882e5b298b30b094f4154da7108a45e196cfcd3",
+    "ancestors": {
+      "research/directive-context-bridge": "45fe92c234c24db100156a8639ba2c91fd2336e1",
+      "research/directive-source-closure": "4db7e4f25535ff95a10bd0021792cf4dd260ba20",
+      "research/structural-boundaries-20261106": "d2352123b724d19f56f5164fe56e0bc7e07e6d3f"
+    },
+    "unmerged": [
+      {
+        "branch": "research/trace-continuation-repair-20261106",
+        "head": "45ee2d7b98046cbdb81f4b2a27fc9ad9f13e6eab",
+        "boundary": "Edits actual annotated Document.lean to explicit-only continuation and adds prefixContinue; separate source qualification required; present sidecar tests this same repair shape."
+      },
+      {
+        "branch": "fix/no-pop-route-continuations-recovery",
+        "head": "6f9be102b94e4da1aecff43df5d5599520667786",
+        "boundary": "Production StreamAccum and guard/probe changes; not imported or covered by this frozen-source qualification."
+      },
+      {
+        "branch": "fix/traceof-nested-comments-20261104",
+        "head": "96790c946f0911f25954f0b882ce6be71ec36f12",
+        "boundary": "TraceOf generator-only change; not merged, not an exact-grammar proof."
+      }
+    ]
+  },
+  "corrected_target": {
+    "state": "UNKNOWN",
+    "statement": "After justified specification and production repairs, forall input, (exists docs, parseYaml input = .ok docs) iff independently specified exact YAML syntax and source-faithful serialization-state validity.",
+    "necessary_changes": [
+      "Eliminate disconnected scannerDrop paths and prove genuine source-connected producer invariants.",
+      "Require explicit document continuation unless a real suffix permits another document.",
+      "Use normative leaf admissibility (e.g. nb-json and Unicode scalar-value constraints), valid directive syntax and duplicate-directive discipline.",
+      "Preserve alias/tag/document state in the source interpretation and prove its agreement with actual token events and runtime commit order.",
+      "For a normative all-input iff, repair actual permissive comment handling; grammar-only tightening is insufficient. Keep valid escaped controls distinct from raw controls."
+    ],
+    "not_allowed": [
+      "RHS calls actual scanner/parser acceptance.",
+      "Weaken YAML's raw-character restriction to hide accepted invalid comments.",
+      "Treat an existential WF trace as proof of universal TraceWellFormed.",
+      "Treat bounded empty/quoted families as full completeness."
+    ]
+  },
+  "next_experiment": {
+    "id": "L4-NORMATIVE-RUNTIME-REPAIR",
+    "action": "On a separate source-changing repair branch, test comment-character validation at the actual comment consumer, including directive-trailing comments, while retaining escaped-control acceptance. Qualify changed source and full protected tests before any promotion.",
+    "decisive_controls": [
+      "Reject raw SOH in standalone and directive-trailing comments.",
+      "Preserve '#', '#a', Unicode printable comment, CR/LF/CRLF handling, quoted \\\\x01 and \\\\u0001 source escapes.",
+      "Reconcile Scanner/IndexedScanner and comment-preserving entrypoints; test every actual comment collector route.",
+      "Retain original empty-family proof as a versioned runtime result; any stricter successor must explicitly add normative comment admissibility, not silently falsify the older theorem."
+    ],
+    "success_boundary": "Only comment-character conformance repair; full Group 7.7 remains UNKNOWN until all structural/state obligations close."
+  }
 }
