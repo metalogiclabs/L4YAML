@@ -403,32 +403,18 @@
     ]
   },
   "corrected_target": {
-    "state": "UNKNOWN",
-    "statement": "After justified specification and production repairs, forall input, (exists docs, parseYaml input = .ok docs) iff independently specified exact YAML syntax and source-faithful serialization-state validity.",
-    "necessary_changes": [
-      "Eliminate disconnected scannerDrop paths and prove genuine source-connected producer invariants.",
-      "Require explicit document continuation unless a real suffix permits another document.",
-      "Use normative leaf admissibility (e.g. nb-json and Unicode scalar-value constraints), valid directive syntax and duplicate-directive discipline.",
-      "Preserve alias/tag/document state in the source interpretation and prove its agreement with actual token events and runtime commit order.",
-      "For a normative all-input iff, repair actual permissive comment handling; grammar-only tightening is insufficient. Keep valid escaped controls distinct from raw controls."
-    ],
-    "not_allowed": [
-      "RHS calls actual scanner/parser acceptance.",
-      "Weaken YAML's raw-character restriction to hide accepted invalid comments.",
-      "Treat an existential WF trace as proof of universal TraceWellFormed.",
-      "Treat bounded empty/quoted families as full completeness."
-    ]
+    "state": "CANDIDATE",
+    "spec": "CAPSTONE-SPEC.md",
+    "completeness": "forall input, ValidSource input -> exists docs, TokenParser.parseYaml input = .ok docs",
+    "strictness": "forall input, (exists docs, TokenParser.parseYaml input = .ok docs) -> ValidSource input",
+    "independent_language_implemented": false,
+    "source_bridge": "ValidSource input -> exists ts, Scanner.scanFiltered input = .ok ts AND TokenGrammar ts AND TokenStateOk ts",
+    "critical_distinction": "Runtime over-acceptance refutes strictness, not completeness. Existing forward theorem into universal InYamlLanguage does not transfer to a repaired language.",
+    "next_experiment": "Source-connected directive/document judgment retaining directive multiplicity and explicit handle declarations; test source-to-token correspondence with existing independent quoted body grammar. This is a representation test, not full-language closure."
   },
   "next_experiment": {
-    "id": "L4-NORMATIVE-RUNTIME-REPAIR",
-    "action": "On a separate source-changing repair branch, test comment-character validation at the actual comment consumer, including directive-trailing comments, while retaining escaped-control acceptance. Qualify changed source and full protected tests before any promotion.",
-    "decisive_controls": [
-      "Reject raw SOH in standalone and directive-trailing comments.",
-      "Preserve '#', '#a', Unicode printable comment, CR/LF/CRLF handling, quoted \\\\x01 and \\\\u0001 source escapes.",
-      "Reconcile Scanner/IndexedScanner and comment-preserving entrypoints; test every actual comment collector route.",
-      "Retain original empty-family proof as a versioned runtime result; any stricter successor must explicitly add normative comment admissibility, not silently falsify the older theorem."
-    ],
-    "success_boundary": "Only comment-character conformance repair; full Group 7.7 remains UNKNOWN until all structural/state obligations close."
+    "action": "Source-connected directive/document judgment retaining directive multiplicity and explicit handle declarations; test source-to-token correspondence with existing independent quoted body grammar. This is a representation test, not full-language closure.",
+    "success_boundary": "Only the declared source-state representation test; full ValidSource formalization and both directions remain UNKNOWN."
   },
   "active_candidate": {
     "branch": "research/normative-comments",
@@ -444,11 +430,54 @@
         "artifact": 13593248400,
         "state": "REJECTED",
         "diagnosis": "Runtime dependency build fails in ScannerCorrectness and IndexedIndent: old case-split scripts omit the newly added validation error branch. Native controls and full regression did not execute. This is not evidence that the behavioral repair passes."
+      },
+      {
+        "commit": "ba4051d99d2a182be5fd67604f2786e93c8f2cd3",
+        "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42421896352",
+        "artifact": 13593851818,
+        "diagnosis": "Proof adaptation: redundant simplification and wrong hypothesis name. No behavioral qualification."
+      },
+      {
+        "commit": "487f2de305e87d3b33b53daef2f17455fc72df08",
+        "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42422389187",
+        "artifact": 13593664179,
+        "diagnosis": "Forbidden-source guard failed; directive skipToEndOfLine bypass found. Test module also had an unclosed public section. Both corrected subsequently."
+      },
+      {
+        "commit": "8d7eb28f71936e9fc9e67b15be2aa17619bfa57b",
+        "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42422136264",
+        "artifact": 13593844209,
+        "diagnosis": "Full build exposes eight immediate proof modules requiring checked-consumer error-branch adaptation. No unchanged native suite pass."
+      },
+      {
+        "commit": "a6d2803adc474b669202825eb20b47abded12e83",
+        "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42424894654",
+        "artifact": 13594832300,
+        "diagnosis": "Legacy controls and both runtime dependency builds pass. Indexed controls fail due missing meta import of shared test definitions, not an observed semantic failure. Full build/native suite correctly skipped."
       }
     ],
     "obstruction": "Success-only invariants must eliminate the new error branch; unconditional acceptance contracts such as BlockScalar.CommentCharOk require normative strengthening, not a tactic-only repair.",
-    "next_experiment": "Compile after eliminating impossible error branches in the two immediate dependency modules; inspect all six public-path controls before broader proof migration.",
+    "next_experiment": "Qualify indexed controls after adding the required meta import. Keep normative strictness integration separate from the source-completeness producer. Full production proof migration remains open.",
     "verification": "Pinned Lean; exact source tree; protected Tests/toolchain/dependencies unchanged; six public paths over forbidden and valid comment contexts; kernel public_rejects_minimal and strict axiom profile; complete default build and unchanged native suite required for promotion.",
-    "unlocks": "Necessary runtime character-validity condition for any normative Group 7.7 equivalence."
+    "unlocks": "Necessary runtime character-validity condition for any normative Group 7.7 equivalence.",
+    "last_checked_commit": "a6d2803adc474b669202825eb20b47abded12e83",
+    "last_checked_run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42424894654",
+    "last_checked_artifact": 13594832300,
+    "legacy_boundary": {
+      "state": "WARRANTED",
+      "commit": "283206d4f827bf3a273536e266e5d94fd6a9c207",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42422679355",
+      "artifact": 13594129318,
+      "sha256": "9569d063920f2b8afd76c4f127ae279cf04c14ba62ec2e48e159e94c6adebfea",
+      "theorem": "MathGraph.NormativeComments.public_rejects_minimal : (TokenParser.parseYaml \"#\\x01\").isOk = false",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "scope": "Complete legacy test module compiled. 37 forbidden code points and 9 valid comment bodies in 11 source contexts, plus 5 quoted controls, across 4 legacy public paths. Finite controls, not universal comment conformance. Pre/post tracked source identity checked; full build failed, not production-ready."
+    },
+    "full_integration_state": "UNKNOWN",
+    "frozen_harness": "Run qualify-capstone.sh only on research/capstone-source-completion at its recorded frozen identity. Do not silence its source-mismatch guard on this source-changing branch."
   }
 }

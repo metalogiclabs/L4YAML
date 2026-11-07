@@ -1,5 +1,6 @@
 module
 import NormativeCommentCore
+public meta import NormativeCommentCore
 public import L4YAML.Scanner.IndexedDispatch
 public meta import L4YAML.Scanner.IndexedDispatch
 
