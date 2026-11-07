@@ -261,7 +261,7 @@ lemma full_step_after_version_state (s : ScannerState) (rest : List Char)
     rw [htokens]
     exact trailingNodeRun?_push_none land.tokens
       {pos := land.currentPos, val := .documentStart}
-      (by decide) (by decide) (by decide) (by decide)
+      (by rfl) (by rfl) (by rfl) (by rfl)
   refine ⟨scanDocumentStart land, hstep,
     document_start_landing_source land rest hcLand hiLand,
     hfl, hind, hrun, ?_, ?_, ?_⟩
