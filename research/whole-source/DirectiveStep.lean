@@ -31,6 +31,24 @@ private def nextAfterDirective (s : String) : Bool :=
 #guard nextAfterDirective "%YAML 1.2 #x\n---x" = false
 #guard nextAfterDirective "%YAML 1.2 #x\n ---\n" = false
 
+/- Adversarial landing tests: an explicit document marker must leave the
+   trailing LF unread, with no flow collection or pending directives. -/
+private def landedAtFinalLf (input : String) : Bool :=
+  match scanNextToken ((ScannerState.mk' input).emit .streamStart) with
+  | .ok (some mid) =>
+    match scanNextToken mid with
+    | .ok (some out) =>
+      out.peek? == some '\n' && out.flowLevel == 0 &&
+      out.indents == #[{column := -1, isSequence := false}] &&
+      !out.directivesPresent && !out.allowDirectives && !out.seenYamlDirective
+    | _ => false
+  | _ => false
+#guard landedAtFinalLf "%YAML 1.2 #\n---\n" = true
+#guard landedAtFinalLf "%YAML 1.2 # café\n---\n" = true
+#guard landedAtFinalLf "%YAML 1.2 #x\n---x" = false
+#guard landedAtFinalLf "%YAML 1.2 #x\nvalue" = false
+#guard landedAtFinalLf "%YAML 1.2 #x\n ---\n" = false
+
 lemma version_token_checks (s land : ScannerState) (major minor : Nat) (pos : YamlPos)
     (priorTokens : Array (Positioned YamlToken))
     (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
@@ -124,16 +142,19 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
     rw [(peek_of_corr hr).1]
   · simp [land, ready, L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_flowLevel, hf]
 
-/-- Full scanNextToken, including the actual newline preprocessing and both
-intervening validators. No successful step/preprocessing premise is assumed. -/
-lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major minor : Nat)
+/-- Retain the *actual* post-preprocessing landing witness, rather than only
+its three directive flags. This is the source-correspondence handoff needed
+for the terminal `scanLoop` checks in the bounded empty-document capstone. -/
+lemma full_step_after_version_landing (s : ScannerState) (rest : List Char)
+    (col major minor : Nat)
     (pos : YamlPos) (priorTokens : Array (Positioned YamlToken))
     (hc : ScannerSurfCorr s ⟨'\n' :: '-' :: '-' :: '-' :: '\n' :: rest, col⟩)
     (hf : s.flowLevel = 0)
     (hi : s.indents = #[{column := -1, isSequence := false}])
     (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
-    ∃ out, scanNextToken s = .ok (some out) ∧ out.directivesPresent = false ∧
-      out.allowDirectives = false ∧ out.seenYamlDirective = false := by
+    ∃ land, scanNextToken s = .ok (some (scanDocumentStart land)) ∧
+      ScannerSurfCorr land ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩ ∧
+      land.flowLevel = 0 := by
   obtain ⟨hskip, hcLand, hfLand, hiLand, hnLand⟩ := lf_content s rest col hc hf
   let content := { consumeNewline s with simpleKeyAllowed := true }
   obtain ⟨land, hpre, hcorr, hflow⟩ := preprocess_marker content rest hcLand hfLand
@@ -147,8 +168,22 @@ lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major m
     exact hpre
   obtain ⟨hd, hv⟩ := version_token_checks s land major minor pos priorTokens ht
   have hstruct := structural_document_start land rest hcorr hflow
-  refine ⟨scanDocumentStart land, ?_, ?_, ?_, ?_⟩
-  · simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure, Except.bind, Except.pure]
+  refine ⟨land, ?_, hcorr, hflow⟩
+  simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure, Except.bind, Except.pure]
+
+/-- Compatibility projection: the previous independently qualified interface
+remains available to all existing consumers. -/
+lemma full_step_after_version (s : ScannerState) (rest : List Char) (col major minor : Nat)
+    (pos : YamlPos) (priorTokens : Array (Positioned YamlToken))
+    (hc : ScannerSurfCorr s ⟨'\n' :: '-' :: '-' :: '-' :: '\n' :: rest, col⟩)
+    (hf : s.flowLevel = 0)
+    (hi : s.indents = #[{column := -1, isSequence := false}])
+    (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
+    ∃ out, scanNextToken s = .ok (some out) ∧ out.directivesPresent = false ∧
+      out.allowDirectives = false ∧ out.seenYamlDirective = false := by
+  obtain ⟨land, hstep, _, _⟩ :=
+    full_step_after_version_landing s rest col major minor pos priorTokens hc hf hi ht
+  refine ⟨scanDocumentStart land, hstep, ?_, ?_, ?_⟩
   all_goals simp [scanDocumentStart]
 
 /-- Original-source consumer of the full next step; the rest of the document
@@ -205,6 +240,7 @@ lemma original_streamstart_comment_full_step (input : String) (major minor comme
 
 #print axioms original_streamstart_comment_full_step
 #print axioms full_step_after_version
+#print axioms full_step_after_version_landing
 #print axioms original_comment_full_step
 #print axioms version_token_checks
 #print axioms lf_content

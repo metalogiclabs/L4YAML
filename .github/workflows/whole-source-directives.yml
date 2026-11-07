@@ -2,7 +2,7 @@ name: Whole-source directive adequacy qualification
 
 on:
   push:
-    branches: ['research/directive-context-bridge']
+    branches: ['research/directive-context-bridge', 'research/capstone-source-completion']
     paths:
       - 'research/whole-source/**'
       - '.github/workflows/whole-source-directives.yml'
