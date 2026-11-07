@@ -850,6 +850,7 @@ lemma skipToContentLoop_preserves_tokens (s : ScannerState) (s' : ScannerState)
       simp at h
     · -- skipToContentWs s = .ok s1
       rename_i s1 hws
+      split at h <;> try contradiction
       simp only [] at h  -- reduce `let s2 := skipToContentComment s1`
       split at h
       · -- (skipToContentComment s1).peek? = some c
@@ -1075,6 +1076,7 @@ lemma skipToContentLoop_preserves_flowLevel (s : ScannerState) (s' : ScannerStat
     split at h
     · simp at h
     · rename_i s1 hws
+      split at h <;> try contradiction
       simp only [] at h
       split at h
       · rename_i c hpeek
@@ -1378,6 +1380,7 @@ lemma skipToContentLoop_preserves_implicitValueLine (s : ScannerState) (s' : Sca
     split at h
     · simp at h
     · rename_i s1 hws
+      split at h <;> try contradiction
       simp only [] at h
       split at h
       · rename_i c hpeek
@@ -1410,6 +1413,7 @@ lemma skipToContentLoop_preserves_docStartLine (s : ScannerState) (s' : ScannerS
     split at h
     · simp at h
     · rename_i s1 hws
+      split at h <;> try contradiction
       simp only [] at h
       split at h
       · rename_i c hpeek
@@ -2227,7 +2231,7 @@ lemma scanBlockScalarBody_adds_one_token (s_orig s_nl : ScannerState)
 lemma scanBlockScalar_adds_one_token (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') :
     s'.tokens.size = s.tokens.size + 1 := by
-  unfold scanBlockScalar at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
   simp only [] at h
   split at h
   · contradiction
@@ -2882,7 +2886,7 @@ lemma scanBlockScalarBody_preserves_prefix (s_orig s_nl : ScannerState)
 lemma scanBlockScalar_preserves_prefix (s s' : ScannerState)
     (h : scanBlockScalar s = .ok s') (i : Nat) (h_i : i < s.tokens.size) :
     s'.tokens[i]'(by have := scanBlockScalar_adds_one_token s s' h; omega) = s.tokens[i] := by
-  unfold scanBlockScalar at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
   simp only [] at h
   split at h
   · contradiction
@@ -3442,6 +3446,7 @@ lemma skipToContentLoop_preserves_simpleKey (s s' : ScannerState) (fuel : Nat)
     split at h
     · simp at h
     · rename_i s1 hws
+      split at h <;> try contradiction
       simp only [] at h
       split at h
       · split at h
@@ -4990,7 +4995,7 @@ lemma scanBlockScalarBody_preserves_docStartLine (s_orig s_nl : ScannerState)
 
 lemma scanBlockScalar_preserves_implicitValueLine (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.implicitValueLine = s.implicitValueLine := by
-  unfold scanBlockScalar at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
   simp only [] at h
   split at h
   · contradiction
@@ -5004,7 +5009,7 @@ lemma scanBlockScalar_preserves_implicitValueLine (s : ScannerState) (s' : Scann
 /-- `docStartLine` twin of `scanBlockScalar_preserves_implicitValueLine` (item 299): the field has one writer, `scanDocumentStart`. -/
 lemma scanBlockScalar_preserves_docStartLine (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.docStartLine = s.docStartLine := by
-  unfold scanBlockScalar at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
   simp only [] at h
   split at h
   · contradiction
@@ -5628,6 +5633,7 @@ lemma skipToContentLoop_preserves_simpleKeyStack (s s' : ScannerState) (fuel : N
     split at h
     · simp at h
     · rename_i s1 hws
+      split at h <;> try contradiction
       simp only [] at h
       split at h
       · split at h
@@ -6655,7 +6661,7 @@ lemma scanBlockScalarBody_preserves_simpleKeyStack (s_orig s_nl : ScannerState)
 
 lemma scanBlockScalar_clears_simpleKey (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.simpleKey.possible = false := by
-  unfold scanBlockScalar at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
   simp only [] at h
   split at h
   · contradiction
@@ -6663,7 +6669,7 @@ lemma scanBlockScalar_clears_simpleKey (s : ScannerState) (s' : ScannerState)
 
 lemma scanBlockScalar_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.simpleKeyStack = s.simpleKeyStack := by
-  unfold scanBlockScalar at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
   simp only [] at h
   split at h
   · contradiction
@@ -7609,7 +7615,7 @@ lemma scanSingleQuoted_preserves_flowLevel (s : ScannerState) (s' : ScannerState
 
 lemma scanBlockScalar_preserves_flowLevel (s : ScannerState) (s' : ScannerState)
     (h : scanBlockScalar s = .ok s') : s'.flowLevel = s.flowLevel := by
-  unfold scanBlockScalar at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction
   simp only [] at h
   split at h
   · contradiction
@@ -8961,6 +8967,7 @@ lemma skipToContentLoop_preserves_ScanInv (s s' : ScannerState) (fuel : Nat)
     unfold skipToContentLoop at h_ok; split at h_ok
     · simp at h_ok
     · rename_i s1 h_ws
+      split at h <;> try contradiction
       have h_s1 : ScanInv s1 := skipToContentWs_preserves_ScanInv s s1 h h_ws
       have h_s2 : ScanInv (skipToContentComment s1) :=
         skipToContentComment_preserves_ScanInv s1 h_s1
@@ -10566,7 +10573,7 @@ lemma scanBlockScalarBody_preserves_ScanInv (s_orig s_nl : ScannerState)
 -- scanBlockScalar preserves ScanInv (Except function).
 lemma scanBlockScalar_preserves_ScanInv (s s' : ScannerState)
     (h : ScanInv s) (h_ok : scanBlockScalar s = .ok s') : ScanInv s' := by
-  unfold scanBlockScalar at h_ok
+  unfold scanBlockScalar at h_ok; dsimp only [] at h_ok; split at h_ok <;> try contradiction
   simp only [] at h_ok
   split at h_ok
   · contradiction  -- scanBlockScalarConsumeNewline error
@@ -11872,6 +11879,7 @@ lemma skipToContentLoop_offset_ge (s s' : ScannerState) (fuel : Nat)
     · simp at h  -- error case
     · -- ok s1
       rename_i s1 h_ws
+      split at h <;> try contradiction
       -- Now: let s2 := skipToContentComment s1; match s2.peek? with ...
       -- simp only [] to reduce the let binding
       simp only [] at h
@@ -12271,7 +12279,7 @@ lemma scanBlockScalarBody_offset_ge (s_orig s_nl : ScannerState)
 lemma scanBlockScalar_offset_lt (s s' : ScannerState)
     (hlt : s.offset < s.inputEnd) (h : scanBlockScalar s = .ok s') :
     s.offset < s'.offset := by
-  unfold scanBlockScalar at h; dsimp only [] at h
+  unfold scanBlockScalar at h; dsimp only [] at h; split at h <;> try contradiction; dsimp only [] at h
   generalize h_cn : scanBlockScalarConsumeNewline _ = cn at h
   cases cn with
   | error e => simp at h

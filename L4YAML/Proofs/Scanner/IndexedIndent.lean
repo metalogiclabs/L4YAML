@@ -265,7 +265,7 @@ lemma skipToContentErrIx_none_atEnd {input : String} (c : IxCursor input)
     | zero => rfl
     | succ n => simp [hpw]
   unfold skipToContentErrIx skipToContentErrLoopIx skipToContentErrWsIx
-  simp [h_sp, h_ws, h]
+  simp [h_sp, h_ws, h, commentErrorIx]
 
 /-- The strictness walker is `none` when the cursor already sits at a
     content character (not whitespace, not a line break, not `'#'`). -/
@@ -313,7 +313,7 @@ lemma skipToContentErrIx_none_of_content {input : String} (c : IxCursor input)
     · rfl
   unfold skipToContentErrIx skipToContentErrLoopIx
   rw [h_ok]
-  simp [hpe, h_cm, hLB]
+  simp [hpe, h_cm, hLB, commentErrorIx, hHash]
 
 /-- The strictness walker is `none` when the cursor sits at a single
     space followed by a content character (the flow `", x"` shape):
@@ -383,7 +383,7 @@ lemma skipToContentErrIx_none_of_ws1 {input : String} (c : IxCursor input)
     · rfl
   unfold skipToContentErrIx skipToContentErrLoopIx
   rw [h_ok]
-  simp [h_next, h_cm, hLB]
+  simp [h_next, h_cm, hLB, commentErrorIx, hHash]
 
 /-! ## `skipToContent` — global progress (closes the Step 3 → Step 4
 deferred obligation, Reflection 38)
