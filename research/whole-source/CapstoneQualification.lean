@@ -1,6 +1,7 @@
 module
 
 import CapstoneObstructions
+import CapstoneCommentBoundary
 import DirectiveResult
 import QuotedPublic
 public meta import Lean
@@ -16,6 +17,7 @@ internal ones. Runtime guards remain supplementary, not proof certificates. -/
 #check MathGraph.WholeSource.CapstoneObstructions.repaired_leaf_excludes_bad
 #check L4YAML.Research.AcceptedSource.source_quoted_public_accepts
 #check MathGraph.WholeSource.DirectiveResult.original_empty_document_raw_result
+#check MathGraph.WholeSource.CapstoneCommentBoundary.no_normative_iff_on_frozen_runtime
 
 open Lean Elab Command in
 run_cmd do
@@ -24,7 +26,9 @@ run_cmd do
     ``MathGraph.WholeSource.CapstoneObstructions.repaired_completeness_refuted,
     ``MathGraph.WholeSource.CapstoneObstructions.repaired_leaf_excludes_bad,
     ``L4YAML.Research.AcceptedSource.source_quoted_public_accepts,
-    ``MathGraph.WholeSource.DirectiveResult.original_empty_document_raw_result]
+    ``MathGraph.WholeSource.DirectiveResult.original_empty_document_raw_result,
+    ``MathGraph.WholeSource.CapstoneCommentBoundary.no_normative_iff_on_frozen_runtime,
+    ``MathGraph.WholeSource.CapstoneCommentBoundary.retained_empty_family_accepts_raw_soh]
   for n in required do
     let axs ← collectAxioms n
     let bad := axs.filter (fun a => !([``propext, ``Classical.choice, ``Quot.sound] : List Name).contains a)

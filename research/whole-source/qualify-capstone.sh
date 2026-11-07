@@ -33,7 +33,7 @@ compile research/structural-boundaries TraceExplicitRepairAudit
 compile research/accepted-source QuotedPublic
 # Unchanged source-positive and source-negative controls are part of the run.
 compile research/accepted-source QuotedPublicControls
-for name in DirectiveControls DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments DirectiveBoundary DirectiveStep DirectiveEntry DirectiveEOF DirectiveParse DirectiveResult CapstoneObstructions CapstoneQualification; do
+for name in DirectiveControls DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments DirectiveBoundary DirectiveStep DirectiveEntry DirectiveEOF DirectiveParse DirectiveResult CapstoneObstructions CapstoneCommentBoundary CapstoneQualification; do
   compile research/whole-source "$name"
 done
 
@@ -43,6 +43,6 @@ printf 'DirectiveRed-expected-failure\t%s\n' "$status" | tee -a "$out/status.tsv
 test "$status" = 1
 test "$(grep -c ': error:' "$out/DirectiveRed.log")" = 1
 test "$(grep -Eci ': error:.*native_decide.*evaluated.*proposition' "$out/DirectiveRed.log")" = 1
-test "$(grep -c 'QUALIFIED_AXIOMS' "$out/CapstoneQualification.log")" = 5
+test "$(grep -c 'QUALIFIED_AXIOMS' "$out/CapstoneQualification.log")" = 7
 bash research/whole-source/source-identity.sh verify "$baseline" "$out"
 printf '%s\n' 'Qualification passed at the printed theorem boundaries; Group 7.7 remains open.'

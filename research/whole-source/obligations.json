@@ -180,7 +180,7 @@
         "state": "WARRANTED_PARTIAL",
         "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements."
       },
-      "next_experiment": "Smallest new structural test: put raw U+0001 in a comment-only stream and test whether independent SLComment admits it, consumes full source, yet scanner rejects. This discriminates a leaf-local repair from a required global source-character invariant.",
+      "next_experiment": "Qualify CapstoneCommentBoundary: test source grammar and actual runtime on '#'+U+0001; source documentation predicts acceptance, rejecting the grammar-only mismatch hypothesis.",
       "dependencies": [
         "L4YAML/Surface/Document.lean",
         "L4YAML/Surface/Scalars.lean",
@@ -290,6 +290,35 @@
       "unlocks": [
         "Overall Capstone completion"
       ]
+    },
+    {
+      "id": "L4-NORMATIVE-RUNTIME",
+      "claim": "Any all-input acceptance iff a language forbidding raw U+0001 is compatible with the frozen public parser.",
+      "requirement": "YAML 1.2.2 [1]/[2] character restrictions and [75] comment text; raw SOH is forbidden in all source contexts, unlike a valid escape that decodes to SOH.",
+      "state": "CANDIDATE",
+      "obligation_state": "PENDING_REFUTATION",
+      "obstruction": "Documented permissive comment runtime conflicts with normative exactness.",
+      "diagnosis": {
+        "state": "CANDIDATE",
+        "evidence": "Surface.Basic isCommentTextChar explicitly documents permissiveness; candidate kernel reduction accepts '#\\x01'. Retained empty-family theorem is instantiated with the same raw control."
+      },
+      "next_experiment": "Qualify the no_normative_iff_on_frozen_runtime theorem. If it passes, investigate a minimal independently specified comment-character validator as a separate production repair; grammar-only tightening cannot prove normative strictness.",
+      "dependencies": [
+        "CapstoneCommentBoundary.lean",
+        "DirectiveParse.lean",
+        "L4YAML/Surface/Basic.lean",
+        "L4YAML/Scanner/Whitespace.lean"
+      ],
+      "verification": "Kernel-checked parser acceptance plus necessary character-condition violation; retained theorem instantiation; native empty/#/normal/escaped/quoted-control cases; strict axiom gate.",
+      "receipts": [],
+      "failed_experiments": [],
+      "unlocks": [
+        "Honest normative Group 7.7 target and production repair requirement"
+      ],
+      "limits": [
+        "Known permissive policy, not claimed as newly discovered defect.",
+        "No global c-printable predicate is imposed on quotes: nb-json legitimately permits additional non-C0 characters there."
+      ]
     }
   ],
   "environment_failures": [
@@ -310,6 +339,12 @@
       "CapstoneQualification.lean",
       "qualify-capstone.sh"
     ],
-    "criteria": "Exact CI run must execute the reusable entrypoint, retained positive/negative controls, and strict five-declaration transitive axiom gate."
-  }
+    "criteria": "Exact CI run must execute reusable entrypoint, retained positive/negative controls and strict seven-declaration transitive axiom gate."
+  },
+  "normative_sources": [
+    "https://yaml.org/spec/1.2.2/#51-character-set",
+    "https://yaml.org/spec/1.2.2/#66-comments",
+    "https://yaml.org/spec/1.2.2/#73-flow-scalar-styles",
+    "https://yaml.org/spec/1.2.2/#92-streams"
+  ]
 }
