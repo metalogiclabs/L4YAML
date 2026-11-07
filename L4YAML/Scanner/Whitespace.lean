@@ -239,6 +239,27 @@ def skipToContentWs (s : ScannerState) : Except ScanError ScannerState :=
   else
     .ok (skipWhitespace s)
 
+/-- Validate [75] comment text against [27] nb-char before consuming it.
+    Stops at CR/LF; reports the first invalid source character, including BOM.
+    The collector remains pure so callers can retain its state invariants. -/
+def commentTextError (s : ScannerState) : Nat → Option ScanError
+  | 0 => none
+  | fuel + 1 =>
+    match s.peek? with
+    | none => none
+    | some c =>
+      if isLineBreakBool c then none
+      else if !isPrintableBool c || c == '\uFEFF' then
+        some (.unexpectedChar c s.line s.col)
+      else commentTextError s.advance fuel
+
+/-- Check a potential comment at the current cursor. Non-comment content is
+    left to the ordinary dispatcher and comment separation checks. -/
+def commentError (s : ScannerState) : Option ScanError :=
+  if s.peek? == some '#' then
+    commentTextError s.advance (s.inputEnd - s.offset)
+  else none
+
 /-- Helper: collect comment text characters until end-of-line or EOF.
 
     Structurally recursive on `fuel`.  Advances the scanner past each
@@ -298,6 +319,9 @@ def skipToContentLoop (s : ScannerState) (fuel : Nat) : Except ScanError Scanner
     match skipToContentWs s with
     | .error e => .error e
     | .ok s1 =>
+      match commentError s1 with
+      | some e => .error e
+      | none =>
       let s2 := skipToContentComment s1
       match s2.peek? with
       | some c =>

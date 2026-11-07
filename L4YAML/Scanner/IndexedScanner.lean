@@ -149,6 +149,22 @@ Comment scanning is split into two halves:
    (the legacy scanner has a side-channel `comments` array); the
    capture is bolted onto `skipCommentTextLoop` then. -/
 
+/-- Indexed validation of [75]/[27], before the pure comment consumers. -/
+def commentTextErrorIx {input : String} (c : IxCursor input) : Nat → Option ScanError
+  | 0 => none
+  | fuel + 1 =>
+    match c.peek? with
+    | none => none
+    | some ch =>
+      if isLineBreakBool ch then none
+      else if !isPrintableBool ch || ch == '\uFEFF' then
+        some (.unexpectedChar ch c.pos.line c.pos.col)
+      else commentTextErrorIx c.advance fuel
+
+def commentErrorIx {input : String} (c : IxCursor input) : Option ScanError :=
+  if c.peek? == some '#' then commentTextErrorIx c.advance input.utf8ByteSize
+  else none
+
 /-- Inner loop: consume characters until a line break (or EOF).
     Structurally recursive on `fuel`. -/
 def skipCommentTextLoop {input : String} (c : IxCursor input) :
@@ -400,6 +416,9 @@ def skipToContentErrLoopIx {input : String} (c : IxCursor input) (inFlow : Bool)
     match skipToContentErrWsIx c inFlow currentIndent needIndentCheck with
     | .error e => some e
     | .ok cw =>
+      match commentErrorIx cw with
+      | some e => some e
+      | none =>
       match cw.peek? with
       | some ch =>
         if isCommentBool ch then

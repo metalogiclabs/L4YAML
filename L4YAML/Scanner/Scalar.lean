@@ -1119,6 +1119,9 @@ def scanBlockScalarBody (s_orig : ScannerState) (s_after_newline : ScannerState)
   yaml_spec "8.1.2" 173 "l-literal-content(n,t)"]
 def scanBlockScalar (s : ScannerState) : Except ScanError ScannerState :=
   let header := parseBlockHeaderLoop s.advance .clip none 2
+  match commentError (skipWhitespace header.2.2) with
+  | some e => .error e
+  | none =>
   let s_after_comment := scanBlockScalarSkipComment (skipWhitespace header.2.2)
   match scanBlockScalarConsumeNewline s_after_comment with
   | .error e => .error e

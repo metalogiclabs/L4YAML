@@ -1589,7 +1589,7 @@ def blockScalarPreErrIx {input : String} (s : ScannerStateIx input) (c : Char) :
   else if !blockScalarHeaderEndsLineIx s.cursor then
     some (.expectedNewline s.cursor.pos.line)
   else
-    none
+    commentErrorIx (skipWhitespace (parseBlockHeaderLoopIx s.cursor.advance .clip none 2).2.2)
 
 /-- §7.1 [104] (item 9h): cursor-level twin of legacy `validateAliasClose`.
 
