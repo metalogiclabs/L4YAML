@@ -210,8 +210,13 @@ lemma document_start_landing_source (land : ScannerState) (rest : List Char)
   have hcol₃ : marked.advance.advance.col + 1 = 3 := by omega
   have hc₃' : ScannerSurfCorr marked.advance.advance.advance ⟨'\n' :: rest, 3⟩ := by
     simpa [hcol₃] using hc₃
-  simpa [scanDocumentStart, hunwind, ScannerState.advanceN,
-    ScannerState.advanceNLoop, marked] using hc₃'
+  -- The final record update resets directive flags, but none of the five
+  -- correspondence fields. Rebuild only that projection instead of asking
+  -- `simp` to identify two intentionally different complete scanner states.
+  simp only [scanDocumentStart, hunwind, ScannerState.advanceN,
+    ScannerState.advanceNLoop]
+  exact ⟨hc₃'.chars_from, hc₃'.col_eq, hc₃'.end_eq,
+    hc₃'.input_prefix, hc₃'.indent_cols_nonneg⟩
 
 /-- At the post-marker landing, the terminal guards see the original sentinel
 indentation, an empty flow stack, and an exact document-start token suffix. -/
@@ -246,14 +251,20 @@ lemma full_step_after_version_state (s : ScannerState) (rest : List Char)
       ScannerSurfCorr out ⟨'\n' :: rest, 3⟩ ∧
       out.flowLevel = 0 ∧
       out.indents = #[{column := -1, isSequence := false}] ∧
+      trailingNodeRun? out.tokens = none ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
       out.seenYamlDirective = false := by
   obtain ⟨land, hstep, hcLand, hfLand, hiLand⟩ :=
     full_step_after_version_landing s rest col major minor pos priorTokens hc hf hi ht
-  obtain ⟨hfl, hind, _⟩ := document_start_landing_state land hfLand hiLand
+  obtain ⟨hfl, hind, htokens⟩ := document_start_landing_state land hfLand hiLand
+  have hrun : trailingNodeRun? (scanDocumentStart land).tokens = none := by
+    rw [htokens]
+    exact trailingNodeRun?_push_none land.tokens
+      {pos := land.currentPos, val := .documentStart}
+      (by decide) (by decide) (by decide) (by decide)
   refine ⟨scanDocumentStart land, hstep,
     document_start_landing_source land rest hcLand hiLand,
-    hfl, hind, ?_, ?_, ?_⟩
+    hfl, hind, hrun, ?_, ?_, ?_⟩
   all_goals simp [scanDocumentStart]
 
 /-- Compatibility projection: the previous independently qualified interface

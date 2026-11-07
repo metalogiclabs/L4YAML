@@ -107,6 +107,7 @@ lemma original_two_steps_state (input : String) (major minor comment rest : List
       ScannerSurfCorr out ⟨'\n' :: rest, 3⟩ ∧
       out.flowLevel = 0 ∧
       out.indents = #[{column := -1, isSequence := false}] ∧
+      trailingNodeRun? out.tokens = none ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
       out.seenYamlDirective = false := by
   obtain ⟨hpre, hc, hf, hi, ha, hy⟩ := initial_percent_preprocess input _ hsource
@@ -118,11 +119,11 @@ lemma original_two_steps_state (input : String) (major minor comment rest : List
     (L4YAML.Proofs.ScannerCorrectness.scanDirective_preserves_flowLevel ready mid hdir).trans hf
   have him : mid.indents = #[{column := -1, isSequence := false}] :=
     (L4YAML.Proofs.IndentStackBase.scanDirective_preserves_indents hdir).trans hi
-  obtain ⟨out, hsecond, hcOut, hfOut, hiOut, hd, hal, hseen⟩ :=
+  obtain ⟨out, hsecond, hcOut, hfOut, hiOut, hrun, hd, hal, hseen⟩ :=
     full_step_after_version_state mid rest _ _ _ _ ready.tokens hland hfm him ht
   have hstruct := percent_structural ready mid _ hc hf hdir
   obtain ⟨hc1, hc2⟩ := initial_checks input ready
-  refine ⟨mid, out, ?_, hsecond, hcOut, hfOut, hiOut, hd, hal, hseen⟩
+  refine ⟨mid, out, ?_, hsecond, hcOut, hfOut, hiOut, hrun, hd, hal, hseen⟩
   unfold scanNextToken
   rw [hpre]
   simp only [bind, Except.bind, pure, Except.pure]
@@ -149,7 +150,7 @@ lemma original_two_steps (input : String) (major minor comment rest : List Char)
     ∃ mid out, scanNextToken ((ScannerState.mk' input).emit .streamStart) = .ok (some mid) ∧
       scanNextToken mid = .ok (some out) ∧ out.directivesPresent = false ∧
       out.allowDirectives = false ∧ out.seenYamlDirective = false := by
-  obtain ⟨mid, out, hfirst, hsecond, _, _, _, hd, ha, hs⟩ :=
+  obtain ⟨mid, out, hfirst, hsecond, _, _, _, _, hd, ha, hs⟩ :=
     original_two_steps_state input major minor comment rest
       hma hmi hneMa hneMi hcomment hsource
   exact ⟨mid, out, hfirst, hsecond, hd, ha, hs⟩
@@ -183,12 +184,13 @@ lemma original_scan_continuation_state (input : String) (major minor comment res
     ∃ out, scan input = scanLoop out ((input.utf8ByteSize + 1) * 4 - 2) ∧
       ScannerSurfCorr out ⟨'\n' :: rest, 3⟩ ∧ out.flowLevel = 0 ∧
       out.indents = #[{column := -1, isSequence := false}] ∧
+      trailingNodeRun? out.tokens = none ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
       out.seenYamlDirective = false := by
-  obtain ⟨mid, out, hfirst, hsecond, hc, hf, hi, hd, ha, hy⟩ :=
+  obtain ⟨mid, out, hfirst, hsecond, hc, hf, hi, hrun, hd, ha, hy⟩ :=
     original_two_steps_state input major minor comment rest hma hmi hneMa hneMi hcomment hsource
   exact ⟨out, scan_eq_after_two input _ mid out hsource hfirst hsecond,
-    hc, hf, hi, hd, ha, hy⟩
+    hc, hf, hi, hrun, hd, ha, hy⟩
 
 /-- Previous flag-only continuation remains unchanged. -/
 lemma original_scan_continuation (input : String) (major minor comment rest : List Char)
@@ -200,7 +202,7 @@ lemma original_scan_continuation (input : String) (major minor comment rest : Li
     ∃ out, scan input = scanLoop out ((input.utf8ByteSize + 1) * 4 - 2) ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
       out.seenYamlDirective = false := by
-  obtain ⟨out, hscan, _, _, _, hd, ha, hy⟩ :=
+  obtain ⟨out, hscan, _, _, _, _, hd, ha, hy⟩ :=
     original_scan_continuation_state input major minor comment rest
       hma hmi hneMa hneMi hcomment hsource
   exact ⟨out, hscan, hd, ha, hy⟩
