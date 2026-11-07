@@ -94,16 +94,21 @@ lemma percent_structural (s out : ScannerState) (rest : List Char)
   simp [scanNextToken_dispatchStructural, hcol, hflow, hstart, hend, hok,
     bind, Except.bind, pure, Except.pure]
 
-/-- Both actual scanner steps from the scanner's initialized source state. -/
-lemma original_two_steps (input : String) (major minor comment rest : List Char)
+/-- Both original scanner steps, retaining the remaining source and the exact
+flow and indentation state required by the terminal checks. -/
+lemma original_two_steps_state (input : String) (major minor comment rest : List Char)
     (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
     (hneMa : major ≠ []) (hneMi : minor ≠ [])
     (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
     (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
       (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: '-' :: '-' :: '-' :: '\n' :: rest)))) :
     ∃ mid out, scanNextToken ((ScannerState.mk' input).emit .streamStart) = .ok (some mid) ∧
-      scanNextToken mid = .ok (some out) ∧ out.directivesPresent = false ∧
-      out.allowDirectives = false ∧ out.seenYamlDirective = false := by
+      scanNextToken mid = .ok (some out) ∧
+      ScannerSurfCorr out ⟨'\n' :: rest, 3⟩ ∧
+      out.flowLevel = 0 ∧
+      out.indents = #[{column := -1, isSequence := false}] ∧
+      out.directivesPresent = false ∧ out.allowDirectives = false ∧
+      out.seenYamlDirective = false := by
   obtain ⟨hpre, hc, hf, hi, ha, hy⟩ := initial_percent_preprocess input _ hsource
   let ready := saveSimpleKey { (ScannerState.mk' input).emit .streamStart with needIndentCheck := false }
   obtain ⟨mid, hdir, hland, ht, _, _⟩ := yaml_comment_dispatch ready
@@ -113,10 +118,11 @@ lemma original_two_steps (input : String) (major minor comment rest : List Char)
     (L4YAML.Proofs.ScannerCorrectness.scanDirective_preserves_flowLevel ready mid hdir).trans hf
   have him : mid.indents = #[{column := -1, isSequence := false}] :=
     (L4YAML.Proofs.IndentStackBase.scanDirective_preserves_indents hdir).trans hi
-  obtain ⟨out, hsecond, hd, hal, hseen⟩ := full_step_after_version mid rest _ _ _ _ ready.tokens hland hfm him ht
+  obtain ⟨out, hsecond, hcOut, hfOut, hiOut, hd, hal, hseen⟩ :=
+    full_step_after_version_state mid rest _ _ _ _ ready.tokens hland hfm him ht
   have hstruct := percent_structural ready mid _ hc hf hdir
   obtain ⟨hc1, hc2⟩ := initial_checks input ready
-  refine ⟨mid, out, ?_, hsecond, hd, hal, hseen⟩
+  refine ⟨mid, out, ?_, hsecond, hcOut, hfOut, hiOut, hd, hal, hseen⟩
   unfold scanNextToken
   rw [hpre]
   simp only [bind, Except.bind, pure, Except.pure]
@@ -131,6 +137,22 @@ lemma original_two_steps (input : String) (major minor comment rest : List Char)
   rw [hc2]
   simp only []
   rw [hstruct]
+
+/-- Compatibility projection: original consumers of the qualified two-step
+interface keep exactly the same statement and proof obligation. -/
+lemma original_two_steps (input : String) (major minor comment rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
+    (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
+      (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: '-' :: '-' :: '-' :: '\n' :: rest)))) :
+    ∃ mid out, scanNextToken ((ScannerState.mk' input).emit .streamStart) = .ok (some mid) ∧
+      scanNextToken mid = .ok (some out) ∧ out.directivesPresent = false ∧
+      out.allowDirectives = false ∧ out.seenYamlDirective = false := by
+  obtain ⟨mid, out, hfirst, hsecond, _, _, _, hd, ha, hs⟩ :=
+    original_two_steps_state input major minor comment rest
+      hma hmi hneMa hneMi hcomment hsource
+  exact ⟨mid, out, hfirst, hsecond, hd, ha, hs⟩
 
 /-- Exact residual of the real scanner after two successful steps. This
 preserves the production fuel budget and makes no suffix-success assumption. -/
@@ -152,6 +174,23 @@ lemma scan_eq_after_two (input : String) (rest : List Char) (mid out : ScannerSt
   simp only []
   rw [scanLoop, hsecond]
 
+lemma original_scan_continuation_state (input : String) (major minor comment rest : List Char)
+    (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
+    (hneMa : major ≠ []) (hneMi : minor ≠ [])
+    (hcomment : ∀ c ∈ comment, c ≠ '\n' ∧ c ≠ '\r')
+    (hsource : input.toList = '%' :: 'Y' :: 'A' :: 'M' :: 'L' :: ' ' ::
+      (major ++ '.' :: (minor ++ ' ' :: '#' :: (comment ++ '\n' :: '-' :: '-' :: '-' :: '\n' :: rest)))) :
+    ∃ out, scan input = scanLoop out ((input.utf8ByteSize + 1) * 4 - 2) ∧
+      ScannerSurfCorr out ⟨'\n' :: rest, 3⟩ ∧ out.flowLevel = 0 ∧
+      out.indents = #[{column := -1, isSequence := false}] ∧
+      out.directivesPresent = false ∧ out.allowDirectives = false ∧
+      out.seenYamlDirective = false := by
+  obtain ⟨mid, out, hfirst, hsecond, hc, hf, hi, hd, ha, hy⟩ :=
+    original_two_steps_state input major minor comment rest hma hmi hneMa hneMi hcomment hsource
+  exact ⟨out, scan_eq_after_two input _ mid out hsource hfirst hsecond,
+    hc, hf, hi, hd, ha, hy⟩
+
+/-- Previous flag-only continuation remains unchanged. -/
 lemma original_scan_continuation (input : String) (major minor comment rest : List Char)
     (hma : ∀ c ∈ major, isNsDecDigit c) (hmi : ∀ c ∈ minor, isNsDecDigit c)
     (hneMa : major ≠ []) (hneMi : minor ≠ [])
@@ -161,15 +200,18 @@ lemma original_scan_continuation (input : String) (major minor comment rest : Li
     ∃ out, scan input = scanLoop out ((input.utf8ByteSize + 1) * 4 - 2) ∧
       out.directivesPresent = false ∧ out.allowDirectives = false ∧
       out.seenYamlDirective = false := by
-  obtain ⟨mid, out, hfirst, hsecond, hd, ha, hy⟩ :=
-    original_two_steps input major minor comment rest hma hmi hneMa hneMi hcomment hsource
-  exact ⟨out, scan_eq_after_two input _ mid out hsource hfirst hsecond, hd, ha, hy⟩
+  obtain ⟨out, hscan, _, _, _, hd, ha, hy⟩ :=
+    original_scan_continuation_state input major minor comment rest
+      hma hmi hneMa hneMi hcomment hsource
+  exact ⟨out, hscan, hd, ha, hy⟩
 
 #print axioms initial_percent_preprocess
 #print axioms initial_checks
 #print axioms percent_structural
 #print axioms original_two_steps
+#print axioms original_two_steps_state
 #print axioms scan_eq_after_two
 #print axioms original_scan_continuation
+#print axioms original_scan_continuation_state
 end
 end MathGraph.WholeSource.DirectiveEntry
