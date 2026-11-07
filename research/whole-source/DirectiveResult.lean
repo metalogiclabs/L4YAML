@@ -23,7 +23,7 @@ lemma parse_literal_empty_document (p0 p1 p2 p3 : YamlPos) (major minor : Nat) :
   simp [parseStream, ParseState.expect, ParseState.peek?,
     parseStreamLoop, parseDocument, prepareDocumentState, parseDirectives,
     ParseState.tryConsume, ParseState.advance, StreamState.validNextToken,
-    ParseState.peekPos?, emptyNode]
+    ParseState.peekPos?, emptyNode, bind, Except.bind, pure, Except.pure]
 
 #print axioms parse_literal_empty_document
 end
