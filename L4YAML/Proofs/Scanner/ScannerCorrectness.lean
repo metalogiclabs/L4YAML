@@ -1980,7 +1980,13 @@ lemma scanTagDirective_monotonic (s : ScannerState) (s_after_ws : ScannerState) 
 lemma scanDirective_monotonic (s : ScannerState) (s' : ScannerState)
     (h : scanDirective s = .ok s') :
     s'.tokens.size ≥ s.tokens.size := by
-  unfold scanDirective at h
+  have hcheck : commentTextError s (s.inputEnd - s.offset) = none := by
+    cases hc : commentTextError s (s.inputEnd - s.offset) with
+    | none => rfl
+    | some e =>
+      simp only [scanDirective, hc] at h
+      split at h <;> contradiction
+  unfold scanDirective at h; simp only [hcheck] at h
   dsimp only [] at h
   split at h
   · contradiction
@@ -2659,7 +2665,13 @@ lemma scanTagDirective_preserves_prefix (s s_after_ws : ScannerState)
 lemma scanDirective_preserves_prefix (s s' : ScannerState)
     (h : scanDirective s = .ok s') (i : Nat) (h_i : i < s.tokens.size) :
     s'.tokens[i]'(by have := scanDirective_monotonic s s' h; omega) = s.tokens[i] := by
-  unfold scanDirective at h; dsimp only [] at h
+  have hcheck : commentTextError s (s.inputEnd - s.offset) = none := by
+    cases hc : commentTextError s (s.inputEnd - s.offset) with
+    | none => rfl
+    | some e =>
+      simp only [scanDirective, hc] at h
+      split at h <;> contradiction
+  unfold scanDirective at h; simp only [hcheck] at h; dsimp only [] at h
   split at h
   · contradiction
   · have h_ws : (skipWhitespace (collectDirectiveNameLoop s.advance ""
@@ -6678,10 +6690,16 @@ lemma scanBlockScalar_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerS
 
 lemma scanDirective_preserves_simpleKey (s : ScannerState) (s' : ScannerState)
     (h : scanDirective s = .ok s') : s'.simpleKey = s.simpleKey := by
-  unfold scanDirective at h
+  have hcheck : commentTextError s (s.inputEnd - s.offset) = none := by
+    cases hc : commentTextError s (s.inputEnd - s.offset) with
+    | none => rfl
+    | some e =>
+      simp only [scanDirective, hc] at h
+      split at h <;> contradiction
+  unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · contradiction
-  · simp only [] at h
+  · dsimp only [] at h
     split at h
     · -- YAML directive (match wrapper)
       split at h
@@ -6726,10 +6744,16 @@ lemma scanDirective_preserves_simpleKey (s : ScannerState) (s' : ScannerState)
 
 lemma scanDirective_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerState)
     (h : scanDirective s = .ok s') : s'.simpleKeyStack = s.simpleKeyStack := by
-  unfold scanDirective at h
+  have hcheck : commentTextError s (s.inputEnd - s.offset) = none := by
+    cases hc : commentTextError s (s.inputEnd - s.offset) with
+    | none => rfl
+    | some e =>
+      simp only [scanDirective, hc] at h
+      split at h <;> contradiction
+  unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · contradiction
-  · simp only [] at h
+  · dsimp only [] at h
     split at h
     · -- YAML directive (match wrapper)
       split at h
@@ -6773,10 +6797,16 @@ lemma scanDirective_preserves_simpleKeyStack (s : ScannerState) (s' : ScannerSta
 
 lemma scanDirective_preserves_flowLevel (s : ScannerState) (s' : ScannerState)
     (h : scanDirective s = .ok s') : s'.flowLevel = s.flowLevel := by
-  unfold scanDirective at h
+  have hcheck : commentTextError s (s.inputEnd - s.offset) = none := by
+    cases hc : commentTextError s (s.inputEnd - s.offset) with
+    | none => rfl
+    | some e =>
+      simp only [scanDirective, hc] at h
+      split at h <;> contradiction
+  unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · contradiction
-  · simp only [] at h
+  · dsimp only [] at h
     split at h
     · -- YAML directive
       split at h
@@ -9981,7 +10011,13 @@ lemma scanTagDirective_preserves_ScanInv (s s_after_ws : ScannerState)
 -- scanDirective preserves ScanInv.
 lemma scanDirective_preserves_ScanInv (s s' : ScannerState)
     (h : ScanInv s) (h_ok : scanDirective s = .ok s') : ScanInv s' := by
-  unfold scanDirective at h_ok
+  have hcheck : commentTextError s (s.inputEnd - s.offset) = none := by
+    cases hc : commentTextError s (s.inputEnd - s.offset) with
+    | none => rfl
+    | some e =>
+      simp only [scanDirective, hc] at h_ok
+      split at h_ok <;> contradiction
+  unfold scanDirective at h_ok; simp only [hcheck] at h_ok
   split at h_ok
   · simp at h_ok
   · -- allowDirectives: process directive
@@ -12136,7 +12172,13 @@ set_option maxHeartbeats 1600000 in
 lemma scanDirective_offset_lt (s s' : ScannerState)
     (hlt : s.offset < s.inputEnd) (h : scanDirective s = .ok s') :
     s.offset < s'.offset := by
-  unfold scanDirective at h
+  have hcheck : commentTextError s (s.inputEnd - s.offset) = none := by
+    cases hc : commentTextError s (s.inputEnd - s.offset) with
+    | none => rfl
+    | some e =>
+      simp only [scanDirective, hc] at h
+      split at h <;> contradiction
+  unfold scanDirective at h; simp only [hcheck] at h
   split at h
   · nomatch h
   · dsimp only [] at h

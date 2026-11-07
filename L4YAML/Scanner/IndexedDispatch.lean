@@ -1093,6 +1093,9 @@ def scanDirectiveIx {input : String} (s : ScannerStateIx input) :
   if !s.allowDirectives then
     .error (.directiveAfterContent s.cursor.pos.line)
   else
+    match commentTextErrorIx s.cursor input.utf8ByteSize with
+    | some e => .error e
+    | none =>
     let startPos := s.cursor.pos
     let sAdv := s.advance
     let fuel := input.utf8ByteSize - sAdv.cursor.pos.offset

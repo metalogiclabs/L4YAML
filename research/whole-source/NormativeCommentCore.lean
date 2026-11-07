@@ -18,6 +18,7 @@ def contexts (body : String) : List String := [
   "#" ++ body, "#" ++ body ++ "\n", "#" ++ body ++ "\r\n",
   "%YAML 1.2 #" ++ body ++ "\n---\n",
   "%TAG !e! tag:example.org,2026: #" ++ body ++ "\n---\n",
+  "%RESERVED parameter #" ++ body ++ "\n---\n",
   "a #" ++ body ++ "\n", "[a, #" ++ body ++ "\n b]\n",
   "| #" ++ body ++ "\n  a\n", "> #" ++ body ++ "\n  a\n",
   "---\na\n... #" ++ body ++ "\n"]

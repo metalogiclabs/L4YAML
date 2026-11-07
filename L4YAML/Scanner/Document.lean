@@ -266,6 +266,12 @@ def scanDirective (s : ScannerState) : Except ScanError ScannerState :=
   if !s.allowDirectives then
     .error (.directiveAfterContent s.line)
   else
+    -- Directive names/parameters and their trailing comments all require
+    -- printable, non-BOM source characters. Validate before skipToEndOfLine,
+    -- which otherwise bypasses the ordinary comment consumer.
+    match commentTextError s (s.inputEnd - s.offset) with
+    | some e => .error e
+    | none =>
     let startPos := s.currentPos
     let s_after_percent := s.advance
     let fuel := s.inputEnd - s_after_percent.offset
