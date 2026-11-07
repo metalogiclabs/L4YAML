@@ -2,6 +2,7 @@ name: Normative comment repair qualification
 on:
   push:
     branches: ['research/normative-comments']
+    paths-ignore: ['research/whole-source/obligations.json']
   workflow_dispatch:
 permissions:
   contents: read
@@ -65,6 +66,12 @@ jobs:
           export LEAN_PATH="$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
           lean research/whole-source/NormativeComments.lean > comment-evidence/indexed-controls.log 2>&1
           cat comment-evidence/indexed-controls.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: normative-comment-boundary-early
+          path: comment-evidence/
+          retention-days: 30
       - name: Full unchanged proof and guard suite
         if: ${{ !cancelled() && steps.runtime.outcome == 'success' }}
         id: full
