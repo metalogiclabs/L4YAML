@@ -466,5 +466,16 @@
     "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42425143549",
     "state": "SIX_PATH_CONTROLS_PASS_FULL_BUILD_FAILS",
     "scope": "Source-changing strictness candidate, not completeness closure; full native qualification remains open."
+  },
+  "closure_contract": "research/whole-source/CLOSURE.md",
+  "coverage_audit": {
+    "source_relations": 82,
+    "source_constructors": 186,
+    "scanner_state_fields": 25,
+    "semantic_coverage": "UNKNOWN",
+    "compiled_census": "CANDIDATE",
+    "scope": "Inventory and drift detection, not semantic completeness",
+    "command": "python3 research/whole-source/coverage-audit.py --closure",
+    "expected_current_exit": 2
   }
 }

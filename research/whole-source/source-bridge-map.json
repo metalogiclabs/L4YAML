@@ -3,7 +3,7 @@
   "source_boundary": "64795a8db28ccfdae85082c93b6453001ae9d3e4; exact research commit and CI required",
   "interface": "MathGraph.WholeSource.SourceBridge.Obligation",
   "language_definition": "NOT_IMPLEMENTED_FOR_FULL_YAML",
-  "full_constructor_inventory": "UNKNOWN: this is a frontier map, not an exhaustive grammar census",
+  "full_constructor_inventory": "Existing Surface source: 82 inductives, 186 constructors; compiled inventory verification pending. Normative YAML requirement coverage remains UNKNOWN.",
   "closed_consumer": {
     "lemma": "SourceBridge.accepts_of_producer",
     "depends_on": [
@@ -114,5 +114,779 @@
       "Quot.sound"
     ],
     "scope": "Four SourceBridge theorem profiles checked; retained seven axiom gates, source controls and expected RED passed; frozen source identity verified before and after. Full unchanged-production job skipped."
-  }
+  },
+  "source_census": {
+    "L4YAML/Surface/Basic.lean": {
+      "sha256": "35bf8e25b7e36c8e58ad5c3f10a459bc3c7651d5629a793372f499e832d1a7c7",
+      "declarations": {
+        "isNbChar": {
+          "kind": "def",
+          "constructors": []
+        },
+        "isNsChar": {
+          "kind": "def",
+          "constructors": []
+        },
+        "isNsDecDigit": {
+          "kind": "def",
+          "constructors": []
+        },
+        "isNsHexDigit": {
+          "kind": "def",
+          "constructors": []
+        },
+        "isNsAnchorChar": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SBBreak": {
+          "kind": "inductive",
+          "constructors": [
+            "crLf",
+            "cr",
+            "lf"
+          ]
+        },
+        "SBAsLineFeed": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "SBNonContent": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "SBComment": {
+          "kind": "inductive",
+          "constructors": [
+            "break",
+            "eof"
+          ]
+        },
+        "SSWhite": {
+          "kind": "inductive",
+          "constructors": [
+            "space",
+            "tab"
+          ]
+        },
+        "SNbChar": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "isCommentTextChar": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SCommentChar": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "SNsChar": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "SIndent": {
+          "kind": "inductive",
+          "constructors": [
+            "zero",
+            "succ"
+          ]
+        },
+        "SIndentLt": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SIndentLe": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SSeparateInLine": {
+          "kind": "inductive",
+          "constructors": [
+            "whites",
+            "startOfLine"
+          ]
+        },
+        "SFlowLinePrefix": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SBlockLinePrefix": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "SLEmpty": {
+          "kind": "inductive",
+          "constructors": [
+            "block",
+            "flow",
+            "flowLt"
+          ]
+        },
+        "SCNbCommentText": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SSBComment": {
+          "kind": "inductive",
+          "constructors": [
+            "withSep",
+            "noSep"
+          ]
+        },
+        "SLComment": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SSLComments": {
+          "kind": "inductive",
+          "constructors": [
+            "withComment",
+            "startOfLine"
+          ]
+        },
+        "SSeparateLines": {
+          "kind": "inductive",
+          "constructors": [
+            "commented",
+            "inline"
+          ]
+        },
+        "SSeparate": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SLDirective": {
+          "kind": "inductive",
+          "constructors": [
+            "yaml",
+            "tag",
+            "reserved"
+          ]
+        },
+        "SCNsTagProperty": {
+          "kind": "inductive",
+          "constructors": [
+            "verbatim",
+            "secondary",
+            "named",
+            "nonSpecific",
+            "primary"
+          ]
+        },
+        "SCNsAnchorProperty": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SCNsProperties": {
+          "kind": "inductive",
+          "constructors": [
+            "tagFirst",
+            "anchorFirst"
+          ]
+        },
+        "inFlowCtx": {
+          "kind": "def",
+          "constructors": []
+        },
+        "seqSpaces": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SENode": {
+          "kind": "abbrev",
+          "constructors": []
+        }
+      }
+    },
+    "L4YAML/Surface/Combinators.lean": {
+      "sha256": "c34ccc5f5b8b5a92ea33cdd4b3a98a12d773d327982ec9ebd78eff288d476b2c",
+      "declarations": {
+        "SurfPos": {
+          "kind": "structure",
+          "constructors": []
+        },
+        "GChar": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "GLit": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "GSeq": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "GSeq3": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "GAlt": {
+          "kind": "inductive",
+          "constructors": [
+            "left",
+            "right"
+          ]
+        },
+        "GStar": {
+          "kind": "inductive",
+          "constructors": [
+            "nil",
+            "cons"
+          ]
+        },
+        "GPlus": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "GOpt": {
+          "kind": "inductive",
+          "constructors": [
+            "none",
+            "some"
+          ]
+        },
+        "GEps": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "atEnd": {
+          "kind": "def",
+          "constructors": []
+        },
+        "GConsumeAll": {
+          "kind": "inductive",
+          "constructors": [
+            "nil",
+            "cons"
+          ]
+        },
+        "GNot": {
+          "kind": "def",
+          "constructors": []
+        }
+      }
+    },
+    "L4YAML/Surface/Document.lean": {
+      "sha256": "1969f51116d115f0dec9f8cb3abcda530ae6c5a468a00bb798e74dc592beeaef",
+      "declarations": {
+        "isMarkerFollower": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SCForbidden": {
+          "kind": "inductive",
+          "constructors": [
+            "directivesEnd",
+            "documentEnd"
+          ]
+        },
+        "SCDirectivesEnd": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SCDocumentEnd": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLBareDocument": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLExplicitDocument": {
+          "kind": "inductive",
+          "constructors": [
+            "withContent"
+          ]
+        },
+        "SLDirectiveDocument": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLAnyDocument": {
+          "kind": "inductive",
+          "constructors": [
+            "directive",
+            "explicit",
+            "bare"
+          ]
+        },
+        "SLDocumentPrefix": {
+          "kind": "inductive",
+          "constructors": [
+            "comments",
+            "bom"
+          ]
+        },
+        "SLDocumentSuffix": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLYamlStream": {
+          "kind": "inductive",
+          "constructors": [
+            "single",
+            "suffixContinue",
+            "implicitContinue",
+            "scannerDrop"
+          ]
+        },
+        "InYamlLanguage": {
+          "kind": "def",
+          "constructors": []
+        }
+      }
+    },
+    "L4YAML/Surface/Node.lean": {
+      "sha256": "2f47901c04f276c0265f52002b1af4b7b8354d01b781e7da27ae0beac2438a38",
+      "declarations": {
+        "SBlockNode": {
+          "kind": "inductive",
+          "constructors": [
+            "blockLiteral",
+            "blockFolded",
+            "blockSeq",
+            "blockMap",
+            "flowInBlock",
+            "emptyNode"
+          ]
+        },
+        "SBlockIndented": {
+          "kind": "inductive",
+          "constructors": [
+            "compactSeq",
+            "compactMap",
+            "node",
+            "empty"
+          ]
+        },
+        "SBlockSeqEntries": {
+          "kind": "inductive",
+          "constructors": [
+            "single",
+            "cons"
+          ]
+        },
+        "SBlockMapEntry": {
+          "kind": "inductive",
+          "constructors": [
+            "explicit",
+            "explicitEmpty",
+            "implicitKeyNode",
+            "implicitKeyEmpty",
+            "emptyKeyNode",
+            "emptyKeyEmpty"
+          ]
+        },
+        "SBlockMapEntries": {
+          "kind": "inductive",
+          "constructors": [
+            "single",
+            "cons"
+          ]
+        },
+        "SCompactSeq": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SCompactSeqTail": {
+          "kind": "inductive",
+          "constructors": [
+            "nil",
+            "cons"
+          ]
+        },
+        "SCompactMap": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SCompactMapTail": {
+          "kind": "inductive",
+          "constructors": [
+            "nil",
+            "cons"
+          ]
+        },
+        "SImplicitKey": {
+          "kind": "inductive",
+          "constructors": [
+            "jsonKey",
+            "yamlKey"
+          ]
+        },
+        "SFlowNode": {
+          "kind": "inductive",
+          "constructors": [
+            "alias",
+            "content",
+            "propsContent",
+            "propsEmpty"
+          ]
+        },
+        "SFlowContent": {
+          "kind": "inductive",
+          "constructors": [
+            "plain",
+            "flowSeq",
+            "flowMap",
+            "singleQ",
+            "doubleQ"
+          ]
+        },
+        "SCFlowJsonContent": {
+          "kind": "inductive",
+          "constructors": [
+            "flowSeq",
+            "flowMap",
+            "singleQ",
+            "doubleQ"
+          ]
+        },
+        "SCFlowJsonNode": {
+          "kind": "inductive",
+          "constructors": [
+            "content",
+            "propsContent"
+          ]
+        },
+        "SFlowSequence": {
+          "kind": "inductive",
+          "constructors": [
+            "empty",
+            "nonempty"
+          ]
+        },
+        "SFlowSeqEntries": {
+          "kind": "inductive",
+          "constructors": [
+            "single",
+            "consMore",
+            "consEnd"
+          ]
+        },
+        "SFlowSeqEntry": {
+          "kind": "inductive",
+          "constructors": [
+            "node",
+            "pairValue",
+            "pairEmpty",
+            "pairJsonAdjacentValue",
+            "explicitPairJsonAdjacentValue",
+            "explicitPairValue",
+            "explicitPairEmpty",
+            "explicitPairKeyOnly",
+            "explicitPairEmptyNodes",
+            "emptyKeyValue",
+            "emptyKeyEmpty",
+            "explicitEmptyKeyValue",
+            "explicitEmptyKeyEmpty"
+          ]
+        },
+        "SFlowMapping": {
+          "kind": "inductive",
+          "constructors": [
+            "empty",
+            "nonempty"
+          ]
+        },
+        "SFlowMapEntries": {
+          "kind": "inductive",
+          "constructors": [
+            "single",
+            "consMore",
+            "consEnd"
+          ]
+        },
+        "SFlowMapEntry": {
+          "kind": "inductive",
+          "constructors": [
+            "explicitValue",
+            "explicitEmpty",
+            "explicitKeyOnly",
+            "implicitValue",
+            "implicitEmpty",
+            "jsonKeyAdjacentValue",
+            "explicitJsonKeyAdjacentValue",
+            "bareKey",
+            "emptyKeyValue",
+            "emptyKeyEmpty",
+            "explicitEmptyNodes",
+            "explicitEmptyKeyValue",
+            "explicitEmptyKeyEmpty"
+          ]
+        }
+      }
+    },
+    "L4YAML/Surface/Scalars.lean": {
+      "sha256": "c6a33332d3c3e271496221d3f20890fd5a6a7054e2b85add7d4085c8a11bbf02",
+      "declarations": {
+        "SNbDoubleChar": {
+          "kind": "inductive",
+          "constructors": [
+            "plain",
+            "escape",
+            "hexEscape2",
+            "hexEscape4",
+            "hexEscape8"
+          ]
+        },
+        "SSDoubleEscaped": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SSDoubleBreak": {
+          "kind": "inductive",
+          "constructors": [
+            "escaped",
+            "flowFold"
+          ]
+        },
+        "SNbDoubleOneLine": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "SNbDoubleMultiLine": {
+          "kind": "inductive",
+          "constructors": [
+            "single",
+            "multi"
+          ]
+        },
+        "SNbDoubleText": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SCDoubleQuoted": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SNbSingleChar": {
+          "kind": "inductive",
+          "constructors": [
+            "plain",
+            "escapedQuote"
+          ]
+        },
+        "SNbSingleOneLine": {
+          "kind": "abbrev",
+          "constructors": []
+        },
+        "SNbSingleMultiLine": {
+          "kind": "inductive",
+          "constructors": [
+            "single",
+            "multi"
+          ]
+        },
+        "SNbSingleText": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SCSingleQuoted": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "isNsPlainSafe": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SNsPlainFirst": {
+          "kind": "inductive",
+          "constructors": [
+            "nonIndicator",
+            "dashSafe",
+            "colonSafe",
+            "questionSafe"
+          ]
+        },
+        "SNsPlainChar": {
+          "kind": "inductive",
+          "constructors": [
+            "safe",
+            "colonSafe"
+          ]
+        },
+        "SNbNsPlainInLineEntry": {
+          "kind": "inductive",
+          "constructors": [
+            "mk",
+            "hash"
+          ]
+        },
+        "SNsPlainOneLine": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SSNsPlainNextLine": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SNsPlainMultiLine": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SNsPlain": {
+          "kind": "def",
+          "constructors": []
+        },
+        "SCNsAliasNode": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SCIndentationIndicator": {
+          "kind": "inductive",
+          "constructors": [
+            "empty",
+            "digit"
+          ]
+        },
+        "SCChompingIndicator": {
+          "kind": "inductive",
+          "constructors": [
+            "empty",
+            "strip",
+            "keep"
+          ]
+        },
+        "SCBBlockHeader": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLNbLiteralText": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SBNbLiteralNext": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLTrailComments": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLLiteralContent": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SCLLiteral": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SSNbFoldedText": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SLNbFoldedLines": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        },
+        "SCLFolded": {
+          "kind": "inductive",
+          "constructors": [
+            "mk"
+          ]
+        }
+      }
+    },
+    "L4YAML/Surface/Surface.lean": {
+      "sha256": "104c6bd6d11471eb49ac00a37838e3705662b03bd8ea743286a12fa1a2f67cc4",
+      "declarations": {}
+    },
+    "L4YAML/Scanner/State.lean": {
+      "sha256": "dc59ca2730195bd847793af6775315335e8d2127e443871e202fda895b4b279e",
+      "fields": [
+        "input",
+        "inputEnd",
+        "offset",
+        "line",
+        "col",
+        "indents",
+        "pendingKeys",
+        "flowLevel",
+        "tokens",
+        "simpleKey",
+        "simpleKeyStack",
+        "simpleKeyAllowed",
+        "needIndentCheck",
+        "allowDirectives",
+        "seenYamlDirective",
+        "directivesPresent",
+        "documentEverStarted",
+        "flowStack",
+        "explicitKeyLine",
+        "implicitValueLine",
+        "docStartLine",
+        "explicitKeyCol",
+        "explicitKeyStack",
+        "comments",
+        "definedAnchors"
+      ]
+    }
+  },
+  "closure_contract": "research/whole-source/CLOSURE.md"
 }
