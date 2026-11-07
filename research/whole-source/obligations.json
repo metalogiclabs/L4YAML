@@ -66,6 +66,14 @@
         "Quot.sound"
       ],
       "scope": "Four SourceBridge theorem profiles checked; retained seven axiom gates, source controls and expected RED passed; frozen source identity verified before and after. Full unchanged-production job skipped."
+    },
+    "coverage_inventory": {
+      "commit": "2f9fc86b5f192b87a79770daf828e5adfc971d6d",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42427387656",
+      "job": 128568481568,
+      "artifact": 13596360726,
+      "artifact_sha256_reported": "050bc22d598e74a1530644b1cc26ce43eed9f1b48f78027f7c407a0368c2c912",
+      "scope": "Compiled environment agrees with all 82 existing Surface inductives and 186 constructors. Retained source bridge and seven strict axiom profiles, controls, expected RED, and frozen source identity pass. This is not normative coverage or semantic completeness; full production job skipped."
     }
   },
   "obligations": [
@@ -434,7 +442,7 @@
   },
   "next_experiment": {
     "id": "L4-SOURCE-CONNECTED-DIRECTIVES",
-    "action": "Supply a source-connected directive/document derivation retaining directive records before erasure, with existing independent quoted-body grammar as a fragment consumer. Check multiplicity, reset and actual-token trace agreement; do not claim a full grammar from this fragment.",
+    "action": "Refine existing EventsOf.Seg.docStart dirs / Skeleton (which already retain directive lines and prove skeleton_text), derive normative validity and multiplicity from those source records, and prove scanner/token correspondence for an independent quoted-body fragment. Do not duplicate directive storage or infer validity from serialization WF.",
     "success_boundary": "Fragment only; full independent source grammar and producer remain UNKNOWN. Completeness and strictness for the same language must be separately proved."
   },
   "previous_next_experiment": {
@@ -473,9 +481,10 @@
     "source_constructors": 186,
     "scanner_state_fields": 25,
     "semantic_coverage": "UNKNOWN",
-    "compiled_census": "CANDIDATE",
+    "compiled_census": "WARRANTED_EXISTING_SOURCE_INVENTORY_ONLY",
     "scope": "Inventory and drift detection, not semantic completeness",
     "command": "python3 research/whole-source/coverage-audit.py --closure",
-    "expected_current_exit": 2
+    "expected_current_exit": 2,
+    "receipt": "coverage_inventory"
   }
 }

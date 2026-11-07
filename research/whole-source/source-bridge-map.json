@@ -3,7 +3,7 @@
   "source_boundary": "64795a8db28ccfdae85082c93b6453001ae9d3e4; exact research commit and CI required",
   "interface": "MathGraph.WholeSource.SourceBridge.Obligation",
   "language_definition": "NOT_IMPLEMENTED_FOR_FULL_YAML",
-  "full_constructor_inventory": "Existing Surface source: 82 inductives, 186 constructors; compiled inventory verification pending. Normative YAML requirement coverage remains UNKNOWN.",
+  "full_constructor_inventory": "WARRANTED existing Surface census: 82 inductives, 186 constructors checked against compiled environment. Normative YAML requirement coverage remains UNKNOWN.",
   "closed_consumer": {
     "lemma": "SourceBridge.accepts_of_producer",
     "depends_on": [
@@ -100,7 +100,7 @@
       "reason": "Reuse checked quoted raw-SOH counterexample"
     }
   ],
-  "next_decisive_experiment": "Supply a source-connected directive/document derivation retaining directive records before erasure, with existing independent quoted-body grammar as a fragment consumer. Check multiplicity, reset and actual-token trace agreement; do not claim a full grammar from this fragment.",
+  "next_decisive_experiment": "Refine existing EventsOf.Seg.docStart dirs / Skeleton (which already retain directive lines and prove skeleton_text), derive normative validity and multiplicity from those source records, and prove scanner/token correspondence for an independent quoted-body fragment. Do not duplicate directive storage or infer validity from serialization WF.",
   "completion": "UNKNOWN until an independently defined full source language has a producer, and strictness is separately established for that same language",
   "verification": {
     "commit": "976eebee5284c8ed17c14d26d7a348802f0439d8",
@@ -888,5 +888,92 @@
       ]
     }
   },
-  "closure_contract": "research/whole-source/CLOSURE.md"
+  "closure_contract": "research/whole-source/CLOSURE.md",
+  "reused_source_representation": {
+    "module": "L4YAML/Proofs/Serialization/EventsOf.lean",
+    "declarations": [
+      "Seg.docStart",
+      "Seg.text",
+      "Skeleton",
+      "skeleton_text"
+    ],
+    "finding": "Raw directive lines and source partition already exist. The missing proof is their constrained interpretation and scanner correspondence, not storage."
+  },
+  "scanner_state_coverage": [
+    {
+      "fields": [
+        "input",
+        "inputEnd",
+        "offset",
+        "line",
+        "col"
+      ],
+      "obligation": "Source span, UTF-8 position and full consumption correspondence",
+      "reuse": "ScannerSurfCorr / ScanStrictCoupling",
+      "state": "FULL_SOURCE_PRODUCER_UNKNOWN"
+    },
+    {
+      "fields": [
+        "indents",
+        "pendingKeys",
+        "needIndentCheck",
+        "explicitKeyLine",
+        "implicitValueLine",
+        "docStartLine",
+        "explicitKeyCol",
+        "explicitKeyStack"
+      ],
+      "obligation": "Context-sensitive block/key legality and reachable pending continuations",
+      "reuse": "StreamAccum / PendingKeySound / ExplicitKeyCoupling",
+      "state": "FORWARD_COMPONENTS_EXIST_REVERSE_UNKNOWN"
+    },
+    {
+      "fields": [
+        "flowLevel",
+        "flowStack",
+        "simpleKey",
+        "simpleKeyStack",
+        "simpleKeyAllowed"
+      ],
+      "obligation": "Matched nesting and delayed simple-key insertion with source boundaries",
+      "reuse": "ScannerFlowStackPreservation / TokenGrammar",
+      "state": "FULL_SOURCE_PRODUCER_UNKNOWN"
+    },
+    {
+      "fields": [
+        "allowDirectives",
+        "seenYamlDirective",
+        "directivesPresent",
+        "documentEverStarted"
+      ],
+      "obligation": "Directive placement, multiplicity, document-start requirements and resets",
+      "reuse": "EventsOf.Seg.docStart / DirectiveDiscipline",
+      "state": "SOURCE_RECORDS_EXIST_CORRESPONDENCE_UNKNOWN"
+    },
+    {
+      "fields": [
+        "tokens",
+        "definedAnchors"
+      ],
+      "obligation": "Actual token grammar and serialization trace agree with independent source interpretation",
+      "reuse": "SourceBridge / TokenStateOk / SerializationWellFormed",
+      "state": "QUOTED_INSTANCE_ONLY"
+    },
+    {
+      "fields": [
+        "comments"
+      ],
+      "obligation": "Normative character validity; comment side channel is omitted from scanFiltered output",
+      "reuse": "CapstoneCommentBoundary / parallel normative-comments branch",
+      "state": "FROZEN_STRICTNESS_REFUTED_CHANGED_SOURCE_UNQUALIFIED"
+    }
+  ],
+  "inventory_verification": {
+    "commit": "2f9fc86b5f192b87a79770daf828e5adfc971d6d",
+    "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42427387656",
+    "job": 128568481568,
+    "artifact": 13596360726,
+    "artifact_sha256_reported": "050bc22d598e74a1530644b1cc26ce43eed9f1b48f78027f7c407a0368c2c912",
+    "scope": "Compiled environment agrees with all 82 existing Surface inductives and 186 constructors. Retained source bridge and seven strict axiom profiles, controls, expected RED, and frozen source identity pass. This is not normative coverage or semantic completeness; full production job skipped."
+  }
 }

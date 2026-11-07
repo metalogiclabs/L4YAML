@@ -72,8 +72,11 @@ accumulator; its existence does not supply the reverse source producer.
 
 ## Next experiment
 
-Build a directive/document relation retaining actual version and TAG records,
-with the already independent quoted-body fragment. Derive declaration uniqueness,
+Refine the existing EventsOf.Seg.docStart dirs and Skeleton relations rather
+than introducing another directive-storage representation. Seg.docStart already
+retains every directive source line, and skeleton_text proves full source
+reconstruction. Add independent validity and multiplicity conditions on those
+retained lines, with the already independent quoted-body fragment. Derive declaration uniqueness,
 reset order and agreement with source-connected events. Duplicate-version,
 duplicate-handle and two-document reset separators must distinguish discarded
 information from scanner/parser behavior. This fragment tests the common state
