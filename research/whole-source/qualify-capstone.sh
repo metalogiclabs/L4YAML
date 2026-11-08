@@ -40,6 +40,9 @@ done
 python3 research/whole-source/coverage-audit.py > "$out/coverage-census.log"
 compile research/whole-source ExactCharacters
 test "$(grep -c EXACT_CHARACTERS_AXIOMS "$out/ExactCharacters.log")" = 6
+compile research/whole-source ExactLexical
+compile research/whole-source ExactLexicalBridge
+test "$(grep -c EXACT_LEXICAL_AXIOMS "$out/ExactLexicalBridge.log")" = 8
 compile research/whole-source AcceptanceScope
 test "$(grep -c ACCEPTANCE_SCOPE_AXIOMS "$out/AcceptanceScope.log")" = 2
 compile research/whole-source SourceBridge
