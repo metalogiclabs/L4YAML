@@ -2,9 +2,11 @@ module
 public import QuotedContinuation
 import all L4YAML.Proofs.Serialization.TokenEvents
 public meta import Lean
+set_option autoImplicit false
 @[expose] public section
 namespace MathGraph.WholeSource.TagQuotedParse
 open L4YAML L4YAML.Scanner L4YAML.Surface
+open L4YAML.Proofs.Acceptance
 open L4YAML.Proofs.TokenGrammar
 open L4YAML.Proofs.Serialization.SerializationWellFormed
 open MathGraph.WholeSource.DirectiveBridge
