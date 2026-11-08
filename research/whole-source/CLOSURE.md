@@ -410,3 +410,30 @@ Classical.choice, and Quot.sound. Hosted run 42481340531, job 128733734019,
 artifact 13617571492 (SHA-256
 4f112aa37fd0131b38bf7afad9c44801709cda05158b999a4fd0762ece00f52e).
 The separate unchanged-production job was skipped.
+
+### Nonempty quoted-entry sequence induction
+
+Code d142939bb75cd02ed66c20a2ca4a33f345ab10ff generalizes the independent
+separation landing to a nonwhite, nonbreak, non-comment character.
+`FlowQuotedEntries.comma_after_grammar_separation` applies it to the real comma
+transition, retaining depth, flow kind, indentation, and the parent key stack.
+Its final real token is the comma, which discharges the next entry's adjacency
+premise. `nested_sequence_quoted_entries` proves a `1 + 2 * n`-step scanner
+chain for a source derivation of any nonempty list of double-quoted entries,
+leaving the exact suffix and restoring the key saved by the opener. The
+executable three-entry control includes comment and line-break separation
+before commas and checks the restored key and public parse acceptance.
+
+The first quote starts immediately after the opener, and each subsequent
+quote starts immediately after its comma. Trailing separation before commas
+and the closing bracket can include comments and line breaks. This result
+uses the stream indentation floor and the existing opener line premises.
+Other entry productions, leading separation, trailing commas, enclosing block
+indentation and final token-grammar production remain open.
+
+Local and hosted whole-source proof/control qualification passed with
+source identity retained. The three new proof statements use only propext,
+Classical.choice and Quot.sound. Hosted run 42481966433, job 128735655243,
+artifact 13617548705 (SHA-256
+5e307b067f3d44c0380ab0b0fa4d4241df6718c4a827fe6bd54f809c34c9f409).
+The separate unchanged-production job was skipped.
