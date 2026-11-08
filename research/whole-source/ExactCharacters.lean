@@ -1,5 +1,7 @@
 module
 public import L4YAML.Surface.Basic
+public meta import L4YAML.Spec.CharPredicates
+public meta import L4YAML.Surface.Basic
 public meta import Lean
 set_option autoImplicit false
 @[expose] public section
@@ -31,6 +33,10 @@ instance (c : Char) : Decidable (NbJson c) := by unfold NbJson; infer_instance
 instance (c : Char) : Decidable (NbChar c) := by unfold NbChar; infer_instance
 instance (c : Char) : Decidable (NsChar c) := by unfold NsChar; infer_instance
 
+local instance (c : Char) : Decidable (isCommentTextChar c) := by
+  unfold isCommentTextChar isLineBreakProp isLineFeedProp isCarriageReturnProp
+  infer_instance
+
 -- Adversarial boundary tests before the bridge proofs. These do not mutate
 -- protected production tests. No scanner or parser is called by these checks.
 #guard CPrintable '\n' ∧ CPrintable '\r' ∧ ¬ isPrintableProp '\n' ∧ ¬ isPrintableProp '\r'
@@ -41,7 +47,7 @@ instance (c : Char) : Decidable (NsChar c) := by unfold NsChar; infer_instance
 #guard CPrintable '\uFEFF' ∧ ¬ NbChar '\uFEFF'
 #guard NbJson '\uFFFE' ∧ ¬ CPrintable '\uFFFE'
 #guard NbJson '\uFFFF' ∧ ¬ CPrintable '\uFFFF'
-#guard CPrintable '\uD7FF' ∧ CPrintable '\uE000' ∧ CPrintable '\U0010FFFF'
+#guard CPrintable '\uD7FF' ∧ CPrintable '\uE000' ∧ CPrintable (Char.ofNat 0x10FFFF)
 #guard NbChar '\t' ∧ ¬ NsChar '\t'
 #guard isCommentTextChar '\u0001' ∧ ¬ NbChar '\u0001'
 
