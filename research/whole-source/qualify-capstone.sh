@@ -44,6 +44,8 @@ compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
 compile research/whole-source TagDocument
 compile research/whole-source QuotedContinuation
+compile research/whole-source TagQuotedParse
+test "$(grep -c TAG_QUOTED_PARSE_AXIOMS "$out/TagQuotedParse.log")" = 2
 test "$(grep -c QUOTED_CONTINUATION_AXIOMS "$out/QuotedContinuation.log")" = 2
 test "$(grep -c TAG_DOCUMENT_AXIOMS "$out/TagDocument.log")" = 4
 test "$(grep -c DIRECTIVE_RECORD_BRIDGE_AXIOMS "$out/DirectiveRecordBridge.log")" = 5

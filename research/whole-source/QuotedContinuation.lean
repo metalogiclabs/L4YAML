@@ -114,6 +114,7 @@ lemma quoted_after_marker (s : ScannerState) (chars : List Char) (col endCol : N
   subst chars
   obtain ⟨hskip, hcLand, hfLand, hiLand, hnLand, htLand⟩ := lf_quote_content s rest col hc hf
   let content := { consumeNewline s with simpleKeyAllowed := true }
+  have hct : content.tokens = s.tokens := htLand
   obtain ⟨pp, hpre, hcorr, hpp, hflow, hinds, htFiltered⟩ :=
     preprocess_quote content rest hcLand hfLand (hiLand.trans hi) hnLand
   have hpreS : scanNextToken_preprocess s = .ok (some (pp, '"')) := by
@@ -128,19 +129,19 @@ lemma quoted_after_marker (s : ScannerState) (chars : List Char) (col endCol : N
     exact trailingNodeRun?_push_none prior _ rfl rfl rfl rfl
   obtain ⟨hdang, hfv⟩ := clean_token_checks s pp hn
   have hdp : pp.directivesPresent = false := by
-    rw [hpp]
-    simp [content, consumeNewline, (peek_of_corr hc).1, saveSimpleKey,
-      ScannerState.inFlow, hf, hd]
+    rw [hpp, L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_directivesPresent,
+      saveSimpleKey_preserves_directivesPresent]
+    exact (consumeNewline_preserves_dp s).trans hd
   have hreal : LastTokenReal ({content with needIndentCheck := false} : ScannerState).tokens := by
     change LastTokenReal content.tokens
     rw [htLand, ht]
-    exact lastTokenReal_push (by decide)
+    exact lastTokenReal_push (by simp)
   have hlast : lastRealTokenVal? pp.tokens = some .documentStart := by
     rw [hpp, L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_tokens,
       saveSimpleKey_preserves_lastRealTokenVal _ hreal]
     change lastRealTokenVal? content.tokens = _
     rw [htLand, ht]
-    exact lastRealTokenVal_push (by decide)
+    exact lastRealTokenVal_push (by simp)
   have hbare : scanNextToken_checkBareDocument pp = .ok () := by
     apply scanNextToken_checkBareDocument_ok_of_last
     intro t he
@@ -162,10 +163,14 @@ lemma quoted_after_marker (s : ScannerState) (chars : List Char) (col endCol : N
   obtain ⟨hstruct, _, _⟩ := dispatchContent_quote pp '"' rfl hflow hds hde
   let ad := if pp.allowDirectives then
     { pp with allowDirectives := false, documentEverStarted := true } else pp
-  have haf : ad.flowLevel = 0 := by simp [ad, hflow]
-  have had : ad.directivesPresent = false := by simp [ad, hdp]
-  have hai : ad.indents = pp.indents := by simp [ad]
-  have hat : ad.tokens = pp.tokens := by simp [ad]
+  have haf : ad.flowLevel = 0 := by
+    dsimp [ad]; split <;> exact hflow
+  have had : ad.directivesPresent = false := by
+    dsimp [ad]; split <;> exact hdp
+  have hai : ad.indents = pp.indents := by
+    dsimp [ad]; split <;> rfl
+  have hat : ad.tokens = pp.tokens := by
+    dsimp [ad]; split <;> rfl
   have hac : ScannerSurfCorr ad ⟨'"' :: rest, 0⟩ := by
     dsimp [ad]; split <;>
       exact ⟨hcorr.chars_from, hcorr.col_eq, hcorr.end_eq, hcorr.input_prefix, hcorr.indent_cols_nonneg⟩
@@ -185,7 +190,7 @@ lemma quoted_after_marker (s : ScannerState) (chars : List Char) (col endCol : N
         (.scalar value .doubleQuoted) := by
     rw [htdq]
     simp only [Array.filter_push, show (YamlToken.scalar value .doubleQuoted != .placeholder) = true from rfl,
-      ite_true, Array.map_push, hat, htFiltered, htLand]
+      ite_true, Array.map_push, hat, htFiltered, hct]
   have hdispatch : ∃ out, scanNextToken_dispatchContent ad '"' = .ok out ∧
       out.peek? = none ∧ out.flowLevel = 0 ∧ out.directivesPresent = false ∧
       out.indents = #[{column := -1, isSequence := false}] ∧
@@ -235,6 +240,7 @@ lemma tag_quoted_scans (input : String) (handle pfx body : List Char) (col endCo
     rw [htm, Array.filter_push]
     simp only [show (YamlToken.documentStart != .placeholder) = true from rfl,
       ite_true, Array.map_push, htl, hmidValues]
+    rfl
   rw [hmarkValues] at hto
   have hscan := scan_eq_after_two input _ mid (scanDocumentStart land)
     (percent_source htag.percent) hfirst hsecond
