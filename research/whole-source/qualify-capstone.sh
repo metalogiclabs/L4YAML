@@ -18,7 +18,7 @@ lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Compositio
   L4YAML.Proofs.Scanner.ScannerCorrectness L4YAML.Proofs.Output.EmitterScannability.ScanSteps \
   L4YAML.Proofs.Scanner.ScanStrictCoupling L4YAML.Proofs.Scanner.IndentStackBase \
   L4YAML.Proofs.Parser.StreamCompleteness \
-  L4YAML.Proofs.Scanner.ScannerFlowStackPreservation L4YAML.Proofs.Coupling.StructureCoupling \
+  L4YAML.Proofs.Scanner.FlowIndentStable L4YAML.Proofs.Scanner.ScannerFlowStackPreservation L4YAML.Proofs.Coupling.StructureCoupling \
   L4YAML.Proofs.Output.EmitterScannability.WellBracketed \
   L4YAML.Proofs.Output.EmitterScannability.FilteredTracking > "$out/baseline.log" 2>&1
 
@@ -70,11 +70,13 @@ compile research/whole-source FlowQuotedChild
 grep -F "nested_sequence_quoted_entry' depends on axioms: [propext," "$out/FlowQuotedChild.log"
 grep -F "quoted_child_and_close' depends on axioms: [propext," "$out/FlowQuotedChild.log"
 grep -F "quoted_child_after_separation' depends on axioms: [propext," "$out/FlowQuotedChild.log"
+compile research/whole-source FlowPlainChild
+grep -F "plain_child_step' depends on axioms: [propext," "$out/FlowPlainChild.log"
 compile research/whole-source FlowQuotedEntries
 grep -F "nested_sequence_quoted_entries' depends on axioms: [propext," "$out/FlowQuotedEntries.log"
 compile research/whole-source NestedSourceProducer
 grep -F "NestedSourceProducer.public_accepts' depends on axioms: [propext, Classical.choice, Quot.sound]" "$out/NestedSourceProducer.log"
-for theorem in nested_quoted_list_scan quoted_list_producer quoted_list_public_accepts; do
+for theorem in nested_quoted_list_scan quoted_list_producer quoted_list_public_accepts mixed_list_public_accepts; do
   tr '\n' ' ' < "$out/NestedSourceProducer.log" |
     grep -Fq "NestedSourceProducer.$theorem' depends on axioms: [propext,  Classical.choice,  Quot.sound]"
 done

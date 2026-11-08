@@ -147,18 +147,21 @@ lemma public_accepts (input : String) (h : Language input) :
 
 open MathGraph.WholeSource.FlowCloseLanding MathGraph.WholeSource.FlowQuotedEntries
 
-/-- A compact outer sequence containing one inner sequence whose quoted
+/-- A compact outer sequence containing one inner sequence whose scalar
 entries, separators, and optional trailing comma are specified by source rules. -/
-def QuotedListLanguage (input : String) : Prop :=
+def SequenceListLanguage (allowPlain : Bool) (input : String) : Prop :=
   ∃ body col n trailing, input.toList = '[' :: '[' :: body ∧
-    QuotedEntries [']'] col n trailing ⟨body, 2⟩
+    QuotedEntries [']'] col allowPlain n trailing ⟨body, 2⟩
 
-private lemma body_no_props {body : List YamlToken} (hImage : QuotedBodyImage body) :
+abbrev QuotedListLanguage := SequenceListLanguage false
+abbrev MixedListLanguage := SequenceListLanguage true
+
+private lemma body_no_props {allowPlain : Bool} {body : List YamlToken} (hImage : ScalarBodyImage allowPlain body) :
     ∀ v ∈ body, v.isNodeProperty = false := by
   induction hImage with
   | empty => simp
   | single value => simp [YamlToken.isNodeProperty]
-  | more value _ ih =>
+  | more value _ _ ih =>
     intro v hv
     simp only [List.mem_cons] at hv
     rcases hv with rfl | rfl | hv
@@ -166,8 +169,9 @@ private lemma body_no_props {body : List YamlToken} (hImage : QuotedBodyImage bo
     · rfl
     · exact ih v hv
 
-lemma nested_quoted_list_scan (input : String) (h : QuotedListLanguage input) :
-    ∃ ts body, Scanner.scanFiltered input = .ok ts ∧ QuotedBodyImage body ∧
+lemma nested_sequence_list_scan {allowPlain : Bool} (input : String)
+    (h : SequenceListLanguage allowPlain input) :
+    ∃ ts body, Scanner.scanFiltered input = .ok ts ∧ ScalarBodyImage allowPlain body ∧
       ts.toList.map (·.val) = [.streamStart, .flowSequenceStart, .flowSequenceStart] ++
         body ++ [.flowSequenceEnd, .flowSequenceEnd, .streamEnd] := by
   obtain ⟨source, col, n, trailing, hStart, hEntries⟩ := h
@@ -221,11 +225,36 @@ lemma nested_quoted_list_scan (input : String) (h : QuotedListLanguage input) :
     simp [hPushLast, hTokLast]
   simp [hFinalValues, hValues, hOuterValues, List.append_assoc]
 
-lemma quoted_list_producer : MathGraph.WholeSource.SourceBridge.Obligation QuotedListLanguage := by
+lemma sequence_list_producer (allowPlain : Bool) :
+    MathGraph.WholeSource.SourceBridge.Obligation (SequenceListLanguage allowPlain) := by
   intro input h
-  obtain ⟨ts, _, hs, image, hv⟩ := nested_quoted_list_scan input h
+  obtain ⟨ts, _, hs, image, hv⟩ := nested_sequence_list_scan input h
   obtain ⟨hg, hw⟩ := nested_quoted_token_conditions image hv
   exact ⟨ts, hs, hg, hw⟩
+
+lemma nested_quoted_list_scan (input : String) (h : QuotedListLanguage input) :
+    ∃ ts body, Scanner.scanFiltered input = .ok ts ∧ QuotedBodyImage body ∧
+      ts.toList.map (·.val) = [.streamStart, .flowSequenceStart, .flowSequenceStart] ++
+        body ++ [.flowSequenceEnd, .flowSequenceEnd, .streamEnd] :=
+  nested_sequence_list_scan input h
+
+lemma quoted_list_producer : MathGraph.WholeSource.SourceBridge.Obligation QuotedListLanguage :=
+  sequence_list_producer false
+
+/-- Arbitrarily many comma-terminated one-line plain entries may precede
+or interleave with the double-quoted entries in the inner sequence. -/
+lemma mixed_list_public_accepts (input : String) (h : MixedListLanguage input) :
+    ∃ docs, TokenParser.parseYaml input = .ok docs :=
+  MathGraph.WholeSource.SourceBridge.accepts_of_producer (sequence_list_producer true) input h
+
+lemma mixed_list_witness : MixedListLanguage "[[a,\"\"]]" := by
+  refine ⟨['a', ',', '"', '"', ']', ']'], 6, 2, false, rfl, ?_⟩
+  refine .plainMore (col := 2) (commaCol := 3) (contentEnd := ⟨[',', '"', '"', ']', ']'], 3⟩)
+    rfl (by decide) (by decide) ?_ (.nil _) ?_
+  · exact .mk _ _ _ _ (.nonIndicator _ _ _ _ (by unfold isNsPlainSafe isNsChar; decide)
+      (by decide)) (.nil _)
+  · exact .single (.inline (.nil _)) (.mk _ _ _ _ (.mk _ _) (.nil _) (.mk _ _))
+      (.inline (.nil _))
 
 lemma quoted_list_public_accepts (input : String) (h : QuotedListLanguage input) :
     ∃ docs, TokenParser.parseYaml input = .ok docs :=
@@ -236,6 +265,11 @@ lemma quoted_list_public_accepts (input : String) (h : QuotedListLanguage input)
 #guard match Scanner.scanFiltered "[[,]]" with
   | .error (.invalidFlowEntry _ _) => true
   | _ => false
+#guard (TokenParser.parseYaml "[[a,\"\"]]").isOk
+#guard (TokenParser.parseYaml "[[a:b,\"q\",x#y ,\"r\",]]").isOk
+#check mixed_list_public_accepts
+#print axioms mixed_list_witness
+#print axioms mixed_list_public_accepts
 #check quoted_list_public_accepts
 #print axioms nested_quoted_list_scan
 #print axioms quoted_list_producer

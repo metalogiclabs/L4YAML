@@ -1,13 +1,13 @@
 module
 
-public import FlowQuotedChild
+public import FlowPlainChild
 public import FlowTokenBridge
 import all L4YAML.Proofs.Serialization.TokenEvents
 public import L4YAML.Proofs.Output.EmitterScannability.WellBracketed
 public meta import Lean
 
 /-! Group 7.7, productions [137]–[139]. Induct over a source-defined list of
-double-quoted entries. Separation before a comma and before the closing bracket
+double-quoted entries and optional one-line plain entries. Separation before a comma and before the closing bracket
 is consumed by the actual scanner, as is leading separation before each quote. -/
 
 @[expose] public section
@@ -19,6 +19,7 @@ open L4YAML.Proofs.EmitterScannability L4YAML.Proofs.ScannerCorrectness
 open L4YAML.Proofs.CloseStaleExplicitKey
 open MathGraph.WholeSource.FlowCloseLanding
 open MathGraph.WholeSource.FlowSeparationLanding MathGraph.WholeSource.FlowQuotedChild
+open MathGraph.WholeSource.FlowPlainChild
 
 lemma comma_after_grammar_separation (s : ScannerState) {start : SurfPos}
     (tail : List Char) (col : Nat) (hSource : ScannerSurfCorr s start)
@@ -146,36 +147,47 @@ private lemma quoted_entry_and_comma (s : ScannerState) {start quote stop : Surf
   rw [hCommaEffect, hChildEffect, List.append_assoc]
   rfl
 
-/-- Quoted sequence body and separation up to a fixed close. The indices
+/-- Scalar sequence body and separation up to a fixed close. The indices
 count entries and record the presence of a trailing comma in the source. -/
-inductive QuotedEntries (tail : List Char) (closeCol : Nat) : Nat → Bool → SurfPos → Prop where
+inductive QuotedEntries (tail : List Char) (closeCol : Nat) (allowPlain : Bool) : Nat → Bool → SurfPos → Prop where
   | empty {start} : FlowCloseSeparation start ⟨']' :: tail, closeCol⟩ →
-      QuotedEntries tail closeCol 0 false start
+      QuotedEntries tail closeCol allowPlain 0 false start
   | single {start quote stop} : FlowCloseSeparation start quote →
       SCDoubleQuotedOk quote stop →
-      FlowCloseSeparation stop ⟨']' :: tail, closeCol⟩ → QuotedEntries tail closeCol 1 false start
+      FlowCloseSeparation stop ⟨']' :: tail, closeCol⟩ → QuotedEntries tail closeCol allowPlain 1 false start
   | lastComma {start quote stop rest commaCol} : FlowCloseSeparation start quote →
       SCDoubleQuotedOk quote stop → FlowCloseSeparation stop ⟨',' :: rest, commaCol⟩ →
       FlowCloseSeparation ⟨rest, commaCol + 1⟩ ⟨']' :: tail, closeCol⟩ →
-      QuotedEntries tail closeCol 1 true start
+      QuotedEntries tail closeCol allowPlain 1 true start
   | more {n trailing start quote stop rest commaCol} : FlowCloseSeparation start quote →
       SCDoubleQuotedOk quote stop →
       FlowCloseSeparation stop ⟨',' :: rest, commaCol⟩ →
-      QuotedEntries tail closeCol (n + 1) trailing ⟨rest, commaCol + 1⟩ →
-      QuotedEntries tail closeCol (n + 2) trailing start
+      QuotedEntries tail closeCol allowPlain (n + 1) trailing ⟨rest, commaCol + 1⟩ →
+      QuotedEntries tail closeCol allowPlain (n + 2) trailing start
 
-/-- Filtered token image of a source-defined list of quoted entries. -/
-inductive QuotedBodyImage : List YamlToken → Prop where
-  | empty : QuotedBodyImage []
-  | single (value : String) : QuotedBodyImage [.scalar value .doubleQuoted]
-  | more (value : String) {rest : List YamlToken} : QuotedBodyImage rest →
-      QuotedBodyImage (.scalar value .doubleQuoted :: .flowEntry :: rest)
+  | plainMore {n trailing c rest col contentEnd afterComma commaCol} :
+      allowPlain = true → ¬ isIndicatorProp c → 0 < col →
+      SNsPlainOneLine .flowIn ⟨c :: rest, col⟩ contentEnd →
+      GStar SSWhite contentEnd ⟨',' :: afterComma, commaCol⟩ →
+      QuotedEntries tail closeCol allowPlain (n + 1) trailing ⟨afterComma, commaCol + 1⟩ →
+      QuotedEntries tail closeCol allowPlain (n + 2) trailing ⟨c :: rest, col⟩
+
+/-- Filtered token image, with the quoted-only case retained at index false. -/
+inductive ScalarBodyImage (allowPlain : Bool) : List YamlToken → Prop where
+  | empty : ScalarBodyImage allowPlain []
+  | single (value : String) : ScalarBodyImage allowPlain [.scalar value .doubleQuoted]
+  | more (value : String) {style : ScalarStyle} {rest : List YamlToken} :
+      (style = .doubleQuoted ∨ (allowPlain = true ∧ style = .plain)) →
+      ScalarBodyImage allowPlain rest →
+      ScalarBodyImage allowPlain (.scalar value style :: .flowEntry :: rest)
+
+abbrev QuotedBodyImage := ScalarBodyImage false
 
 open L4YAML.Proofs.TokenGrammar
 open MathGraph.WholeSource.FlowTokenBridge
 open L4YAML.Proofs.Serialization.TokenEvents (tokenEvent)
 
-private lemma body_shape {ts : Toks} {values : List YamlToken} (image : QuotedBodyImage values)
+private lemma body_shape {allowPlain : Bool} {ts : Toks} {values : List YamlToken} (image : ScalarBodyImage allowPlain values)
     (tail : List YamlToken) (i : Nat)
     (ht : ∀ k, tok ts (i + k) = (values ++ .flowSequenceEnd :: tail)[k]?) :
     Shape ts (.flowSeqItems true) i (i + values.length) ∧
@@ -193,25 +205,25 @@ private lemma body_shape {ts : Toks} {values : List YamlToken} (image : QuotedBo
     refine ⟨.first hn (.done he), ?_⟩
     intro j hj hc
     exact .more hc (hj ▸ hn) (.done he)
-  | @more value rest _ ih =>
+  | @more value style rest _ _ ih =>
     have hn : Shape ts .node i (i + 1) := .scalar (by simpa using ht 0)
     have hc : tok ts (i + 1) = some .flowEntry := by simpa using ht 1
     have hRest := (ih (i + 1 + 1) (by
       intro k
       simpa [Nat.add_assoc, Nat.add_comm 2 k] using ht (k + 2))).2 (i + 1) rfl hc
-    have hLen : i + (.scalar value .doubleQuoted :: .flowEntry :: rest).length =
+    have hLen : i + (.scalar value style :: .flowEntry :: rest).length =
         i + 1 + 1 + rest.length := by simp; omega
     rw [hLen]
     refine ⟨.first hn hRest, ?_⟩
     intro j hj hjc
     exact .more hjc (hj ▸ hn) hRest
 
-private lemma body_quiet {values : List YamlToken} (image : QuotedBodyImage values) :
+private lemma body_quiet {allowPlain : Bool} {values : List YamlToken} (image : ScalarBodyImage allowPlain values) :
     ∀ v ∈ values, Quiet v := by
   induction image with
   | empty => simp
   | single value => simp [Quiet, tokenEvent]
-  | more value _ ih =>
+  | more value _ _ ih =>
     intro v hv
     simp only [List.mem_cons] at hv
     rcases hv with rfl | rfl | hv
@@ -221,8 +233,8 @@ private lemma body_quiet {values : List YamlToken} (image : QuotedBodyImage valu
 
 /-- The quoted body token image supplies both parser premises once enclosed
 by the two sequences and the stream delimiters. -/
-lemma nested_quoted_token_conditions {ts : Toks} {body : List YamlToken}
-    (image : QuotedBodyImage body)
+lemma nested_quoted_token_conditions {allowPlain : Bool} {ts : Toks} {body : List YamlToken}
+    (image : ScalarBodyImage allowPlain body)
     (hVals : ts.toList.map (·.val) = [.streamStart, .flowSequenceStart, .flowSequenceStart] ++
       body ++ [.flowSequenceEnd, .flowSequenceEnd, .streamEnd]) :
     TokenGrammar ts ∧ TokenStateOk ts := by
@@ -257,9 +269,9 @@ lemma nested_quoted_token_conditions {ts : Toks} {body : List YamlToken}
 def bodySteps (n : Nat) (trailing : Bool) : Nat :=
   if n = 0 then 1 else 2 * n + trailing.toNat
 
-lemma quoted_entries_and_close {tail : List Char} {closeCol n : Nat}
+lemma quoted_entries_and_close {allowPlain : Bool} {tail : List Char} {closeCol n : Nat}
     {trailing : Bool} {start : SurfPos}
-    (hEntries : QuotedEntries tail closeCol n trailing start) :
+    (hEntries : QuotedEntries tail closeCol allowPlain n trailing start) :
     ∀ s : ScannerState, ScannerSurfCorr s start →
       s.flowLevel ≥ 2 → s.flowStack.back? = some true →
       s.currentIndent < 0 → s.directivesPresent = false →
@@ -269,7 +281,7 @@ lemma quoted_entries_and_close {tail : List Char} {closeCol n : Nat}
         final.simpleKeyStack = s.simpleKeyStack.pop ∧
         final.simpleKey = s.simpleKeyStack.back?.getD {} ∧
         final.flowStack = s.flowStack.pop ∧ final.indents = s.indents ∧ final.directivesPresent = false ∧
-        (∃ values, QuotedBodyImage values ∧ filteredValues final.tokens =
+        (∃ values, ScalarBodyImage allowPlain values ∧ filteredValues final.tokens =
           filteredValues s.tokens ++ values ++ [.flowSequenceEnd]) := by
   induction hEntries with
   | empty hSep =>
@@ -299,7 +311,7 @@ lemma quoted_entries_and_close {tail : List Char} {closeCol n : Nat}
       hStack.trans (congrArg Array.pop hNextKeys),
       hKey.trans (congrArg (·.back?.getD {}) hNextKeys),
       hCloseFlowStack.trans (congrArg Array.pop hFlowStack), hCloseIndents.trans hIndents, hCloseDP,
-      [.scalar value .doubleQuoted, .flowEntry], .more value .empty, by rw [hEffect, hEntryEffect]⟩
+      [.scalar value .doubleQuoted, .flowEntry], .more value (Or.inl rfl) .empty, by rw [hEffect, hEntryEffect]⟩
   | @more n trailing start quote stop rest commaCol hLeading hQuote hSep _ ih =>
     intro s hSource hDepth hKind hIndent hDP hPrevious
     have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
@@ -317,7 +329,52 @@ lemma quoted_entries_and_close {tail : List Char} {closeCol n : Nat}
       hStack.trans (congrArg Array.pop hNextKeys),
       hKey.trans (congrArg (·.back?.getD {}) hNextKeys),
       hCloseFlowStack.trans (congrArg Array.pop hFlowStack), hCloseIndents.trans hIndents, hCloseDP,
-      _, .more value hImage, ?_⟩
+      _, .more value (Or.inl rfl) hImage, ?_⟩
+    case count =>
+      have hTogether := hComma.trans hChain
+      have hCount : 2 + bodySteps (n + 1) trailing = bodySteps (n + 2) trailing := by
+        simp [bodySteps]
+        omega
+      exact hCount ▸ hTogether
+    · simp [hEffect, hEntryEffect, List.append_assoc]
+  | @plainMore n trailing c rest col contentEnd afterComma commaCol hAllow hFirst hCol hSpan hWhite _ ih =>
+    intro s hSource hDepth hKind hIndent hDP hPrevious
+    have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
+    obtain ⟨child, hChild, hChildSource, hChildDepth, hChildStack, hChildIndents,
+      hChildDP, hChildKeys, value, hChildLast, hChildEffect⟩ :=
+      plain_child_step s hSource hFirst hCol hSpan hWhite ⟨',', afterComma, rfl, Or.inl rfl⟩
+        hFlow hIndent hDP hPrevious
+    have hChildFlow : child.inFlow = true := by simpa only [ScannerState.inFlow, hChildDepth] using hFlow
+    have hChildIndent : child.currentIndent < 0 := by
+      simpa only [ScannerState.currentIndent, hChildIndents] using hIndent
+    obtain ⟨next, hNext, hNextSource, hNextDepth, hFlowStack, hIndents, hNextDP, hNextKeys, hNextLast, hCommaEffect⟩ :=
+      comma_after_grammar_separation child afterComma commaCol hChildSource (.inline (.nil _))
+        hChildFlow hChildIndent hChildDP (by
+          intro t ht
+          rw [hChildLast] at ht
+          cases ht
+          exact ⟨nofun, nofun, nofun⟩)
+    have hComma : ScanChain s 2 next := (ScanChain.single hChild).trans (ScanChain.single hNext)
+    have hEntryEffect : filteredValues next.tokens =
+        filteredValues s.tokens ++ [.scalar value .plain, .flowEntry] := by
+      simp [hCommaEffect, hChildEffect, List.append_assoc]
+    replace hNextDepth := hNextDepth.trans hChildDepth
+    replace hFlowStack := hFlowStack.trans hChildStack
+    replace hIndents := hIndents.trans hChildIndents
+    replace hNextKeys := hNextKeys.trans hChildKeys
+    have hNextIndent : next.currentIndent < 0 := by
+      simpa only [ScannerState.currentIndent, hIndents] using hIndent
+    obtain ⟨final, hChain, hTail, hLevel, hStack, hKey, hCloseFlowStack, hCloseIndents, hCloseDP, values, hImage, hEffect⟩ :=
+      ih next hNextSource (by omega) (by rwa [hFlowStack]) hNextIndent hNextDP (by
+        intro t ht
+        rw [hNextLast] at ht
+        cases ht
+        rfl)
+    refine ⟨final, ?count, hTail, hLevel.trans (congrArg (· - 1) hNextDepth),
+      hStack.trans (congrArg Array.pop hNextKeys),
+      hKey.trans (congrArg (·.back?.getD {}) hNextKeys),
+      hCloseFlowStack.trans (congrArg Array.pop hFlowStack), hCloseIndents.trans hIndents, hCloseDP,
+      _, .more value (Or.inr ⟨hAllow, rfl⟩) hImage, ?_⟩
     case count =>
       have hTogether := hComma.trans hChain
       have hCount : 2 + bodySteps (n + 1) trailing = bodySteps (n + 2) trailing := by
@@ -326,10 +383,10 @@ lemma quoted_entries_and_close {tail : List Char} {closeCol n : Nat}
       exact hCount ▸ hTogether
     · simp [hEffect, hEntryEffect, List.append_assoc]
 
-lemma nested_sequence_quoted_entries (s : ScannerState)
+lemma nested_sequence_quoted_entries {allowPlain : Bool} (s : ScannerState)
     (body tail : List Char) (closeCol n : Nat) (trailing : Bool)
     (hSource : ScannerSurfCorr s ⟨'[' :: body, s.col⟩)
-    (hEntries : QuotedEntries tail closeCol n trailing ⟨body, s.col + 1⟩)
+    (hEntries : QuotedEntries tail closeCol allowPlain n trailing ⟨body, s.col + 1⟩)
     (hDepth : s.flowLevel > 0) (hIndent : s.currentIndent < 0)
     (hColumn : s.col > 0) (hLine : AllTokensOnLine s s.line) (hEnd : EndLineOnLine s)
     (hDP : s.directivesPresent = false)
@@ -338,7 +395,7 @@ lemma nested_sequence_quoted_entries (s : ScannerState)
       final.flowLevel = s.flowLevel ∧ final.simpleKeyStack = s.simpleKeyStack ∧
       final.simpleKey = (saveSimpleKey s).simpleKey ∧
       final.flowStack = s.flowStack ∧ final.indents = s.indents ∧ final.directivesPresent = false ∧
-      (∃ values, QuotedBodyImage values ∧ filteredValues final.tokens =
+      (∃ values, ScalarBodyImage allowPlain values ∧ filteredValues final.tokens =
         filteredValues s.tokens ++ [.flowSequenceStart] ++ values ++ [.flowSequenceEnd]) := by
   have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
   obtain ⟨mid, hOpen, hMidSource, hMidDepth, hMidDP, hMidIndents, _,
