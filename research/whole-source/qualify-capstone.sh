@@ -14,6 +14,7 @@ trap 'bash research/whole-source/source-identity.sh verify "$baseline" "$out"' E
 
 lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Composition \
   L4YAML.Proofs.Production.Acceptance.Properties L4YAML.Proofs.Production.Acceptance.Plain \
+  L4YAML.Proofs.Production.Acceptance.BlockScalar \
   L4YAML.Proofs.Scanner.ScannerCorrectness L4YAML.Proofs.Output.EmitterScannability.ScanSteps \
   L4YAML.Proofs.Scanner.ScanStrictCoupling L4YAML.Proofs.Scanner.IndentStackBase \
   L4YAML.Proofs.Parser.StreamCompleteness \
@@ -54,6 +55,8 @@ compile research/whole-source FlowProducerCase
 test "$(grep -c FLOW_PRODUCER_CASE_AXIOMS "$out/FlowProducerCase.log")" = 1
 compile research/whole-source FlowCloseLanding
 test "$(grep -c FLOW_CLOSE_LANDING_AXIOMS "$out/FlowCloseLanding.log")" = 2
+compile research/whole-source FlowSeparationLanding
+grep -F "nested_close_after_grammar_separation' depends on axioms: [propext," "$out/FlowSeparationLanding.log"
 compile research/whole-source CoverageInventory
 compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
