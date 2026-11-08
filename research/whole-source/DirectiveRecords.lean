@@ -49,9 +49,9 @@ lemma multiplicity_append (a b : List Seg) :
     StreamMultiplicity (a ++ b) ↔ StreamMultiplicity a ∧ StreamMultiplicity b := by
   simp [StreamMultiplicity, List.mem_append, or_imp, forall_and]
 
-private def primary : List Char := "%TAG ! x\n".toList
-private def secondary : List Char := "%TAG !! tag:x\n".toList
-private def named : List Char := "%TAG !h! tag:x\n".toList
+def primary : List Char := "%TAG ! x\n".toList
+def secondary : List Char := "%TAG !! tag:x\n".toList
+def named : List Char := "%TAG !h! tag:x\n".toList
 
 /-- The collision's primary directive is genuinely admitted by the existing
 surface grammar, before any original-source tail. -/
@@ -89,15 +89,31 @@ lemma primary_skeleton (dirs : List (List Char))
   have hn : Skeleton (colAfter 0 (Seg.docStart dirs).text) [] [] := .nil _
   simpa using (Skeleton.cons 0 (.docStart dirs) [] [] hat hn (by simp [Seg.isOther]))
 
-lemma single_primary_allowed : DirectiveMultiplicity [primary] := by decide
-lemma duplicate_primary_excluded : ¬ DirectiveMultiplicity [primary, primary] := by decide
-lemma single_secondary_allowed : DirectiveMultiplicity [secondary] := by decide
-lemma duplicate_secondary_excluded : ¬ DirectiveMultiplicity [secondary, secondary] := by decide
-lemma single_named_allowed : DirectiveMultiplicity [named] := by decide
-lemma duplicate_named_excluded : ¬ DirectiveMultiplicity [named, named] := by decide
-lemma distinct_handles_allowed : DirectiveMultiplicity [primary, secondary, named] := by decide
+lemma single_primary_allowed : DirectiveMultiplicity [primary] := by
+  unfold DirectiveMultiplicity
+  decide
+lemma duplicate_primary_excluded : ¬ DirectiveMultiplicity [primary, primary] := by
+  unfold DirectiveMultiplicity
+  decide
+lemma single_secondary_allowed : DirectiveMultiplicity [secondary] := by
+  unfold DirectiveMultiplicity
+  decide
+lemma duplicate_secondary_excluded : ¬ DirectiveMultiplicity [secondary, secondary] := by
+  unfold DirectiveMultiplicity
+  decide
+lemma single_named_allowed : DirectiveMultiplicity [named] := by
+  unfold DirectiveMultiplicity
+  decide
+lemma duplicate_named_excluded : ¬ DirectiveMultiplicity [named, named] := by
+  unfold DirectiveMultiplicity
+  decide
+lemma distinct_handles_allowed : DirectiveMultiplicity [primary, secondary, named] := by
+  unfold DirectiveMultiplicity
+  decide
 lemma duplicate_version_excluded :
-    ¬ DirectiveMultiplicity ["%YAML 1.2\n".toList, "%YAML 1.2\n".toList] := by decide
+    ¬ DirectiveMultiplicity ["%YAML 1.2\n".toList, "%YAML 1.2\n".toList] := by
+  unfold DirectiveMultiplicity
+  decide
 
 lemma primary_resets_per_document :
     StreamMultiplicity [.docStart [primary], .docStart [primary]] := by
@@ -111,7 +127,7 @@ lemma primary_event_collision :
 multiplicity condition, even restricted to source-connected Skeleton derivations. This does not
 claim public parser rejection or full YAML validity of either source. -/
 lemma multiplicity_does_not_factor_through_events :
-    ¬ ∃ P, ∀ col chars segs, Skeleton col chars segs →
+    ¬ ∃ P : List L4YAML.Proofs.Serialization.SerializationWellFormed.Event → Prop, ∀ col chars segs, Skeleton col chars segs →
       (StreamMultiplicity segs ↔ P (eventsOfSegs segs)) := by
   rintro ⟨P, h⟩
   have hone : StreamMultiplicity [.docStart [primary]] := by
