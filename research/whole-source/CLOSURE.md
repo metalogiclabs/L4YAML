@@ -603,3 +603,25 @@ Full Group 7.7 remains UNKNOWN. The next useful experiment lifts the
 plain primitive through dispatch and then attaches the existing
 comma/close chain. The source scope still excludes flow mappings,
 flow pairs, aliases and node properties.
+
+### Mixed nested flow list public acceptance
+
+Code f346839307154bd8a045b63035a8a21e0629619b proves
+`NestedSourceProducer.mixed_list_public_accepts` for the independent
+`MixedListLanguage`. The prior quoted-only language remains at the false
+index, including its quoted-only token-image invariant. The mixed index
+adds comma-terminated one-line plain entries at positive columns with an
+ordinary first character and optional horizontal whitespace before the
+comma. The inner list length is arbitrary and the nesting depth is fixed.
+
+The proof lifts the plain scalar primitive through `scanNextToken`,
+preserves scanner state and the exact filtered token append, and reuses
+the comma, close, EOF and parser bridges. A source derivation for
+`[[a,""]]` and native controls exercise plain and quoted interleaving.
+Decoded output, general nesting, multiline plain entries and normative
+comment strictness remain separate obligations.
+
+Local and [hosted qualification](https://github.com/metalogiclabs/L4YAML/actions/runs/42491653947/job/128765136042) passed with
+standard axioms only, retained controls and frozen production identity.
+Artifact 13622325567, reported SHA-256 0fdd3948c393497cc64476a49a551016f7d87780f863ffa7906ad12dd68a2df0. The separate full
+production job was skipped. Full Group 7.7 remains UNKNOWN.

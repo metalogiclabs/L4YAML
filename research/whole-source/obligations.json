@@ -266,6 +266,16 @@
       },
       "artifact": 13621605657,
       "artifact_sha256": "91595d6938a4ebbe8ca637ac5bbc7798df265aac8bcb2356f3b27c39aabb8207"
+    },
+    "mixed_nested_public_acceptance": {
+      "commit": "f346839307154bd8a045b63035a8a21e0629619b",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42491653947",
+      "job": 128765136042,
+      "artifact": 13622325567,
+      "artifact_sha256": "0fdd3948c393497cc64476a49a551016f7d87780f863ffa7906ad12dd68a2df0",
+      "state": "LOCAL_HARNESS_PASS_HOSTED_PASS",
+      "local_module_log_sha256": "5adf0f458ea1dab8f9b44c729915de130d382650f9c38f68331a39b2a18f70c6",
+      "boundary": "NestedSourceProducer.mixed_list_public_accepts. Fixed two sequence levels, arbitrary inner list, with one-line ordinary-start plain entries at positive column followed by horizontal separation and a comma before later entries. The remaining existing branches handle double-quoted entries and optional trailing comma. Actual scanNextToken transitions, exact filtered token image, parser premises and public parse success. Decoded-value fidelity, general nesting, multiline plain and normative comment strictness remain open."
     }
   },
   "obligations": [
@@ -410,7 +420,7 @@
         "state": "WARRANTED",
         "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements. ExactPlainChecks.colon_has_two_spans proves that a:b has both a full plain-span derivation and a strict-prefix derivation ending at :b. A source span alone therefore cannot determine maximal consumption. A caller must derive delimiter and termination conditions. ExactFlowSequenceChecks.colon_cannot_be_owned_delimiter rules out the strict-prefix endpoint at a colon in any sequence context. The scanner bridge now gets the delimiter from AfterEntry, with its separately stated horizontal separation condition."
       },
-      "next_experiment": "Connect a one-line plain sequence entry and its owned delimiter through scanNextToken, then reuse the checked comma/close chain. Use the exact entry relation to derive the plain start conditions and verify both the new plain and retained quoted branches before attempting mixed recursive induction.",
+      "next_experiment": "Continue exact recursive node coverage, including flow pair and mapping alternatives. Keep the independent source relation separate from runtime state and carry delimiter ownership at every recursive node.",
       "dependencies": [
         "L4YAML/Surface/Document.lean",
         "L4YAML/Surface/Scalars.lean",
@@ -883,11 +893,11 @@
       "source_boundary": "Frozen legacy Scanner.scanFiltered and TokenParser.parseYaml at 64795a8db28ccfdae85082c93b6453001ae9d3e4. Local conditional lemma nested_sequence_scans starts already in flow with a negative current indent and same-line token premises.",
       "requirement": "Group 7.7 completeness and YAML 1.2.2 [137]\u2013[139], [150], [154]\u2013[155].",
       "state": "UNKNOWN",
-      "obligation_state": "ARBITRARY_QUOTED_LIST_PRODUCER_CHECKED_RECURSIVE_NODE_GRAMMAR_OPEN",
+      "obligation_state": "MIXED_TWO_LEVEL_PUBLIC_ACCEPTANCE_CHECKED_GENERAL_RECURSION_OPEN",
       "obstruction": "A child-to-parent handoff must account for a reserved token slot updated by a later colon, and valid multiline children can violate the emitter's whole-array line invariant.",
       "diagnosis": {
         "state": "LOCAL_EXECUTABLE_CHECKS",
-        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions. Both nested close lemmas now compile without the whole-array same-line hypothesis. The bare-LF lemma derives the actual landing from source, restores the saved simple key and preserves every pre-close token slot. The new FlowCloseSeparation induction handles arbitrary space/tab runs, LF/CRLF/lone CR, and comment lines after inline separation or at column zero. It derives the actual skipToContent landing at the closing bracket from source grammar and preserves the close guarantees. The independently derived SCDoubleQuotedOk child preserves the parent key stack and token prefix; composing its actual scanner step with the opener and grammar-derived close produces a three-step chain with exact suffix and restored opener key. A generic non-comment separation landing and actual comma transition support induction on a source-defined nonempty list of quoted entries, with exact step count and parent key restoration. The quote landing now derives leading whitespace and comment separation in the same actual scanner transition, including column zero, and the list induction retains its exact step count. The grammar distinguishes empty, nonempty, and optional trailing comma cases, and all yield exact actual scanner step counts and restore the parent key. A leading comma still raises invalidFlowEntry in the executable control. NestedSourceProducer now discharges SourceBridge.Obligation and public acceptance for an independent compact two-level sequence with arbitrary one-line double-quoted child. FlowTokenBridge produces parser premises generically for recursive scalar and sequence token shapes with event-free values. The whitespace-aware list proof now composes exact filtered token effects, transports flow/indent/directive state through the inner close, and supplies the actual root scanner result and both parser premises for all derivations of QuotedListLanguage. The public acceptance theorem fixes two nesting levels and allows arbitrary quoted arity."
+        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions. Both nested close lemmas now compile without the whole-array same-line hypothesis. The bare-LF lemma derives the actual landing from source, restores the saved simple key and preserves every pre-close token slot. The new FlowCloseSeparation induction handles arbitrary space/tab runs, LF/CRLF/lone CR, and comment lines after inline separation or at column zero. It derives the actual skipToContent landing at the closing bracket from source grammar and preserves the close guarantees. The independently derived SCDoubleQuotedOk child preserves the parent key stack and token prefix; composing its actual scanner step with the opener and grammar-derived close produces a three-step chain with exact suffix and restored opener key. A generic non-comment separation landing and actual comma transition support induction on a source-defined nonempty list of quoted entries, with exact step count and parent key restoration. The quote landing now derives leading whitespace and comment separation in the same actual scanner transition, including column zero, and the list induction retains its exact step count. The grammar distinguishes empty, nonempty, and optional trailing comma cases, and all yield exact actual scanner step counts and restore the parent key. A leading comma still raises invalidFlowEntry in the executable control. NestedSourceProducer now discharges SourceBridge.Obligation and public acceptance for an independent compact two-level sequence with arbitrary one-line double-quoted child. FlowTokenBridge produces parser premises generically for recursive scalar and sequence token shapes with event-free values. The whitespace-aware list proof now composes exact filtered token effects, transports flow/indent/directive state through the inner close, and supplies the actual root scanner result and both parser premises for all derivations of QuotedListLanguage. The public acceptance theorem fixes two nesting levels and allows arbitrary quoted arity. The ordinary-start plain scanner step preserves state and feeds the existing comma and close chain. The same producer handles the old quoted language and the extended mixed language with independently derived source entries."
       },
       "dependencies": [
         "research/whole-source/SourceBridge.lean:Obligation",
@@ -902,9 +912,10 @@
         "research/whole-source/FlowTokenBridge.lean",
         "research/whole-source/NestedSourceProducer.lean",
         "research/whole-source/ExactPlain.lean:scan_flow_plain_to_indicator",
-        "research/whole-source/ExactFlowSequence.lean:scan_plain_before_after_entry"
+        "research/whole-source/ExactFlowSequence.lean:scan_plain_before_after_entry",
+        "research/whole-source/FlowPlainChild.lean:plain_child_step"
       ],
-      "next_experiment": "Connect a one-line plain sequence entry and its owned delimiter through scanNextToken, then reuse the checked comma/close chain. Use the exact entry relation to derive the plain start conditions and verify both the new plain and retained quoted branches before attempting mixed recursive induction.",
+      "next_experiment": "Prove an arbitrary-depth scanner-to-token induction for exact recursive sequences. The first discriminator is a nested opener after a preceding entry on another line, which must derive local flow state without AllTokensOnLine.",
       "verification": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate.",
       "receipts": [
         "flow_producer_case",
@@ -916,7 +927,8 @@
         "flow_quoted_optional_endings",
         "nested_source_producer",
         "nested_quoted_list_producer",
-        "exact_flow_sequence_delimiter"
+        "exact_flow_sequence_delimiter",
+        "mixed_nested_public_acceptance"
       ],
       "failed_experiments": [
         {
@@ -1012,8 +1024,8 @@
   },
   "next_experiment": {
     "id": "L4-FLOW-RECURSIVE-HANDOFF",
-    "action": "Connect a one-line plain sequence entry and its owned delimiter through scanNextToken, then reuse the checked comma/close chain. Use the exact entry relation to derive the plain start conditions and verify both the new plain and retained quoted branches before attempting mixed recursive induction.",
-    "success_boundary": "One-line source-derived plain entries yield the actual scanNextToken state transition, exact landing and plain token append. The parent separator remains owned by AfterEntry; exercise both comma and closing bracket and preserve scanner stack invariants. Arbitrary multiline and full grammar claims remain separate."
+    "action": "Prove an arbitrary-depth scanner-to-token induction for exact recursive sequences. The first discriminator is a nested opener after a preceding entry on another line, which must derive local flow state without AllTokensOnLine.",
+    "success_boundary": "Actual scanner chain on exact recursive source sequences, with an opener whose valid prefix includes tokens from prior lines. The exact token image gives both parser premises and the public acceptance result."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",
