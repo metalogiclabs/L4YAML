@@ -103,6 +103,19 @@
         "Quot.sound"
       ],
       "scope": "General clean-token marker interface and original-source TAG continuation; TAG/marker/empty-body scanner completion with exact token image and original fuel. Four strict profiles and retained controls, expected RED, inventory and source identity passed. Full production job skipped."
+    },
+    "tag_quoted_composition": {
+      "commit": "fe83ba32285cb16281446313d3f61c5ec8f2d3d8",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42431883266",
+      "job": 128582375538,
+      "artifact": 13598385787,
+      "artifact_sha256_reported": "5e858df89df027bfa1b653eb22aa263a16c694fdc8f8b6776ae7328db710b82f",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "scope": "Reusable quoted_after_marker step; independent TAG/marker/quoted-body original-source scanner completion and public parseYaml acceptance. Four strict profiles; four new native controls; retained controls, expected RED, census and unchanged source identity passed. Full production job skipped."
     }
   },
   "obligations": [
@@ -343,7 +356,7 @@
         "state": "WARRANTED",
         "evidence": "Bounded proofs and refutations separate necessary repairs; no full theorem exists at this source."
       },
-      "next_experiment": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction. Normative comment repair remains separately tracked and unqualified.",
+      "next_experiment": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
       "dependencies": [
         "L4-EXACT-GRAMMAR",
         "L4-SERIALIZATION-STATE",
@@ -456,7 +469,7 @@
         "state": "REJECTED_AS_REMAINING_OBSTRUCTION_FOR_THIS_BOUNDARY",
         "evidence": "extract_of_tagDirective, scanner_record_agreement and original_dispatch_record_agreement compile with strict axiom profiles."
       },
-      "next_experiment": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction.",
+      "next_experiment": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
       "dependencies": [
         "DirectiveRecordBridge.lean",
         "DirectiveRecords.lean",
@@ -500,7 +513,7 @@
         "state": "REJECTED_AS_REMAINING_OBSTRUCTION_FOR_THIS_BOUNDARY",
         "evidence": "full_step_after_clean_landing/state, tag_scan_continuation and tag_empty_document_scans compiled with four strict standard-axiom profiles. Exact EOF token witness resolved elaboration without changing statement."
       },
-      "next_experiment": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction.",
+      "next_experiment": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
       "dependencies": [
         "DirectiveStep.lean",
         "DirectiveRecordBridge.lean",
@@ -528,6 +541,58 @@
         "One TAG directive and LF marker boundary; no trailing comments or arbitrary directive block.",
         "EOF theorem establishes scanner acceptance and exact token values, not parser acceptance or composed output.",
         "No full YAML completeness, normative strictness, or fresh full-production regression."
+      ],
+      "reuse": "REUSABLE"
+    },
+    {
+      "id": "L4-POST-MARKER-QUOTED-COMPOSITION",
+      "claim": "Independent TagDirective ending before LF/---/LF/body and SCDoubleQuotedOk body ending at EOF entail actual scanFiltered with exact five token values and public parseYaml acceptance. A reusable quoted_after_marker scanner step preserves any prior token prefix ending in a real documentStart.",
+      "source_boundary": "64795a8db28ccfdae85082c93b6453001ae9d3e4",
+      "requirement": "SourceBridge completeness composition with independent source syntax and independently established TokenGrammar / TokenStateOk; no scanner/parser acceptance premise.",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED_TAG_QUOTED_FRAGMENT",
+      "obstruction": "QuotedPublic initial-state proof did not expose a consumer for reachable post-marker state and existing token prefix.",
+      "diagnosis": {
+        "state": "REJECTED_AS_REMAINING_OBSTRUCTION_FOR_THIS_BOUNDARY",
+        "evidence": "quoted_after_marker derives actual preprocessing and safety checks from source/marker invariants for arbitrary token prefixes; tag_quoted_scans composes original dispatch and fuel; tag_quoted_token_conditions supplies independent token/state premises; tag_quoted_public_accepts consumes them. Four strict standard-axiom profiles qualified."
+      },
+      "next_experiment": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
+      "dependencies": [
+        "QuotedContinuation.lean",
+        "TagQuotedParse.lean",
+        "DirectiveStep.lean",
+        "DirectiveRecordBridge.lean",
+        "DirectiveEntry.lean",
+        "research/accepted-source/QuotedPublic.lean",
+        "L4YAML/Proofs/Production/Acceptance/Quoted.lean",
+        "L4YAML/Proofs/Parser/StreamCompleteness.lean"
+      ],
+      "verification": "Exact printed theorem types; four transitive standard-axiom profiles; original fuel; Unicode/escaped-control positive and malformed-marker/raw-control negative native tests; retained controls and frozen source identity.",
+      "receipts": [
+        "tag_quoted_composition"
+      ],
+      "failed_experiments": [
+        {
+          "commit": "0d7eff8f1f0af441368392c8adeca75e959960cd",
+          "run": 42431458503,
+          "job": 128581063183,
+          "reason": "Field projection simplification across conditional record updates failed; decide rejected free-position parameters; token-array aliases/push needed explicit rewrites. Strict gate rejected recovery sorryAx. Reuse preservation lemmas, split conditionals and normalize arrays without weakening theorem."
+        },
+        {
+          "commit": "691a1d6ab0db350415bbccd8570786bb07772e20",
+          "run": 42431668788,
+          "job": 128581732036,
+          "reason": "Both scanner theorems and token grammar/state theorem compiled with standard axioms, but final parser theorem omitted Acceptance namespace for SCDoubleQuotedOk; autoImplicit introduced an unknown variable and recovery sorryAx. Fixed namespace and disabled autoImplicit in parser consumer. No theorem statement weakening."
+        }
+      ],
+      "unlocks": [
+        "Reusable quoted-body consumer after a real document marker",
+        "Arbitrary directive-block induction with a nonempty terminal body"
+      ],
+      "limits": [
+        "One TAG directive, LF marker boundary, no trailing directive comments, quoted body ending at EOF.",
+        "Acceptance and exact token shape, not independently specified decoded-value or composed-output fidelity.",
+        "Not full YAML completeness or normative strictness; full production regression not rerun."
       ],
       "reuse": "REUSABLE"
     }
@@ -603,9 +668,9 @@
     ]
   },
   "next_experiment": {
-    "id": "L4-POST-MARKER-QUOTED-COMPOSITION",
-    "action": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction.",
-    "success_boundary": "Independently grammatical TAG/marker/quoted-body source yields actual full-source scanner tokens and independent token/state premises. Fragment only; full same-language iff remains UNKNOWN."
+    "id": "L4-DIRECTIVE-BLOCK-INDUCTION",
+    "action": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
+    "success_boundary": "Arbitrary independently grammatical directive prefix, explicit marker and quoted document are accepted on original source/fuel; full YAML producer and same-language strictness remain separate UNKNOWNs."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",

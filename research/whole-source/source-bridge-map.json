@@ -948,7 +948,7 @@
       ],
       "obligation": "Directive placement, multiplicity, document-start requirements and resets",
       "reuse": "EventsOf.Seg.docStart / DirectiveDiscipline",
-      "state": "SOURCE_RECORDS_EXIST_CORRESPONDENCE_UNKNOWN"
+      "state": "SINGLE_TAG_COMPOSITION_WARRANTED_BLOCK_INDUCTION_UNKNOWN"
     },
     {
       "fields": [
@@ -957,7 +957,7 @@
       ],
       "obligation": "Actual token grammar and serialization trace agree with independent source interpretation",
       "reuse": "SourceBridge / TokenStateOk / SerializationWellFormed",
-      "state": "QUOTED_INSTANCE_ONLY"
+      "state": "QUOTED_AND_SINGLE_TAG_QUOTED_FRAGMENTS_ONLY"
     },
     {
       "fields": [
@@ -1018,6 +1018,27 @@
       "scope": "General clean-token marker interface and original-source TAG continuation; TAG/marker/empty-body scanner completion with exact token image and original fuel. Four strict profiles and retained controls, expected RED, inventory and source identity passed. Full production job skipped."
     },
     "state": "WARRANTED_ORIGINAL_SCANNER_CONTINUATION_AND_EMPTY_BODY",
-    "remaining": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction."
+    "remaining": "Quoted-body continuation and public parser acceptance now discharged by tag_quoted_composition. Arbitrary directive blocks and full producer remain UNKNOWN."
+  },
+  "tag_quoted_composition": {
+    "modules": [
+      "QuotedContinuation.lean",
+      "TagQuotedParse.lean"
+    ],
+    "receipt": {
+      "commit": "fe83ba32285cb16281446313d3f61c5ec8f2d3d8",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42431883266",
+      "job": 128582375538,
+      "artifact": 13598385787,
+      "artifact_sha256_reported": "5e858df89df027bfa1b653eb22aa263a16c694fdc8f8b6776ae7328db710b82f",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "scope": "Reusable quoted_after_marker step; independent TAG/marker/quoted-body original-source scanner completion and public parseYaml acceptance. Four strict profiles; four new native controls; retained controls, expected RED, census and unchanged source identity passed. Full production job skipped."
+    },
+    "state": "WARRANTED_ORIGINAL_SOURCE_PUBLIC_PARSER_ACCEPTANCE_FRAGMENT",
+    "remaining": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success."
   }
 }
