@@ -17,6 +17,7 @@ lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Compositio
   L4YAML.Proofs.Scanner.ScannerCorrectness L4YAML.Proofs.Output.EmitterScannability.ScanSteps \
   L4YAML.Proofs.Scanner.ScanStrictCoupling L4YAML.Proofs.Scanner.IndentStackBase \
   L4YAML.Proofs.Parser.StreamCompleteness \
+  L4YAML.Proofs.Scanner.ScannerFlowStackPreservation L4YAML.Proofs.Coupling.StructureCoupling \
   L4YAML.Proofs.Output.EmitterScannability.FilteredTracking > "$out/baseline.log" 2>&1
 
 export LEAN_PATH="$PWD/research/structural-boundaries:$PWD/research/accepted-source:$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
@@ -51,6 +52,8 @@ test "$(grep -c ACCEPTANCE_SCOPE_AXIOMS "$out/AcceptanceScope.log")" = 2
 compile research/whole-source SourceBridge
 compile research/whole-source FlowProducerCase
 test "$(grep -c FLOW_PRODUCER_CASE_AXIOMS "$out/FlowProducerCase.log")" = 1
+compile research/whole-source FlowCloseLanding
+test "$(grep -c FLOW_CLOSE_LANDING_AXIOMS "$out/FlowCloseLanding.log")" = 2
 compile research/whole-source CoverageInventory
 compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
