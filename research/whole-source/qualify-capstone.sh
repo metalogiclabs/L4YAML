@@ -19,6 +19,7 @@ lake build L4YAML.Proofs.Serialization.TraceOf.Document L4YAML.Parser.Compositio
   L4YAML.Proofs.Scanner.ScanStrictCoupling L4YAML.Proofs.Scanner.IndentStackBase \
   L4YAML.Proofs.Parser.StreamCompleteness \
   L4YAML.Proofs.Scanner.ScannerFlowStackPreservation L4YAML.Proofs.Coupling.StructureCoupling \
+  L4YAML.Proofs.Output.EmitterScannability.WellBracketed \
   L4YAML.Proofs.Output.EmitterScannability.FilteredTracking > "$out/baseline.log" 2>&1
 
 export LEAN_PATH="$PWD/research/structural-boundaries:$PWD/research/accepted-source:$PWD/research/whole-source:$(lake env printenv LEAN_PATH)"
@@ -33,6 +34,7 @@ compile() {
 
 compile research/structural-boundaries TraceExplicitRepairAudit
 compile research/accepted-source QuotedPublic
+compile research/accepted-source QuotedPair
 # Unchanged source-positive and source-negative controls are part of the run.
 compile research/accepted-source QuotedPublicControls
 for name in DirectiveControls DirectiveTrace DirectiveConsumer DirectiveDiscipline DirectiveDisciplineConsumer DirectiveSufficiency DirectiveBridge DirectiveBridgeConsumer DirectiveTransfer DirectiveDispatch DirectiveComments DirectiveBoundary DirectiveStep DirectiveEntry DirectiveEOF DirectiveParse DirectiveResult CapstoneObstructions CapstoneCommentBoundary CapstoneQualification; do
@@ -51,6 +53,9 @@ test "$(grep -c EXACT_QUOTED_AXIOMS "$out/ExactQuotedChecks.log")" = 10
 compile research/whole-source AcceptanceScope
 test "$(grep -c ACCEPTANCE_SCOPE_AXIOMS "$out/AcceptanceScope.log")" = 2
 compile research/whole-source SourceBridge
+compile research/whole-source FlowTokenBridge
+compile research/whole-source NestedSourceProducer
+grep -F "NestedSourceProducer.public_accepts' depends on axioms: [propext, Classical.choice, Quot.sound]" "$out/NestedSourceProducer.log"
 compile research/whole-source FlowProducerCase
 test "$(grep -c FLOW_PRODUCER_CASE_AXIOMS "$out/FlowProducerCase.log")" = 1
 compile research/whole-source FlowCloseLanding
