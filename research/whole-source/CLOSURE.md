@@ -228,3 +228,33 @@ inventory and frozen source guards passed. Full production job skipped.
 Failed 49837912/run 42446110859 preserved: proof equivalences compiled, but
 control evaluator visibility/Unicode notation/decidability errors caused rejection.
 No theorem statement was weakened to repair the candidate.
+
+## Lexical propagation
+
+ExactLexical.lean is a source-only definition module, importing ExactCharacters
+and no scanner/parser acceptance module. It supplies CommentText, DoubleChar,
+SingleChar and arbitrary DoubleBody/SingleBody runs. Named escapes are an explicit
+source alphabet. Hex escapes require their exact digit counts and a Unicode
+scalar value, keeping valid escaped controls distinct from invalid raw controls.
+
+ExactLexicalBridge.lean separately proves equivalence of quoted characters and
+arbitrary body runs with DQCharOk/SQCharOk. The existing scanner proofs can thereby
+be reused at this leaf interface. Strict comments embed into the old comment
+relation; a converse is neither claimed nor appropriate. This does NOT yet cover
+complete quoted scalars, multiline folding, implicit-key restrictions, indentation,
+closing-quote lookahead, or recursive node contexts.
+
+Next: define full context-indexed double/single quoted syntax from normative
+productions 108–116 and 119–125 using these leaves, auditing multiline whitespace,
+folding and implicit-key restrictions. Do not wrap the old broad node grammar or
+infer full scalar coverage from the body equivalences. Keep comment/separation
+propagation and runtime comment repair as separately named remaining obligations.
+
+Qualified code 58ea915b2fb85a1c31ffa67eae8d27ba969c00a3, Actions 42451501016,
+job 128641493234 SUCCESS; artifact 13606181707, reported SHA256
+7072fe8097cd1f3162bda7511f3f5da329160348a9f940cb17024521b1ce9c08.
+Eight profiles inspected: standard-only; doubled-quote witness axiom-free.
+Six escape guards, retained native controls, expected RED, inventory and frozen
+source guards passed. Full production job skipped. Failed cc7e9950/42451130920
+(fixed-index induction) and 1408d274/42451311009 (eliminated endpoint name) remain
+recorded. Generalized the helper and inferred its endpoint; no statement weakened.

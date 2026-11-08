@@ -126,6 +126,15 @@
       "artifact_sha256": "c139ec15c5b3081b5c1dca5f9d1f554710df9747c70024c3674af55640fde01d",
       "state": "SUCCESS",
       "boundary": "ExactCharacters types and six axiom profiles inspected; 11 lexical guards, unchanged native controls, expected RED, inventory and frozen source guards passed. Full production job skipped. No full grammar or same-language iff claim."
+    },
+    "exact_lexical": {
+      "commit": "58ea915b2fb85a1c31ffa67eae8d27ba969c00a3",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42451501016",
+      "job": 128641493234,
+      "artifact": 13606181707,
+      "artifact_sha256": "7072fe8097cd1f3162bda7511f3f5da329160348a9f940cb17024521b1ce9c08",
+      "state": "SUCCESS",
+      "boundary": "Exact types and eight transitive profiles inspected; all standard-only, doubled quote axiom-free. Six escape guards and retained native controls pass; expected RED, inventory and frozen-source guards pass. Full production job skipped; no full scalar/language/iff claim."
     }
   },
   "obligations": [
@@ -652,6 +661,49 @@
         "Full grammar not constructed. No new runtime defect or acceptance-family extension is claimed. Unicode escape syntax/value relation and BOM placement remain separate obligations. SOH obstruction reused, not rediscovered."
       ],
       "reuse": "REUSABLE"
+    },
+    {
+      "id": "L4-EXACT-LEXICAL",
+      "claim": "Independent double/single quoted character and arbitrary body relations coincide with existing DQCharOk/SQCharOk interfaces; strict comments embed into legacy comment relation.",
+      "source_boundary": "ExactLexical source-only definitions; bridge to frozen production 64795a8db28ccfdae85082c93b6453001ae9d3e4 proof interfaces.",
+      "requirement": "YAML 1.2.2 [75], [107], [111], [117], [118], [122] and escape rules 5.7; pinned normative blob 2f078ec32749a55b5ad961899ed0f344037260e0.",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED_LEXICAL_INTERFACE_ONLY",
+      "obstruction": "Broad scalar leaves admit raw controls; a new independent syntax should reuse valid old proof interfaces without inheriting broad constructors.",
+      "diagnosis": {
+        "state": "WARRANTED",
+        "evidence": "Source-only syntax definitions compile. Arbitrary-position character and body equivalences, strict comment embedding, raw SOH exclusion and doubled-quote witness qualified with standard-only axioms; six escape controls pass."
+      },
+      "next_experiment": "Define complete context-indexed quoted scalar syntax (108\u2013116, 119\u2013125), including multiline whitespace/folding and implicit-key restrictions, from exact leaves; then propagate through recursive nodes.",
+      "dependencies": [
+        "research/whole-source/ExactCharacters.lean",
+        "research/whole-source/ExactLexical.lean",
+        "research/whole-source/ExactLexicalBridge.lean",
+        "L4YAML/Proofs/Production/Acceptance/Quoted.lean"
+      ],
+      "verification": "Eight axiom profiles standard-only; six native lexical controls; retained controls and frozen-source guards. Exact body relation equivalence, no successful scanner premise.",
+      "receipts": [
+        "exact_lexical"
+      ],
+      "failed_experiments": [
+        {
+          "commit": "cc7e9950744130419aa5337ef51bc7e2ad0006b2",
+          "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42451130920",
+          "reason": "Syntax module, all quoted equivalences and six controls compiled. Comment induction rejected non-variable source index. Moved induction to generic source-position helper; unchanged public claim. Strict gate rejected recovery sorryAx."
+        },
+        {
+          "commit": "1408d274a97a7d2cab0511bc8593fd5ef1347154",
+          "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42451311009",
+          "reason": "Generic comment-body induction compiled; dependent elimination removed explicitly named endpoint out. Infer endpoint from constructor goal. No statement change; recovery sorryAx correctly rejected."
+        }
+      ],
+      "unlocks": [
+        "L4-EXACT-GRAMMAR: full context-indexed scalar definitions using these independent leaves and existing converse proof interfaces"
+      ],
+      "limits": [
+        "Multiline folding, key restrictions, indentation, closing quote lookahead and recursive node use remain open. No full scalar or full language claim. Escape guards model Lean Unicode scalar values, not arbitrary byte encodings."
+      ],
+      "reuse": "REUSABLE"
     }
   ],
   "environment_failures": [
@@ -726,7 +778,7 @@
   },
   "next_experiment": {
     "id": "L4-EXACT-GRAMMAR",
-    "action": "Propagate exact classes into comment and quoted-character relations, including normative escape values and doubled quotes; audit reachability through recursive node definitions.",
+    "action": "Define complete context-indexed quoted scalar syntax (108\u2013116, 119\u2013125), including multiline whitespace/folding and implicit-key restrictions, from exact leaves; then propagate through recursive nodes.",
     "success_boundary": "Concrete full independent definition, source/serialization interpretation and audited normative coverage. A design contract, constructor census, fragment or metadata flag does not discharge this obligation."
   },
   "previous_next_experiment": {

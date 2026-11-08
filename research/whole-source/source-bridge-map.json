@@ -2232,14 +2232,16 @@
           62
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "UNKNOWN",
+        "semantic_state": "WARRANTED_LEXICAL_INTERFACE_FULL_FAMILY_OPEN",
         "definition_candidates": [
           "L4YAML/Spec/Grammar.lean",
           "L4YAML/Surface/Scalars.lean:SNbDoubleChar",
-          "L4YAML/Proofs/Production/Acceptance/Quoted.lean"
+          "L4YAML/Proofs/Production/Acceptance/Quoted.lean",
+          "research/whole-source/ExactLexical.lean:HexValue"
         ],
         "obstruction": "Hex-digit syntax alone does not constrain decoded Unicode scalar value.",
-        "decisive_check": "Reuse guarded quoted grammar where exact; audit x/u/U range and surrogate constraints separately from source printable restrictions."
+        "decisive_check": "Reuse guarded quoted grammar where exact; audit x/u/U range and surrogate constraints separately from source printable restrictions.",
+        "receipt": "obligations.json:receipts.exact_lexical"
       },
       {
         "id": "layout-folding",
@@ -2279,14 +2281,16 @@
           81
         ],
         "action": "REJECTED",
-        "semantic_state": "UNKNOWN",
+        "semantic_state": "WARRANTED_LEXICAL_INTERFACE_FULL_FAMILY_OPEN",
         "definition_candidates": [
           "L4YAML/Surface/Basic.lean:isCommentTextChar",
           "L4YAML/Surface/Basic.lean:SCNbCommentText",
-          "research/whole-source/CapstoneCommentBoundary.lean"
+          "research/whole-source/CapstoneCommentBoundary.lean",
+          "research/whole-source/ExactLexical.lean:CommentText"
         ],
         "obstruction": "Existing comment leaf deliberately accepts any non-break char; frozen parser accepts raw SOH.",
-        "decisive_check": "Reuse qualified counterexample. Specify normative comment characters and qualify separate runtime repair; do not rerun the same witness without source drift."
+        "decisive_check": "Reuse qualified counterexample. Specify normative comment characters and qualify separate runtime repair; do not rerun the same witness without source drift.",
+        "receipt": "obligations.json:receipts.exact_lexical"
       },
       {
         "id": "directives",
@@ -2369,15 +2373,17 @@
           116
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "UNKNOWN",
+        "semantic_state": "WARRANTED_LEXICAL_INTERFACE_FULL_FAMILY_OPEN",
         "definition_candidates": [
           "L4YAML/Surface/Scalars.lean:SCDoubleQuoted",
           "L4YAML/Surface/Scalars.lean:SNbDoubleChar",
           "L4YAML/Proofs/Production/Acceptance/Quoted.lean",
-          "research/whole-source/TagQuotedParse.lean"
+          "research/whole-source/TagQuotedParse.lean",
+          "research/whole-source/ExactLexical.lean:DoubleChar"
         ],
         "obstruction": "Original plain leaf admits raw SOH. Guarded independent quoted acceptance exists, but full normative parameter/production coverage is not audited.",
-        "decisive_check": "Replace broad leaf throughout recursive syntax, not only at stream wrapper; map every multiline/key-context alternative to governing requirements."
+        "decisive_check": "Replace broad leaf throughout recursive syntax, not only at stream wrapper; map every multiline/key-context alternative to governing requirements.",
+        "receipt": "obligations.json:receipts.exact_lexical"
       },
       {
         "id": "single-quoted",
@@ -2393,13 +2399,15 @@
           125
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "UNKNOWN",
+        "semantic_state": "WARRANTED_LEXICAL_INTERFACE_FULL_FAMILY_OPEN",
         "definition_candidates": [
           "L4YAML/Surface/Scalars.lean:SCSingleQuoted",
-          "L4YAML/Surface/Scalars.lean:SNbSingleChar"
+          "L4YAML/Surface/Scalars.lean:SNbSingleChar",
+          "research/whole-source/ExactLexical.lean:SingleChar"
         ],
         "obstruction": "Candidate syntax must be audited for nb-json restriction, doubled quote and context-sensitive folding.",
-        "decisive_check": "Compare literal admissibility and continuation/key restrictions with productions 117-125; retain unresolved cases explicitly."
+        "decisive_check": "Compare literal admissibility and continuation/key restrictions with productions 117-125; retain unresolved cases explicitly.",
+        "receipt": "obligations.json:receipts.exact_lexical"
       },
       {
         "id": "plain",
@@ -2709,7 +2717,9 @@
       "research/whole-source/DirectiveBridge.lean": "29c59a7c0b728dc9680c7bc4f8f7003344aca711c43cecf4c371608c3072a0c6",
       "research/whole-source/DirectiveRecords.lean": "417792f2db4f09a521691976232c1d0d2039899160793619922b50a78c6ac24a",
       "research/whole-source/TagQuotedParse.lean": "769a067806d99c0d8bb459db48489b82c19c85b7fdd6ba8de323b9137294a5da",
-      "research/whole-source/ExactCharacters.lean": "fa71a9b168031962bd67740e82427af4960f14d3d236534d00cced2731d3a6d5"
+      "research/whole-source/ExactCharacters.lean": "fa71a9b168031962bd67740e82427af4960f14d3d236534d00cced2731d3a6d5",
+      "research/whole-source/ExactLexical.lean": "511cd79c83fc368b87b10715905aeb5ff3366211cf75e5b897650be1b33f9900",
+      "research/whole-source/ExactLexicalBridge.lean": "4cda42a1188077da70ccf6fed9d29fe7c1e8d9402270af516ccd00a334cf76cd"
     },
     "architecture": "Independent exact lexical leaves -> mutually recursive exact nodes -> exact document/stream relation; retained source segmentation and records -> coherent source serialization validity; then actual producer and same-language strictness. No runtime acceptance in definitions.",
     "unresolved": "Concrete exact grammar is not constructed. Index accounts for numbered productions but is not a semantic coverage proof; prose requirements also matter."
