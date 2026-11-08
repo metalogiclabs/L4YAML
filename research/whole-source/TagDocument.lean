@@ -37,7 +37,7 @@ lemma tag_scan_continuation (input : String) (handle pfx rest : List Char) (col 
   have hmidValues : (mid.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
       #[.streamStart, .tagDirective (String.ofList handle) (String.ofList pfx)] := by
     rw [ht, Array.filter_push]
-    simp [Array.map_push, saveSimpleKey_filter_placeholder, ready,
+    simp [saveSimpleKey_filter_placeholder,
       ScannerState.emit, ScannerState.mk']
   have hp : input.toList = '%' :: h.afterPercent.chars := percent_source h.percent
   refine ⟨out, scan_eq_after_two input _ mid out hp hfirst hsecond,
@@ -64,7 +64,8 @@ lemma tag_empty_document_scans (input : String) (handle pfx : List Char) (col : 
     exact hloop
   have hunwind : unwindIndents out (-1) = out := by
     simp [unwindIndents, hi, unwindIndentsLoop]
-  refine ⟨_, ?_, ?_⟩
+  refine ⟨((unwindIndents out (-1)).emit .streamEnd).tokens.filter
+    (fun t => t.val != .placeholder), ?_, ?_⟩
   · simp [Scanner.scanFiltered, hraw]
   · rw [hunwind]
     simp [ScannerState.emit, Array.filter_push, Array.map_push, hvals]
