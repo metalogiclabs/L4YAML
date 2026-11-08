@@ -1046,5 +1046,1662 @@
     "contract": "research/whole-source/CLOSURE.md",
     "rule": "Full independent definition and requirement map before further fragment extension. Remaining-work descriptions below identify technical residuals, not authorization to bypass this prerequisite.",
     "deferred": "Arbitrary directive-block induction pending its place in the exact language."
+  },
+  "requirement_map": {
+    "state": "CANDIDATE_REQUIREMENT_MAP_NOT_EXACT_LANGUAGE",
+    "normative_source": {
+      "url": "https://yaml.org/spec/1.2.2/",
+      "repository": "yaml/yaml-spec",
+      "path": "spec/1.2.2/spec.md",
+      "git_blob": "2f078ec32749a55b5ad961899ed0f344037260e0",
+      "sha256": "9e198856ec83b4ad659598c223b9df8ef4b6333923ee48d65e7f3f0ad1e7e1af",
+      "production_count": 211
+    },
+    "classification_meaning": {
+      "REUSE": "Existing candidate component; exact hypotheses and semantic adequacy still require audit unless a scoped receipt is cited.",
+      "INTERFACE_REPAIR": "Existing material requires semantic/context/source-state repair or a proved connection.",
+      "MISSING": "Required definition, scope decision or audit evidence absent; not a claim no implementation exists.",
+      "REJECTED": "Existing definition cannot serve as normative exact language within stated boundary."
+    },
+    "production_index": [
+      {
+        "number": 1,
+        "name": "c-printable",
+        "requirement_group": "characters"
+      },
+      {
+        "number": 2,
+        "name": "nb-json",
+        "requirement_group": "characters"
+      },
+      {
+        "number": 3,
+        "name": "c-byte-order-mark",
+        "requirement_group": "characters"
+      },
+      {
+        "number": 4,
+        "name": "c-sequence-entry",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 5,
+        "name": "c-mapping-key",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 6,
+        "name": "c-mapping-value",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 7,
+        "name": "c-collect-entry",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 8,
+        "name": "c-sequence-start",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 9,
+        "name": "c-sequence-end",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 10,
+        "name": "c-mapping-start",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 11,
+        "name": "c-mapping-end",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 12,
+        "name": "c-comment",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 13,
+        "name": "c-anchor",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 14,
+        "name": "c-alias",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 15,
+        "name": "c-tag",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 16,
+        "name": "c-literal",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 17,
+        "name": "c-folded",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 18,
+        "name": "c-single-quote",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 19,
+        "name": "c-double-quote",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 20,
+        "name": "c-directive",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 21,
+        "name": "c-reserved",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 22,
+        "name": "c-indicator",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 23,
+        "name": "c-flow-indicator",
+        "requirement_group": "indicators"
+      },
+      {
+        "number": 24,
+        "name": "b-line-feed",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 25,
+        "name": "b-carriage-return",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 26,
+        "name": "b-char",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 27,
+        "name": "nb-char",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 28,
+        "name": "b-break",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 29,
+        "name": "b-as-line-feed",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 30,
+        "name": "b-non-content",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 31,
+        "name": "s-space",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 32,
+        "name": "s-tab",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 33,
+        "name": "s-white",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 34,
+        "name": "ns-char",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 35,
+        "name": "ns-dec-digit",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 36,
+        "name": "ns-hex-digit",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 37,
+        "name": "ns-ascii-letter",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 38,
+        "name": "ns-word-char",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 39,
+        "name": "ns-uri-char",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 40,
+        "name": "ns-tag-char",
+        "requirement_group": "breaks-whitespace"
+      },
+      {
+        "number": 41,
+        "name": "c-escape",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 42,
+        "name": "ns-esc-null",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 43,
+        "name": "ns-esc-bell",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 44,
+        "name": "ns-esc-backspace",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 45,
+        "name": "ns-esc-horizontal-tab",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 46,
+        "name": "ns-esc-line-feed",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 47,
+        "name": "ns-esc-vertical-tab",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 48,
+        "name": "ns-esc-form-feed",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 49,
+        "name": "ns-esc-carriage-return",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 50,
+        "name": "ns-esc-escape",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 51,
+        "name": "ns-esc-space",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 52,
+        "name": "ns-esc-double-quote",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 53,
+        "name": "ns-esc-slash",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 54,
+        "name": "ns-esc-backslash",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 55,
+        "name": "ns-esc-next-line",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 56,
+        "name": "ns-esc-non-breaking-space",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 57,
+        "name": "ns-esc-line-separator",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 58,
+        "name": "ns-esc-paragraph-separator",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 59,
+        "name": "ns-esc-8-bit",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 60,
+        "name": "ns-esc-16-bit",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 61,
+        "name": "ns-esc-32-bit",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 62,
+        "name": "c-ns-esc-char",
+        "requirement_group": "escapes"
+      },
+      {
+        "number": 63,
+        "name": "s-indent(0)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 64,
+        "name": "s-indent-less-than(1)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 65,
+        "name": "s-indent-less-or-equal(0)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 66,
+        "name": "s-separate-in-line",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 67,
+        "name": "s-line-prefix(n,BLOCK-OUT)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 68,
+        "name": "s-block-line-prefix(n)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 69,
+        "name": "s-flow-line-prefix(n)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 70,
+        "name": "l-empty(n,c)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 71,
+        "name": "b-l-trimmed(n,c)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 72,
+        "name": "b-as-space",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 73,
+        "name": "b-l-folded(n,c)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 74,
+        "name": "s-flow-folded(n)",
+        "requirement_group": "layout-folding"
+      },
+      {
+        "number": 75,
+        "name": "c-nb-comment-text",
+        "requirement_group": "comments-separation"
+      },
+      {
+        "number": 76,
+        "name": "b-comment",
+        "requirement_group": "comments-separation"
+      },
+      {
+        "number": 77,
+        "name": "s-b-comment",
+        "requirement_group": "comments-separation"
+      },
+      {
+        "number": 78,
+        "name": "l-comment",
+        "requirement_group": "comments-separation"
+      },
+      {
+        "number": 79,
+        "name": "s-l-comments",
+        "requirement_group": "comments-separation"
+      },
+      {
+        "number": 80,
+        "name": "s-separate(n,BLOCK-OUT)",
+        "requirement_group": "comments-separation"
+      },
+      {
+        "number": 81,
+        "name": "s-separate-lines(n)",
+        "requirement_group": "comments-separation"
+      },
+      {
+        "number": 82,
+        "name": "l-directive",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 83,
+        "name": "ns-reserved-directive",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 84,
+        "name": "ns-directive-name",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 85,
+        "name": "ns-directive-parameter",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 86,
+        "name": "ns-yaml-directive",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 87,
+        "name": "ns-yaml-version",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 88,
+        "name": "ns-tag-directive",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 89,
+        "name": "c-tag-handle",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 90,
+        "name": "c-primary-tag-handle",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 91,
+        "name": "c-secondary-tag-handle",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 92,
+        "name": "c-named-tag-handle",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 93,
+        "name": "ns-tag-prefix",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 94,
+        "name": "c-ns-local-tag-prefix",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 95,
+        "name": "ns-global-tag-prefix",
+        "requirement_group": "directives"
+      },
+      {
+        "number": 96,
+        "name": "c-ns-properties(n,c)",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 97,
+        "name": "c-ns-tag-property",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 98,
+        "name": "c-verbatim-tag",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 99,
+        "name": "c-ns-shorthand-tag",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 100,
+        "name": "c-non-specific-tag",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 101,
+        "name": "c-ns-anchor-property",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 102,
+        "name": "ns-anchor-char",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 103,
+        "name": "ns-anchor-name",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 104,
+        "name": "c-ns-alias-node",
+        "requirement_group": "properties-aliases"
+      },
+      {
+        "number": 105,
+        "name": "e-scalar",
+        "requirement_group": "empty-nodes"
+      },
+      {
+        "number": 106,
+        "name": "e-node",
+        "requirement_group": "empty-nodes"
+      },
+      {
+        "number": 107,
+        "name": "nb-double-char",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 108,
+        "name": "ns-double-char",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 109,
+        "name": "c-double-quoted(n,c)",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 110,
+        "name": "nb-double-text(n,FLOW-OUT)",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 111,
+        "name": "nb-double-one-line",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 112,
+        "name": "s-double-escaped(n)",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 113,
+        "name": "s-double-break(n)",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 114,
+        "name": "nb-ns-double-in-line",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 115,
+        "name": "s-double-next-line(n)",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 116,
+        "name": "nb-double-multi-line(n)",
+        "requirement_group": "double-quoted"
+      },
+      {
+        "number": 117,
+        "name": "c-quoted-quote",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 118,
+        "name": "nb-single-char",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 119,
+        "name": "ns-single-char",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 120,
+        "name": "c-single-quoted(n,c)",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 121,
+        "name": "nb-single-text(FLOW-OUT)",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 122,
+        "name": "nb-single-one-line",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 123,
+        "name": "nb-ns-single-in-line",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 124,
+        "name": "s-single-next-line(n)",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 125,
+        "name": "nb-single-multi-line(n)",
+        "requirement_group": "single-quoted"
+      },
+      {
+        "number": 126,
+        "name": "ns-plain-first(c)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 127,
+        "name": "ns-plain-safe(FLOW-OUT)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 128,
+        "name": "ns-plain-safe-out",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 129,
+        "name": "ns-plain-safe-in",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 130,
+        "name": "ns-plain-char(c)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 131,
+        "name": "ns-plain(n,FLOW-OUT)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 132,
+        "name": "nb-ns-plain-in-line(c)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 133,
+        "name": "ns-plain-one-line(c)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 134,
+        "name": "s-ns-plain-next-line(n,c)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 135,
+        "name": "ns-plain-multi-line(n,c)",
+        "requirement_group": "plain"
+      },
+      {
+        "number": 136,
+        "name": "in-flow(n,FLOW-OUT)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 137,
+        "name": "c-flow-sequence(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 138,
+        "name": "ns-s-flow-seq-entries(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 139,
+        "name": "ns-flow-seq-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 140,
+        "name": "c-flow-mapping(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 141,
+        "name": "ns-s-flow-map-entries(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 142,
+        "name": "ns-flow-map-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 143,
+        "name": "ns-flow-map-explicit-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 144,
+        "name": "ns-flow-map-implicit-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 145,
+        "name": "ns-flow-map-yaml-key-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 146,
+        "name": "c-ns-flow-map-empty-key-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 147,
+        "name": "c-ns-flow-map-separate-value(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 148,
+        "name": "c-ns-flow-map-json-key-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 149,
+        "name": "c-ns-flow-map-adjacent-value(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 150,
+        "name": "ns-flow-pair(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 151,
+        "name": "ns-flow-pair-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 152,
+        "name": "ns-flow-pair-yaml-key-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 153,
+        "name": "c-ns-flow-pair-json-key-entry(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 154,
+        "name": "ns-s-implicit-yaml-key(c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 155,
+        "name": "c-s-implicit-json-key(c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 156,
+        "name": "ns-flow-yaml-content(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 157,
+        "name": "c-flow-json-content(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 158,
+        "name": "ns-flow-content(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 159,
+        "name": "ns-flow-yaml-node(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 160,
+        "name": "c-flow-json-node(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 161,
+        "name": "ns-flow-node(n,c)",
+        "requirement_group": "flow-nodes-collections"
+      },
+      {
+        "number": 162,
+        "name": "c-b-block-header(t)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 163,
+        "name": "c-indentation-indicator",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 164,
+        "name": "c-chomping-indicator(STRIP)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 165,
+        "name": "b-chomped-last(STRIP)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 166,
+        "name": "l-chomped-empty(n,STRIP)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 167,
+        "name": "l-strip-empty(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 168,
+        "name": "l-keep-empty(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 169,
+        "name": "l-trail-comments(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 170,
+        "name": "c-l+literal(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 171,
+        "name": "l-nb-literal-text(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 172,
+        "name": "b-nb-literal-next(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 173,
+        "name": "l-literal-content(n,t)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 174,
+        "name": "c-l+folded(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 175,
+        "name": "s-nb-folded-text(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 176,
+        "name": "l-nb-folded-lines(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 177,
+        "name": "s-nb-spaced-text(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 178,
+        "name": "b-l-spaced(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 179,
+        "name": "l-nb-spaced-lines(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 180,
+        "name": "l-nb-same-lines(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 181,
+        "name": "l-nb-diff-lines(n)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 182,
+        "name": "l-folded-content(n,t)",
+        "requirement_group": "block-scalars"
+      },
+      {
+        "number": 183,
+        "name": "l+block-sequence(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 184,
+        "name": "c-l-block-seq-entry(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 185,
+        "name": "s-l+block-indented(n,c)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 186,
+        "name": "ns-l-compact-sequence(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 187,
+        "name": "l+block-mapping(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 188,
+        "name": "ns-l-block-map-entry(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 189,
+        "name": "c-l-block-map-explicit-entry(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 190,
+        "name": "c-l-block-map-explicit-key(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 191,
+        "name": "l-block-map-explicit-value(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 192,
+        "name": "ns-l-block-map-implicit-entry(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 193,
+        "name": "ns-s-block-map-implicit-key",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 194,
+        "name": "c-l-block-map-implicit-value(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 195,
+        "name": "ns-l-compact-mapping(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 196,
+        "name": "s-l+block-node(n,c)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 197,
+        "name": "s-l+flow-in-block(n)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 198,
+        "name": "s-l+block-in-block(n,c)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 199,
+        "name": "s-l+block-scalar(n,c)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 200,
+        "name": "s-l+block-collection(n,c)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 201,
+        "name": "seq-space(n,BLOCK-OUT)",
+        "requirement_group": "block-nodes-collections"
+      },
+      {
+        "number": 202,
+        "name": "l-document-prefix",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 203,
+        "name": "c-directives-end",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 204,
+        "name": "c-document-end",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 205,
+        "name": "l-document-suffix",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 206,
+        "name": "c-forbidden",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 207,
+        "name": "l-bare-document",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 208,
+        "name": "l-explicit-document",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 209,
+        "name": "l-directive-document",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 210,
+        "name": "l-any-document",
+        "requirement_group": "documents"
+      },
+      {
+        "number": 211,
+        "name": "l-yaml-stream",
+        "requirement_group": "stream"
+      }
+    ],
+    "groups": [
+      {
+        "id": "characters",
+        "productions": [
+          1,
+          2,
+          3
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Spec/CharPredicates.lean",
+          "L4YAML/Surface/Basic.lean:isNbChar",
+          "L4YAML/Surface/Document.lean:SLDocumentPrefix"
+        ],
+        "obstruction": "Context-specific printable versus nb-json restrictions and zero-column BOM must be preserved; String API is not a byte decoder.",
+        "decisive_check": "Audit predicates extensionally against character ranges, then every leaf use; keep byte decoding outside this String entrypoint claim explicitly."
+      },
+      {
+        "id": "indicators",
+        "productions": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "action": "REUSE",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Spec/CharPredicates.lean"
+        ],
+        "obstruction": "Candidate character predicates exist; context and maximality cannot be inferred from isolated characters.",
+        "decisive_check": "Match each literal and context predicate to the independent production; no runtime token test may define validity."
+      },
+      {
+        "id": "breaks-whitespace",
+        "productions": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40
+        ],
+        "action": "REUSE",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Basic.lean:SBBreak",
+          "L4YAML/Surface/Basic.lean:SSWhite",
+          "L4YAML/Surface/Basic.lean:isNsChar",
+          "L4YAML/Spec/CharPredicates.lean"
+        ],
+        "obstruction": "Need audit of CR/LF/CRLF segmentation, Unicode and character/byte/column conversion; not semantic certification by name.",
+        "decisive_check": "Check all boundary character classes and whether alternative line-break derivations preserve normalization and event interpretation."
+      },
+      {
+        "id": "escapes",
+        "productions": [
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Spec/Grammar.lean",
+          "L4YAML/Surface/Scalars.lean:SNbDoubleChar",
+          "L4YAML/Proofs/Production/Acceptance/Quoted.lean"
+        ],
+        "obstruction": "Hex-digit syntax alone does not constrain decoded Unicode scalar value.",
+        "decisive_check": "Reuse guarded quoted grammar where exact; audit x/u/U range and surrogate constraints separately from source printable restrictions."
+      },
+      {
+        "id": "layout-folding",
+        "productions": [
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Basic.lean:SIndent",
+          "L4YAML/Surface/Basic.lean:SSeparate",
+          "L4YAML/Surface/Scalars.lean"
+        ],
+        "obstruction": "Indentation translation n_lean=n_spec+1 and context-sensitive separation/folding span several definitions.",
+        "decisive_check": "Map all parameter translations and folded-line definitions, including implicit-key single-line restrictions; prove translations before reusing mutual node constructors."
+      },
+      {
+        "id": "comments-separation",
+        "productions": [
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81
+        ],
+        "action": "REJECTED",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Basic.lean:isCommentTextChar",
+          "L4YAML/Surface/Basic.lean:SCNbCommentText",
+          "research/whole-source/CapstoneCommentBoundary.lean"
+        ],
+        "obstruction": "Existing comment leaf deliberately accepts any non-break char; frozen parser accepts raw SOH.",
+        "decisive_check": "Reuse qualified counterexample. Specify normative comment characters and qualify separate runtime repair; do not rerun the same witness without source drift."
+      },
+      {
+        "id": "directives",
+        "productions": [
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Basic.lean:SLDirective",
+          "research/whole-source/DirectiveBridge.lean:TagDirective",
+          "research/whole-source/DirectiveRecords.lean:DirectiveMultiplicity"
+        ],
+        "obstruction": "Existing SLDirective permits empty TAG runs and empty reserved name; fragment TAG grammar and multiplicity do not cover all directive syntax/comments/version policy.",
+        "decisive_check": "Construct full independent directive relation from productions 82-95 and prose constraints, preserving explicit declarations before event erasure; audit reserved parameters and version compatibility."
+      },
+      {
+        "id": "properties-aliases",
+        "productions": [
+          96,
+          97,
+          98,
+          99,
+          100,
+          101,
+          102,
+          103,
+          104
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Basic.lean:SCNsProperties",
+          "L4YAML/Surface/Basic.lean:SCNsTagProperty",
+          "L4YAML/Surface/Basic.lean:SCNsAnchorProperty",
+          "L4YAML/Surface/Scalars.lean:SCNsAliasNode"
+        ],
+        "obstruction": "Lexical source validity, tag-handle availability and alias binding order are distinct requirements.",
+        "decisive_check": "Audit maximal names, URI syntax, property uniqueness/order and source-event meaning; preserve legal anchor rebinding and recursive uses."
+      },
+      {
+        "id": "empty-nodes",
+        "productions": [
+          105,
+          106
+        ],
+        "action": "REUSE",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Basic.lean:SENode"
+        ],
+        "obstruction": "GEps is a candidate for empty syntax, not unrestricted permission to finish any context.",
+        "decisive_check": "Audit all consumers that permit empty nodes and their delimiter/separation premises."
+      },
+      {
+        "id": "double-quoted",
+        "productions": [
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Scalars.lean:SCDoubleQuoted",
+          "L4YAML/Surface/Scalars.lean:SNbDoubleChar",
+          "L4YAML/Proofs/Production/Acceptance/Quoted.lean",
+          "research/whole-source/TagQuotedParse.lean"
+        ],
+        "obstruction": "Original plain leaf admits raw SOH. Guarded independent quoted acceptance exists, but full normative parameter/production coverage is not audited.",
+        "decisive_check": "Replace broad leaf throughout recursive syntax, not only at stream wrapper; map every multiline/key-context alternative to governing requirements."
+      },
+      {
+        "id": "single-quoted",
+        "productions": [
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Scalars.lean:SCSingleQuoted",
+          "L4YAML/Surface/Scalars.lean:SNbSingleChar"
+        ],
+        "obstruction": "Candidate syntax must be audited for nb-json restriction, doubled quote and context-sensitive folding.",
+        "decisive_check": "Compare literal admissibility and continuation/key restrictions with productions 117-125; retain unresolved cases explicitly."
+      },
+      {
+        "id": "plain",
+        "productions": [
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Scalars.lean:SNsPlain",
+          "L4YAML/Surface/Scalars.lean:SNsPlainFirst",
+          "L4YAML/Surface/Scalars.lean:SNsPlainChar"
+        ],
+        "obstruction": "Colon/hash lookahead, flow context and multiline termination determine source boundaries.",
+        "decisive_check": "Audit maximal source consumption and document-marker exclusion before importing plain rules into exact nodes."
+      },
+      {
+        "id": "flow-nodes-collections",
+        "productions": [
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          146,
+          147,
+          148,
+          149,
+          150,
+          151,
+          152,
+          153,
+          154,
+          155,
+          156,
+          157,
+          158,
+          159,
+          160,
+          161
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Node.lean:SFlowNode",
+          "L4YAML/Surface/Node.lean:SFlowSequence",
+          "L4YAML/Surface/Node.lean:SFlowMapping",
+          "L4YAML/Surface/Node.lean:SFlowSeqEntry",
+          "L4YAML/Surface/Node.lean:SFlowMapEntry"
+        ],
+        "obstruction": "Existing mutual grammar embeds scalar/property rules; repairing only its outer stream leaves broad children reachable.",
+        "decisive_check": "Map every entry alternative, adjacency/separation and implicit-key bound, then replace dependent node references with exact child relations."
+      },
+      {
+        "id": "block-scalars",
+        "productions": [
+          162,
+          163,
+          164,
+          165,
+          166,
+          167,
+          168,
+          169,
+          170,
+          171,
+          172,
+          173,
+          174,
+          175,
+          176,
+          177,
+          178,
+          179,
+          180,
+          181,
+          182
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Scalars.lean:SCLLiteral",
+          "L4YAML/Surface/Scalars.lean:SCLFolded",
+          "L4YAML/Surface/Scalars.lean:SCBBlockHeader"
+        ],
+        "obstruction": "Indent detection, leading empty lines, chomping/folding and trailing comment boundaries need full audit.",
+        "decisive_check": "Map all header/content alternatives; preserve source-only recognition separately from decoded-output obligations."
+      },
+      {
+        "id": "block-nodes-collections",
+        "productions": [
+          183,
+          184,
+          185,
+          186,
+          187,
+          188,
+          189,
+          190,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          199,
+          200,
+          201
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Node.lean:SBlockNode",
+          "L4YAML/Surface/Node.lean:SBlockIndented",
+          "L4YAML/Surface/Node.lean:SBlockMapEntry",
+          "L4YAML/Surface/Node.lean:SBlockSeqEntries"
+        ],
+        "obstruction": "Pending-node production gap and inherited permissive children; old Nat indentation convention requires explicit translation.",
+        "decisive_check": "Audit mutual constructor coverage and source consumption, reuse prior ParkGap diagnoses; do not insert an opaque scanner gap."
+      },
+      {
+        "id": "documents",
+        "productions": [
+          202,
+          203,
+          204,
+          205,
+          206,
+          207,
+          208,
+          209,
+          210
+        ],
+        "action": "INTERFACE_REPAIR",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Document.lean:SLDocumentPrefix",
+          "L4YAML/Surface/Document.lean:SLDocumentSuffix",
+          "L4YAML/Surface/Document.lean:SLAnyDocument"
+        ],
+        "obstruction": "Markers need context/follower legality; directives require explicit start; documents reset semantic state.",
+        "decisive_check": "Audit BOM, empty streams/docs, explicit versus bare transitions and prefix/suffix composition against the top-level production."
+      },
+      {
+        "id": "stream",
+        "productions": [
+          211
+        ],
+        "action": "REJECTED",
+        "semantic_state": "UNKNOWN",
+        "definition_candidates": [
+          "L4YAML/Surface/Document.lean:SLYamlStream",
+          "L4YAML/Surface/Document.lean:InYamlLanguage",
+          "research/whole-source/CapstoneObstructions.lean"
+        ],
+        "obstruction": "scannerDrop disconnects source; implicitContinue admits any rather than explicitly started next document.",
+        "decisive_check": "Use source-connected replacement with exact children; reuse original and repaired converse refutations to reject top-level-only repairs."
+      }
+    ],
+    "cross_cutting": [
+      {
+        "id": "API-SCOPE",
+        "action": "REUSE",
+        "refs": [
+          "L4YAML/Parser/Composition.lean:parseYaml",
+          "Blueprint/04-capstones.md:7.7"
+        ],
+        "claim": "Input boundary is Lean String and public multi-document parseYaml. Byte decoding and single-document APIs are separate claims.",
+        "state": "SOURCE_INSPECTED"
+      },
+      {
+        "id": "LOAD-LAYERS",
+        "action": "MISSING",
+        "refs": [
+          "https://yaml.org/spec/1.2.2/#33-loading-failure-points",
+          "L4YAML/Parser/Composition.lean"
+        ],
+        "claim": "Resolve exact acceptance contract for syntax/identified aliases versus schema resolution, recognized tags, key equality and application construction. Total compose mapping does not itself certify all loading semantics.",
+        "state": "UNKNOWN_SCOPE"
+      },
+      {
+        "id": "SOURCE-PARTITION",
+        "action": "REUSE",
+        "refs": [
+          "L4YAML/Proofs/Serialization/EventsOf.lean:Skeleton",
+          "L4YAML/Proofs/Serialization/EventsOf.lean:skeleton_text"
+        ],
+        "claim": "Reuse source-segment witness and reconstruction; lexical skeleton is not structural node validity.",
+        "state": "REUSE_WITH_HYPOTHESES"
+      },
+      {
+        "id": "TRACE-COHERENCE",
+        "action": "INTERFACE_REPAIR",
+        "refs": [
+          "L4YAML/Proofs/Serialization/EVENTSOF-CONCEPT.md:2-4",
+          "L4YAML/Proofs/Serialization/EventsOf.lean"
+        ],
+        "claim": "Prop derivations cannot be eliminated into arbitrary event data. Use retained data witness; existential well-formed trace cannot be substituted for the run-produced trace without coherence proof.",
+        "state": "UNKNOWN_FOR_EXACT_LANGUAGE"
+      },
+      {
+        "id": "DIRECTIVE-MULTIPLICITY",
+        "action": "INTERFACE_REPAIR",
+        "refs": [
+          "research/whole-source/DirectiveRecords.lean"
+        ],
+        "claim": "At most one YAML declaration and explicit TAG uniqueness by handle per document, including builtin overrides. Check retained records before lossy availability projection.",
+        "state": "OBSTRUCTION_AND_FRAGMENT_REPAIR_WARRANTED"
+      },
+      {
+        "id": "ALIAS-TAG-STATE",
+        "action": "REUSE",
+        "refs": [
+          "L4YAML/Proofs/Serialization/SerializationWellFormed.lean",
+          "L4YAML/Proofs/Serialization/RuntimeScopes.lean"
+        ],
+        "claim": "Reuse scoped event validity with exact source-event alignment and commit order. Name availability alone is not output graph binding fidelity.",
+        "state": "FULL_SOURCE_BRIDGE_UNKNOWN"
+      },
+      {
+        "id": "NONCIRCULARITY",
+        "action": "MISSING",
+        "refs": [
+          "L4YAML/Proofs/Serialization/EVENTSOF-CONCEPT.md:N1-N3"
+        ],
+        "claim": "Audit definition bodies/dependencies of the exact language for forbidden calls; import presence alone is neither dependence nor semantic circularity.",
+        "state": "EXACT_LANGUAGE_NOT_DEFINED"
+      },
+      {
+        "id": "FUEL",
+        "action": "INTERFACE_REPAIR",
+        "refs": [
+          "research/whole-source/SourceBridge.lean:Obligation",
+          "research/whole-source/QuotedContinuation.lean"
+        ],
+        "claim": "Produce actual source scanner success within original budget by structural progress; no assumed successful suffix.",
+        "state": "FRAGMENTS_ONLY"
+      },
+      {
+        "id": "PARSER-CONSUMER",
+        "action": "REUSE",
+        "refs": [
+          "L4YAML/Proofs/Parser/StreamCompleteness.lean:parseStream_accepts",
+          "research/whole-source/SourceBridge.lean:accepts_of_producer"
+        ],
+        "claim": "Existing parser half consumes TokenGrammar and TokenStateOk; a conditional language interface does not provide full producer.",
+        "state": "QUALIFIED_CONDITIONAL_REUSE"
+      },
+      {
+        "id": "OUTPUT",
+        "action": "MISSING",
+        "refs": [
+          "Blueprint/04-capstones.md",
+          "L4YAML/Parser/Composition.lean"
+        ],
+        "claim": "Acceptance iff does not prove scalar decoding, mapping-key uniqueness, alias graph or cycle fidelity. Keep separate existing output obligations protected; do not infer them from acceptance.",
+        "state": "SEPARATE_CLAIMS"
+      },
+      {
+        "id": "SAME-REVISION",
+        "action": "INTERFACE_REPAIR",
+        "refs": [
+          "research/whole-source/CapstoneCommentBoundary.lean",
+          "research/whole-source/obligations.json:parallel_comment_repair"
+        ],
+        "claim": "Final grammar, runtime repairs, both directions and full native controls must qualify together. Frozen production cannot meet normative iff.",
+        "state": "FROZEN_NORMATIVE_IFF_REFUTED"
+      }
+    ],
+    "source_hashes": {
+      "Blueprint/04-capstones.md": "3ac89562f38ce22efffb86cbc191ed8a4b12070980f57aced81b1d0d7797c4a9",
+      "L4YAML/Parser/Composition.lean": "54ad4f96cbc6f3a90240601663ebd901540f0f05913a3683b346a448299cb6c9",
+      "L4YAML/Proofs/Production/Acceptance/Quoted.lean": "2f0febe9eb80e9ed993351fb0622bd5bd5c5d6d159530cd704350b0a24873f7e",
+      "L4YAML/Proofs/Serialization/EVENTSOF-CONCEPT.md": "ccbf8a3aedb266fc54c7c7065b364b7356e32828da355df1566befd2c3a505b9",
+      "L4YAML/Proofs/Serialization/EventsOf.lean": "268aac21d62048715fac718a5753dc288b18146efeae9ebbb68fcb14982a31aa",
+      "L4YAML/Proofs/Serialization/SerializationWellFormed.lean": "d959ed9226c006aa86ae2dc75cd6d925511a57276b1b3a500328957fea4b494a",
+      "L4YAML/Spec/CharPredicates.lean": "cef8ba8e0fb78751bb00649f71360050742f5ea350aebfaa16c407df99697e95",
+      "L4YAML/Spec/Grammar.lean": "a7008403fc9164b3e8193654640132895f3189742869580b39a209bde18be113",
+      "L4YAML/Surface/Basic.lean": "35bf8e25b7e36c8e58ad5c3f10a459bc3c7651d5629a793372f499e832d1a7c7",
+      "L4YAML/Surface/Document.lean": "1969f51116d115f0dec9f8cb3abcda530ae6c5a468a00bb798e74dc592beeaef",
+      "L4YAML/Surface/Node.lean": "2f47901c04f276c0265f52002b1af4b7b8354d01b781e7da27ae0beac2438a38",
+      "L4YAML/Surface/Scalars.lean": "c6a33332d3c3e271496221d3f20890fd5a6a7054e2b85add7d4085c8a11bbf02",
+      "research/whole-source/CapstoneCommentBoundary.lean": "7b45f036e6c5cf5b96412dffc12ab06621d0679dbdbbca63b21c9e05177d4768",
+      "research/whole-source/CapstoneObstructions.lean": "161248879a2b7069dc1cf50d2e37d206028525d8d31734ccf1152dbfdd794f2b",
+      "research/whole-source/DirectiveBridge.lean": "29c59a7c0b728dc9680c7bc4f8f7003344aca711c43cecf4c371608c3072a0c6",
+      "research/whole-source/DirectiveRecords.lean": "417792f2db4f09a521691976232c1d0d2039899160793619922b50a78c6ac24a",
+      "research/whole-source/TagQuotedParse.lean": "769a067806d99c0d8bb459db48489b82c19c85b7fdd6ba8de323b9137294a5da"
+    },
+    "architecture": "Independent exact lexical leaves -> mutually recursive exact nodes -> exact document/stream relation; retained source segmentation and records -> coherent source serialization validity; then actual producer and same-language strictness. No runtime acceptance in definitions.",
+    "unresolved": "Concrete exact grammar is not constructed. Index accounts for numbered productions but is not a semantic coverage proof; prose requirements also matter."
   }
 }

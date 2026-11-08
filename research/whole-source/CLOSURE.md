@@ -143,3 +143,24 @@ semantic verifier: it cannot be promoted by setting a status flag. Replace that
 diagnostic only with a separately reviewed, typed full-language proof consumer
 and complete qualification. A false original theorem closes a diagnosis, not the
 project. No current result permits declaring Capstone complete.
+
+## Requirement map checkpoint
+
+The existing source-bridge-map.json now contains requirement_map: an index of
+all 211 numbered YAML 1.2.2 productions, 17 candidate definition families and 11
+cross-cutting obligations, each with a reuse/repair/missing/rejected action.
+The normative Markdown is pinned by Git blob and SHA256; the audit checks exact
+production names when supplied that file, family ownership, definition leads,
+and local source hashes. These are integrity checks, not semantic adequacy.
+
+Progress: cornerstone fixed; reuse candidates identified; complete numbered
+production index built; family semantic audit and concrete exact Lean language
+still OPEN. Cell/Lean evidence integration remains NOT STARTED. Existing parser
+and fragment receipts retain their original scopes.
+
+First unresolved scope decision: LOAD-LAYERS (spec 3.3 and schema obligations)
+versus the Group 7.7 syntax/serialization acceptance contract. Next construction
+order: exact lexical leaves, then mutually recursive exact nodes, then exact
+documents/streams. A repaired stream wrapper around old broad scalar/node
+children is already insufficient. The existing lexical Skeleton remains useful
+for source/event alignment but is not a replacement for structural syntax.

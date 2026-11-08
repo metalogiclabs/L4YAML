@@ -261,7 +261,7 @@
         "state": "WARRANTED",
         "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements."
       },
-      "next_experiment": "Construct the complete independent Lean source language and requirement-to-definition map for L4-EXACT-GRAMMAR. Reconcile governing Group 7.7 requirements, supported-source boundaries, existing Surface relations and known counterexamples. Resolve or explicitly retain UNKNOWN scope decisions; do not replace this deliverable with another acceptance fragment or a parameterized language interface.",
+      "next_experiment": "Resolve LOAD-LAYERS in requirement_map against Group 7.7 / EVENTSOF-CONCEPT and YAML 3.3: specify exact syntax/serialization acceptance scope without silently importing or excluding schema constraints. Then construct exact lexical leaves and propagate them through mutually recursive nodes before defining exact streams; do not wrap permissive existing nodes.",
       "dependencies": [
         "L4YAML/Surface/Document.lean",
         "L4YAML/Surface/Scalars.lean",
@@ -281,7 +281,16 @@
       ],
       "limits": [
         "A grammar narrowing alone is not proved equivalent to YAML or complete for runtime acceptance."
-      ]
+      ],
+      "requirement_map": "source-bridge-map.json:requirement_map",
+      "progress": {
+        "numbered_production_index": "211/211 source-pinned; not semantic coverage",
+        "audit_families": 17,
+        "cross_cutting_obligations": 11,
+        "concrete_full_language": "NOT_CONSTRUCTED",
+        "independent_semantic_coverage": "UNKNOWN",
+        "cell_lean_integration": "NOT_STARTED"
+      }
     },
     {
       "id": "L4-SERIALIZATION-STATE",
@@ -670,7 +679,7 @@
   },
   "next_experiment": {
     "id": "L4-EXACT-GRAMMAR",
-    "action": "Construct the complete independent Lean source language and requirement-to-definition map for L4-EXACT-GRAMMAR. Reconcile governing Group 7.7 requirements, supported-source boundaries, existing Surface relations and known counterexamples. Resolve or explicitly retain UNKNOWN scope decisions; do not replace this deliverable with another acceptance fragment or a parameterized language interface.",
+    "action": "Resolve LOAD-LAYERS in requirement_map against Group 7.7 / EVENTSOF-CONCEPT and YAML 3.3: specify exact syntax/serialization acceptance scope without silently importing or excluding schema constraints. Then construct exact lexical leaves and propagate them through mutually recursive nodes before defining exact streams; do not wrap permissive existing nodes.",
     "success_boundary": "Concrete full independent definition, source/serialization interpretation and audited normative coverage. A design contract, constructor census, fragment or metadata flag does not discharge this obligation."
   },
   "previous_next_experiment": {
@@ -733,5 +742,15 @@
     "fragment_policy": "DEFER until exact language is qualified, except a recorded separating experiment needed to settle a named specification ambiguity.",
     "closure_policy": "Both directions for the same concrete independent language and qualified runtime revision; no progress percentage inferred from fragment/lemma counts.",
     "epistemic_boundary": "This selection correction is not a proof result; full independent definition remains UNKNOWN."
+  },
+  "requirement_map_verification": {
+    "state": "LOCAL_INTEGRITY_CHECK_ONLY",
+    "normative_git_blob": "2f078ec32749a55b5ad961899ed0f344037260e0",
+    "commands": [
+      "python research/whole-source/coverage-audit.py --normative-source /tmp/l4yaml-normative.md",
+      "python research/whole-source/coverage-audit.py --closure"
+    ],
+    "result": "211 source production names matched exact normative blob and SHA256; 17 family assignments cover each once; candidate definition names and pinned source hashes checked. Omission, family misrouting and changed source hash controls rejected. Closure remains expected exit 2 UNKNOWN.",
+    "limits": "No new Lean theorem, semantic coverage certification, full independent language or Cell qualification. Normative source can be recovered from yaml/yaml-spec blob; /tmp is not durable authority."
   }
 }
