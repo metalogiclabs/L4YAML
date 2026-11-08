@@ -519,3 +519,29 @@ propext, Classical.choice and Quot.sound. Hosted run 42485282373, job
 128745698014, artifact 13619481418 (SHA-256
 807fb108f7028c6fc54a234a1c7300168ee11d91b1c7fab9dc814a4521d1b795).
 The separate unchanged-production job was skipped.
+
+### Public acceptance for arbitrary-length double-quoted lists
+
+Code 3c82af50256d49305fd6d86a996d906ca4762de7 proves
+`NestedSourceProducer.quoted_list_public_accepts`:
+`∀ input, QuotedListLanguage input → ∃ docs, TokenParser.parseYaml input = .ok docs`.
+The independent input relation fixes two nesting levels and permits any
+number of double-quoted entries, including an empty body and an optional
+trailing comma after a nonempty body, with the specified separation rules.
+The actual scanner yields the exact filtered token values. The body image
+derives the parser grammar and serialization state premises. The theorem
+uses only propext, Classical.choice and Quot.sound.
+
+Local Lean 4.35.0 qualification passed, including the retained positive and
+negative controls, expected RED and unchanged production identity.
+[Hosted run 42486399155](https://github.com/metalogiclabs/L4YAML/actions/runs/42486399155/job/128749115112) has state LOCAL_HARNESS_PASS_HOSTED_PASS.
+Artifact 13619163484, SHA-256 d6055677f851f99447d509f4b9cce867fe855c70add059989a54c21284b0a657.
+The separate unchanged-production job was skipped.
+
+The original converse remains refuted. Full Group 7.7 remains UNKNOWN.
+This bounded producer does not assert decoded-value fidelity or normative
+adequacy of the legacy comment character class. The next critical-path
+experiment is the exact plain-scalar source relation for [126]–[135], with
+colon, hash, flow-delimiter and multiline-key separators. Then propagate
+the audited leaves through exact recursive nodes using the scanner and parser
+interfaces checked here.
