@@ -83,7 +83,7 @@ private lemma comment_body_to_legacy {s s' : SurfPos}
 lemma comment_to_legacy {s s' : SurfPos} (h : CommentText s s') : SCNbCommentText s s' := by
   cases h with
   | mk rest col out hbody =>
-    exact SCNbCommentText.mk rest col out (comment_body_to_legacy hbody)
+    exact SCNbCommentText.mk _ _ _ (comment_body_to_legacy hbody)
 
 lemma raw_control_excluded (rest : List Char) (col : Nat) (out : SurfPos) :
     ¬ DoubleChar ⟨'\u0001' :: rest, col⟩ out := by
