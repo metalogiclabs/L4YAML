@@ -158,9 +158,42 @@ production index built; family semantic audit and concrete exact Lean language
 still OPEN. Cell/Lean evidence integration remains NOT STARTED. Existing parser
 and fragment receipts retain their original scopes.
 
-First unresolved scope decision: LOAD-LAYERS (spec 3.3 and schema obligations)
-versus the Group 7.7 syntax/serialization acceptance contract. Next construction
+LOAD-LAYERS scope resolved below; this does not establish conformance. Next construction
 order: exact lexical leaves, then mutually recursive exact nodes, then exact
 documents/streams. A repaired stream wrapper around old broad scalar/node
 children is already insufficient. The existing lexical Skeleton remains useful
 for source/event alignment but is not a replacement for structural syntax.
+
+## Acceptance boundary decision
+
+Group 7 and EVENTSOF-CONCEPT section 1 govern syntax/serialization acceptance,
+including aliases, tag-handle availability, directive validity and document
+scope. YAML 3.3 separately distinguishes complete representation, tag resolution,
+recognized/valid content, key equality and native construction. Those requirements
+remain protected separate claims; Group 7.7 must not be advertised as all loading
+correctness. No source-syntax fragment has been excluded by this decision.
+
+At the actual API, parseYaml maps total compose over parseYamlRaw success;
+Schema.Api.parseAs separately adds type conversion and SchemaError. The qualified
+AcceptanceScope theorems state exact acceptance equivalence and the mapped-output
+relationship. Controls distinguish accepted invalid integer content/duplicate
+plain keys from rejected unavailable aliases/tag handles. Both types and standard-only axiom profiles were inspected at code
+ff9e921c66a9e95bfa61e54361072a86595c92f1, run 42437972498, job 128600834976
+SUCCESS. All four native controls and retained qualification passed; full production
+job was skipped. Artifact 13600835573; SHA256
+b4cca1f04e5264f98944778c6a98f5ee8270d471bb58e470cfa901e7fb2dbe41.
+Earlier 5fc820b5/run 42437804329 failed control meta visibility despite compiled
+theorems; corrected the import without changing claims.
+
+Next construction: independent lexical leaves must distinguish c-printable from
+nb-json (YAML 5.1 explicitly permits non-C0 characters in quoted scalars for JSON
+compatibility). A blanket printable-only filter would wrongly narrow the language.
+Then propagate leaves through mutually recursive nodes and exact streams; preserve
+original source records and prove trace coherence. Full language is NOT CONSTRUCTED.
+
+Lexical audit lead: Spec/CharPredicates.isPrintableProp currently omits LF and CR
+although annotated as production [1]. This is not yet a runtime defect: Surface
+isNbChar removes breaks anyway. An exact [1] definition must include both; prove
+reuse at the non-break consumer boundary instead of importing the misleading
+whole-production name. DQCharOk/SQCharOk already use nb-json and are candidate
+leaves, not automatically full normative scalar grammars.

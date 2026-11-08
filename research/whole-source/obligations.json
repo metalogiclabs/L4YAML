@@ -679,7 +679,7 @@
   },
   "next_experiment": {
     "id": "L4-EXACT-GRAMMAR",
-    "action": "Resolve LOAD-LAYERS in requirement_map against Group 7.7 / EVENTSOF-CONCEPT and YAML 3.3: specify exact syntax/serialization acceptance scope without silently importing or excluding schema constraints. Then construct exact lexical leaves and propagate them through mutually recursive nodes before defining exact streams; do not wrap permissive existing nodes.",
+    "action": "Construct independent exact lexical leaves, starting with context-sensitive c-printable versus nb-json and Unicode escapes, and propagate them through mutually recursive nodes before exact streams. LOAD-LAYERS is resolved at the governing scope; do not add schema validation as an unstated premise or infer full loading correctness.",
     "success_boundary": "Concrete full independent definition, source/serialization interpretation and audited normative coverage. A design contract, constructor census, fragment or metadata flag does not discharge this obligation."
   },
   "previous_next_experiment": {
@@ -752,5 +752,30 @@
     ],
     "result": "211 source production names matched exact normative blob and SHA256; 17 family assignments cover each once; candidate definition names and pinned source hashes checked. Omission, family misrouting and changed source hash controls rejected. Closure remains expected exit 2 UNKNOWN.",
     "limits": "No new Lean theorem, semantic coverage certification, full independent language or Cell qualification. Normative source can be recovered from yaml/yaml-spec blob; /tmp is not durable authority."
+  },
+  "acceptance_scope": {
+    "state": "WARRANTED_API_BOUNDARY_ONLY",
+    "claim": "public parseYaml accepts iff parseYamlRaw accepts, and successful outputs are exactly raw.map compose. This locates the acceptance boundary without asserting normative compose correctness.",
+    "proof": "research/whole-source/AcceptanceScope.lean",
+    "commit": "ff9e921c66a9e95bfa61e54361072a86595c92f1",
+    "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42437972498",
+    "controls": [
+      "accept !!int not-an-integer",
+      "accept {a: 1, a: 2}",
+      "reject *missing",
+      "reject !missing!item value"
+    ],
+    "remaining": "Exact grammar and full same-revision iff UNKNOWN. Complete representation/key equality/schema and native conversion are separate protected requirements.",
+    "failed_attempts": [
+      {
+        "commit": "5fc820b571029cf426f349bf3b96b0918e26f35e",
+        "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42437804329",
+        "result": "Both theorem types compiled with standard axioms only, but all four #guard evaluations failed meta visibility. Added public meta import Composition; no statement change. Whole candidate remains rejected as qualification."
+      }
+    ],
+    "job": 128600834976,
+    "artifact": 13600835573,
+    "artifact_sha256": "b4cca1f04e5264f98944778c6a98f5ee8270d471bb58e470cfa901e7fb2dbe41",
+    "verification": "Two exact universal theorem types inspected; transitive axioms only propext, Classical.choice, Quot.sound. Four native separating controls pass; unchanged retained controls, expected RED, inventory and frozen-source pre/post guard pass. Full production job skipped; full grammar/iff not established."
   }
 }

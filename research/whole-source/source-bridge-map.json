@@ -2585,13 +2585,19 @@
       },
       {
         "id": "LOAD-LAYERS",
-        "action": "MISSING",
+        "action": "REUSE",
         "refs": [
+          "Blueprint/04-capstones.md:Group 7",
+          "L4YAML/Proofs/Serialization/EVENTSOF-CONCEPT.md:1",
           "https://yaml.org/spec/1.2.2/#33-loading-failure-points",
-          "L4YAML/Parser/Composition.lean"
+          "L4YAML/Parser/Composition.lean:parseYaml",
+          "L4YAML/Schema/Api.lean:parseAs",
+          "research/whole-source/AcceptanceScope.lean"
         ],
-        "claim": "Resolve exact acceptance contract for syntax/identified aliases versus schema resolution, recognized tags, key equality and application construction. Total compose mapping does not itself certify all loading semantics.",
-        "state": "UNKNOWN_SCOPE"
+        "claim": "Group 7.7 is source syntax plus identified aliases/scoped tag handles and directive validity, over Lean String. It does not certify complete representation, schema content/key equality, or native-type construction. Those remain protected separate claims, not discarded requirements.",
+        "state": "SCOPE_RESOLVED_API_BOUNDARY_QUALIFIED",
+        "decision_evidence": "The governing corrected theorem explicitly separates ExactSurfaceLanguage and SerializationWellFormed. parseYaml maps total compose over parseYamlRaw success; parseAs separately introduces SchemaError. Source inspection determines the claim boundary, not normative conformance.",
+        "verification": "ff9e921c66a9e95bfa61e54361072a86595c92f1 / Actions 42437972498 / job 128600834976 SUCCESS. Two universal API theorems, standard axioms only; four controls passed. This does not certify exact grammar or loading conformance."
       },
       {
         "id": "SOURCE-PARTITION",
