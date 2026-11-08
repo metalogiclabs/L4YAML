@@ -460,3 +460,28 @@ use only propext, Classical.choice and Quot.sound. Hosted run 42482837905,
 job 128738327296, artifact 13617744904 (SHA-256
 ebcf67c9290cca2fb34484f4dd9018e696b35e66d24d6c8d24b160ccea35f12d).
 The separate unchanged-production job was skipped.
+
+### Empty and trailing-comma quoted flow sequences
+
+Code 58614863d4571d6c1989582cd979ec8018f2ff69 adds independent empty and
+trailing-comma constructors. The recursive comma constructor requires a
+nonempty remaining list, so a leading comma cannot be derived as an empty
+entry. The actual nested scanner chain takes two steps for an empty
+sequence, or `1 + 2*n + trailing.toNat` for `n > 0`. It retains the exact
+source suffix, enclosing flow depth and key saved by the opener. Controls
+check an empty sequence with a CRLF comment, a two-entry trailing-comma
+sequence with comments around the final comma, and the scanner's specific
+`invalidFlowEntry` error for a leading comma.
+
+This remains a double-quoted-entry fragment at negative scanner indentation,
+with the prior opener line premises. Next, generalize the quoted child step
+to single-quoted and mixed entries without duplicating the list induction.
+Other entry forms, enclosing block indentation and final token-grammar
+production remain open. Full Group 7.7 remains UNKNOWN.
+
+Local and hosted whole-source proof/control qualification passed with
+source identity retained. The extended list theorem uses only propext,
+Classical.choice and Quot.sound. Hosted run 42484527343, job 128743380011,
+artifact 13619210561 (SHA-256
+a68218c3f7662cb6c8484d5df5f0f6a45d21113feba9eaa1a16d9caee7afbd8b).
+The separate unchanged-production job was skipped.
