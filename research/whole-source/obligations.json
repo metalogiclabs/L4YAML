@@ -193,6 +193,16 @@
       "boundary": "Independent nonempty list of double-quoted entries immediately after opener and commas, with arbitrary modelled separation before commas and close, at the negative scanner indentation floor. Actual 1 + 2*n steps, exact suffix, restored saved parent key. Whole-source proof/control harness only.",
       "artifact": 13617548705,
       "artifact_sha256": "5e307b067f3d44c0380ab0b0fa4d4241df6718c4a827fe6bd54f809c34c9f409"
+    },
+    "flow_quoted_leading_separation": {
+      "commit": "5da7fb4e0c56a8a1bdbb5d25a29465a700bf6638",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42482837905",
+      "job": 128738327296,
+      "state": "LOCAL_HARNESS_PASS_HOSTED_PASS",
+      "local_module_log_sha256": "08ecb54485090e70c85b03ab786ce2569200d929a8d218d206bdd97f494499ae",
+      "boundary": "Nonempty double-quoted lists with grammar-derived separation before and after commas and after the opener, at negative scanner indentation. Actual 1 + 2*n steps, exact suffix, restored saved parent key. Whole-source proof/control harness only.",
+      "artifact": 13617744904,
+      "artifact_sha256": "ebcf67c9290cca2fb34484f4dd9018e696b35e66d24d6c8d24b160ccea35f12d"
     }
   },
   "obligations": [
@@ -803,11 +813,11 @@
       "source_boundary": "Frozen legacy Scanner.scanFiltered and TokenParser.parseYaml at 64795a8db28ccfdae85082c93b6453001ae9d3e4. Local conditional lemma nested_sequence_scans starts already in flow with a negative current indent and same-line token premises.",
       "requirement": "Group 7.7 completeness and YAML 1.2.2 [137]\u2013[139], [150], [154]\u2013[155].",
       "state": "UNKNOWN",
-      "obligation_state": "NONEMPTY_QUOTED_ENTRIES_CHECKED_GENERAL_ENTRIES_OPEN",
+      "obligation_state": "QUOTED_LIST_LEADING_SEPARATION_CHECKED_GENERAL_ENTRIES_OPEN",
       "obstruction": "A child-to-parent handoff must account for a reserved token slot updated by a later colon, and valid multiline children can violate the emitter's whole-array line invariant.",
       "diagnosis": {
         "state": "LOCAL_EXECUTABLE_CHECKS",
-        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions. Both nested close lemmas now compile without the whole-array same-line hypothesis. The bare-LF lemma derives the actual landing from source, restores the saved simple key and preserves every pre-close token slot. The new FlowCloseSeparation induction handles arbitrary space/tab runs, LF/CRLF/lone CR, and comment lines after inline separation or at column zero. It derives the actual skipToContent landing at the closing bracket from source grammar and preserves the close guarantees. The independently derived SCDoubleQuotedOk child preserves the parent key stack and token prefix; composing its actual scanner step with the opener and grammar-derived close produces a three-step chain with exact suffix and restored opener key. A generic non-comment separation landing and actual comma transition support induction on a source-defined nonempty list of quoted entries, with exact step count and parent key restoration."
+        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions. Both nested close lemmas now compile without the whole-array same-line hypothesis. The bare-LF lemma derives the actual landing from source, restores the saved simple key and preserves every pre-close token slot. The new FlowCloseSeparation induction handles arbitrary space/tab runs, LF/CRLF/lone CR, and comment lines after inline separation or at column zero. It derives the actual skipToContent landing at the closing bracket from source grammar and preserves the close guarantees. The independently derived SCDoubleQuotedOk child preserves the parent key stack and token prefix; composing its actual scanner step with the opener and grammar-derived close produces a three-step chain with exact suffix and restored opener key. A generic non-comment separation landing and actual comma transition support induction on a source-defined nonempty list of quoted entries, with exact step count and parent key restoration. The quote landing now derives leading whitespace and comment separation in the same actual scanner transition, including column zero, and the list induction retains its exact step count."
       },
       "dependencies": [
         "research/whole-source/SourceBridge.lean:Obligation",
@@ -817,16 +827,18 @@
         "L4YAML/Proofs/Output/EmitterScannability/ScannerAcceptance.lean:SimpleKeyAboveFloor",
         "research/whole-source/FlowSeparationLanding.lean:nested_close_after_grammar_separation",
         "research/whole-source/FlowQuotedChild.lean:nested_sequence_quoted_entry",
-        "research/whole-source/FlowQuotedEntries.lean:nested_sequence_quoted_entries"
+        "research/whole-source/FlowQuotedEntries.lean:nested_sequence_quoted_entries",
+        "research/whole-source/FlowQuotedChild.lean:quoted_child_after_separation"
       ],
-      "next_experiment": "Use the generic separation landing at the quoted opener to remove the immediate-quote restriction after opening brackets and commas. Then connect the list induction to additional entry forms and the existing surface constructors, keeping parent stack preservation separate from mutable key slots.",
+      "next_experiment": "Complete the empty and trailing-comma branches of the quoted flow sequence fragment. Reuse the grammar-derived comma and close, with a source-indexed step count that includes the optional final comma. Then lift the entry producer beyond double-quoted children.",
       "verification": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate.",
       "receipts": [
         "flow_producer_case",
         "flow_close_landing",
         "flow_separation_landing",
         "flow_quoted_child",
-        "flow_quoted_entries"
+        "flow_quoted_entries",
+        "flow_quoted_leading_separation"
       ],
       "failed_experiments": [
         {
@@ -849,7 +861,7 @@
         "The local wrapper does not prove token grammar, token state validity or sufficient production fuel.",
         "Separation is proved from FlowCloseSeparation at the negative indentation floor. Block-enclosed flow needs its indentation proof. CommentCharOk is the existing non-break class, and this proof does not assert full normative grammar equivalence. Arbitrary child scanning and token grammar remain open.",
         "The three-step result covers one double-quoted child immediately after the opener. Opening separation, multiple entries, other child forms, flow-pair key rewrites and block-enclosed indentation remain open.",
-        "Arbitrary list length now proved for double-quoted entries with immediate quote after opener and comma. Leading separation, trailing comma, other entry forms, enclosing block indentation and final token-grammar production remain open."
+        "Arbitrary list length and leading/trailing separation proved for nonempty double-quoted entries without a trailing comma. Empty and trailing-comma sequences, other entry forms, enclosing block indentation and final token-grammar production remain open."
       ]
     }
   ],
@@ -925,8 +937,8 @@
   },
   "next_experiment": {
     "id": "L4-FLOW-RECURSIVE-HANDOFF",
-    "action": "Use the generic separation landing at the quoted opener to remove the immediate-quote restriction after opening brackets and commas. Then connect the list induction to additional entry forms and the existing surface constructors, keeping parent stack preservation separate from mutable key slots.",
-    "success_boundary": "Derive leading separation from source grammar, use actual scanner preprocessing at the quote, and replay a list with comments and line breaks on both sides of a comma. Keep the exact suffix and restored parent key."
+    "action": "Complete the empty and trailing-comma branches of the quoted flow sequence fragment. Reuse the grammar-derived comma and close, with a source-indexed step count that includes the optional final comma. Then lift the entry producer beyond double-quoted children.",
+    "success_boundary": "An independently derived empty sequence or nonempty quoted list with an optional trailing comma yields an actual scanner chain, exact suffix and parent key restoration, with a control rejecting a leading comma."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",

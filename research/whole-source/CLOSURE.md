@@ -437,3 +437,26 @@ Classical.choice and Quot.sound. Hosted run 42481966433, job 128735655243,
 artifact 13617548705 (SHA-256
 5e307b067f3d44c0380ab0b0fa4d4241df6718c4a827fe6bd54f809c34c9f409).
 The separate unchanged-production job was skipped.
+
+### Leading separation before quoted entries
+
+Code 5da7fb4e0c56a8a1bdbb5d25a29465a700bf6638 derives the opening quote's
+landing from independent separation grammar. It equates preprocessing before
+and after that landing and transports the two pre-unwind guards using preserved
+tokens, indentation, and flow depth. The actual scan takes one transition,
+including when the quote is at column zero. The quoted-list induction now
+allows whitespace, line breaks and properly introduced comments after the
+opening bracket and on either side of commas, and retains the exact
+`1 + 2*n` step count, source suffix and saved parent key.
+
+The executable control exercises three entries, comments on both sides of
+commas and column-zero quotes after line breaks. Empty or trailing-comma
+sequences, other entry forms, block-enclosed indentation, the opener's line
+premises and final token-grammar production remain outside this proof.
+
+Local and hosted whole-source proof/control qualification passed with
+source identity retained. The leading-separation lemma and list theorem
+use only propext, Classical.choice and Quot.sound. Hosted run 42482837905,
+job 128738327296, artifact 13617744904 (SHA-256
+ebcf67c9290cca2fb34484f4dd9018e696b35e66d24d6c8d24b160ccea35f12d).
+The separate unchanged-production job was skipped.
