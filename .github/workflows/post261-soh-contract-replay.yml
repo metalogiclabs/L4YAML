@@ -12,9 +12,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 3
       - name: Qualify exact upstream parent
         run: |
-          test "$(git rev-parse HEAD^)" = "eda4d00770bd72e8df2c2611add334a56972c500"
+          git merge-base --is-ancestor eda4d00770bd72e8df2c2611add334a56972c500 HEAD
+          test "$(git diff --name-only eda4d00770bd72e8df2c2611add334a56972c500 HEAD)" = ".github/workflows/post261-soh-contract-replay.yml"
           test "$(cat lean-toolchain)" = "leanprover/lean4:v4.35.0"
       - name: Install pinned Lean
         run: |
