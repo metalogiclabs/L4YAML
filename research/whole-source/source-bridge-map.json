@@ -987,7 +987,7 @@
       "scope": "Source-connected event-factorization impossibility for directive multiplicity; source-refinement reconstruction and per-document composition; 15 profiles limited to propext/Classical.choice/Quot.sound. Retained controls, inventory, expected RED and source identity pass. Full production skipped."
     },
     "state": "WARRANTED_NECESSARY_CONDITION_AND_EVENT_OBSTRUCTION",
-    "remaining": "Generic extraction agreement with valid directive syntax and actual scanner correspondence"
+    "remaining": "Generic extraction agreement and initial dispatcher connection discharged by directive_record_scanner_bridge; arbitrary directive-block correspondence remains UNKNOWN."
   },
   "directive_record_scanner_bridge": {
     "module": "DirectiveRecordBridge.lean",
@@ -1000,6 +1000,24 @@
       "scope": "General retained TAG handle extraction agrees with independent TagDirective and actual scanner token; actual initial scanNextToken success with exact landing and token append. Five strict profiles use only propext/Classical.choice/Quot.sound. Retained controls, expected RED, census and source identity passed; full production job skipped."
     },
     "state": "WARRANTED_GENERAL_TAGDIRECTIVE_INITIAL_DISPATCH",
-    "remaining": "Compose actual scanNextToken steps for an independently specified directive block, preserving record/token agreement and scanner entry invariants; then connect document marker, existing quoted body and EOF. Do not assume intermediate scanner success or substitute a separate directive interpreter."
+    "remaining": "Single TAG-to-marker-to-empty-EOF scanner composition now discharged by tag_marker_composition. Arbitrary directive blocks, nonempty bodies, and full producer remain UNKNOWN."
+  },
+  "tag_marker_composition": {
+    "module": "TagDocument.lean",
+    "receipt": {
+      "commit": "f8230266f9ad67daebddd218b15b5937d00c8ec2",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42430900091",
+      "job": 128579338120,
+      "artifact": 13597755484,
+      "artifact_sha256_reported": "5c32c6ca5d7c2829cae95126013fb96f61442cb325f1f132581f33e2d4a5e374",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "scope": "General clean-token marker interface and original-source TAG continuation; TAG/marker/empty-body scanner completion with exact token image and original fuel. Four strict profiles and retained controls, expected RED, inventory and source identity passed. Full production job skipped."
+    },
+    "state": "WARRANTED_ORIGINAL_SCANNER_CONTINUATION_AND_EMPTY_BODY",
+    "remaining": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction."
   }
 }

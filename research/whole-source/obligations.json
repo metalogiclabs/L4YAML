@@ -90,6 +90,19 @@
       "artifact": 13597217384,
       "artifact_sha256_reported": "6d63e5808515f56a7ec249898797bdcda93f6ef6556a8ebb8f0e79ea99df1a51",
       "scope": "General retained TAG handle extraction agrees with independent TagDirective and actual scanner token; actual initial scanNextToken success with exact landing and token append. Five strict profiles use only propext/Classical.choice/Quot.sound. Retained controls, expected RED, census and source identity passed; full production job skipped."
+    },
+    "tag_marker_eof": {
+      "commit": "f8230266f9ad67daebddd218b15b5937d00c8ec2",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42430900091",
+      "job": 128579338120,
+      "artifact": 13597755484,
+      "artifact_sha256_reported": "5c32c6ca5d7c2829cae95126013fb96f61442cb325f1f132581f33e2d4a5e374",
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "scope": "General clean-token marker interface and original-source TAG continuation; TAG/marker/empty-body scanner completion with exact token image and original fuel. Four strict profiles and retained controls, expected RED, inventory and source identity passed. Full production job skipped."
     }
   },
   "obligations": [
@@ -330,7 +343,7 @@
         "state": "WARRANTED",
         "evidence": "Bounded proofs and refutations separate necessary repairs; no full theorem exists at this source."
       },
-      "next_experiment": "On a separate source-changing repair branch, test comment-character validation at the actual comment consumer, including directive-trailing comments, while retaining escaped-control acceptance. Qualify changed source and full protected tests before any promotion.",
+      "next_experiment": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction. Normative comment repair remains separately tracked and unqualified.",
       "dependencies": [
         "L4-EXACT-GRAMMAR",
         "L4-SERIALIZATION-STATE",
@@ -443,7 +456,7 @@
         "state": "REJECTED_AS_REMAINING_OBSTRUCTION_FOR_THIS_BOUNDARY",
         "evidence": "extract_of_tagDirective, scanner_record_agreement and original_dispatch_record_agreement compile with strict axiom profiles."
       },
-      "next_experiment": "Compose actual scanNextToken steps for an independently specified directive block, preserving record/token agreement and scanner entry invariants; then connect document marker, existing quoted body and EOF. Do not assume intermediate scanner success or substitute a separate directive interpreter.",
+      "next_experiment": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction.",
       "dependencies": [
         "DirectiveRecordBridge.lean",
         "DirectiveRecords.lean",
@@ -474,6 +487,49 @@
         "One initial scanner step, not a complete document or arbitrary-length directive run.",
         "No full YAML completeness or production conformance claim."
       ]
+    },
+    {
+      "id": "L4-TAG-MARKER-EOF",
+      "claim": "Every independent TagDirective on the original input ending immediately before LF/---/LF/EOF yields actual scanFiltered success with exactly streamStart, corresponding tagDirective, documentStart, streamEnd. With arbitrary remaining body, actual scan equals scanLoop at the source-connected post-marker state and original fuel minus two.",
+      "source_boundary": "64795a8db28ccfdae85082c93b6453001ae9d3e4",
+      "requirement": "SourceBridge source-connected scanner producer; syntax is DirectiveBridge.TagDirective, not scanner acceptance.",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED_SCANNER_FRAGMENT_ONLY",
+      "obstruction": "Version-specific marker interface blocked reuse after TAG directives; EOF existential token witness required explicit construction.",
+      "diagnosis": {
+        "state": "REJECTED_AS_REMAINING_OBSTRUCTION_FOR_THIS_BOUNDARY",
+        "evidence": "full_step_after_clean_landing/state, tag_scan_continuation and tag_empty_document_scans compiled with four strict standard-axiom profiles. Exact EOF token witness resolved elaboration without changing statement."
+      },
+      "next_experiment": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction.",
+      "dependencies": [
+        "DirectiveStep.lean",
+        "DirectiveRecordBridge.lean",
+        "DirectiveEOF.lean",
+        "DirectiveEntry.lean",
+        "TagDocument.lean"
+      ],
+      "verification": "Pinned Lean 4.35.0; exact printed theorem types; four strict transitive axiom profiles; retained native controls and expected RED; pre/post unchanged production source identity.",
+      "receipts": [
+        "tag_marker_eof"
+      ],
+      "failed_experiments": [
+        {
+          "commit": "295b6c4c10cc51748ea55042d545d9a84bf490fa",
+          "run": 42430675677,
+          "job": 128578651610,
+          "reason": "Existential filtered token array could not be inferred. Marker and continuation profiles compiled, but EOF theorem acquired recovery sorryAx and strict gate rejected it. Provide the exact filtered production token array; statement unchanged."
+        }
+      ],
+      "unlocks": [
+        "Reusable marker transition after any clean token prefix",
+        "Nonempty-body composition from actual post-marker state"
+      ],
+      "limits": [
+        "One TAG directive and LF marker boundary; no trailing comments or arbitrary directive block.",
+        "EOF theorem establishes scanner acceptance and exact token values, not parser acceptance or composed output.",
+        "No full YAML completeness, normative strictness, or fresh full-production regression."
+      ],
+      "reuse": "REUSABLE"
     }
   ],
   "environment_failures": [
@@ -547,9 +603,9 @@
     ]
   },
   "next_experiment": {
-    "id": "L4-SOURCE-CONNECTED-DIRECTIVES",
-    "action": "Compose actual scanNextToken steps for an independently specified directive block, preserving record/token agreement and scanner entry invariants; then connect document marker, existing quoted body and EOF. Do not assume intermediate scanner success or substitute a separate directive interpreter.",
-    "success_boundary": "Fragment only; full independent source grammar and producer remain UNKNOWN. Completeness and strictness for the same language must be separately proved."
+    "id": "L4-POST-MARKER-QUOTED-COMPOSITION",
+    "action": "Generalize QuotedPublic.source_quoted_scanNextToken_init to a reachable post-marker state with a preserved token prefix, then consume the state supplied by TagDocument.tag_scan_continuation. Derive safety checks and original remaining-fuel adequacy; do not assume suffix scan success. This tests reusable nonempty-body composition before arbitrary directive-block induction.",
+    "success_boundary": "Independently grammatical TAG/marker/quoted-body source yields actual full-source scanner tokens and independent token/state premises. Fragment only; full same-language iff remains UNKNOWN."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",
