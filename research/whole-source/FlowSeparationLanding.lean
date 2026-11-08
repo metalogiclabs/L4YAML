@@ -215,7 +215,10 @@ lemma nested_close_after_grammar_separation (s : ScannerState) (tail : List Char
       ScannerSurfCorr final ⟨tail, col + 1⟩ ∧ final.flowLevel = s.flowLevel - 1 ∧
       final.simpleKeyStack = s.simpleKeyStack.pop ∧
       final.simpleKey = s.simpleKeyStack.back?.getD {} ∧
-      (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) := by
+      (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) ∧
+      final.flowStack = s.flowStack.pop ∧ final.indents = s.indents ∧
+      final.directivesPresent = false ∧
+      filteredValues final.tokens = filteredValues s.tokens ++ [.flowSequenceEnd] := by
   have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
   obtain ⟨land, hSkip, hLand⟩ := skip_flow_separation s ']' tail col
     hSource hGrammar hFlow hIndent (by decide) (by decide) (by decide) (by decide)

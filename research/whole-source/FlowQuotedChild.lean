@@ -12,6 +12,7 @@ namespace MathGraph.WholeSource.FlowQuotedChild
 open L4YAML L4YAML.Scanner L4YAML.Surface
 open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.Acceptance
 open L4YAML.Proofs.EmitterScannability L4YAML.Proofs.FlowAdjacency
+open MathGraph.WholeSource.FlowCloseLanding
 
 lemma quoted_child_step (s : ScannerState) {start stop : SurfPos}
     (hSource : ScannerSurfCorr s start) (hQuote : SCDoubleQuotedOk start stop)
@@ -23,7 +24,8 @@ lemma quoted_child_step (s : ScannerState) {start stop : SurfPos}
       child.indents = s.indents ∧ child.directivesPresent = false ∧
       child.simpleKeyStack = s.simpleKeyStack ∧ s.tokens.size ≤ child.tokens.size ∧
       (∀ i, i < s.tokens.size → child.tokens[i]? = s.tokens[i]?) ∧
-      (∃ value, lastRealTokenVal? child.tokens = some (.scalar value .doubleQuoted)) := by
+      (∃ value, lastRealTokenVal? child.tokens = some (.scalar value .doubleQuoted) ∧
+        filteredValues child.tokens = filteredValues s.tokens ++ [.scalar value .doubleQuoted]) := by
   have hOpen : ∃ rest, start.chars = '"' :: rest := by
     rcases hQuote with ⟨_, _, _, hOpen, _, _⟩
     cases hOpen
@@ -108,9 +110,11 @@ lemma quoted_child_step (s : ScannerState) {start stop : SurfPos}
       ite_eq_right (by omega : i ≠ pp.tokens.size),
       Array.getElem?_eq_getElem hPPBound, Array.getElem?_eq_getElem hi]
     exact congrArg some (L4YAML.Proofs.ScannerCorrectness.saveSimpleKey_preserves_prefix s i hi)
-  · refine ⟨value, ?_⟩
-    rw [hChildTokens, hTokens]
-    exact lastRealTokenVal_push_non_ph _ _ (by simp)
+  · refine ⟨value, ?_, ?_⟩
+    · rw [hChildTokens, hTokens]
+      exact lastRealTokenVal_push_non_ph _ _ (by simp)
+    · rw [hChildTokens, hTokens, filteredValues_push _ _ (by simp), hAdTokens]
+      exact congrArg (· ++ [.scalar value .doubleQuoted]) (filteredValues_saveSimpleKey s)
 
 open MathGraph.WholeSource.FlowSeparationLanding
 
@@ -127,7 +131,8 @@ lemma quoted_child_after_separation (s : ScannerState) {start quote stop : SurfP
       child.indents = s.indents ∧ child.directivesPresent = false ∧
       child.simpleKeyStack = s.simpleKeyStack ∧ s.tokens.size ≤ child.tokens.size ∧
       (∀ i, i < s.tokens.size → child.tokens[i]? = s.tokens[i]?) ∧
-      (∃ value, lastRealTokenVal? child.tokens = some (.scalar value .doubleQuoted)) := by
+      (∃ value, lastRealTokenVal? child.tokens = some (.scalar value .doubleQuoted) ∧
+        filteredValues child.tokens = filteredValues s.tokens ++ [.scalar value .doubleQuoted]) := by
   have hOpen : ∃ rest, quote.chars = '"' :: rest := by
     rcases hQuote with ⟨_, _, _, hopen, _, _⟩
     cases hopen
@@ -153,7 +158,7 @@ lemma quoted_child_after_separation (s : ScannerState) {start quote stop : SurfP
     unfold scanNextToken_preprocess
     rw [hSkip, hPark]
   have hStep := scanNextToken_eq_of_preprocess s land hPre
-  obtain ⟨child, hScan, hChild, hDepth, hStack, hChildIndents, hDP, hKeys, hSize, hPrefix, hLast⟩ :=
+  obtain ⟨child, hScan, hChild, hDepth, hStack, hChildIndents, hDP, hKeys, hSize, hPrefix, value, hLast, hEffect⟩ :=
     quoted_child_step land hLand hQuote hLandFlow hLandIndent
       ((L4YAML.Proofs.ScanStrictCoupling.skipToContent_dp s land hSkip).trans hDirectives)
       (by simpa only [hTokens] using hPrevious)
@@ -161,7 +166,7 @@ lemma quoted_child_after_separation (s : ScannerState) {start quote stop : SurfP
     hStack.trans (L4YAML.Proofs.ScannerFlowStack.skipToContent_preserves_flowStack s land hSkip),
     hChildIndents.trans hIndents, hDP,
     hKeys.trans (L4YAML.Proofs.ScannerCorrectness.skipToContent_preserves_simpleKeyStack s land hSkip),
-    by simpa only [hTokens] using hSize, by simpa only [hTokens] using hPrefix, hLast⟩
+    by simpa only [hTokens] using hSize, by simpa only [hTokens] using hPrefix, value, hLast, by simpa only [hTokens] using hEffect⟩
 
 /-- The child and close are two actual scanner steps. The pending key restored
 by the close is the one saved before scanning the child. -/
@@ -178,21 +183,28 @@ lemma quoted_child_and_close (s : ScannerState) {start quote stop : SurfPos}
       final.flowLevel = s.flowLevel - 1 ∧
       final.simpleKeyStack = s.simpleKeyStack.pop ∧
       final.simpleKey = s.simpleKeyStack.back?.getD {} ∧
-      (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) := by
+      (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) ∧
+      final.flowStack = s.flowStack.pop ∧ final.indents = s.indents ∧
+      final.directivesPresent = false ∧
+      (∃ value, filteredValues final.tokens =
+        filteredValues s.tokens ++ [.scalar value .doubleQuoted, .flowSequenceEnd]) := by
   have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
-  obtain ⟨child, hStep, hChildSource, hLevel, hStack, hIndents, hDP, hKeys, hSize, hPrefix, _⟩ :=
+  obtain ⟨child, hStep, hChildSource, hLevel, hStack, hIndents, hDP, hKeys, hSize, hPrefix, value, _, hEffect⟩ :=
     quoted_child_after_separation s hSource hLeading hQuote hFlow hIndent hDirectives hPrevious
   have hChildIndent : child.currentIndent < 0 := by
     simpa only [ScannerState.currentIndent, hIndents] using hIndent
-  obtain ⟨final, hClose, hTail, hFinalLevel, hFinalStack, hFinalKey, hFinalPrefix⟩ :=
+  obtain ⟨final, hClose, hTail, hFinalLevel, hFinalStack, hFinalKey, hFinalPrefix, hFinalFlowStack, hFinalIndents, hFinalDP, hCloseEffect⟩ :=
     nested_close_after_grammar_separation child tail col hChildSource hSeparation
       (hLevel ▸ hDepth) (hStack ▸ hKind) hChildIndent hDP
   refine ⟨final, (ScanChain.single hStep).trans (ScanChain.single hClose), hTail,
     hFinalLevel.trans (congrArg (· - 1) hLevel),
     hFinalStack.trans (congrArg Array.pop hKeys),
-    hFinalKey.trans (congrArg (·.back?.getD {}) hKeys), ?_⟩
-  intro i hi
-  exact (hFinalPrefix i (Nat.lt_of_lt_of_le hi hSize)).trans (hPrefix i hi)
+    hFinalKey.trans (congrArg (·.back?.getD {}) hKeys), ?_,
+    hFinalFlowStack.trans (congrArg Array.pop hStack), hFinalIndents.trans hIndents, hFinalDP, value, ?_⟩
+  · intro i hi
+    exact (hFinalPrefix i (Nat.lt_of_lt_of_le hi hSize)).trans (hPrefix i hi)
+  · rw [hCloseEffect, hEffect, List.append_assoc]
+    rfl
 
 /-- One nested sequence containing a double-quoted entry. The three steps
 include the opening bracket that saves the exact key later restored. -/

@@ -1,6 +1,6 @@
 module
 
-public import FlowTokenBridge
+public import FlowQuotedEntries
 public import SourceBridge
 public import QuotedPair
 import all L4YAML.Proofs.Serialization.TokenEvents
@@ -144,6 +144,102 @@ lemma producer : MathGraph.WholeSource.SourceBridge.Obligation Language := by
 lemma public_accepts (input : String) (h : Language input) :
     ∃ docs, TokenParser.parseYaml input = .ok docs :=
   MathGraph.WholeSource.SourceBridge.accepts_of_producer producer input h
+
+open MathGraph.WholeSource.FlowCloseLanding MathGraph.WholeSource.FlowQuotedEntries
+
+/-- A compact outer sequence containing one inner sequence whose quoted
+entries, separators, and optional trailing comma are specified by source rules. -/
+def QuotedListLanguage (input : String) : Prop :=
+  ∃ body col n trailing, input.toList = '[' :: '[' :: body ∧
+    QuotedEntries [']'] col n trailing ⟨body, 2⟩
+
+private lemma body_no_props {body : List YamlToken} (hImage : QuotedBodyImage body) :
+    ∀ v ∈ body, v.isNodeProperty = false := by
+  induction hImage with
+  | empty => simp
+  | single value => simp [YamlToken.isNodeProperty]
+  | more value _ ih =>
+    intro v hv
+    simp only [List.mem_cons] at hv
+    rcases hv with rfl | rfl | hv
+    · rfl
+    · rfl
+    · exact ih v hv
+
+lemma nested_quoted_list_scan (input : String) (h : QuotedListLanguage input) :
+    ∃ ts body, Scanner.scanFiltered input = .ok ts ∧ QuotedBodyImage body ∧
+      ts.toList.map (·.val) = [.streamStart, .flowSequenceStart, .flowSequenceStart] ++
+        body ++ [.flowSequenceEnd, .flowSequenceEnd, .streamEnd] := by
+  obtain ⟨source, col, n, trailing, hStart, hEntries⟩ := h
+  let init := (ScannerState.mk' input).emit .streamStart
+  obtain ⟨outer, ho, hco, hlo, hdo, hio, hcolo, hfo, hindo, _, hlineo, hAllo, hEndo,
+    _, hto, _, _, _, hLasto, hKindo⟩ := scanNextToken_flow_open_init input ('[' :: source) hStart
+  have hOuterValues : filteredValues outer.tokens = [.streamStart, .flowSequenceStart] := by
+    unfold filteredValues
+    rw [← Array.toList_map, hto]
+  obtain ⟨closed, hc, hcc, hlc, _, _, hStack, hIndents, hDP, body, hImage, hValues⟩ :=
+    nested_sequence_quoted_entries outer source [']'] col n trailing hco
+      (by simpa only [hcolo] using hEntries) (by omega) hindo (by omega)
+      (by rwa [hlineo]) hEndo hdo hLasto
+  have hfC : closed.inFlow = true := by simpa only [ScannerState.inFlow, hlc] using hfo
+  have hKindC := hStack.symm ▸ hKindo
+  have hindC : closed.currentIndent < 0 := by simpa only [ScannerState.currentIndent, hIndents] using hindo
+  have hIdC : closed.indents = #[{column := -1, isSequence := false}] := hIndents.trans hio
+  have hLevelC : closed.flowLevel = 1 := hlc.trans hlo
+  have hColEq : closed.col = col + 1 := hcc.col_eq.symm
+  have hColC : closed.col > 0 := by omega
+  have hClosedSource : ScannerSurfCorr closed ⟨[']'], closed.col⟩ := hColEq.symm ▸ hcc
+  obtain ⟨final, hz, hfz, hdz, hpz, hiz, tokLast, hTokLast, hPushLast⟩ :=
+    scanNextToken_flow_close_seq_outermost_ext closed hClosedSource hfC hindC hColC hLevelC hDP hKindC
+  obtain ⟨checked, hz', _, _, _, hDangling, hIndent⟩ :=
+    scanNextToken_flow_close_seq_outermost closed hClosedSource hfC hindC hColC hLevelC hDP hKindC hIdC
+      (no_props_of_filtered_pin_list hValues (by
+        intro v hv
+        rw [hOuterValues] at hv
+        simp at hv
+        rcases hv with rfl | rfl | hv | rfl
+        all_goals first | rfl | exact body_no_props hImage _ hv))
+  have hSame : checked = final := Option.some.inj (Except.ok.inj (hz'.symm.trans hz))
+  subst checked
+  have hEOF := scanNextToken_eof final hpz
+  have hChain := (ScanChain.single ho).trans (hc.trans (ScanChain.single hz))
+  have hNoBOM : (ScannerState.mk' input).peek? ≠ some '\uFEFF' := by
+    have hSource := initial_corr input input.toList (chars_from_zero_toList input)
+    rw [hStart] at hSource
+    rw [(peek_of_corr hSource).1]
+    decide
+  have hScan := scanFiltered_tokens_eq_of_chain_short_stack input _ final _ rfl hNoBOM
+    hChain hEOF hfz hdz hDangling hIndent (ScanChain.fuel_bound _ _ _ _ rfl hChain hEOF)
+    (by rw [hiz, hIdC]; decide)
+  refine ⟨_, body, hScan, hImage, ?_⟩
+  change filteredValues (final.emit .streamEnd).tokens = _
+  rw [show (final.emit .streamEnd).tokens =
+    final.tokens.push ⟨final.currentPos, .streamEnd, final.currentPos⟩ from rfl,
+    filteredValues_push _ _ (by simp)]
+  have hFinalValues : filteredValues final.tokens = filteredValues closed.tokens ++ [.flowSequenceEnd] := by
+    unfold filteredValues
+    simp [hPushLast, hTokLast]
+  simp [hFinalValues, hValues, hOuterValues, List.append_assoc]
+
+lemma quoted_list_producer : MathGraph.WholeSource.SourceBridge.Obligation QuotedListLanguage := by
+  intro input h
+  obtain ⟨ts, _, hs, image, hv⟩ := nested_quoted_list_scan input h
+  obtain ⟨hg, hw⟩ := nested_quoted_token_conditions image hv
+  exact ⟨ts, hs, hg, hw⟩
+
+lemma quoted_list_public_accepts (input : String) (h : QuotedListLanguage input) :
+    ∃ docs, TokenParser.parseYaml input = .ok docs :=
+  MathGraph.WholeSource.SourceBridge.accepts_of_producer quoted_list_producer input h
+
+#guard (TokenParser.parseYaml "[[ # before first\r\n\"a\" # first\r\n, \"b\", # trailing\n ]]").isOk
+#guard (TokenParser.parseYaml "[[ # empty\r\n ]]").isOk
+#guard match Scanner.scanFiltered "[[,]]" with
+  | .error (.invalidFlowEntry _ _) => true
+  | _ => false
+#check quoted_list_public_accepts
+#print axioms nested_quoted_list_scan
+#print axioms quoted_list_producer
+#print axioms quoted_list_public_accepts
 
 #guard (TokenParser.parseYaml "[[\"é\\x01\"]]").isOk
 #print axioms nested_scan

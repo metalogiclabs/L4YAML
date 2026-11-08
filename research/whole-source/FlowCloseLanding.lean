@@ -19,6 +19,21 @@ open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.EmitterScannability
 open L4YAML.Proofs.ScannerCorrectness L4YAML.Proofs.CloseStaleExplicitKey
 open L4YAML.Proofs.ScannerFlowStack L4YAML.Proofs.ScannerCoupling
 
+/-- Values in the scanner's actual token array after removing placeholders. -/
+def filteredValues (ts : Array (Positioned YamlToken)) : List YamlToken :=
+  (ts.filter (fun t => t.val != .placeholder)).toList.map (·.val)
+
+lemma filteredValues_push (ts : Array (Positioned YamlToken)) (t : Positioned YamlToken)
+    (h : t.val ≠ .placeholder) :
+    filteredValues (ts.push t) = filteredValues ts ++ [t.val] := by
+  have hp : (t.val != .placeholder) = true := bne_iff_ne.mpr h
+  simp [filteredValues, hp]
+
+lemma filteredValues_saveSimpleKey (s : ScannerState) :
+    filteredValues (saveSimpleKey s).tokens = filteredValues s.tokens := by
+  unfold filteredValues
+  rw [saveSimpleKey_filter_placeholder]
+
 lemma nested_close_after_separation (s land : ScannerState) (tail : List Char)
     (hSkip : skipToContent s = .ok land)
     (hSource : ScannerSurfCorr land ⟨']' :: tail, land.col⟩)
@@ -30,7 +45,10 @@ lemma nested_close_after_separation (s land : ScannerState) (tail : List Char)
       final.flowLevel = s.flowLevel - 1 ∧
       final.simpleKeyStack = s.simpleKeyStack.pop ∧
       final.simpleKey = s.simpleKeyStack.back?.getD {} ∧
-      (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) := by
+      (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) ∧
+      final.flowStack = s.flowStack.pop ∧ final.indents = s.indents ∧
+      final.directivesPresent = false ∧
+      filteredValues final.tokens = filteredValues s.tokens ++ [.flowSequenceEnd] := by
   have hLandDepth := skipToContent_preserves_flowLevel s land hSkip
   have hLandFlow : land.inFlow = true := by simp [ScannerState.inFlow]; omega
   have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
@@ -57,12 +75,12 @@ lemma nested_close_after_separation (s land : ScannerState) (tail : List Char)
     { ready with allowDirectives := false, documentEverStarted := true } else ready
   have hDispatchedDepth : dispatched.flowLevel = s.flowLevel := by
     simp only [dispatched]; split <;> exact (L4YAML.Proofs.ScannerCorrectness.saveSimpleKey_preserves_flowLevel land).trans hLandDepth
+  have hDispatchedFlowStack : dispatched.flowStack = s.flowStack := by
+    simp only [dispatched]; split <;>
+      exact (L4YAML.Proofs.ScannerFlowStack.saveSimpleKey_preserves_flowStack land).trans
+        (skipToContent_preserves_flowStack s land hSkip)
   have hDispatchedKind : dispatched.flowStack.back? = some true := by
-    have hStack : dispatched.flowStack = s.flowStack := by
-      simp only [dispatched]; split <;>
-        exact (L4YAML.Proofs.ScannerFlowStack.saveSimpleKey_preserves_flowStack land).trans
-          (skipToContent_preserves_flowStack s land hSkip)
-    rw [hStack, hKind]
+    rw [hDispatchedFlowStack, hKind]
   have hDispatchedStack : dispatched.simpleKeyStack = s.simpleKeyStack := by
     simp only [dispatched]; split <;>
       exact (saveSimpleKey_preserves_simpleKeyStack land).trans
@@ -83,7 +101,7 @@ lemma nested_close_after_separation (s land : ScannerState) (tail : List Char)
     (hDispatchedCol ▸ hDispatchedSource)
   refine ⟨scanFlowSequenceEnd dispatched, hScan, hDispatchedCol ▸ hTail, ?_,
     (scanFlowSequenceEnd_stack_popped dispatched).trans (congrArg Array.pop hDispatchedStack),
-    (scanFlowSequenceEnd_simpleKey_restored dispatched).trans (by rw [hDispatchedStack]), ?_⟩
+    (scanFlowSequenceEnd_simpleKey_restored dispatched).trans (by rw [hDispatchedStack]), ?_, ?_, ?_, ?_, ?_⟩
   · rw [hFinalDepth, hDispatchedDepth, ite_eq_left (by omega)]
   · intro i hi
     have hLandTokens := skipToContent_preserves_tokens s land hSkip
@@ -101,6 +119,24 @@ lemma nested_close_after_separation (s land : ScannerState) (tail : List Char)
       Array.getElem?_eq_getElem hiReady, ← hLandTokens,
       Array.getElem?_eq_getElem hiLand]
     exact congrArg some (saveSimpleKey_preserves_prefix land i hiLand)
+
+  · exact (L4YAML.Proofs.ScannerFlowCollection.scanFlowSequenceEnd_pops dispatched).trans
+      (congrArg Array.pop hDispatchedFlowStack)
+  · rw [scanFlowSequenceEnd_preserves_indents]
+    simp only [dispatched]; split <;>
+      exact (saveSimpleKey_preserves_indents land).trans
+        (L4YAML.Proofs.PreprocessIndentStable.skipToContent_preserves_indents s land hSkip)
+  · rw [scanFlowSequenceEnd_preserves_dp]
+    simp only [dispatched]; split <;>
+      exact (saveSimpleKey_preserves_directivesPresent land).trans hDirectives
+  · have hTok : (scanFlowSequenceEnd dispatched).tokens =
+        dispatched.tokens.push ⟨dispatched.currentPos, .flowSequenceEnd, dispatched.currentPos⟩ := by
+      unfold scanFlowSequenceEnd ScannerState.emit
+      rw [advance_preserves_tokens]
+    have hDispatch : dispatched.tokens = (saveSimpleKey land).tokens := by
+      simp only [dispatched]; split <;> rfl
+    rw [hTok, filteredValues_push _ _ (by simp), hDispatch, filteredValues_saveSimpleKey,
+      skipToContent_preserves_tokens s land hSkip]
 
 
 private lemma whitespace_id_at_nonwhite (s : ScannerState) (c : Char)
@@ -175,10 +211,10 @@ lemma nested_close_after_lf (s : ScannerState) (tail : List Char)
     change s.advance.directivesPresent = false
     unfold ScannerState.advance
     split <;> dsimp only <;> (try split) <;> (try split) <;> exact hDirectives
-  obtain ⟨final, hStep, hTail, hRest⟩ :=
+  obtain ⟨final, hStep, hTail, hDepth, hStack, hKey, hPrefix, _⟩ :=
     nested_close_after_separation s land tail hSkip
       (hCol ▸ hLandSource) hDepth hKind hLandIndent hLandDirectives
-  exact ⟨final, hStep, by simpa [hCol] using hTail, hRest⟩
+  exact ⟨final, hStep, by simpa [hCol] using hTail, hDepth, hStack, hKey, hPrefix⟩
 
 -- Exercise a reachable state in which LF remains after the quoted child.
 private def multilineCloseControl : Bool := Id.run do

@@ -54,8 +54,6 @@ compile research/whole-source AcceptanceScope
 test "$(grep -c ACCEPTANCE_SCOPE_AXIOMS "$out/AcceptanceScope.log")" = 2
 compile research/whole-source SourceBridge
 compile research/whole-source FlowTokenBridge
-compile research/whole-source NestedSourceProducer
-grep -F "NestedSourceProducer.public_accepts' depends on axioms: [propext, Classical.choice, Quot.sound]" "$out/NestedSourceProducer.log"
 compile research/whole-source FlowProducerCase
 test "$(grep -c FLOW_PRODUCER_CASE_AXIOMS "$out/FlowProducerCase.log")" = 1
 compile research/whole-source FlowCloseLanding
@@ -68,6 +66,12 @@ grep -F "quoted_child_and_close' depends on axioms: [propext," "$out/FlowQuotedC
 grep -F "quoted_child_after_separation' depends on axioms: [propext," "$out/FlowQuotedChild.log"
 compile research/whole-source FlowQuotedEntries
 grep -F "nested_sequence_quoted_entries' depends on axioms: [propext," "$out/FlowQuotedEntries.log"
+compile research/whole-source NestedSourceProducer
+grep -F "NestedSourceProducer.public_accepts' depends on axioms: [propext, Classical.choice, Quot.sound]" "$out/NestedSourceProducer.log"
+for theorem in nested_quoted_list_scan quoted_list_producer quoted_list_public_accepts; do
+  tr '\n' ' ' < "$out/NestedSourceProducer.log" |
+    grep -Fq "NestedSourceProducer.$theorem' depends on axioms: [propext,  Classical.choice,  Quot.sound]"
+done
 compile research/whole-source CoverageInventory
 compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
