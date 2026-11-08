@@ -74,17 +74,21 @@ lemma extract_spelling (ws handle sep rest : List Char)
     have htake : (handle ++ sep ++ rest).takeWhile handleText = handle := by
       rw [List.append_assoc, take_handle handle (sep ++ rest) hh.chars, hend]
       simp
-    rcases hc with rfl | rfl <;>
-      simp only [List.cons_append, explicitTagHandle, Bool.true_or, Bool.false_or,
-        beq_self_eq_true, reduceBEq, ite_true]
-    all_goals
-      change some ((dropHSpace (cs ++ (handle ++ sep ++ rest))).takeWhile handleText) = some handle
+    have hread : (dropHSpace (cs ++ handle ++ sep ++ rest)).takeWhile handleText = handle := by
+      rw [show cs ++ handle ++ sep ++ rest = cs ++ (handle ++ sep ++ rest) by
+        simp only [List.append_assoc]]
       rw [drop_whites cs _ ht, hd, htake]
+    rcases hc with rfl | rfl <;>
+      simp only [List.cons_append, explicitTagHandle, Bool.true_or, Bool.or_true,
+        beq_self_eq_true, ite_true]
+    all_goals
+      change some ((dropHSpace (cs ++ handle ++ sep ++ rest)).takeWhile handleText) = some handle
+      exact congrArg some hread
 
 /-- The raw source extractor agrees with EVERY independent TagDirective, not
 just canonical spaces/LF or concrete handles. The original suffix is retained. -/
-lemma extract_of_tagDirective {handle prefix : List Char} {s t : SurfPos}
-    (h : TagDirective handle prefix s t) : explicitTagHandle s.chars = some handle := by
+lemma extract_of_tagDirective {handle pfx : List Char} {s t : SurfPos}
+    (h : TagDirective handle pfx s t) : explicitTagHandle s.chars = some handle := by
   have hp : s.chars = '%' :: h.afterPercent.chars := by cases h.percent; rfl
   rw [hp, h.name.source, h.separatorRun.source, h.body.handleRun.source,
     h.body.separatorRun.source]
@@ -96,21 +100,35 @@ lemma extract_of_tagDirective {handle prefix : List Char} {s t : SurfPos}
 /-- The retained handle and actual scanner token agree at the same original
 source span. Scanner correspondence and directive permission are explicit
 local entry premises; this does not discharge the whole-source producer. -/
-lemma scanner_record_agreement (sc : ScannerState) {handle prefix : List Char}
-    {s t : SurfPos} (h : TagDirective handle prefix s t)
+lemma scanner_record_agreement (sc : ScannerState) {handle pfx : List Char}
+    {s t : SurfPos} (h : TagDirective handle pfx s t)
     (hc : ScannerSurfCorr sc s) (ha : sc.allowDirectives = true) :
     ∃ out, scanDirective sc = .ok out ∧ ScannerSurfCorr out t ∧
       explicitTagHandle s.chars = some handle ∧
       out.tokens = sc.tokens.push {pos := sc.currentPos,
-        val := .tagDirective (String.ofList handle) (String.ofList prefix)} := by
+        val := .tagDirective (String.ofList handle) (String.ofList pfx)} := by
   obtain ⟨out, hok, hc', ht, _⟩ := scanDirective_accepts sc h hc ha
   exact ⟨out, hok, hc', extract_of_tagDirective h, ht⟩
 
+/-- At the actual initial scanner state, independent original-source syntax
+supplies the correspondence and permission: neither is assumed by the caller.
+This consumes one directive through its body, not the complete document. -/
+lemma original_input_record_agreement (input : String) {handle pfx : List Char}
+    {t : SurfPos} (h : TagDirective handle pfx ⟨input.toList, 0⟩ t) :
+    ∃ out, scanDirective (ScannerState.mk' input) = .ok out ∧
+      ScannerSurfCorr out t ∧ explicitTagHandle input.toList = some handle ∧
+      out.tokens = (ScannerState.mk' input).tokens.push
+        {pos := (ScannerState.mk' input).currentPos,
+         val := .tagDirective (String.ofList handle) (String.ofList pfx)} :=
+  scanner_record_agreement (ScannerState.mk' input) h
+    (initial_corr input input.toList (chars_from_zero_toList input)) rfl
+
+#check original_input_record_agreement
 #check extract_of_tagDirective
 #check scanner_record_agreement
 open Lean Elab Command in
 run_cmd do
-  for n in [``extract_spelling, ``extract_of_tagDirective, ``scanner_record_agreement] do
+  for n in [``extract_spelling, ``extract_of_tagDirective, ``scanner_record_agreement, ``original_input_record_agreement] do
     let axs ← collectAxioms n
     unless (axs.filter fun a => !([``propext, ``Classical.choice, ``Quot.sound] : List Name).contains a).isEmpty do
       throwError "UNQUALIFIED {n}: {axs}"

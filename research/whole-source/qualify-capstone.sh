@@ -42,7 +42,7 @@ compile research/whole-source SourceBridge
 compile research/whole-source CoverageInventory
 compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
-test "$(grep -c DIRECTIVE_RECORD_BRIDGE_AXIOMS "$out/DirectiveRecordBridge.log")" = 3
+test "$(grep -c DIRECTIVE_RECORD_BRIDGE_AXIOMS "$out/DirectiveRecordBridge.log")" = 4
 test "$(grep -c DIRECTIVE_RECORD_AXIOMS "$out/DirectiveRecords.log")" = 15
 test "$(grep -c 'SOURCE_BRIDGE_AXIOMS' "$out/SourceBridge.log")" = 4
 
