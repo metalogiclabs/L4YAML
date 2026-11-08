@@ -50,6 +50,9 @@ test "$(grep -c EXACT_LEXICAL_AXIOMS "$out/ExactLexicalBridge.log")" = 8
 compile research/whole-source ExactQuoted
 compile research/whole-source ExactQuotedChecks
 test "$(grep -c EXACT_QUOTED_AXIOMS "$out/ExactQuotedChecks.log")" = 10
+compile research/whole-source ExactPlain
+compile research/whole-source ExactPlainChecks
+test "$(grep -c EXACT_PLAIN_AXIOMS "$out/ExactPlainChecks.log")" = 9
 compile research/whole-source AcceptanceScope
 test "$(grep -c ACCEPTANCE_SCOPE_AXIOMS "$out/AcceptanceScope.log")" = 2
 compile research/whole-source SourceBridge
