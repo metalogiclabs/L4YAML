@@ -485,3 +485,37 @@ Classical.choice and Quot.sound. Hosted run 42484527343, job 128743380011,
 artifact 13619210561 (SHA-256
 a68218c3f7662cb6c8484d5df5f0f6a45d21113feba9eaa1a16d9caee7afbd8b).
 The separate unchanged-production job was skipped.
+
+### End-to-end nested flow acceptance and reusable parser premises
+
+Code ad590a6772a95ccfe92d33b3cc67cc511bd019ef reuses the existing flat
+quoted-pair scanner effects, actual flow transitions, exact token filtering
+and EOF fuel bound. `FlowTokenBridge.Shape.toTG` handles recursive sequence
+images of arbitrary scalar styles, including empty and trailing-comma
+shapes. `single_document_grammar` builds the stream premise, and
+`quiet_values_state` proves the serialization premise for event-free
+token values, directly from the actual token-events implementation.
+
+`NestedSourceProducer.producer` discharges `SourceBridge.Obligation`
+for independent source syntax consisting of two opening brackets,
+one arbitrary one-line `SCDoubleQuotedOk` body, then two closing brackets
+and EOF. The actual scan yields seven exact token values, including both
+levels of nesting. `public_accepts` obtains public acceptance from the
+existing parser completeness theorem. This proof uses the original input
+and has no emitter-image, scanner-success or parser-success premise.
+The source slice has fixed nesting and one child; the reusable parser
+bridge admits recursive shapes. Neither result establishes decoded-value
+fidelity or the full language biconditional.
+
+Next, attach exact filtered token effects to the existing whitespace-aware
+arbitrary-length sequence induction. Compose its output with this parser
+bridge. Then prove single-quoted and plain leaf effects through the same
+contract and check a mixed source family end to end. Further scanner-only
+coverage is not a substitute for a producer result.
+
+Local and hosted whole-source proof/control qualification passed with source
+identity retained. The nested scan, producer and public theorem use only
+propext, Classical.choice and Quot.sound. Hosted run 42485282373, job
+128745698014, artifact 13619481418 (SHA-256
+807fb108f7028c6fc54a234a1c7300168ee11d91b1c7fab9dc814a4521d1b795).
+The separate unchanged-production job was skipped.
