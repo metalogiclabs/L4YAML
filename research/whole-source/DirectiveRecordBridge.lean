@@ -1,6 +1,7 @@
 module
 public import DirectiveRecords
 public import DirectiveBridge
+public import DirectiveEntry
 public meta import Lean
 
 /-! General retained-record / scanner-token agreement, not full stream success.
@@ -85,11 +86,16 @@ lemma extract_spelling (ws handle sep rest : List Char)
       change some ((dropHSpace (cs ++ handle ++ sep ++ rest)).takeWhile handleText) = some handle
       exact congrArg some hread
 
+lemma percent_source {s t : SurfPos} (h : GLit '%' s t) :
+    s.chars = '%' :: t.chars := by
+  cases h
+  rfl
+
 /-- The raw source extractor agrees with EVERY independent TagDirective, not
 just canonical spaces/LF or concrete handles. The original suffix is retained. -/
 lemma extract_of_tagDirective {handle pfx : List Char} {s t : SurfPos}
     (h : TagDirective handle pfx s t) : explicitTagHandle s.chars = some handle := by
-  have hp : s.chars = '%' :: h.afterPercent.chars := by cases h.percent; rfl
+  have hp : s.chars = '%' :: h.afterPercent.chars := percent_source h.percent
   rw [hp, h.name.source, h.separatorRun.source, h.body.handleRun.source,
     h.body.separatorRun.source]
   simpa only [List.cons_append, List.nil_append, List.append_assoc] using
@@ -105,8 +111,7 @@ lemma scanner_record_agreement (sc : ScannerState) {handle pfx : List Char}
     (hc : ScannerSurfCorr sc s) (ha : sc.allowDirectives = true) :
     ∃ out, scanDirective sc = .ok out ∧ ScannerSurfCorr out t ∧
       explicitTagHandle s.chars = some handle ∧
-      out.tokens = sc.tokens.push {pos := sc.currentPos,
-        val := .tagDirective (String.ofList handle) (String.ofList pfx)} := by
+      out.tokens = sc.tokens.push { pos := sc.currentPos, val := .tagDirective (String.ofList handle) (String.ofList pfx) } := by
   obtain ⟨out, hok, hc', ht, _⟩ := scanDirective_accepts sc h hc ha
   exact ⟨out, hok, hc', extract_of_tagDirective h, ht⟩
 
@@ -123,12 +128,48 @@ lemma original_input_record_agreement (input : String) {handle pfx : List Char}
   scanner_record_agreement (ScannerState.mk' input) h
     (initial_corr input input.toList (chars_from_zero_toList input)) rfl
 
+/-- Actual production dispatcher entry, not an instrumented directive runner.
+The independent source judgment supplies the original initial state premises.
+Only one scanNextToken call is closed; stream completion remains separate. -/
+lemma original_dispatch_record_agreement (input : String) {handle pfx : List Char}
+    {t : SurfPos} (h : TagDirective handle pfx ⟨input.toList, 0⟩ t) :
+    let initial := (ScannerState.mk' input).emit .streamStart
+    let ready := saveSimpleKey { initial with needIndentCheck := false }
+    ∃ out, scanNextToken initial = .ok (some out) ∧ ScannerSurfCorr out t ∧
+      explicitTagHandle input.toList = some handle ∧
+      out.tokens = ready.tokens.push { pos := ready.currentPos, val := .tagDirective (String.ofList handle) (String.ofList pfx) } := by
+  let initial := (ScannerState.mk' input).emit .streamStart
+  let ready := saveSimpleKey { initial with needIndentCheck := false }
+  have hp : input.toList = '%' :: h.afterPercent.chars := percent_source h.percent
+  obtain ⟨hpre, hc, hf, _, ha, _⟩ :=
+    MathGraph.WholeSource.DirectiveEntry.initial_percent_preprocess input _ hp
+  have hcTag : ScannerSurfCorr ready ⟨input.toList, 0⟩ := by rw [hp]; exact hc
+  obtain ⟨out, hdir, hout, he, ht⟩ := scanner_record_agreement ready h hcTag ha
+  have hstruct := MathGraph.WholeSource.DirectiveEntry.percent_structural ready out _ hc hf hdir
+  obtain ⟨hc1, hc2⟩ := MathGraph.WholeSource.DirectiveEntry.initial_checks input ready
+  refine ⟨out, ?_, hout, he, ht⟩
+  unfold scanNextToken
+  rw [hpre]
+  simp only [bind, Except.bind, pure, Except.pure]
+  change (do
+    scanNextToken_checkDanglingNode initial ready
+    scanNextToken_checkFlowValueIndent initial ready
+    match ← scanNextToken_dispatchStructural ready '%' with
+    | some s => pure (some s)
+    | none => _) = .ok (some out)
+  rw [hc1]
+  simp only [bind, Except.bind, pure, Except.pure]
+  rw [hc2]
+  simp only []
+  rw [hstruct]
+
+#check original_dispatch_record_agreement
 #check original_input_record_agreement
 #check extract_of_tagDirective
 #check scanner_record_agreement
 open Lean Elab Command in
 run_cmd do
-  for n in [``extract_spelling, ``extract_of_tagDirective, ``scanner_record_agreement, ``original_input_record_agreement] do
+  for n in [``extract_spelling, ``extract_of_tagDirective, ``scanner_record_agreement, ``original_input_record_agreement, ``original_dispatch_record_agreement] do
     let axs ← collectAxioms n
     unless (axs.filter fun a => !([``propext, ``Classical.choice, ``Quot.sound] : List Name).contains a).isEmpty do
       throwError "UNQUALIFIED {n}: {axs}"
