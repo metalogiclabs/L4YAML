@@ -10,6 +10,7 @@
     "command": "bash research/whole-source/qualify-capstone.sh capstone-evidence-UNIQUE",
     "ci": ".github/workflows/whole-source-directives.yml",
     "prerequisites": [
+      "Read CLOSURE.md mandatory work-selection rule. L4-EXACT-GRAMMAR takes priority over further fragment extension; reconcile deferred work explicitly.",
       "Read current remote head and this ledger; reconcile newer commits and receipts.",
       "Use checksum-pinned Lean from workflow; git submodule update --init --recursive; clean tracked tree.",
       "A source identity mismatch requires requalification; do not change the baseline to silence it.",
@@ -260,7 +261,7 @@
         "state": "WARRANTED",
         "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements."
       },
-      "next_experiment": "Comment discriminator is resolved: runtime and grammar BOTH accept raw SOH. First qualify the minimal runtime comment validation repair; separately integrate normative leaf grammar restrictions and source-connected stream production.",
+      "next_experiment": "Construct the complete independent Lean source language and requirement-to-definition map for L4-EXACT-GRAMMAR. Reconcile governing Group 7.7 requirements, supported-source boundaries, existing Surface relations and known counterexamples. Resolve or explicitly retain UNKNOWN scope decisions; do not replace this deliverable with another acceptance fragment or a parameterized language interface.",
       "dependencies": [
         "L4YAML/Surface/Document.lean",
         "L4YAML/Surface/Scalars.lean",
@@ -268,7 +269,7 @@
         "DirectiveTrace.lean",
         "DirectiveSufficiency.lean"
       ],
-      "verification": "Construct source-native positive/negative witnesses; then prove any revised grammar against independent normative conditions, not execution.",
+      "verification": "Complete concrete Lean language definition; requirement-to-definition map with no unexplained omissions; source-only syntax and state, independent of runtime acceptance; audit known separating witnesses; compile and inspect assumptions. Unresolved scope or constructor coverage prevents closure.",
       "receipts": [
         "obstructions",
         "https://github.com/metalogiclabs/L4YAML/actions/runs/42418475419",
@@ -356,7 +357,7 @@
         "state": "WARRANTED",
         "evidence": "Bounded proofs and refutations separate necessary repairs; no full theorem exists at this source."
       },
-      "next_experiment": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
+      "next_experiment": "Construct the complete independent Lean source language and requirement-to-definition map for L4-EXACT-GRAMMAR. Reconcile governing Group 7.7 requirements, supported-source boundaries, existing Surface relations and known counterexamples. Resolve or explicitly retain UNKNOWN scope decisions; do not replace this deliverable with another acceptance fragment or a parameterized language interface.",
       "dependencies": [
         "L4-EXACT-GRAMMAR",
         "L4-SERIALIZATION-STATE",
@@ -668,9 +669,9 @@
     ]
   },
   "next_experiment": {
-    "id": "L4-DIRECTIVE-BLOCK-INDUCTION",
-    "action": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
-    "success_boundary": "Arbitrary independently grammatical directive prefix, explicit marker and quoted document are accepted on original source/fuel; full YAML producer and same-language strictness remain separate UNKNOWNs."
+    "id": "L4-EXACT-GRAMMAR",
+    "action": "Construct the complete independent Lean source language and requirement-to-definition map for L4-EXACT-GRAMMAR. Reconcile governing Group 7.7 requirements, supported-source boundaries, existing Surface relations and known counterexamples. Resolve or explicitly retain UNKNOWN scope decisions; do not replace this deliverable with another acceptance fragment or a parameterized language interface.",
+    "success_boundary": "Concrete full independent definition, source/serialization interpretation and audited normative coverage. A design contract, constructor census, fragment or metadata flag does not discharge this obligation."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",
@@ -713,5 +714,24 @@
     "command": "python3 research/whole-source/coverage-audit.py --closure",
     "expected_current_exit": 2,
     "receipt": "coverage_inventory"
+  },
+  "deferred_next_experiment": {
+    "id": "L4-DIRECTIVE-BLOCK-INDUCTION",
+    "action": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success.",
+    "success_boundary": "Arbitrary independently grammatical directive prefix, explicit marker and quoted document are accepted on original source/fuel; full YAML producer and same-language strictness remain separate UNKNOWNs.",
+    "state": "DEFERRED_PENDING_EXACT_LANGUAGE",
+    "reason": "Reusable fragment extension was outrunning the unresolved full independent specification."
+  },
+  "research_selection": {
+    "governing_contract": "research/whole-source/CLOSURE.md",
+    "active_obligation": "L4-EXACT-GRAMMAR",
+    "required_before_experiment": [
+      "Exact governing obligation and definition/constructor, or named competing diagnoses",
+      "Decisive result and verification boundary",
+      "Terminal claim unlocked"
+    ],
+    "fragment_policy": "DEFER until exact language is qualified, except a recorded separating experiment needed to settle a named specification ambiguity.",
+    "closure_policy": "Both directions for the same concrete independent language and qualified runtime revision; no progress percentage inferred from fragment/lemma counts.",
+    "epistemic_boundary": "This selection correction is not a proof result; full independent definition remains UNKNOWN."
   }
 }

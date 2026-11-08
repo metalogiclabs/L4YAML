@@ -1040,5 +1040,11 @@
     },
     "state": "WARRANTED_ORIGINAL_SOURCE_PUBLIC_PARSER_ACCEPTANCE_FRAGMENT",
     "remaining": "Define an independent inductive directive-block relation using existing version/TAG syntax and DirectiveMultiplicity, then prove scanner-step induction across two or more directives with exact source-record/token agreement and preserved allowDirectives/seenYamlDirective state. Reuse the qualified marker and quoted-body consumers at the terminal case; do not build a separate interpreter or assume scanner success."
+  },
+  "active_priority": {
+    "obligation": "L4-EXACT-GRAMMAR",
+    "contract": "research/whole-source/CLOSURE.md",
+    "rule": "Full independent definition and requirement map before further fragment extension. Remaining-work descriptions below identify technical residuals, not authorization to bypass this prerequisite.",
+    "deferred": "Arbitrary directive-block induction pending its place in the exact language."
   }
 }

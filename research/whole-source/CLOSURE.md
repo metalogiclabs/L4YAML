@@ -70,26 +70,68 @@ accumulator; its existence does not supply the reverse source producer.
    prior claims qualified on the SAME source, with no placeholders or hidden
    assumptions. A green restricted harness does not meet this exit.
 
-## Next experiment
+## Cornerstone and mandatory work selection
 
-Refine the existing EventsOf.Seg.docStart dirs and Skeleton relations rather
-than introducing another directive-storage representation. Seg.docStart already
-retains every directive source line, and skeleton_text proves full source
-reconstruction. Add independent validity and multiplicity conditions on those
-retained lines, with the already independent quoted-body fragment. Derive declaration uniqueness,
-reset order and agreement with source-connected events. Duplicate-version,
-duplicate-handle and two-document reset separators must distinguish discarded
-information from scanner/parser behavior. This fragment tests the common state
-interface; it does not close the full language or justify further example-only
-campaigns. Reconsider this priority if the normative coverage audit reveals an
-earlier shared obstruction.
+The governing target is ONE source language L and ONE qualified implementation
+revision R, with completeness and strictness proved for exactly that pair.
+L is a source-only mathematical judgment, not a name for runtime acceptance.
+Its accepted inputs must be justified by the governing requirements; narrowing
+it to convenient fragments or broadening it to permissive runtime behavior is
+not a repair. The original refuted language is not the target. The frozen
+production revision cannot satisfy normative strictness; it remains a reusable
+historical evidence boundary, not a mandatory final implementation.
 
-The TAG first-step sub-obligation is now qualified by DirectiveRecordBridge:
-all TagDirective handles and separators agree with retained records and actual
-initial scanNextToken output. This grammar does not yet include trailing comments.
-Next compose actual directive-block steps, document marker, quoted body and EOF;
-first-step success does not establish whole-source acceptance. See the ledger
-for the exact source/run receipt and failed elaboration lineage.
+The required theorem schema is fixed above. The concrete full definition of L
+is NOT yet fixed or qualified. Writing this contract does not fill that gap.
+The next mandatory deliverable is L4-EXACT-GRAMMAR: the complete independent
+Lean language definition plus a requirement-to-definition map, including all
+unresolved scope decisions. No full-language milestone is earned until that
+map has no unexplained omissions and the definition is independently audited.
+Do not silently choose an implementation limitation as an exclusion from YAML.
+Any explicit supported-profile boundary must have governing evidence and appear
+in the theorem scope; unresolved boundaries remain UNKNOWN.
+
+The definition must retain original source consumption, lexical/Unicode
+constraints, context-sensitive node and document structure, explicit directive
+records and document-local multiplicity, anchor/tag scope, and reset order.
+Reuse existing definitions only after checking their meaning and hypotheses.
+Known separating witnesses for scannerDrop, bare continuation, raw controls,
+directive multiplicity, aliases and tag scope are specification audit inputs.
+Existing event erasure is insufficient for directive multiplicity. Existing
+constructor census is insufficient for normative coverage.
+
+Before each code experiment, record in obligations.json:
+
+1. The exact governing obligation and definition/constructor it will discharge,
+   or the competing diagnoses its counterexample will distinguish.
+2. The decisive result and its verification boundary.
+3. Which terminal claim becomes possible if it succeeds.
+
+Until L4-EXACT-GRAMMAR is discharged, prioritize specification construction and
+separating witnesses. Fragment extensions are deferred unless they are needed
+to decide a named specification ambiguity; record that dependency first.
+Afterwards select only work on the five closure exits above. A new example,
+lemma, green run or conditional generic interface earns no full-language
+coverage by itself. Preserve reusable fragments without relabeling them as
+universal coverage. Do not report a completion percentage from their count.
+
+## Active next experiment and supersession
+
+Construct and audit the full independent language, beginning by reconciling the
+governing Group 7.7 requirements and supported-source boundary against the
+existing six Surface files and known counterexamples. Produce the concrete
+Lean definition and requirement map, not another parameterized acceptance
+interface. Missing or disputed productions must be named UNKNOWNs rather than
+filled with scannerDrop, acceptance predicates, or unproved coverage claims.
+
+Directive-block induction is DEFERRED_PENDING_EXACT_LANGUAGE. The previously
+queued source-record, TAG dispatch, marker and quoted-body work is preserved:
+DirectiveRecords proves the event-erasure obstruction; DirectiveRecordBridge,
+TagDocument, QuotedContinuation and TagQuotedParse provide qualified components.
+The latest fragment proves public acceptance of one TAG directive, an explicit
+marker, and an independently grammatical quoted body. None fixes the full L.
+Resume induction only when its source relation is part of the audited target,
+or when a recorded separating experiment is necessary to settle that target.
 
 ## Commands and stop rule
 
