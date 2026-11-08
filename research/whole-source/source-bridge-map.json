@@ -100,7 +100,7 @@
       "reason": "Reuse checked quoted raw-SOH counterexample"
     }
   ],
-  "next_decisive_experiment": "Refine existing EventsOf.Seg.docStart dirs / Skeleton (which already retain directive lines and prove skeleton_text), derive normative validity and multiplicity from those source records, and prove scanner/token correspondence for an independent quoted-body fragment. Do not duplicate directive storage or infer validity from serialization WF.",
+  "next_decisive_experiment": "Prove explicitTagHandle agrees with arbitrary independent TagDirective source spans, then thread refined records through actual scanner directive runs; retain lexical validity separately.",
   "completion": "UNKNOWN until an independently defined full source language has a producer, and strictness is separately established for that same language",
   "verification": {
     "commit": "976eebee5284c8ed17c14d26d7a348802f0439d8",
@@ -975,5 +975,18 @@
     "artifact": 13596360726,
     "artifact_sha256_reported": "050bc22d598e74a1530644b1cc26ce43eed9f1b48f78027f7c407a0368c2c912",
     "scope": "Compiled environment agrees with all 82 existing Surface inductives and 186 constructors. Retained source bridge and seven strict axiom profiles, controls, expected RED, and frozen source identity pass. This is not normative coverage or semantic completeness; full production job skipped."
+  },
+  "directive_record_refinement": {
+    "module": "DirectiveRecords.lean",
+    "receipt": {
+      "commit": "70dbd3622cf8a113b162235116f221d31d857fb7",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42428377007",
+      "job": 128571537973,
+      "artifact": 13596142804,
+      "artifact_sha256_reported": "86de8859fe411beb9b1d707990493d242c5ca104e8cde714ce48042d2120a42f",
+      "scope": "Source-connected event-factorization impossibility for directive multiplicity; source-refinement reconstruction and per-document composition; 15 profiles limited to propext/Classical.choice/Quot.sound. Retained controls, inventory, expected RED and source identity pass. Full production skipped."
+    },
+    "state": "WARRANTED_NECESSARY_CONDITION_AND_EVENT_OBSTRUCTION",
+    "remaining": "Generic extraction agreement with valid directive syntax and actual scanner correspondence"
   }
 }

@@ -74,6 +74,14 @@
       "artifact": 13596360726,
       "artifact_sha256_reported": "050bc22d598e74a1530644b1cc26ce43eed9f1b48f78027f7c407a0368c2c912",
       "scope": "Compiled environment agrees with all 82 existing Surface inductives and 186 constructors. Retained source bridge and seven strict axiom profiles, controls, expected RED, and frozen source identity pass. This is not normative coverage or semantic completeness; full production job skipped."
+    },
+    "directive_records": {
+      "commit": "70dbd3622cf8a113b162235116f221d31d857fb7",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42428377007",
+      "job": 128571537973,
+      "artifact": 13596142804,
+      "artifact_sha256_reported": "86de8859fe411beb9b1d707990493d242c5ca104e8cde714ce48042d2120a42f",
+      "scope": "Source-connected event-factorization impossibility for directive multiplicity; source-refinement reconstruction and per-document composition; 15 profiles limited to propext/Classical.choice/Quot.sound. Retained controls, inventory, expected RED and source identity pass. Full production skipped."
     }
   },
   "obligations": [
@@ -368,6 +376,51 @@
         "Known permissive policy, not claimed as newly discovered defect.",
         "No global c-printable predicate is imposed on quotes: nb-json legitimately permits additional non-C0 characters there."
       ]
+    },
+    {
+      "id": "L4-DIRECTIVE-RECORD-MULTIPLICITY",
+      "claim": "No predicate of eventsOfSegs characterizes StreamMultiplicity even restricted to Skeleton derivations; source-record refinement preserves reconstruction and document-local multiplicity.",
+      "source_boundary": "64795a8db28ccfdae85082c93b6453001ae9d3e4",
+      "requirement": "YAML 1.2.2 sections 6.8.1\u20136.8.2, including primary/secondary handle overrides; https://yaml.org/spec/1.2.2/#682-tag-directives",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED_OBSTRUCTION_DIAGNOSIS_ONLY",
+      "reuse": "REUSABLE",
+      "obstruction": "Availability-event erasure discards explicit builtin TAG declarations.",
+      "diagnosis": {
+        "state": "WARRANTED",
+        "evidence": "primary_skeleton supplies source-connected one/two-directive witnesses; primary_event_collision and differing multiplicity prove no event predicate can suffice."
+      },
+      "next_experiment": "Prove explicitTagHandle agrees with arbitrary independent TagDirective source spans, then thread refined records through actual scanner directive runs; retain lexical validity separately.",
+      "dependencies": [
+        "DirectiveRecords.lean",
+        "DirectiveDiscipline.lean",
+        "L4YAML/Proofs/Serialization/EventsOf.lean"
+      ],
+      "verification": "Exact compiled statements, 15 strict axiom profiles, unchanged retained controls and source identity",
+      "receipts": [
+        "directive_records"
+      ],
+      "failed_experiments": [
+        {
+          "commit": "ace76c3bd36566582ad83ed6c994b43cc38ded2f",
+          "run": 42428178802,
+          "reason": "Private witnesses inaccessible from public declarations; missing Decidable unfolding and event predicate type annotation."
+        },
+        {
+          "commit": "8a0d02a6512f36ce77aadfe8d04a43b17c84ac76",
+          "run": 42428266131,
+          "reason": "Same elaboration errors in source-connected strengthening; superseded by 70dbd362."
+        }
+      ],
+      "unlocks": [
+        "Correct source-record placement of directive multiplicity"
+      ],
+      "limits": [
+        "Not complete syntax validation",
+        "Not a source-to-scanner producer",
+        "Not a public parser rejection theorem",
+        "Does not establish full Capstone"
+      ]
     }
   ],
   "environment_failures": [
@@ -442,7 +495,7 @@
   },
   "next_experiment": {
     "id": "L4-SOURCE-CONNECTED-DIRECTIVES",
-    "action": "Refine existing EventsOf.Seg.docStart dirs / Skeleton (which already retain directive lines and prove skeleton_text), derive normative validity and multiplicity from those source records, and prove scanner/token correspondence for an independent quoted-body fragment. Do not duplicate directive storage or infer validity from serialization WF.",
+    "action": "Prove explicitTagHandle agrees with arbitrary independent TagDirective source spans, then thread refined records through actual scanner directive runs; retain lexical validity separately.",
     "success_boundary": "Fragment only; full independent source grammar and producer remain UNKNOWN. Completeness and strictness for the same language must be separately proved."
   },
   "previous_next_experiment": {
