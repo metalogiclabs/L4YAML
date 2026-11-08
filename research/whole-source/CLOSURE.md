@@ -197,3 +197,34 @@ isNbChar removes breaks anyway. An exact [1] definition must include both; prove
 reuse at the non-break consumer boundary instead of importing the misleading
 whole-production name. DQCharOk/SQCharOk already use nb-json and are candidate
 leaves, not automatically full normative scalar grammars.
+
+## Exact character layer
+
+ExactCharacters.lean defines [1] CPrintable, [2] NbJson, [27] NbChar and [34]
+NsChar directly from the pinned normative ranges. The intended reuse boundary is
+universal equivalence: CPrintable repairs the omitted LF/CR cases, while NbChar
+and NsChar equal the existing non-break/non-space predicates. This avoids a
+production edit and preserves the correct consumers rather than globally
+changing their character class.
+
+Eleven boundary checks cover LF/CR, DEL, C1, NEL, raw SOH, BOM, noncharacters,
+Unicode range endpoints and tab. Two formal separating witnesses exercise the
+requirements directly: permissive comments admit SOH, whereas a blanket printable
+restriction wrongly excludes DEL from quoted nb-json. They qualify the new
+character layer, not a fresh discovery of the already-known comment defect.
+
+The complete independent language is still NOT CONSTRUCTED. Next, carry these
+classes into exact comment and quoted-character relations, with normative escape
+value constraints and doubled-quote handling; then propagate those relations
+through recursive nodes. No new bounded parser-acceptance family is needed for
+that construction. Do not infer full quoted syntax from nb-json alone.
+
+Qualified code e1e00c3f67d254ba36322a6000b77aa475ce44b7, Actions 42446253551,
+job 128625694475 SUCCESS, artifact 13603746574, reported SHA256
+c139ec15c5b3081b5c1dca5f9d1f554710df9747c70024c3674af55640fde01d.
+Four universal equivalences use standard axioms only; both separating witnesses
+are axiom-free. All lexical guards, unchanged native controls, expected RED,
+inventory and frozen source guards passed. Full production job skipped.
+Failed 49837912/run 42446110859 preserved: proof equivalences compiled, but
+control evaluator visibility/Unicode notation/decidability errors caused rejection.
+No theorem statement was weakened to repair the candidate.

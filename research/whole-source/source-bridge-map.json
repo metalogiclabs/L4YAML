@@ -2129,14 +2129,17 @@
           3
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "UNKNOWN",
+        "semantic_state": "WARRANTED_CHARACTER_BRIDGES_FULL_FAMILY_OPEN",
         "definition_candidates": [
           "L4YAML/Spec/CharPredicates.lean",
           "L4YAML/Surface/Basic.lean:isNbChar",
-          "L4YAML/Surface/Document.lean:SLDocumentPrefix"
+          "L4YAML/Surface/Document.lean:SLDocumentPrefix",
+          "research/whole-source/ExactCharacters.lean:CPrintable",
+          "research/whole-source/ExactCharacters.lean:NbJson"
         ],
-        "obstruction": "Context-specific printable versus nb-json restrictions and zero-column BOM must be preserved; String API is not a byte decoder.",
-        "decisive_check": "Audit predicates extensionally against character ranges, then every leaf use; keep byte decoding outside this String entrypoint claim explicitly."
+        "obstruction": "Exact [1]/[2] definitions and universal [27]/[34] reuse qualified; BOM placement and propagation through all context-specific leaves remain open.",
+        "decisive_check": "Audit predicates extensionally against character ranges, then every leaf use; keep byte decoding outside this String entrypoint claim explicitly.",
+        "receipt": "obligations.json:receipts.exact_characters"
       },
       {
         "id": "indicators",
@@ -2705,7 +2708,8 @@
       "research/whole-source/CapstoneObstructions.lean": "161248879a2b7069dc1cf50d2e37d206028525d8d31734ccf1152dbfdd794f2b",
       "research/whole-source/DirectiveBridge.lean": "29c59a7c0b728dc9680c7bc4f8f7003344aca711c43cecf4c371608c3072a0c6",
       "research/whole-source/DirectiveRecords.lean": "417792f2db4f09a521691976232c1d0d2039899160793619922b50a78c6ac24a",
-      "research/whole-source/TagQuotedParse.lean": "769a067806d99c0d8bb459db48489b82c19c85b7fdd6ba8de323b9137294a5da"
+      "research/whole-source/TagQuotedParse.lean": "769a067806d99c0d8bb459db48489b82c19c85b7fdd6ba8de323b9137294a5da",
+      "research/whole-source/ExactCharacters.lean": "fa71a9b168031962bd67740e82427af4960f14d3d236534d00cced2731d3a6d5"
     },
     "architecture": "Independent exact lexical leaves -> mutually recursive exact nodes -> exact document/stream relation; retained source segmentation and records -> coherent source serialization validity; then actual producer and same-language strictness. No runtime acceptance in definitions.",
     "unresolved": "Concrete exact grammar is not constructed. Index accounts for numbered productions but is not a semantic coverage proof; prose requirements also matter."

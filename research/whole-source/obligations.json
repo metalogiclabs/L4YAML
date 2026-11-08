@@ -117,6 +117,15 @@
         "Quot.sound"
       ],
       "scope": "Reusable quoted_after_marker step; independent TAG/marker/quoted-body original-source scanner completion and public parseYaml acceptance. Four strict profiles; four new native controls; retained controls, expected RED, census and unchanged source identity passed. Full production job skipped."
+    },
+    "exact_characters": {
+      "commit": "e1e00c3f67d254ba36322a6000b77aa475ce44b7",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42446253551",
+      "job": 128625694475,
+      "artifact": 13603746574,
+      "artifact_sha256": "c139ec15c5b3081b5c1dca5f9d1f554710df9747c70024c3674af55640fde01d",
+      "state": "SUCCESS",
+      "boundary": "ExactCharacters types and six axiom profiles inspected; 11 lexical guards, unchanged native controls, expected RED, inventory and frozen source guards passed. Full production job skipped. No full grammar or same-language iff claim."
     }
   },
   "obligations": [
@@ -605,6 +614,44 @@
         "Not full YAML completeness or normative strictness; full production regression not rerun."
       ],
       "reuse": "REUSABLE"
+    },
+    {
+      "id": "L4-EXACT-CHARACTERS",
+      "claim": "Exact YAML [1]/[2] over Lean Char; repaired c-printable equals old printable OR LF OR CR, while exact [27]/[34] equal existing non-break/non-space predicates for every Char.",
+      "source_boundary": "Frozen production 64795a8db28ccfdae85082c93b6453001ae9d3e4; independent candidate research/whole-source/ExactCharacters.lean.",
+      "requirement": "YAML 1.2.2 [1], [2], [27], [34], and comment body [75], normative Git blob 2f078ec32749a55b5ad961899ed0f344037260e0.",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED_CHARACTER_LAYER_ONLY",
+      "obstruction": "Existing isPrintableProp omits LF/CR; naive reuse as [1] false, blanket c-printable for quoted text too strict.",
+      "diagnosis": {
+        "state": "WARRANTED",
+        "evidence": "Four universal equivalences and both separating witnesses compiled; all 11 lexical guards and retained controls passed. Standard-only transitive axioms for equivalences; witnesses have no axioms."
+      },
+      "next_experiment": "Propagate exact classes into comment and quoted-character relations, including normative escape values and doubled quotes; audit reachability through recursive node definitions.",
+      "dependencies": [
+        "L4YAML/Surface/Basic.lean",
+        "L4YAML/Spec/CharPredicates.lean",
+        "research/whole-source/ExactCharacters.lean",
+        "research/whole-source/qualify-capstone.sh"
+      ],
+      "verification": "Pinned Lean 4.35; no unexpected axioms; exact theorem types; retained positive and negative native controls; frozen source unchanged.",
+      "receipts": [
+        "exact_characters"
+      ],
+      "failed_experiments": [
+        {
+          "commit": "498379128ff07c4336558815dc64c93d39af7838",
+          "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42446110859",
+          "reason": "Four equivalence proofs compiled; #guard meta visibility, unsupported uppercase Unicode escape and missing decidable instance for old comment predicate failed. Strict gate rejected recovery sorryAx. Corrected evaluator imports, Char.ofNat boundary and local decidability without changing claims."
+        }
+      ],
+      "unlocks": [
+        "L4-EXACT-GRAMMAR lexical leaves; context-sensitive reuse instead of rebuilding correct non-break definitions"
+      ],
+      "limits": [
+        "Full grammar not constructed. No new runtime defect or acceptance-family extension is claimed. Unicode escape syntax/value relation and BOM placement remain separate obligations. SOH obstruction reused, not rediscovered."
+      ],
+      "reuse": "REUSABLE"
     }
   ],
   "environment_failures": [
@@ -679,7 +726,7 @@
   },
   "next_experiment": {
     "id": "L4-EXACT-GRAMMAR",
-    "action": "Construct independent exact lexical leaves, starting with context-sensitive c-printable versus nb-json and Unicode escapes, and propagate them through mutually recursive nodes before exact streams. LOAD-LAYERS is resolved at the governing scope; do not add schema validation as an unstated premise or infer full loading correctness.",
+    "action": "Propagate exact classes into comment and quoted-character relations, including normative escape values and doubled quotes; audit reachability through recursive node definitions.",
     "success_boundary": "Concrete full independent definition, source/serialization interpretation and audited normative coverage. A design contract, constructor census, fragment or metadata flag does not discharge this obligation."
   },
   "previous_next_experiment": {
