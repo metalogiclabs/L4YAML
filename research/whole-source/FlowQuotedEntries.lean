@@ -5,8 +5,7 @@ public meta import Lean
 
 /-! Group 7.7, productions [137]–[139]. Induct over a source-defined list of
 double-quoted entries. Separation before a comma and before the closing bracket
-is consumed by the actual scanner. The next quote starts immediately after
-its comma. -/
+is consumed by the actual scanner, as is leading separation before each quote. -/
 
 @[expose] public section
 namespace MathGraph.WholeSource.FlowQuotedEntries
@@ -106,9 +105,11 @@ lemma comma_after_grammar_separation (s : ScannerState) {start : SurfPos}
 /-- Nonempty quoted entries followed by separation up to a fixed close.
 The natural index counts entries and does not depend on scanner execution. -/
 inductive QuotedEntries (tail : List Char) (closeCol : Nat) : Nat → SurfPos → Prop where
-  | single {start stop} : SCDoubleQuotedOk start stop →
+  | single {start quote stop} : FlowCloseSeparation start quote →
+      SCDoubleQuotedOk quote stop →
       FlowCloseSeparation stop ⟨']' :: tail, closeCol⟩ → QuotedEntries tail closeCol 1 start
-  | more {n start stop rest commaCol} : SCDoubleQuotedOk start stop →
+  | more {n start quote stop rest commaCol} : FlowCloseSeparation start quote →
+      SCDoubleQuotedOk quote stop →
       FlowCloseSeparation stop ⟨',' :: rest, commaCol⟩ →
       QuotedEntries tail closeCol n ⟨rest, commaCol + 1⟩ →
       QuotedEntries tail closeCol (n + 1) start
@@ -117,24 +118,24 @@ lemma quoted_entries_and_close {tail : List Char} {closeCol n : Nat} {start : Su
     (hEntries : QuotedEntries tail closeCol n start) :
     ∀ s : ScannerState, ScannerSurfCorr s start →
       s.flowLevel ≥ 2 → s.flowStack.back? = some true →
-      s.currentIndent < 0 → s.col > 0 → s.directivesPresent = false →
+      s.currentIndent < 0 → s.directivesPresent = false →
       (∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) →
       ∃ final, ScanChain s (2 * n) final ∧ ScannerSurfCorr final ⟨tail, closeCol + 1⟩ ∧
         final.flowLevel = s.flowLevel - 1 ∧
         final.simpleKeyStack = s.simpleKeyStack.pop ∧
         final.simpleKey = s.simpleKeyStack.back?.getD {} := by
   induction hEntries with
-  | single hQuote hSep =>
-    intro s hSource hDepth hKind hIndent hColumn hDP hPrevious
+  | single hLeading hQuote hSep =>
+    intro s hSource hDepth hKind hIndent hDP hPrevious
     obtain ⟨final, hChain, hTail, hLevel, hStack, hKey, _⟩ :=
-      quoted_child_and_close s tail closeCol hSource hQuote hSep
-        hDepth hKind hIndent hColumn hDP hPrevious
+      quoted_child_and_close s tail closeCol hSource hLeading hQuote hSep
+        hDepth hKind hIndent hDP hPrevious
     exact ⟨final, hChain, hTail, hLevel, hStack, hKey⟩
-  | @more n start stop rest commaCol hQuote hSep _ ih =>
-    intro s hSource hDepth hKind hIndent hColumn hDP hPrevious
+  | @more n start quote stop rest commaCol hLeading hQuote hSep _ ih =>
+    intro s hSource hDepth hKind hIndent hDP hPrevious
     have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
     obtain ⟨child, hChild, hChildSource, hLevel, hFlowStack, hIndents, hChildDP, hKeys,
-      _, _, value, hLast⟩ := quoted_child_step s hSource hQuote hFlow hIndent hColumn hDP hPrevious
+      _, _, value, hLast⟩ := quoted_child_after_separation s hSource hLeading hQuote hFlow hIndent hDP hPrevious
     have hChildFlow : child.inFlow = true := by simpa only [ScannerState.inFlow, hLevel] using hFlow
     have hChildIndent : child.currentIndent < 0 := by
       simpa only [ScannerState.currentIndent, hIndents] using hIndent
@@ -146,17 +147,13 @@ lemma quoted_entries_and_close {tail : List Char} {closeCol n : Nat} {start : Su
           rw [hLast] at ht
           cases ht
           exact ⟨nofun, nofun, nofun⟩)
-    have hNextCol : next.col > 0 := by
-      have := hNextSource.col_eq
-      simp at this
-      omega
     have hNextIndent : next.currentIndent < 0 := by
       simpa only [ScannerState.currentIndent, hNextIndents, hIndents] using hIndent
     have hNextDepth := hNextLevel.trans hLevel
     have hNextSaved := hNextKeys.trans hKeys
     obtain ⟨final, hChain, hTail, hFinalDepth, hFinalStack, hFinalKey⟩ :=
       ih next hNextSource (by omega) (by rwa [hNextFlowStack, hFlowStack])
-        hNextIndent hNextCol hNextDP (by
+        hNextIndent hNextDP (by
           intro t ht
           rw [hNextLast] at ht
           cases ht
@@ -188,13 +185,13 @@ lemma nested_sequence_quoted_entries (s : ScannerState)
   have hMidKind : mid.flowStack.back? = some true := by simp [hMidStack]
   obtain ⟨final, hChain, hTail, hFinalDepth, hFinalStack, hFinalKey⟩ :=
     quoted_entries_and_close hEntries mid (hMidCol ▸ hMidSource) (by omega)
-      hMidKind hMidIndent (by omega) (hMidDP.trans hDP) hMidPrevious
+      hMidKind hMidIndent (hMidDP.trans hDP) hMidPrevious
   refine ⟨final, (ScanChain.single hOpen).trans hChain, hTail, by omega,
     hFinalStack.trans hMidKeyPop, ?_⟩
   simpa [hMidKeys] using hFinalKey
 
 private def entriesControl : Bool := Id.run do
-  let input := "[[\"a\" # first\r\n,\"b\" \n,\"c\" # last\n], x]"
+  let input := "[[ # before first\r\n\"a\" # first\r\n, # before second\n\"b\" \n,\t \"c\" # last\n], x]"
   let initial := (ScannerState.mk' input).emit .streamStart
   let .ok (some outer) := scanNextToken initial | return false
   let .ok (some inner) := scanNextToken outer | return false

@@ -60,6 +60,7 @@ grep -F "nested_close_after_grammar_separation' depends on axioms: [propext," "$
 compile research/whole-source FlowQuotedChild
 grep -F "nested_sequence_quoted_entry' depends on axioms: [propext," "$out/FlowQuotedChild.log"
 grep -F "quoted_child_and_close' depends on axioms: [propext," "$out/FlowQuotedChild.log"
+grep -F "quoted_child_after_separation' depends on axioms: [propext," "$out/FlowQuotedChild.log"
 compile research/whole-source FlowQuotedEntries
 grep -F "nested_sequence_quoted_entries' depends on axioms: [propext," "$out/FlowQuotedEntries.log"
 compile research/whole-source CoverageInventory

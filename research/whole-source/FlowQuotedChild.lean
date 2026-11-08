@@ -15,7 +15,7 @@ open L4YAML.Proofs.EmitterScannability L4YAML.Proofs.FlowAdjacency
 
 lemma quoted_child_step (s : ScannerState) {start stop : SurfPos}
     (hSource : ScannerSurfCorr s start) (hQuote : SCDoubleQuotedOk start stop)
-    (hFlow : s.inFlow = true) (hIndent : s.currentIndent < 0) (hColumn : s.col > 0)
+    (hFlow : s.inFlow = true) (hIndent : s.currentIndent < 0)
     (hDirectives : s.directivesPresent = false)
     (hPrevious : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) :
     ∃ child, scanNextToken s = .ok (some child) ∧ ScannerSurfCorr child stop ∧
@@ -39,19 +39,22 @@ lemma quoted_child_step (s : ScannerState) {start stop : SurfPos}
     scanNextToken_preprocess_flow s '"' rest s.col hSource hFlow
       (by decide) (by decide) (by decide)
   have hPPFlow : pp.inFlow = true := (saveSimpleKey_preserves_inFlow s).trans hFlow
-  have hPPCol : pp.col = s.col := saveSimpleKey_preserves_col s
   have hPPIndent : pp.currentIndent < 0 := by
     simpa only [pp, ScannerState.currentIndent, saveSimpleKey_preserves_indents] using hIndent
-  have hStruct := dispatchStructural_none_flow pp '"' hPPFlow hPPIndent (by omega)
+  have hPPSource : ScannerSurfCorr pp ⟨'"' :: rest, s.col⟩ :=
+    L4YAML.Proofs.StructureCoupling.saveSimpleKey_corr _ _ hSource
+  have hPPPeek := peekAt_zero_corr pp _ hPPSource '"' rest rfl
+  have hStruct : scanNextToken_dispatchStructural pp '"' = .ok none := by
+    simp [scanNextToken_dispatchStructural, atDocumentStart, atDocumentEnd, hPPPeek,
+      show ¬((pp.col : Int) ≤ pp.currentIndent) from by omega, pure, Except.pure]
   let ad := if pp.allowDirectives then
     { pp with allowDirectives := false, documentEverStarted := true } else pp
   have hAdTokens : ad.tokens = pp.tokens := by simp only [ad]; split <;> rfl
   have hAdFlow : ad.inFlow = true := by simp only [ad]; split <;> exact hPPFlow
   have hAdSource : ScannerSurfCorr ad ⟨'"' :: rest, s.col⟩ := by
-    have hPP := L4YAML.Proofs.StructureCoupling.saveSimpleKey_corr _ _ hSource
     simp only [ad]; split
-    · exact ⟨hPP.chars_from, hPP.col_eq, hPP.end_eq, hPP.input_prefix, hPP.indent_cols_nonneg⟩
-    · exact hPP
+    · exact ⟨hPPSource.chars_from, hPPSource.col_eq, hPPSource.end_eq, hPPSource.input_prefix, hPPSource.indent_cols_nonneg⟩
+    · exact hPPSource
   have hFlowDispatch : scanNextToken_dispatchFlowIndicators ad '"' = .ok none :=
     dispatchFlowIndicators_none _ _ (by decide) (by decide) (by decide) (by decide) (by decide)
       (checkFlowAdjacency_ok_of_notCompletes (fun t ht =>
@@ -111,14 +114,64 @@ lemma quoted_child_step (s : ScannerState) {start stop : SurfPos}
 
 open MathGraph.WholeSource.FlowSeparationLanding
 
+/-- Leading separation is part of the quoted scanner step. The landing does
+not add a transition, even when the quote begins at column zero. -/
+lemma quoted_child_after_separation (s : ScannerState) {start quote stop : SurfPos}
+    (hSource : ScannerSurfCorr s start) (hLeading : FlowCloseSeparation start quote)
+    (hQuote : SCDoubleQuotedOk quote stop)
+    (hFlow : s.inFlow = true) (hIndent : s.currentIndent < 0)
+    (hDirectives : s.directivesPresent = false)
+    (hPrevious : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) :
+    ∃ child, scanNextToken s = .ok (some child) ∧ ScannerSurfCorr child stop ∧
+      child.flowLevel = s.flowLevel ∧ child.flowStack = s.flowStack ∧
+      child.indents = s.indents ∧ child.directivesPresent = false ∧
+      child.simpleKeyStack = s.simpleKeyStack ∧ s.tokens.size ≤ child.tokens.size ∧
+      (∀ i, i < s.tokens.size → child.tokens[i]? = s.tokens[i]?) ∧
+      (∃ value, lastRealTokenVal? child.tokens = some (.scalar value .doubleQuoted)) := by
+  have hOpen : ∃ rest, quote.chars = '"' :: rest := by
+    rcases hQuote with ⟨_, _, _, hopen, _, _⟩
+    cases hopen
+    exact ⟨_, rfl⟩
+  obtain ⟨rest, hChars⟩ := hOpen
+  have hQuotePos : quote = ⟨'"' :: rest, quote.col⟩ := by
+    cases quote
+    simp_all
+  rw [hQuotePos] at hLeading hQuote
+  obtain ⟨land, hSkip, hLand⟩ := skip_flow_separation s '"' rest quote.col hSource hLeading
+    hFlow hIndent (by decide) (by decide) (by decide) (by decide)
+  have hLevel := L4YAML.Proofs.ScannerCorrectness.skipToContent_preserves_flowLevel s land hSkip
+  have hTokens := L4YAML.Proofs.ScannerCorrectness.skipToContent_preserves_tokens s land hSkip
+  have hIndents := L4YAML.Proofs.PreprocessIndentStable.skipToContent_preserves_indents s land hSkip
+  have hLandFlow : land.inFlow = true := by
+    simpa only [ScannerState.inFlow, hLevel] using hFlow
+  have hLandIndent : land.currentIndent < 0 := by
+    simpa only [ScannerState.currentIndent, hIndents] using hIndent
+  obtain ⟨hPeek, hMore⟩ := peek_of_chars_cons land '"' rest quote.col hLand
+  have hPark := skipToContent_of_content_char land '"' hPeek
+    (by decide) (by decide) (by decide) hMore
+  have hPre : scanNextToken_preprocess s = scanNextToken_preprocess land := by
+    unfold scanNextToken_preprocess
+    rw [hSkip, hPark]
+  have hStep := scanNextToken_eq_of_preprocess s land hPre
+  obtain ⟨child, hScan, hChild, hDepth, hStack, hChildIndents, hDP, hKeys, hSize, hPrefix, hLast⟩ :=
+    quoted_child_step land hLand hQuote hLandFlow hLandIndent
+      ((L4YAML.Proofs.ScanStrictCoupling.skipToContent_dp s land hSkip).trans hDirectives)
+      (by simpa only [hTokens] using hPrevious)
+  exact ⟨child, hStep.trans hScan, hChild, hDepth.trans hLevel,
+    hStack.trans (L4YAML.Proofs.ScannerFlowStack.skipToContent_preserves_flowStack s land hSkip),
+    hChildIndents.trans hIndents, hDP,
+    hKeys.trans (L4YAML.Proofs.ScannerCorrectness.skipToContent_preserves_simpleKeyStack s land hSkip),
+    by simpa only [hTokens] using hSize, by simpa only [hTokens] using hPrefix, hLast⟩
+
 /-- The child and close are two actual scanner steps. The pending key restored
 by the close is the one saved before scanning the child. -/
-lemma quoted_child_and_close (s : ScannerState) {start stop : SurfPos}
+lemma quoted_child_and_close (s : ScannerState) {start quote stop : SurfPos}
     (tail : List Char) (col : Nat)
-    (hSource : ScannerSurfCorr s start) (hQuote : SCDoubleQuotedOk start stop)
+    (hSource : ScannerSurfCorr s start) (hLeading : FlowCloseSeparation start quote)
+    (hQuote : SCDoubleQuotedOk quote stop)
     (hSeparation : FlowCloseSeparation stop ⟨']' :: tail, col⟩)
     (hDepth : s.flowLevel ≥ 2) (hKind : s.flowStack.back? = some true)
-    (hIndent : s.currentIndent < 0) (hColumn : s.col > 0)
+    (hIndent : s.currentIndent < 0)
     (hDirectives : s.directivesPresent = false)
     (hPrevious : ∀ t, lastRealTokenVal? s.tokens = some t → t.completesFlowValue = false) :
     ∃ final, ScanChain s 2 final ∧ ScannerSurfCorr final ⟨tail, col + 1⟩ ∧
@@ -128,7 +181,7 @@ lemma quoted_child_and_close (s : ScannerState) {start stop : SurfPos}
       (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) := by
   have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
   obtain ⟨child, hStep, hChildSource, hLevel, hStack, hIndents, hDP, hKeys, hSize, hPrefix, _⟩ :=
-    quoted_child_step s hSource hQuote hFlow hIndent hColumn hDirectives hPrevious
+    quoted_child_after_separation s hSource hLeading hQuote hFlow hIndent hDirectives hPrevious
   have hChildIndent : child.currentIndent < 0 := by
     simpa only [ScannerState.currentIndent, hIndents] using hIndent
   obtain ⟨final, hClose, hTail, hFinalLevel, hFinalStack, hFinalKey, hFinalPrefix⟩ :=
@@ -163,8 +216,8 @@ lemma nested_sequence_quoted_entry (s : ScannerState) (body tail : List Char) (c
     simpa only [ScannerState.currentIndent, hMidIndents] using hIndent
   have hMidKind : mid.flowStack.back? = some true := by simp [hMidStack]
   obtain ⟨final, hChain, hTail, hFinalLevel, hFinalStack, hFinalKey, _⟩ :=
-    quoted_child_and_close mid tail col (hMidCol ▸ hMidSource) hQuote hSeparation
-      (by omega) hMidKind hMidIndent (by omega) (hMidDP.trans hDirectives) hMidPrevious
+    quoted_child_and_close mid tail col (hMidCol ▸ hMidSource) (.inline (.nil _)) hQuote hSeparation
+      (by omega) hMidKind hMidIndent (hMidDP.trans hDirectives) hMidPrevious
   refine ⟨final, (ScanChain.single hOpen).trans hChain, hTail, by omega,
     hFinalStack.trans hMidKeyPop, ?_⟩
   simpa [hMidKeys] using hFinalKey
@@ -188,5 +241,6 @@ private def quotedChildControl : Bool := Id.run do
 
 #check quoted_child_and_close
 #print axioms quoted_child_and_close
+#print axioms quoted_child_after_separation
 
 end MathGraph.WholeSource.FlowQuotedChild
