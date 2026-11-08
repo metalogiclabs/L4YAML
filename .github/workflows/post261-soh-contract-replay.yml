@@ -1,0 +1,55 @@
+name: Post-261 SOH comment contract replay
+on:
+  push:
+    branches: [ research/post261-soh-contract-20261109 ]
+
+permissions:
+  contents: read
+
+jobs:
+  contract-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Qualify exact upstream parent
+        run: |
+          test "$(git rev-parse HEAD^)" = "eda4d00770bd72e8df2c2611add334a56972c500"
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.35.0"
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build diagnostic scanner and parser
+        run: lake build tryscan tryparse
+      - name: Replay nonprintable-in-comment contract with controls
+        run: |
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import subprocess
+          import tempfile
+
+          cases = [
+              ("legal-comment", b"a: 1 # xy\n", True),
+              ("raw-SOH-in-comment", b"a: 1 # x\x01y\n", True),
+              ("raw-SOH-in-plain-scalar", b"a: x\x01y\n", False),
+              ("escaped-SOH-in-quoted-scalar", b'a: "\\u0001"\n', True),
+              ("raw-SOH-in-literal-block", b"a: |\n  x\x01y\n", False),
+          ]
+          all_ok = True
+          with tempfile.TemporaryDirectory() as tmp:
+              for name, data, expected_accept in cases:
+                  path = pathlib.Path(tmp) / (name + ".yaml")
+                  path.write_bytes(data)
+                  statuses = {}
+                  for target in ("tryscan", "tryparse"):
+                      command = [str(pathlib.Path(".lake/build/bin") / target), str(path)]
+                      proc = subprocess.run(command, capture_output=True, text=True, timeout=20)
+                      statuses[target] = {"exit": proc.returncode, "stderr": proc.stderr[-300:]}
+                      all_ok &= (proc.returncode == 0) == expected_accept
+                  print(json.dumps({"case": name, "hex": data.hex(), "expected_accept": expected_accept, "results": statuses}), flush=True)
+          if not all_ok:
+              raise SystemExit("Contract witness diverged from expected source-level outcomes")
+          print("POST261_CONTRACT_REPLAY_PASS", flush=True)
+          PY
