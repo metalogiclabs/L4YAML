@@ -70,18 +70,20 @@ lemma double_body_reuse (s s' : SurfPos) : DoubleBody s s' ↔ GStar DQCharOk s 
 lemma single_body_reuse (s s' : SurfPos) : SingleBody s s' ↔ GStar SQCharOk s s' :=
   star_congr single_char_reuse s s'
 
+private lemma comment_body_to_legacy {s s' : SurfPos}
+    (hbody : GStar (GChar NbChar) s s') : GStar SCommentChar s s' := by
+  induction hbody with
+  | nil s => exact .nil s
+  | cons a b c hc _ ih =>
+    cases hc with
+    | mk ch rest col hn =>
+      refine .cons _ _ _ (.mk _ _ _ ?_) ih
+      exact ((nb_char_reuse ch).mp hn).1
+
 lemma comment_to_legacy {s s' : SurfPos} (h : CommentText s s') : SCNbCommentText s s' := by
   cases h with
   | mk rest col out hbody =>
-    apply SCNbCommentText.mk
-    induction hbody with
-    | nil s => exact .nil s
-    | cons a b c hc _ ih =>
-      cases hc with
-      | mk ch rest col hn =>
-        refine .cons _ _ _ (.mk _ _ _ ?_) ih
-        have hold := (nb_char_reuse ch).mp hn
-        exact hold.1
+    exact SCNbCommentText.mk rest col out (comment_body_to_legacy hbody)
 
 lemma raw_control_excluded (rest : List Char) (col : Nat) (out : SurfPos) :
     ¬ DoubleChar ⟨'\u0001' :: rest, col⟩ out := by
