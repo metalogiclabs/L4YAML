@@ -135,6 +135,15 @@
       "artifact_sha256": "7072fe8097cd1f3162bda7511f3f5da329160348a9f940cb17024521b1ce9c08",
       "state": "SUCCESS",
       "boundary": "Exact types and eight transitive profiles inspected; all standard-only, doubled quote axiom-free. Six escape guards and retained native controls pass; expected RED, inventory and frozen-source guards pass. Full production job skipped; no full scalar/language/iff claim."
+    },
+    "quoted_contexts": {
+      "commit": "615b7db04188c35af84b2bf46eb00f5ab584bfd8",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42452071276",
+      "job": 128643227886,
+      "artifact": 13605149623,
+      "artifact_sha256": "15a5c16c0f1b5210b336478ee78a27c02082f401c7a0a9a78cf9a323781b69f8",
+      "state": "SUCCESS",
+      "boundary": "ExactQuoted syntax and ExactQuotedChecks compiled. Ten profiles only propext or no axioms. Retained native controls, expected RED, census and frozen-source guards passed. Full production job skipped. Semantic equivalence to normative YAML and runtime still UNKNOWN."
     }
   },
   "obligations": [
@@ -704,6 +713,40 @@
         "Multiline folding, key restrictions, indentation, closing quote lookahead and recursive node use remain open. No full scalar or full language claim. Escape guards model Lean Unicode scalar values, not arbitrary byte encodings."
       ],
       "reuse": "REUSABLE"
+    },
+    {
+      "id": "L4-QUOTED-CONTEXTS",
+      "claim": "Construct source-only context-indexed double/single quoted syntax for nonnegative indentation parameters, with explicit normative multiline productions; verify flow/key separating witnesses and key-interface reuse.",
+      "source_boundary": "ExactQuoted.lean imports ExactLexical only; production semantics remain frozen 64795a8db28ccfdae85082c93b6453001ae9d3e4.",
+      "requirement": "Pinned YAML 1.2.2 blob 2f078ec32749a55b5ad961899ed0f344037260e0: productions 108\u2013116 and 119\u2013125, dependencies 28 and 63\u201374.",
+      "state": "CANDIDATE_SPEC_WITH_WARRANTED_CHECKS",
+      "obligation_state": "DEFINITION_CONSTRUCTED_SEMANTIC_AUDIT_OPEN",
+      "obstruction": "Old multiline grammar is a simplified body/break/body loop and invents BLOCK-IN/BLOCK-OUT alternatives; exact recursive contexts had not been represented.",
+      "diagnosis": {
+        "state": "WARRANTED_LOGICAL_CHECKS",
+        "evidence": "Source-only context-indexed definition compiled; exact ten proof profiles inspected. Multiline flow witnesses, raw-LF key-body rejection, CRLF indivisibility, unsupported-context exclusion and universal key-body reuse qualified. Full normative conformance/runtime equivalence remain open."
+      },
+      "next_experiment": "Audit and construct exact plain scalar syntax (126\u2013135), including colon lookahead, hash predecessor and key contexts; then define recursive flow nodes/collections using exact quoted and plain components. Preserve Nat/spec indentation offset and document-marker obligations at callers.",
+      "dependencies": [
+        "research/whole-source/ExactLexical.lean",
+        "research/whole-source/ExactQuoted.lean",
+        "research/whole-source/ExactQuotedChecks.lean",
+        "L4YAML/Surface/Basic.lean:SIndent",
+        "L4YAML/Surface/Basic.lean:SFlowLinePrefix"
+      ],
+      "verification": "Ten standard-only axiom profiles, exact types, flow multiline positive and key raw-break negative witnesses, CRLF not split, unsupported contexts excluded, retained native controls/source guards.",
+      "receipts": [
+        "quoted_contexts"
+      ],
+      "failed_experiments": [],
+      "unlocks": [
+        "L4-EXACT-GRAMMAR quoted node components"
+      ],
+      "limits": [
+        "Compiled syntax and separating checks do not establish complete normative conformance, decoding or runtime correspondence.",
+        "Document-level forbidden markers are a containing-stream obligation. Nat indentation and four contexts must be connected to actual node callers; no silent input restriction.",
+        "Full independent language and Group 7.7 remain UNKNOWN."
+      ]
     }
   ],
   "environment_failures": [
@@ -778,7 +821,7 @@
   },
   "next_experiment": {
     "id": "L4-EXACT-GRAMMAR",
-    "action": "Define complete context-indexed quoted scalar syntax (108\u2013116, 119\u2013125), including multiline whitespace/folding and implicit-key restrictions, from exact leaves; then propagate through recursive nodes.",
+    "action": "Audit and construct exact plain scalar syntax (126\u2013135), including colon lookahead, hash predecessor and key contexts; then define recursive flow nodes/collections using exact quoted and plain components. Preserve Nat/spec indentation offset and document-marker obligations at callers.",
     "success_boundary": "Concrete full independent definition, source/serialization interpretation and audited normative coverage. A design contract, constructor census, fragment or metadata flag does not discharge this obligation."
   },
   "previous_next_experiment": {

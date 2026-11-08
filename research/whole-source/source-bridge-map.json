@@ -2373,17 +2373,19 @@
           116
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "WARRANTED_LEXICAL_INTERFACE_FULL_FAMILY_OPEN",
+        "semantic_state": "CONTEXT_INDEXED_DEFINITION_CONSTRUCTED_CHECKS_WARRANTED_SEMANTIC_AUDIT_OPEN",
         "definition_candidates": [
           "L4YAML/Surface/Scalars.lean:SCDoubleQuoted",
           "L4YAML/Surface/Scalars.lean:SNbDoubleChar",
           "L4YAML/Proofs/Production/Acceptance/Quoted.lean",
           "research/whole-source/TagQuotedParse.lean",
-          "research/whole-source/ExactLexical.lean:DoubleChar"
+          "research/whole-source/ExactLexical.lean:DoubleChar",
+          "research/whole-source/ExactQuoted.lean:DoubleQuoted"
         ],
         "obstruction": "Original plain leaf admits raw SOH. Guarded independent quoted acceptance exists, but full normative parameter/production coverage is not audited.",
         "decisive_check": "Replace broad leaf throughout recursive syntax, not only at stream wrapper; map every multiline/key-context alternative to governing requirements.",
-        "receipt": "obligations.json:receipts.exact_lexical"
+        "receipt": "obligations.json:receipts.quoted_contexts",
+        "remaining": "Independent semantic audit, decoded output semantics, document marker exclusion at containing stream, producer/strictness correspondence and recursive node integration remain open."
       },
       {
         "id": "single-quoted",
@@ -2399,15 +2401,17 @@
           125
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "WARRANTED_LEXICAL_INTERFACE_FULL_FAMILY_OPEN",
+        "semantic_state": "CONTEXT_INDEXED_DEFINITION_CONSTRUCTED_CHECKS_WARRANTED_SEMANTIC_AUDIT_OPEN",
         "definition_candidates": [
           "L4YAML/Surface/Scalars.lean:SCSingleQuoted",
           "L4YAML/Surface/Scalars.lean:SNbSingleChar",
-          "research/whole-source/ExactLexical.lean:SingleChar"
+          "research/whole-source/ExactLexical.lean:SingleChar",
+          "research/whole-source/ExactQuoted.lean:SingleQuoted"
         ],
         "obstruction": "Candidate syntax must be audited for nb-json restriction, doubled quote and context-sensitive folding.",
         "decisive_check": "Compare literal admissibility and continuation/key restrictions with productions 117-125; retain unresolved cases explicitly.",
-        "receipt": "obligations.json:receipts.exact_lexical"
+        "receipt": "obligations.json:receipts.quoted_contexts",
+        "remaining": "Independent semantic audit, decoded output semantics, document marker exclusion at containing stream, producer/strictness correspondence and recursive node integration remain open."
       },
       {
         "id": "plain",
@@ -2719,9 +2723,29 @@
       "research/whole-source/TagQuotedParse.lean": "769a067806d99c0d8bb459db48489b82c19c85b7fdd6ba8de323b9137294a5da",
       "research/whole-source/ExactCharacters.lean": "fa71a9b168031962bd67740e82427af4960f14d3d236534d00cced2731d3a6d5",
       "research/whole-source/ExactLexical.lean": "511cd79c83fc368b87b10715905aeb5ff3366211cf75e5b897650be1b33f9900",
-      "research/whole-source/ExactLexicalBridge.lean": "4cda42a1188077da70ccf6fed9d29fe7c1e8d9402270af516ccd00a334cf76cd"
+      "research/whole-source/ExactLexicalBridge.lean": "4cda42a1188077da70ccf6fed9d29fe7c1e8d9402270af516ccd00a334cf76cd",
+      "research/whole-source/ExactQuoted.lean": "71fcff72e36e9b8d454e6c8b4133126d697c2007993015d81ab815a62c0adb9d",
+      "research/whole-source/ExactQuotedChecks.lean": "cdeb06df93a6ab8373ff5ef961f3b084209ba25f782fb0b1f6448b7d025fb50e"
     },
     "architecture": "Independent exact lexical leaves -> mutually recursive exact nodes -> exact document/stream relation; retained source segmentation and records -> coherent source serialization validity; then actual producer and same-language strictness. No runtime acceptance in definitions.",
-    "unresolved": "Concrete exact grammar is not constructed. Index accounts for numbered productions but is not a semantic coverage proof; prose requirements also matter."
+    "unresolved": "Concrete exact grammar is not constructed. Index accounts for numbered productions but is not a semantic coverage proof; prose requirements also matter.",
+    "quoted_production_definitions": {
+      "108": "DoubleNonSpace",
+      "109": "DoubleQuoted",
+      "110": "DoubleText",
+      "111": "ExactLexical.DoubleBody",
+      "112": "DoubleEscaped",
+      "113": "DoubleBreak",
+      "114": "DoubleInLine",
+      "115": "DoubleNext",
+      "116": "DoubleMulti",
+      "119": "SingleNonSpace",
+      "120": "SingleQuoted",
+      "121": "SingleText",
+      "122": "ExactLexical.SingleBody",
+      "123": "SingleInLine",
+      "124": "SingleNext",
+      "125": "SingleMulti"
+    }
   }
 }

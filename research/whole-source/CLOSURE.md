@@ -258,3 +258,29 @@ Six escape guards, retained native controls, expected RED, inventory and frozen
 source guards passed. Full production job skipped. Failed cc7e9950/42451130920
 (fixed-index induction) and 1408d274/42451311009 (eliminated endpoint name) remain
 recorded. Generalized the helper and inferred its endpoint; no statement weakened.
+
+## Context-indexed quoted syntax constructed
+
+ExactQuoted.lean now represents [108]–[116] and [119]–[125], using the exact
+lexical leaves and explicit multiline rules: non-space runs, recursive optional
+continuation, escaped breaks, empty lines and flow folding. CRLF is consumed as
+one break. Only the four normative scalar contexts are admitted; unsupported
+block contexts are False rather than invented totality alternatives. Document
+marker exclusions remain obligations of the containing stream. Nonnegative Nat
+indentation must be reconciled with node callers' documented spec-offset scheme.
+
+Qualified at 615b7db04188c35af84b2bf46eb00f5ab584bfd8, run 42452071276,
+job 128643227886 SUCCESS; artifact 13605149623, reported SHA256
+15a5c16c0f1b5210b336478ee78a27c02082f401c7a0a9a78cf9a323781b69f8.
+Ten checks inspected: multiline witnesses use no axioms, other profiles only
+propext. Retained native controls, expected RED, census and source guards passed;
+full production job skipped. No failed candidate in this cycle.
+
+WARRANTED is the compiled definition and the exact logical checks, not universal
+normative adequacy or runtime correspondence. The specification remains CANDIDATE
+until independently audited and integrated. Full source language remains open.
+Next: exact plain scalars [126]–[135], particularly colon lookahead, predecessor-
+sensitive hash and key contexts; then recursive flow nodes/collections. Current
+plain grammar's unused colon predecessor argument is not a state requirement to
+copy blindly. Existing flow-in-block caller passes flowOut, but all recursive
+callers and indentation offsets still need checking.
