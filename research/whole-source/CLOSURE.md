@@ -284,3 +284,40 @@ sensitive hash and key contexts; then recursive flow nodes/collections. Current
 plain grammar's unused colon predecessor argument is not a state requirement to
 copy blindly. Existing flow-in-block caller passes flowOut, but all recursive
 callers and indentation offsets still need checking.
+
+### Recursive flow handoff checked locally
+
+At 8d2ea59ddc5c86ae1d7157dd765d2042f385eb25, FlowProducerCase.lean
+instantiates Group 7.7's nested flow sequence seam [137]. The conditional
+lemma `nested_sequence_scans` joins the actual open step, an arbitrary
+`BodyToClose` scan chain and the actual close step. It returns the scanner
+state at the exact remaining character suffix with the starting flow depth
+restored. Lean prints only propext, Classical.choice and Quot.sound.
+The independent entries derivation still has to supply `BodyToClose`.
+The whole-source producer also needs token shape, serialization state and
+a bound within actual scanner fuel.
+
+The executable controls show why a child cannot export an immutable token
+prefix. On `[[]: x]` the colon rewrites a placeholder in the pre-colon array
+into a key. On `[[], x]` the comma makes no such rewrite. Both public parses
+succeed. Reuse `FlowNoOverwriteAt` and `SimpleKeyAboveFloor` for the stable
+portion of the array, keeping the pending key slot visible. A separate local
+control, `[[\n a\n ], x]` with actual line breaks, succeeds and its filtered
+scanner tokens occupy lines 0, 1 and 2. The emitter's `AllTokensOnLine`
+hypothesis is therefore unsuitable for the general source induction. In the
+existing nested close proof it is used to derive the same-line postcondition,
+so factor the actual close dispatch from that postcondition.
+
+Local receipt: the exact checked-in whole-source harness passed, including the
+four new guards, retained controls, expected RED and pre/post source identity.
+It used the checksum-pinned Lean 4.35.0 archive, a temporary library-only Lake
+configuration, and a process-local readlink shim redirecting
+`/proc/<own-pid>/exe` to `/proc/self/exe` for executable discovery. The
+module log digest is in obligations.json. Hosted run 42464546256, jobs
+128680897482 and 128681066130, failed on the Lean download with HTTP 504
+before compilation. The full production suite was outside the local boundary.
+
+Next: prove the nested close for an independently derived multiline child
+with trailing separation, retaining the parent key reservation and exact
+suffix. Then lift that contract to the arbitrary-child induction. Full Group
+7.7 remains UNKNOWN.

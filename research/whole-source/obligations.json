@@ -144,6 +144,17 @@
       "artifact_sha256": "15a5c16c0f1b5210b336478ee78a27c02082f401c7a0a9a78cf9a323781b69f8",
       "state": "SUCCESS",
       "boundary": "ExactQuoted syntax and ExactQuotedChecks compiled. Ten profiles only propext or no axioms. Retained native controls, expected RED, census and frozen-source guards passed. Full production job skipped. Semantic equivalence to normative YAML and runtime still UNKNOWN."
+    },
+    "flow_producer_case": {
+      "commit": "8d2ea59ddc5c86ae1d7157dd765d2042f385eb25",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42464546256",
+      "jobs": [
+        128680897482,
+        128681066130
+      ],
+      "state": "LOCAL_HARNESS_PASS_HOSTED_TOOLCHAIN_DOWNLOAD_FAILURE",
+      "local_module_log_sha256": "280c93228779965020c78c0cd00255e6c22d56c0ee052f177ed356a89cee39f6",
+      "boundary": "Exact FlowProducerCase module and retained whole-source qualification script passed with checksum-pinned Lean 4.35.0 using a temporary library-only Lake configuration and a process-local executable-path shim. Both hosted attempts failed HTTP 504 before Lean; full production suite was not run."
     }
   },
   "obligations": [
@@ -747,13 +758,53 @@
         "Document-level forbidden markers are a containing-stream obligation. Nat indentation and four contexts must be connected to actual node callers; no silent input restriction.",
         "Full independent language and Group 7.7 remain UNKNOWN."
       ]
+    },
+    {
+      "id": "L4-FLOW-RECURSIVE-HANDOFF",
+      "claim": "Independent nested flow sequence entries produce a composable ScanChain that consumes the exact source span, transports delimiter/key state, and supports the whole-source producer premises.",
+      "source_boundary": "Frozen legacy Scanner.scanFiltered and TokenParser.parseYaml at 64795a8db28ccfdae85082c93b6453001ae9d3e4. Local conditional lemma nested_sequence_scans starts already in flow with a negative current indent and same-line token premises.",
+      "requirement": "Group 7.7 completeness and YAML 1.2.2 [137]\u2013[139], [150], [154]\u2013[155].",
+      "state": "UNKNOWN",
+      "obligation_state": "CONDITIONAL_CASE_LOCALLY_CHECKED",
+      "obstruction": "A child-to-parent handoff must account for a reserved token slot updated by a later colon, and valid multiline children can violate the emitter's whole-array line invariant.",
+      "diagnosis": {
+        "state": "LOCAL_EXECUTABLE_CHECKS",
+        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions."
+      },
+      "dependencies": [
+        "research/whole-source/SourceBridge.lean:Obligation",
+        "research/whole-source/FlowProducerCase.lean:BodyToClose",
+        "L4YAML/Proofs/Output/EmitterScannability/ScanSteps.lean",
+        "L4YAML/Proofs/Output/EmitterScannability/ScannerAcceptance.lean:FlowNoOverwriteAt",
+        "L4YAML/Proofs/Output/EmitterScannability/ScannerAcceptance.lean:SimpleKeyAboveFloor"
+      ],
+      "next_experiment": "Prove a nested close transition for an independently derived multiline child and its legal trailing separation. Factor the operational dispatch from the emitter-only AllTokensOnLine postcondition, then transport the pending parent key slot using existing FlowNoOverwriteAt/SimpleKeyAboveFloor lemmas.",
+      "verification": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate.",
+      "receipts": [
+        "flow_producer_case"
+      ],
+      "failed_experiments": [
+        {
+          "commit": "8d2ea59ddc5c86ae1d7157dd765d2042f385eb25",
+          "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42464546256",
+          "reason": "Both hosted attempts returned HTTP 504 downloading Lean; no Lean proof verdict was observed."
+        }
+      ],
+      "unlocks": [
+        "L4-EXACT-GRAMMAR propagation through recursive flow entries",
+        "SourceBridge.Obligation producer construction"
+      ],
+      "limits": [
+        "BodyToClose remains a premise and is not derived from the independent entries grammar.",
+        "The local wrapper does not prove token grammar, token state validity or sufficient production fuel."
+      ]
     }
   ],
   "environment_failures": [
     {
       "kind": "local_toolchain",
       "observation": "Checksum-pinned Lean 4.35.0 archive verified; executable reports 'failed to locate application', even after extraction with --no-same-owner.",
-      "disposition": "Use pinned official Actions, not an unverified local-build claim."
+      "disposition": "Local diagnostics recovered via a process-local shim redirecting readlink of /proc/<own-pid>/exe to /proc/self/exe, with the checksum-pinned archive. Use normal hosted qualification for hosted receipts."
     },
     {
       "kind": "transport",
@@ -820,9 +871,9 @@
     ]
   },
   "next_experiment": {
-    "id": "L4-EXACT-GRAMMAR",
-    "action": "Audit and construct exact plain scalar syntax (126\u2013135), including colon lookahead, hash predecessor and key contexts; then define recursive flow nodes/collections using exact quoted and plain components. Preserve Nat/spec indentation offset and document-marker obligations at callers.",
-    "success_boundary": "Concrete full independent definition, source/serialization interpretation and audited normative coverage. A design contract, constructor census, fragment or metadata flag does not discharge this obligation."
+    "id": "L4-FLOW-RECURSIVE-HANDOFF",
+    "action": "Prove a nested close transition for an independently derived multiline child and its legal trailing separation. Factor the operational dispatch from the emitter-only AllTokensOnLine postcondition, then transport the pending parent key slot using existing FlowNoOverwriteAt/SimpleKeyAboveFloor lemmas.",
+    "success_boundary": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",
