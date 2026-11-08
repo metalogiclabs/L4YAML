@@ -42,6 +42,8 @@ compile research/whole-source SourceBridge
 compile research/whole-source CoverageInventory
 compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
+compile research/whole-source TagDocument
+test "$(grep -c TAG_DOCUMENT_AXIOMS "$out/TagDocument.log")" = 4
 test "$(grep -c DIRECTIVE_RECORD_BRIDGE_AXIOMS "$out/DirectiveRecordBridge.log")" = 5
 test "$(grep -c DIRECTIVE_RECORD_AXIOMS "$out/DirectiveRecords.log")" = 15
 test "$(grep -c 'SOURCE_BRIDGE_AXIOMS' "$out/SourceBridge.log")" = 4

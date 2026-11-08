@@ -137,17 +137,22 @@ lemma original_dispatch_record_agreement (input : String) {handle pfx : List Cha
     let ready := saveSimpleKey { initial with needIndentCheck := false }
     ∃ out, scanNextToken initial = .ok (some out) ∧ ScannerSurfCorr out t ∧
       explicitTagHandle input.toList = some handle ∧
-      out.tokens = ready.tokens.push { pos := ready.currentPos, val := .tagDirective (String.ofList handle) (String.ofList pfx) } := by
+      out.tokens = ready.tokens.push { pos := ready.currentPos, val := .tagDirective (String.ofList handle) (String.ofList pfx) } ∧
+      out.flowLevel = 0 ∧ out.indents = #[{column := -1, isSequence := false}] := by
   let initial := (ScannerState.mk' input).emit .streamStart
   let ready := saveSimpleKey { initial with needIndentCheck := false }
   have hp : input.toList = '%' :: h.afterPercent.chars := percent_source h.percent
-  obtain ⟨hpre, hc, hf, _, ha, _⟩ :=
+  obtain ⟨hpre, hc, hf, hi, ha, _⟩ :=
     MathGraph.WholeSource.DirectiveEntry.initial_percent_preprocess input _ hp
   have hcTag : ScannerSurfCorr ready ⟨input.toList, 0⟩ := by rw [hp]; exact hc
   obtain ⟨out, hdir, hout, he, ht⟩ := scanner_record_agreement ready h hcTag ha
   have hstruct := MathGraph.WholeSource.DirectiveEntry.percent_structural ready out _ hc hf hdir
   obtain ⟨hc1, hc2⟩ := MathGraph.WholeSource.DirectiveEntry.initial_checks input ready
-  refine ⟨out, ?_, hout, he, ht⟩
+  have hfo : out.flowLevel = 0 :=
+    (L4YAML.Proofs.ScannerCorrectness.scanDirective_preserves_flowLevel ready out hdir).trans hf
+  have hio : out.indents = #[{column := -1, isSequence := false}] :=
+    (L4YAML.Proofs.IndentStackBase.scanDirective_preserves_indents hdir).trans hi
+  refine ⟨out, ?_, hout, he, ht, hfo, hio⟩
   unfold scanNextToken
   rw [hpre]
   simp only [bind, Except.bind, pure, Except.pure]

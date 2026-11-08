@@ -49,6 +49,15 @@ private def landedAtFinalLf (input : String) : Bool :=
 #guard landedAtFinalLf "%YAML 1.2 #x\nvalue" = false
 #guard landedAtFinalLf "%YAML 1.2 #x\n ---\n" = false
 
+lemma clean_token_checks (s land : ScannerState)
+    (hn : trailingNodeRun? s.tokens = none) :
+    scanNextToken_checkDanglingNode s land = .ok () ∧
+    scanNextToken_checkFlowValueIndent s land = .ok () := by
+  have hd := danglingNodePos?_none_of_no_run s hn
+  have hf := underIndentedFlowValuePos?_none_of_no_run s hn
+  exact ⟨by simp [scanNextToken_checkDanglingNode, hd],
+    by simp [scanNextToken_checkFlowValueIndent, hf]⟩
+
 lemma version_token_checks (s land : ScannerState) (major minor : Nat) (pos : YamlPos)
     (priorTokens : Array (Positioned YamlToken))
     (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
@@ -161,13 +170,12 @@ lemma preprocess_marker (s : ScannerState) (rest : List Char)
 /-- Retain the *actual* post-preprocessing landing witness, rather than only
 its three directive flags. This is the source-correspondence handoff needed
 for the terminal `scanLoop` checks in the bounded empty-document capstone. -/
-lemma full_step_after_version_landing (s : ScannerState) (rest : List Char)
-    (col major minor : Nat)
-    (pos : YamlPos) (priorTokens : Array (Positioned YamlToken))
+lemma full_step_after_clean_landing (s : ScannerState) (rest : List Char)
+    (col : Nat)
     (hc : ScannerSurfCorr s ⟨'\n' :: '-' :: '-' :: '-' :: '\n' :: rest, col⟩)
     (hf : s.flowLevel = 0)
     (hi : s.indents = #[{column := -1, isSequence := false}])
-    (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
+    (hn : trailingNodeRun? s.tokens = none) :
     ∃ land, scanNextToken s = .ok (some (scanDocumentStart land)) ∧
       ScannerSurfCorr land ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩ ∧
       land.flowLevel = 0 ∧
@@ -185,11 +193,29 @@ lemma full_step_after_version_landing (s : ScannerState) (rest : List Char)
     rw [hnoop] at hpre
     rw [hskip]
     exact hpre
-  obtain ⟨hd, hv⟩ := version_token_checks s land major minor pos priorTokens ht
+  obtain ⟨hd, hv⟩ := clean_token_checks s land hn
   have hstruct := structural_document_start land rest hcorr hflow
   refine ⟨land, ?_, hcorr, hflow, hinds, ?_⟩
   · simp [scanNextToken, hpreS, hd, hv, hstruct, bind, pure, Except.bind, Except.pure]
   · rw [htFiltered, htLand]
+
+lemma full_step_after_version_landing (s : ScannerState) (rest : List Char)
+    (col major minor : Nat)
+    (pos : YamlPos) (priorTokens : Array (Positioned YamlToken))
+    (hc : ScannerSurfCorr s ⟨'\n' :: '-' :: '-' :: '-' :: '\n' :: rest, col⟩)
+    (hf : s.flowLevel = 0)
+    (hi : s.indents = #[{column := -1, isSequence := false}])
+    (ht : s.tokens = priorTokens.push {pos := pos, val := .versionDirective major minor}) :
+    ∃ land, scanNextToken s = .ok (some (scanDocumentStart land)) ∧
+      ScannerSurfCorr land ⟨'-' :: '-' :: '-' :: '\n' :: rest, 0⟩ ∧
+      land.flowLevel = 0 ∧
+      land.indents = #[{column := -1, isSequence := false}] ∧
+      land.tokens.filter (fun t => t.val != .placeholder) =
+        s.tokens.filter (fun t => t.val != .placeholder) := by
+  have hn : trailingNodeRun? s.tokens = none := by
+    rw [ht]
+    exact trailingNodeRun?_push_none priorTokens _ rfl rfl rfl rfl
+  exact full_step_after_clean_landing s rest col hc hf hi hn
 
 /-- The `---` production consumes exactly its three marker characters. The
 remaining LF and the entire source suffix stay connected to the *same* state
@@ -253,6 +279,40 @@ lemma document_start_landing_state (land : ScannerState)
 /-- State-preserving successor of the independent source directive family.
 Unlike a flag-only witness, this hands the exact remaining source and terminal
 state to the EOF and token proof obligations. -/
+lemma full_step_after_clean_state (s : ScannerState) (rest : List Char)
+    (col : Nat)
+    (hc : ScannerSurfCorr s ⟨'\n' :: '-' :: '-' :: '-' :: '\n' :: rest, col⟩)
+    (hf : s.flowLevel = 0)
+    (hi : s.indents = #[{column := -1, isSequence := false}])
+    (hn : trailingNodeRun? s.tokens = none) :
+    ∃ out, scanNextToken s = .ok (some out) ∧
+      ScannerSurfCorr out ⟨'\n' :: rest, 3⟩ ∧
+      out.flowLevel = 0 ∧
+      out.indents = #[{column := -1, isSequence := false}] ∧
+      trailingNodeRun? out.tokens = none ∧
+      out.directivesPresent = false ∧ out.allowDirectives = false ∧
+      out.seenYamlDirective = false ∧
+      (out.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
+        ((s.tokens.filter (fun t => t.val != .placeholder)).map (·.val)).push
+          .documentStart := by
+  obtain ⟨land, hstep, hcLand, hfLand, hiLand, htFiltered⟩ :=
+    full_step_after_clean_landing s rest col hc hf hi hn
+  obtain ⟨hfl, hind, htokens⟩ := document_start_landing_state land hfLand hiLand
+  have hrun : trailingNodeRun? (scanDocumentStart land).tokens = none := by
+    rw [htokens]
+    exact trailingNodeRun?_push_none land.tokens
+      {pos := land.currentPos, val := .documentStart}
+      (by rfl) (by rfl) (by rfl) (by rfl)
+  refine ⟨scanDocumentStart land, hstep,
+    document_start_landing_source land rest hcLand hiLand,
+    hfl, hind, hrun, ?_, ?_, ?_, ?_⟩
+  · simp [scanDocumentStart]
+  · simp [scanDocumentStart]
+  · simp [scanDocumentStart]
+  · rw [htokens, Array.filter_push]
+    simp only [Array.map_push]
+    simpa [htFiltered] using congrArg (fun ts => ts.map (·.val)) htFiltered
+
 lemma full_step_after_version_state (s : ScannerState) (rest : List Char)
     (col major minor : Nat) (pos : YamlPos)
     (priorTokens : Array (Positioned YamlToken))
@@ -270,23 +330,10 @@ lemma full_step_after_version_state (s : ScannerState) (rest : List Char)
       (out.tokens.filter (fun t => t.val != .placeholder)).map (·.val) =
         ((s.tokens.filter (fun t => t.val != .placeholder)).map (·.val)).push
           .documentStart := by
-  obtain ⟨land, hstep, hcLand, hfLand, hiLand, htFiltered⟩ :=
-    full_step_after_version_landing s rest col major minor pos priorTokens hc hf hi ht
-  obtain ⟨hfl, hind, htokens⟩ := document_start_landing_state land hfLand hiLand
-  have hrun : trailingNodeRun? (scanDocumentStart land).tokens = none := by
-    rw [htokens]
-    exact trailingNodeRun?_push_none land.tokens
-      {pos := land.currentPos, val := .documentStart}
-      (by rfl) (by rfl) (by rfl) (by rfl)
-  refine ⟨scanDocumentStart land, hstep,
-    document_start_landing_source land rest hcLand hiLand,
-    hfl, hind, hrun, ?_, ?_, ?_, ?_⟩
-  · simp [scanDocumentStart]
-  · simp [scanDocumentStart]
-  · simp [scanDocumentStart]
-  · rw [htokens, Array.filter_push]
-    simp only [Array.map_push]
-    simpa [htFiltered] using congrArg (fun ts => ts.map (·.val)) htFiltered
+  have hn : trailingNodeRun? s.tokens = none := by
+    rw [ht]
+    exact trailingNodeRun?_push_none priorTokens _ rfl rfl rfl rfl
+  exact full_step_after_clean_state s rest col hc hf hi hn
 
 /-- Compatibility projection: the previous independently qualified interface
 remains available to all existing consumers. -/
