@@ -233,6 +233,22 @@
       "boundary": "NestedSourceProducer.quoted_list_public_accepts at fixed source nesting depth: arbitrary independently specified double-quoted list with separation, including empty and trailing-comma arms. Exact filtered scanner token values, both parser premises and public acceptance. Frozen source identity pre/post, retained controls and expected RED. Separate unchanged-production job skipped.",
       "artifact": 13619163484,
       "artifact_sha256": "d6055677f851f99447d509f4b9cce867fe855c70add059989a54c21284b0a657"
+    },
+    "exact_plain_spans": {
+      "commit": "b0dbeff849767c297025a8ea5029b20d4452df17",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42487507245",
+      "job": 128752509190,
+      "state": "LOCAL_HARNESS_PASS_HOSTED_PASS",
+      "local_module_log_sha256": "f1db6e00b87fff320d9b0372e82d3bddc70d8fa1cf6deff39432a156c8844dfa",
+      "boundary": "YAML 1.2.2 [126]\u2013[135] source relation in four contexts, seven exact-span controls, general one-line content premise and conditional actual scanPlainScalar landing and .plain token append before a flow indicator. No decoded text equality, arbitrary multiline scanner theorem or whole-source acceptance claim. Frozen production qualification inputs retained.",
+      "artifact": 13619689408,
+      "artifact_sha256": "54909e3cb61cc188694d8d1454c5ff2fa85a9d66738656b815b6fb99ae3298c0",
+      "local_scanner_diagnostic": {
+        "[a:b]": "one plain scalar a:b",
+        "[a: b]": "key token, plain a, value token, plain b",
+        "[a#b]": "one plain scalar a#b",
+        "[a #b\n]": "one plain scalar a after comment removal"
+      }
     }
   },
   "obligations": [
@@ -375,21 +391,23 @@
       "obstruction": "No complete source-connected replacement for permissive stream, leaf and directive constructors",
       "diagnosis": {
         "state": "WARRANTED",
-        "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements."
+        "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements. ExactPlainChecks.colon_has_two_spans proves that a:b has both a full plain-span derivation and a strict-prefix derivation ending at :b. A source span alone therefore cannot determine maximal consumption. A caller must derive delimiter and termination conditions."
       },
-      "next_experiment": "Define or prove transport for the exact plain scalar source relation for YAML [126]\u2013[135]. Reuse the proved lexical and flow-folding relations, keep the four normative contexts, and kernel-check paired exact-span controls for colon lookahead, hash adjacency and the flow delimiter boundary before plugging the leaf into mutually recursive nodes.",
+      "next_experiment": "Compose context-indexed exact scalar leaves into independent recursive flow sequence nodes. Start with the [136]\u2013[139] sequence arms and [80]\u2013[81] separation over the exact comment class. Derive the owning separator or closing delimiter from the same source derivation before applying the checked scanner interfaces.",
       "dependencies": [
         "L4YAML/Surface/Document.lean",
         "L4YAML/Surface/Scalars.lean",
         "L4YAML/Surface/Basic.lean",
         "DirectiveTrace.lean",
-        "DirectiveSufficiency.lean"
+        "DirectiveSufficiency.lean",
+        "research/whole-source/ExactPlain.lean:Plain"
       ],
       "verification": "Complete concrete Lean language definition; requirement-to-definition map with no unexplained omissions; source-only syntax and state, independent of runtime acceptance; audit known separating witnesses; compile and inspect assumptions. Unresolved scope or constructor coverage prevents closure.",
       "receipts": [
         "obstructions",
         "https://github.com/metalogiclabs/L4YAML/actions/runs/42418475419",
-        "normative_and_harness"
+        "normative_and_harness",
+        "exact_plain_spans"
       ],
       "failed_experiments": [],
       "unlocks": [
@@ -406,7 +424,8 @@
         "concrete_full_language": "NOT_CONSTRUCTED",
         "independent_semantic_coverage": "UNKNOWN",
         "cell_lean_integration": "NOT_STARTED",
-        "load_layers": "RESOLVED_SYNTAX_AND_SERIALIZATION_ONLY (AcceptanceScope; see CLOSURE.md)"
+        "load_layers": "RESOLVED_SYNTAX_AND_SERIALIZATION_ONLY (AcceptanceScope; see CLOSURE.md)",
+        "plain_spans": "DEFINITION_AND_SEPARATOR_CONTROLS_CHECKED_CONDITIONAL_INLINE_SCANNER_BRIDGE"
       }
     },
     {
@@ -861,9 +880,10 @@
         "research/whole-source/FlowQuotedEntries.lean:nested_sequence_quoted_entries",
         "research/whole-source/FlowQuotedChild.lean:quoted_child_after_separation",
         "research/whole-source/FlowTokenBridge.lean",
-        "research/whole-source/NestedSourceProducer.lean"
+        "research/whole-source/NestedSourceProducer.lean",
+        "research/whole-source/ExactPlain.lean:scan_flow_plain_to_indicator"
       ],
-      "next_experiment": "Resume recursive flow propagation after the exact plain leaf is defined and audited. Reuse the actual scanner effects and parser bridge rather than duplicate the list induction.",
+      "next_experiment": "Lift scan_flow_plain_to_indicator through scanNextToken at a sequence entry, with the exact source-derived delimiter and stream-floor scanner context. Reuse the existing sequence token proof and compare paired mixed scalar controls.",
       "verification": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate.",
       "receipts": [
         "flow_producer_case",
@@ -970,8 +990,8 @@
   },
   "next_experiment": {
     "id": "L4-EXACT-GRAMMAR",
-    "action": "Define or prove transport for the exact plain scalar source relation for YAML [126]\u2013[135]. Reuse the proved lexical and flow-folding relations, keep the four normative contexts, and kernel-check paired exact-span controls for colon lookahead, hash adjacency and the flow delimiter boundary before plugging the leaf into mutually recursive nodes.",
-    "success_boundary": "Independent source relation consumes the correct plain span for a:b and a#b, leaves colon/separation and a whitespace-separated hash to their owning rules, distinguishes flow-in/key from flow-out/block-key, and excludes multiline keys. Compile and inspect theorem types and axioms."
+    "action": "Compose context-indexed exact scalar leaves into independent recursive flow sequence nodes. Start with the [136]\u2013[139] sequence arms and [80]\u2013[81] separation over the exact comment class. Derive the owning separator or closing delimiter from the same source derivation before applying the checked scanner interfaces.",
+    "success_boundary": "An exact source definition derives mixed plain/quoted and recursively nested flow sequence spans, with paired tests for delimiter ownership, separator context, and leading versus trailing commas. Keep flow pairs, properties, multiline scanner correspondence and full streams explicitly open where applicable."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",

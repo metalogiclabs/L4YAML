@@ -545,3 +545,33 @@ experiment is the exact plain-scalar source relation for [126]–[135], with
 colon, hash, flow-delimiter and multiline-key separators. Then propagate
 the audited leaves through exact recursive nodes using the scanner and parser
 interfaces checked here.
+
+### Plain scalar source spans and the flow scanner boundary
+
+Code b0dbeff849767c297025a8ea5029b20d4452df17 reuses the independent [126]–[130], [132]–[133]
+source rules and the exact CRLF-aware [74] folding rule to define [131],
+[134] and [135] in their four source contexts. Kernel-checked controls
+separate colon lookahead, adjacent and separated hashes, closing brackets
+in block and flow keys, and multiline flow values versus keys.
+
+`ExactPlainChecks.colon_has_two_spans` gives both the full `a:b` derivation
+and the strict-prefix derivation ending at `:b`. This rejects the inference
+from an arbitrary grammatical span to maximal scanner consumption. The
+enclosing production must supply the delimiter or stop relation.
+`ExactPlain.one_line_to_guarded` supplies the scanner content premise.
+`ExactPlain.scan_flow_plain_to_indicator` proves actual scanner landing
+and a plain token append when the caller supplies state correspondence,
+the flow context, a horizontal whitespace run, an actual flow indicator,
+and document-marker exclusion at column zero. No decoded-value equality
+or whole-source acceptance is claimed by this lemma.
+
+Local qualification passed with retained positive/negative controls,
+expected RED, and frozen production identity. Hosted job 128752509190
+in [run 42487507245](https://github.com/metalogiclabs/L4YAML/actions/runs/42487507245/job/128752509190) has state LOCAL_HARNESS_PASS_HOSTED_PASS.
+Artifact 13619689408, reported SHA-256 54909e3cb61cc188694d8d1454c5ff2fa85a9d66738656b815b6fb99ae3298c0.
+The separate unchanged-production job was skipped.
+
+Full Group 7.7 remains UNKNOWN. Next compose the exact leaves into
+recursive flow sequence syntax and derive delimiter ownership from those
+source rules. Preserve the distinction between content end and scanner
+landing through optional horizontal separation.

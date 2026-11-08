@@ -2428,14 +2428,17 @@
           135
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "UNKNOWN",
+        "semantic_state": "CONTEXT_INDEXED_SPAN_DEFINITION_AND_BOUNDARY_CHECKS_WARRANTED_FULL_CORRESPONDENCE_UNKNOWN",
         "definition_candidates": [
           "L4YAML/Surface/Scalars.lean:SNsPlain",
           "L4YAML/Surface/Scalars.lean:SNsPlainFirst",
-          "L4YAML/Surface/Scalars.lean:SNsPlainChar"
+          "L4YAML/Surface/Scalars.lean:SNsPlainChar",
+          "research/whole-source/ExactPlain.lean:Plain"
         ],
         "obstruction": "Colon/hash lookahead, flow context and multiline termination determine source boundaries.",
-        "decisive_check": "Audit maximal source consumption and document-marker exclusion before importing plain rules into exact nodes."
+        "decisive_check": "Audit maximal source consumption and document-marker exclusion before importing plain rules into exact nodes.",
+        "receipt": "obligations.json:receipts.exact_plain_spans",
+        "remaining": "Derive maximal consumption and forbidden-marker constraints from enclosing syntax. Multiline scanner correspondence and recursive integration remain open."
       },
       {
         "id": "flow-nodes-collections",
