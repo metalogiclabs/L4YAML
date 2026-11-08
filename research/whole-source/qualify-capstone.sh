@@ -40,6 +40,8 @@ done
 python3 research/whole-source/coverage-audit.py > "$out/coverage-census.log"
 compile research/whole-source SourceBridge
 compile research/whole-source CoverageInventory
+compile research/whole-source DirectiveRecords
+test "$(grep -c DIRECTIVE_RECORD_AXIOMS "$out/DirectiveRecords.log")" = 13
 test "$(grep -c 'SOURCE_BRIDGE_AXIOMS' "$out/SourceBridge.log")" = 4
 
 # A required RED is an exact false proposition, never an import/syntax failure.

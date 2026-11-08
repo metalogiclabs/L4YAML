@@ -1,0 +1,99 @@
+module
+public import DirectiveDiscipline
+public import L4YAML.Proofs.Serialization.EventsOf
+public meta import Lean
+
+/-! Source-retained directive multiplicity, YAML 1.2.2 §6.8.1–2.
+This is a necessary condition, NOT complete directive syntax or a full language.
+It refines the existing skeleton without replacing it or calling the parser.
+In particular, primary/secondary explicit TAG declarations must be counted even
+though EventsOf.declaredHandle intentionally omits them from availability events.
+-/
+@[expose] public section
+namespace MathGraph.WholeSource.DirectiveRecords
+open L4YAML.Proofs.Serialization.EventsOf
+open L4YAML.Proofs.Serialization.SourceEvents
+open MathGraph.WholeSource.DirectiveDiscipline
+
+/-- Read an explicit TAG handle from retained source. Syntax validity remains
+an independent obligation: this recognizer deliberately does not certify it. -/
+def explicitTagHandle : List Char → Option (List Char)
+  | '%' :: 'T' :: 'A' :: 'G' :: c :: cs =>
+      if c == ' ' || c == '\t' then
+        some ((dropHSpace cs).takeWhile fun x =>
+          !(x == ' ' || x == '\t' || x == '\r' || x == '\n'))
+      else none
+  | _ => none
+
+def DirectiveMultiplicity (dirs : List (List Char)) : Prop :=
+  (dirs.filter isYamlDirectiveLine).length ≤ 1 ∧
+  (dirs.filterMap explicitTagHandle).Nodup
+
+def SegmentMultiplicity : Seg → Prop
+  | .docStart dirs => DirectiveMultiplicity dirs
+  | _ => True
+
+def StreamMultiplicity (segs : List Seg) : Prop :=
+  ∀ seg ∈ segs, SegmentMultiplicity seg
+
+def DisciplinedSkeleton (col : Nat) (chars : List Char) (segs : List Seg) : Prop :=
+  Skeleton col chars segs ∧ StreamMultiplicity segs
+
+lemma source_preserved {col chars segs} (h : DisciplinedSkeleton col chars segs) :
+    segs.flatMap Seg.text = chars := skeleton_text col chars segs h.1
+
+/-- Multiplicity resets at each document: it is not a global handle uniqueness
+condition. This law does not assert that arbitrary segment concatenation is
+syntactically valid; Skeleton remains separately required. -/
+lemma multiplicity_append (a b : List Seg) :
+    StreamMultiplicity (a ++ b) ↔ StreamMultiplicity a ∧ StreamMultiplicity b := by
+  simp [StreamMultiplicity, List.mem_append, or_imp, forall_and]
+
+private def primary : List Char := "%TAG ! tag:x\n".toList
+private def secondary : List Char := "%TAG !! tag:x\n".toList
+private def named : List Char := "%TAG !h! tag:x\n".toList
+
+lemma single_primary_allowed : DirectiveMultiplicity [primary] := by decide
+lemma duplicate_primary_excluded : ¬ DirectiveMultiplicity [primary, primary] := by decide
+lemma single_secondary_allowed : DirectiveMultiplicity [secondary] := by decide
+lemma duplicate_secondary_excluded : ¬ DirectiveMultiplicity [secondary, secondary] := by decide
+lemma single_named_allowed : DirectiveMultiplicity [named] := by decide
+lemma duplicate_named_excluded : ¬ DirectiveMultiplicity [named, named] := by decide
+lemma distinct_handles_allowed : DirectiveMultiplicity [primary, secondary, named] := by decide
+lemma duplicate_version_excluded :
+    ¬ DirectiveMultiplicity ["%YAML 1.2\n".toList, "%YAML 1.2\n".toList] := by decide
+
+lemma primary_resets_per_document :
+    StreamMultiplicity [.docStart [primary], .docStart [primary]] := by
+  simp [StreamMultiplicity, SegmentMultiplicity, single_primary_allowed]
+
+lemma primary_event_collision :
+    eventsOfSegs [.docStart [primary]] = eventsOfSegs [.docStart [primary, primary]] := by
+  decide
+
+/-- No predicate of the EXISTING event projection can enforce this source
+multiplicity condition, even for directive-segment lists. This is not a claim
+that these lists satisfy Skeleton or that a public parser rejects them. -/
+lemma multiplicity_does_not_factor_through_events :
+    ¬ ∃ P, ∀ segs, StreamMultiplicity segs ↔ P (eventsOfSegs segs) := by
+  rintro ⟨P, h⟩
+  have hone : StreamMultiplicity [.docStart [primary]] := by
+    simp [StreamMultiplicity, SegmentMultiplicity, single_primary_allowed]
+  have htwo := (h [.docStart [primary, primary]]).mpr
+    (primary_event_collision ▸ (h [.docStart [primary]]).mp hone)
+  have bad : DirectiveMultiplicity [primary, primary] :=
+    htwo (.docStart [primary, primary]) (by simp)
+  exact duplicate_primary_excluded bad
+
+open Lean Elab Command in
+run_cmd do
+  for n in [``source_preserved, ``multiplicity_append, ``single_primary_allowed,
+      ``duplicate_primary_excluded, ``single_secondary_allowed, ``duplicate_secondary_excluded,
+      ``single_named_allowed, ``duplicate_named_excluded, ``distinct_handles_allowed,
+      ``duplicate_version_excluded, ``primary_resets_per_document,
+      ``primary_event_collision, ``multiplicity_does_not_factor_through_events] do
+    let axs ← collectAxioms n
+    unless (axs.filter fun a => !([``propext, ``Classical.choice, ``Quot.sound] : List Name).contains a).isEmpty do
+      throwError "UNQUALIFIED {n}: {axs}"
+    logInfo m!"DIRECTIVE_RECORD_AXIOMS {n}: {axs}"
+end MathGraph.WholeSource.DirectiveRecords
