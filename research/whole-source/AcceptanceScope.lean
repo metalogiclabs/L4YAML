@@ -1,5 +1,6 @@
 module
 public import L4YAML.Parser.Composition
+public meta import L4YAML.Parser.Composition
 public meta import Lean
 set_option autoImplicit false
 @[expose] public section
