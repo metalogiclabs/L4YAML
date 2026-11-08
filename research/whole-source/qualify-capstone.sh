@@ -53,6 +53,9 @@ test "$(grep -c EXACT_QUOTED_AXIOMS "$out/ExactQuotedChecks.log")" = 10
 compile research/whole-source ExactPlain
 compile research/whole-source ExactPlainChecks
 test "$(grep -c EXACT_PLAIN_AXIOMS "$out/ExactPlainChecks.log")" = 9
+compile research/whole-source ExactFlowSequence
+compile research/whole-source ExactFlowSequenceChecks
+test "$(grep -c EXACT_FLOW_SEQUENCE_AXIOMS "$out/ExactFlowSequenceChecks.log")" = 8
 compile research/whole-source AcceptanceScope
 test "$(grep -c ACCEPTANCE_SCOPE_AXIOMS "$out/AcceptanceScope.log")" = 2
 compile research/whole-source SourceBridge
