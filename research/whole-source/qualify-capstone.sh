@@ -49,6 +49,8 @@ test "$(grep -c EXACT_QUOTED_AXIOMS "$out/ExactQuotedChecks.log")" = 10
 compile research/whole-source AcceptanceScope
 test "$(grep -c ACCEPTANCE_SCOPE_AXIOMS "$out/AcceptanceScope.log")" = 2
 compile research/whole-source SourceBridge
+compile research/whole-source FlowProducerCase
+test "$(grep -c FLOW_PRODUCER_CASE_AXIOMS "$out/FlowProducerCase.log")" = 1
 compile research/whole-source CoverageInventory
 compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
