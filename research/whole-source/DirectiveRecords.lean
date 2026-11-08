@@ -49,9 +49,45 @@ lemma multiplicity_append (a b : List Seg) :
     StreamMultiplicity (a ++ b) ↔ StreamMultiplicity a ∧ StreamMultiplicity b := by
   simp [StreamMultiplicity, List.mem_append, or_imp, forall_and]
 
-private def primary : List Char := "%TAG ! tag:x\n".toList
+private def primary : List Char := "%TAG ! x\n".toList
 private def secondary : List Char := "%TAG !! tag:x\n".toList
 private def named : List Char := "%TAG !h! tag:x\n".toList
+
+/-- The collision's primary directive is genuinely admitted by the existing
+surface grammar, before any original-source tail. -/
+lemma primary_line (rest : List Char) :
+    L4YAML.Surface.SLDirective ⟨primary ++ rest, 0⟩ ⟨rest, 0⟩ := by
+  refine .tag (' ' :: '!' :: ' ' :: 'x' :: '\n' :: rest) 0
+    ⟨'!' :: ' ' :: 'x' :: '\n' :: rest, 5⟩
+    ⟨' ' :: 'x' :: '\n' :: rest, 6⟩
+    ⟨'x' :: '\n' :: rest, 7⟩ ⟨'\n' :: rest, 8⟩ ⟨rest, 0⟩ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+  · intro t h
+    cases h with
+    | mk _ _ _ hp => exact hp.2.1 (by decide)
+  · exact .cons _ _ _ (.space _ 4) (.nil _)
+  · exact .cons _ _ _ (.mk '!' _ 5 (Or.inr rfl)) (.nil _)
+  · intro t h
+    cases h with
+    | mk _ _ _ hp =>
+      rcases hp with hp | hp
+      · simp [L4YAML.CharPredicates.isWordCharProp,
+          L4YAML.CharPredicates.isAsciiLetterProp] at hp
+      · cases hp
+  · exact .cons _ _ _ (.space _ 6) (.nil _)
+  · exact .cons _ _ _ (.mk 'x' _ 7 (by decide)) (.nil _)
+  · exact .withComment _ _ _ (.noSep _ _ (.break _ _ (.lf rest 8))) (.nil _)
+
+lemma primary_skeleton (dirs : List (List Char))
+    (hdirs : ∀ d ∈ dirs, d = primary) :
+    Skeleton 0 ((Seg.docStart dirs).text) [.docStart dirs] := by
+  have hat : SegAt 0 (.docStart dirs) [] := by
+    refine ⟨rfl, .mk [], ?_⟩
+    intro d hd
+    have he := hdirs d hd
+    subst d
+    exact ⟨⟨'\n', by decide, by decide⟩, [], primary_line []⟩
+  have hn : Skeleton (colAfter 0 (Seg.docStart dirs).text) [] [] := .nil _
+  simpa using (Skeleton.cons 0 (.docStart dirs) [] [] hat hn (by simp [Seg.isOther]))
 
 lemma single_primary_allowed : DirectiveMultiplicity [primary] := by decide
 lemma duplicate_primary_excluded : ¬ DirectiveMultiplicity [primary, primary] := by decide
@@ -72,22 +108,25 @@ lemma primary_event_collision :
   decide
 
 /-- No predicate of the EXISTING event projection can enforce this source
-multiplicity condition, even for directive-segment lists. This is not a claim
-that these lists satisfy Skeleton or that a public parser rejects them. -/
+multiplicity condition, even restricted to source-connected Skeleton derivations. This does not
+claim public parser rejection or full YAML validity of either source. -/
 lemma multiplicity_does_not_factor_through_events :
-    ¬ ∃ P, ∀ segs, StreamMultiplicity segs ↔ P (eventsOfSegs segs) := by
+    ¬ ∃ P, ∀ col chars segs, Skeleton col chars segs →
+      (StreamMultiplicity segs ↔ P (eventsOfSegs segs)) := by
   rintro ⟨P, h⟩
   have hone : StreamMultiplicity [.docStart [primary]] := by
     simp [StreamMultiplicity, SegmentMultiplicity, single_primary_allowed]
-  have htwo := (h [.docStart [primary, primary]]).mpr
-    (primary_event_collision ▸ (h [.docStart [primary]]).mp hone)
+  have hs₁ := primary_skeleton [primary] (by simp)
+  have hs₂ := primary_skeleton [primary, primary] (by simp)
+  have htwo := (h 0 _ _ hs₂).mpr
+    (primary_event_collision ▸ (h 0 _ _ hs₁).mp hone)
   have bad : DirectiveMultiplicity [primary, primary] :=
     htwo (.docStart [primary, primary]) (by simp)
   exact duplicate_primary_excluded bad
 
 open Lean Elab Command in
 run_cmd do
-  for n in [``source_preserved, ``multiplicity_append, ``single_primary_allowed,
+  for n in [``primary_line, ``primary_skeleton, ``source_preserved, ``multiplicity_append, ``single_primary_allowed,
       ``duplicate_primary_excluded, ``single_secondary_allowed, ``duplicate_secondary_excluded,
       ``single_named_allowed, ``duplicate_named_excluded, ``distinct_handles_allowed,
       ``duplicate_version_excluded, ``primary_resets_per_document,
