@@ -84,6 +84,13 @@ interface; it does not close the full language or justify further example-only
 campaigns. Reconsider this priority if the normative coverage audit reveals an
 earlier shared obstruction.
 
+The TAG first-step sub-obligation is now qualified by DirectiveRecordBridge:
+all TagDirective handles and separators agree with retained records and actual
+initial scanNextToken output. This grammar does not yet include trailing comments.
+Next compose actual directive-block steps, document marker, quoted body and EOF;
+first-step success does not establish whole-source acceptance. See the ledger
+for the exact source/run receipt and failed elaboration lineage.
+
 ## Commands and stop rule
 
 `python3 research/whole-source/coverage-audit.py` checks inventory drift.

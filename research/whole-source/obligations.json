@@ -82,6 +82,14 @@
       "artifact": 13596142804,
       "artifact_sha256_reported": "86de8859fe411beb9b1d707990493d242c5ca104e8cde714ce48042d2120a42f",
       "scope": "Source-connected event-factorization impossibility for directive multiplicity; source-refinement reconstruction and per-document composition; 15 profiles limited to propext/Classical.choice/Quot.sound. Retained controls, inventory, expected RED and source identity pass. Full production skipped."
+    },
+    "directive_record_bridge": {
+      "commit": "1ba7009a008a5e6ba1bda3a9a9192dffa3c0025d",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42430015796",
+      "job": 128576633205,
+      "artifact": 13597217384,
+      "artifact_sha256_reported": "6d63e5808515f56a7ec249898797bdcda93f6ef6556a8ebb8f0e79ea99df1a51",
+      "scope": "General retained TAG handle extraction agrees with independent TagDirective and actual scanner token; actual initial scanNextToken success with exact landing and token append. Five strict profiles use only propext/Classical.choice/Quot.sound. Retained controls, expected RED, census and source identity passed; full production job skipped."
     }
   },
   "obligations": [
@@ -421,6 +429,51 @@
         "Not a public parser rejection theorem",
         "Does not establish full Capstone"
       ]
+    },
+    {
+      "id": "L4-TAG-RECORD-DISPATCH",
+      "claim": "For every independent TagDirective on the original input, explicitTagHandle returns its handle and the actual initial scanNextToken succeeds, retains the source landing, and appends exactly the corresponding positioned TAG token.",
+      "source_boundary": "64795a8db28ccfdae85082c93b6453001ae9d3e4",
+      "requirement": "SourceBridge actual-source producer obligation; DirectiveRecords source multiplicity must refer to the same handle emitted by production scanner.",
+      "state": "WARRANTED",
+      "obligation_state": "DISCHARGED_FOR_TAGDIRECTIVE_INITIAL_STEP",
+      "reuse": "REUSABLE",
+      "obstruction": "Unproved agreement between retained source-record extraction and actual TAG tokens across arbitrary handles/separators.",
+      "diagnosis": {
+        "state": "REJECTED_AS_REMAINING_OBSTRUCTION_FOR_THIS_BOUNDARY",
+        "evidence": "extract_of_tagDirective, scanner_record_agreement and original_dispatch_record_agreement compile with strict axiom profiles."
+      },
+      "next_experiment": "Compose actual scanNextToken steps for an independently specified directive block, preserving record/token agreement and scanner entry invariants; then connect document marker, existing quoted body and EOF. Do not assume intermediate scanner success or substitute a separate directive interpreter.",
+      "dependencies": [
+        "DirectiveRecordBridge.lean",
+        "DirectiveRecords.lean",
+        "DirectiveBridge.lean",
+        "DirectiveEntry.lean"
+      ],
+      "verification": "Exact theorem types printed in CI; five transitive axiom profiles, retained controls and frozen source identity.",
+      "receipts": [
+        "directive_record_bridge"
+      ],
+      "failed_experiments": [
+        {
+          "commit": "91d15399c15935fb44cc99e268b9dbb8ebc6fe9f",
+          "run": 42429649107,
+          "reason": "List association and Bool simplification did not normalize; reserved prefix identifier prevented statement elaboration."
+        },
+        {
+          "commit": "0204aa0334c5e7f49afe41b4f41f1f86acd88971",
+          "run": 42429819990,
+          "reason": "Dependent elimination of projected percent witness and record layout failed; axiom gate rejected elaboration-recovery sorryAx. Fixed using independent GLit source lemma and corrected record syntax."
+        }
+      ],
+      "unlocks": [
+        "Transfer source-record multiplicity along a genuine production scanner run"
+      ],
+      "limits": [
+        "TagDirective independent grammar only: no trailing comment extension, starts at column zero and ends before LF/CR/EOF.",
+        "One initial scanner step, not a complete document or arbitrary-length directive run.",
+        "No full YAML completeness or production conformance claim."
+      ]
     }
   ],
   "environment_failures": [
@@ -495,7 +548,7 @@
   },
   "next_experiment": {
     "id": "L4-SOURCE-CONNECTED-DIRECTIVES",
-    "action": "Prove explicitTagHandle agrees with arbitrary independent TagDirective source spans, then thread refined records through actual scanner directive runs; retain lexical validity separately.",
+    "action": "Compose actual scanNextToken steps for an independently specified directive block, preserving record/token agreement and scanner entry invariants; then connect document marker, existing quoted body and EOF. Do not assume intermediate scanner success or substitute a separate directive interpreter.",
     "success_boundary": "Fragment only; full independent source grammar and producer remain UNKNOWN. Completeness and strictness for the same language must be separately proved."
   },
   "previous_next_experiment": {

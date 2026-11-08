@@ -100,7 +100,7 @@
       "reason": "Reuse checked quoted raw-SOH counterexample"
     }
   ],
-  "next_decisive_experiment": "Prove explicitTagHandle agrees with arbitrary independent TagDirective source spans, then thread refined records through actual scanner directive runs; retain lexical validity separately.",
+  "next_decisive_experiment": "Compose actual scanNextToken steps for an independently specified directive block, preserving record/token agreement and scanner entry invariants; then connect document marker, existing quoted body and EOF. Do not assume intermediate scanner success or substitute a separate directive interpreter.",
   "completion": "UNKNOWN until an independently defined full source language has a producer, and strictness is separately established for that same language",
   "verification": {
     "commit": "976eebee5284c8ed17c14d26d7a348802f0439d8",
@@ -988,5 +988,18 @@
     },
     "state": "WARRANTED_NECESSARY_CONDITION_AND_EVENT_OBSTRUCTION",
     "remaining": "Generic extraction agreement with valid directive syntax and actual scanner correspondence"
+  },
+  "directive_record_scanner_bridge": {
+    "module": "DirectiveRecordBridge.lean",
+    "receipt": {
+      "commit": "1ba7009a008a5e6ba1bda3a9a9192dffa3c0025d",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42430015796",
+      "job": 128576633205,
+      "artifact": 13597217384,
+      "artifact_sha256_reported": "6d63e5808515f56a7ec249898797bdcda93f6ef6556a8ebb8f0e79ea99df1a51",
+      "scope": "General retained TAG handle extraction agrees with independent TagDirective and actual scanner token; actual initial scanNextToken success with exact landing and token append. Five strict profiles use only propext/Classical.choice/Quot.sound. Retained controls, expected RED, census and source identity passed; full production job skipped."
+    },
+    "state": "WARRANTED_GENERAL_TAGDIRECTIVE_INITIAL_DISPATCH",
+    "remaining": "Compose actual scanNextToken steps for an independently specified directive block, preserving record/token agreement and scanner entry invariants; then connect document marker, existing quoted body and EOF. Do not assume intermediate scanner success or substitute a separate directive interpreter."
   }
 }
