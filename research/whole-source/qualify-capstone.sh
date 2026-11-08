@@ -57,6 +57,9 @@ compile research/whole-source FlowCloseLanding
 test "$(grep -c FLOW_CLOSE_LANDING_AXIOMS "$out/FlowCloseLanding.log")" = 2
 compile research/whole-source FlowSeparationLanding
 grep -F "nested_close_after_grammar_separation' depends on axioms: [propext," "$out/FlowSeparationLanding.log"
+compile research/whole-source FlowQuotedChild
+grep -F "nested_sequence_quoted_entry' depends on axioms: [propext," "$out/FlowQuotedChild.log"
+grep -F "quoted_child_and_close' depends on axioms: [propext," "$out/FlowQuotedChild.log"
 compile research/whole-source CoverageInventory
 compile research/whole-source DirectiveRecords
 compile research/whole-source DirectiveRecordBridge
