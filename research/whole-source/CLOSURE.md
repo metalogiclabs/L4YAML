@@ -351,3 +351,34 @@ The next source obligation is arbitrary legal trailing flow separation,
 followed by the arbitrary child chain carrying the parent key stack. The
 bare-LF case is already discharged. Reuse the existing `ScanChain.fuel_bound`
 once a whole chain and EOF are supplied. Full Group 7.7 remains UNKNOWN.
+
+### Stream-floor nested close from independent separation grammar
+
+Code c980e0fa4f9e2718248bf964c232346c4d6a4ae6 adds
+`FlowSeparationLanding.nested_close_after_grammar_separation`.
+Its `FlowCloseSeparation` derivation is independent of scanner success.
+It permits arbitrary space/tab runs, LF, CRLF and lone CR, and comments
+introduced by inline separation or at column zero. The induction proves the
+actual `skipToContentLoop` landing using source length to bound fuel. The
+actual close consumes the bracket, leaves the exact suffix and column, restores
+the saved simple key, and preserves every pre-close token slot. The nested
+sequence and negative scanner indentation premises are explicit. Comment text
+uses the existing non-break class, so this is an acceptance result for the
+local separation relation, not a claim of exact normative grammar equivalence.
+
+The unchanged whole-source qualification checks and both new controls passed
+locally with checksum-pinned Lean 4.35.0 using the recovered library-only
+Lake build and process-local path workaround. Lean reports only propext,
+Classical.choice, and Quot.sound. Full production tests are outside this
+proof-harness boundary.
+
+Next, derive the pre-separation child chain from independent entries syntax and
+carry the exact parent key stack to the proved closing step. Enclosing block
+indentation and the bridge from the existing surface grammar are separate
+obligations. Full Group 7.7 remains UNKNOWN.
+
+Hosted run 42479579324, job 128728374368, independently passed the
+whole-source proof/control harness and source-identity checks on the same
+commit. Receipt artifact 13616278514 has SHA-256
+31e8003ad5aab6dfb5be6c4c8ce9c0974095a02baedfab5065f3d8e09c52b7d4.
+The unchanged-production job was skipped.
