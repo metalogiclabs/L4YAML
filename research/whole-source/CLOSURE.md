@@ -575,3 +575,31 @@ Full Group 7.7 remains UNKNOWN. Next compose the exact leaves into
 recursive flow sequence syntax and derive delimiter ownership from those
 source rules. Preserve the distinction between content end and scanner
 landing through optional horizontal separation.
+
+### Recursive flow sequence delimiter ownership
+
+Code ea1a45afea0d5ce418e00d3e867db6cd38551a12 defines the scalar and recursive sequence arms of
+[136]–[139] with [75]–[81] separation. The body has an empty closing
+arm and a nonempty entry arm. Only the entry continuation can consume
+a comma, so a trailing comma is possible and a leading comma is not.
+The grammar uses exact comment text, CRLF-aware breaks, and the
+context-specific indentation or in-line separation.
+
+`ExactFlowSequence.after_entry_indicator` derives an actual comma or
+closing bracket from the enclosing rule. The colon separator proof
+rules out the strict-prefix endpoint before `:b`. The plain scanner
+consumer reuses this grammar premise for one-line content, with
+horizontal separation and scanner-state premises stated explicitly.
+It does not yet establish `scanNextToken` or the recursive whole-source
+producer. The same source definition admits the checked nested mixed
+plain/quoted witness.
+
+Local proof/control qualification and the frozen identity guard passed.
+Hosted job 128761918225 in [run 42490609897](https://github.com/metalogiclabs/L4YAML/actions/runs/42490609897/job/128761918225) has state LOCAL_HARNESS_PASS_HOSTED_PASS.
+Artifact 13621605657, reported SHA-256 91595d6938a4ebbe8ca637ac5bbc7798df265aac8bcb2356f3b27c39aabb8207.
+The separate unchanged-production job was skipped.
+
+Full Group 7.7 remains UNKNOWN. The next useful experiment lifts the
+plain primitive through dispatch and then attaches the existing
+comma/close chain. The source scope still excludes flow mappings,
+flow pairs, aliases and node properties.

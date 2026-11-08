@@ -249,6 +249,23 @@
         "[a#b]": "one plain scalar a#b",
         "[a #b\n]": "one plain scalar a after comment removal"
       }
+    },
+    "exact_flow_sequence_delimiter": {
+      "commit": "ea1a45afea0d5ce418e00d3e867db6cd38551a12",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42490609897",
+      "job": 128761918225,
+      "state": "LOCAL_HARNESS_PASS_HOSTED_PASS",
+      "local_module_log_sha256": "2edb6078b7e4fd444dfede91305d4c703fed31d1554be4e36f47aa4114eec6bc",
+      "boundary": "Source-only recursive scalar/sequence arms of YAML [136]\u2013[139], with exact comment and separation class [75]\u2013[81]. The enclosing production supplies a real comma or closing bracket to the actual plain scanner bridge for one-line content and horizontal separation. Mixed nested and commented source witnesses, no-leading-comma and colon separators, and flow-key newline rejection. Full parser completeness remains open.",
+      "local_public_parser_diagnostic": {
+        "[[a,],['',],]": "accepted",
+        "[ #\r\n ]": "accepted",
+        "[,a]": "rejected",
+        "[?x,:x,-x]": "accepted",
+        "[\n---\n]": "rejected"
+      },
+      "artifact": 13621605657,
+      "artifact_sha256": "91595d6938a4ebbe8ca637ac5bbc7798df265aac8bcb2356f3b27c39aabb8207"
     }
   },
   "obligations": [
@@ -391,23 +408,25 @@
       "obstruction": "No complete source-connected replacement for permissive stream, leaf and directive constructors",
       "diagnosis": {
         "state": "WARRANTED",
-        "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements. ExactPlainChecks.colon_has_two_spans proves that a:b has both a full plain-span derivation and a strict-prefix derivation ending at :b. A source span alone therefore cannot determine maximal consumption. A caller must derive delimiter and termination conditions."
+        "evidence": "Original and repaired converse refutations; prior duplicate-YAML and empty-TAG source derivations survive insufficient refinements. ExactPlainChecks.colon_has_two_spans proves that a:b has both a full plain-span derivation and a strict-prefix derivation ending at :b. A source span alone therefore cannot determine maximal consumption. A caller must derive delimiter and termination conditions. ExactFlowSequenceChecks.colon_cannot_be_owned_delimiter rules out the strict-prefix endpoint at a colon in any sequence context. The scanner bridge now gets the delimiter from AfterEntry, with its separately stated horizontal separation condition."
       },
-      "next_experiment": "Compose context-indexed exact scalar leaves into independent recursive flow sequence nodes. Start with the [136]\u2013[139] sequence arms and [80]\u2013[81] separation over the exact comment class. Derive the owning separator or closing delimiter from the same source derivation before applying the checked scanner interfaces.",
+      "next_experiment": "Connect a one-line plain sequence entry and its owned delimiter through scanNextToken, then reuse the checked comma/close chain. Use the exact entry relation to derive the plain start conditions and verify both the new plain and retained quoted branches before attempting mixed recursive induction.",
       "dependencies": [
         "L4YAML/Surface/Document.lean",
         "L4YAML/Surface/Scalars.lean",
         "L4YAML/Surface/Basic.lean",
         "DirectiveTrace.lean",
         "DirectiveSufficiency.lean",
-        "research/whole-source/ExactPlain.lean:Plain"
+        "research/whole-source/ExactPlain.lean:Plain",
+        "research/whole-source/ExactFlowSequence.lean:Node"
       ],
       "verification": "Complete concrete Lean language definition; requirement-to-definition map with no unexplained omissions; source-only syntax and state, independent of runtime acceptance; audit known separating witnesses; compile and inspect assumptions. Unresolved scope or constructor coverage prevents closure.",
       "receipts": [
         "obstructions",
         "https://github.com/metalogiclabs/L4YAML/actions/runs/42418475419",
         "normative_and_harness",
-        "exact_plain_spans"
+        "exact_plain_spans",
+        "exact_flow_sequence_delimiter"
       ],
       "failed_experiments": [],
       "unlocks": [
@@ -425,7 +444,8 @@
         "independent_semantic_coverage": "UNKNOWN",
         "cell_lean_integration": "NOT_STARTED",
         "load_layers": "RESOLVED_SYNTAX_AND_SERIALIZATION_ONLY (AcceptanceScope; see CLOSURE.md)",
-        "plain_spans": "DEFINITION_AND_SEPARATOR_CONTROLS_CHECKED_CONDITIONAL_INLINE_SCANNER_BRIDGE"
+        "plain_spans": "DEFINITION_AND_SEPARATOR_CONTROLS_CHECKED_CONDITIONAL_INLINE_SCANNER_BRIDGE",
+        "flow_sequence": "RECURSIVE_SCALAR_SEQUENCE_SYNTAX_AND_DELIMITER_OWNERSHIP_CHECKED"
       }
     },
     {
@@ -881,9 +901,10 @@
         "research/whole-source/FlowQuotedChild.lean:quoted_child_after_separation",
         "research/whole-source/FlowTokenBridge.lean",
         "research/whole-source/NestedSourceProducer.lean",
-        "research/whole-source/ExactPlain.lean:scan_flow_plain_to_indicator"
+        "research/whole-source/ExactPlain.lean:scan_flow_plain_to_indicator",
+        "research/whole-source/ExactFlowSequence.lean:scan_plain_before_after_entry"
       ],
-      "next_experiment": "Lift scan_flow_plain_to_indicator through scanNextToken at a sequence entry, with the exact source-derived delimiter and stream-floor scanner context. Reuse the existing sequence token proof and compare paired mixed scalar controls.",
+      "next_experiment": "Connect a one-line plain sequence entry and its owned delimiter through scanNextToken, then reuse the checked comma/close chain. Use the exact entry relation to derive the plain start conditions and verify both the new plain and retained quoted branches before attempting mixed recursive induction.",
       "verification": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate.",
       "receipts": [
         "flow_producer_case",
@@ -894,7 +915,8 @@
         "flow_quoted_leading_separation",
         "flow_quoted_optional_endings",
         "nested_source_producer",
-        "nested_quoted_list_producer"
+        "nested_quoted_list_producer",
+        "exact_flow_sequence_delimiter"
       ],
       "failed_experiments": [
         {
@@ -989,9 +1011,9 @@
     ]
   },
   "next_experiment": {
-    "id": "L4-EXACT-GRAMMAR",
-    "action": "Compose context-indexed exact scalar leaves into independent recursive flow sequence nodes. Start with the [136]\u2013[139] sequence arms and [80]\u2013[81] separation over the exact comment class. Derive the owning separator or closing delimiter from the same source derivation before applying the checked scanner interfaces.",
-    "success_boundary": "An exact source definition derives mixed plain/quoted and recursively nested flow sequence spans, with paired tests for delimiter ownership, separator context, and leading versus trailing commas. Keep flow pairs, properties, multiline scanner correspondence and full streams explicitly open where applicable."
+    "id": "L4-FLOW-RECURSIVE-HANDOFF",
+    "action": "Connect a one-line plain sequence entry and its owned delimiter through scanNextToken, then reuse the checked comma/close chain. Use the exact entry relation to derive the plain start conditions and verify both the new plain and retained quoted branches before attempting mixed recursive induction.",
+    "success_boundary": "One-line source-derived plain entries yield the actual scanNextToken state transition, exact landing and plain token append. The parent separator remains owned by AfterEntry; exercise both comma and closing bracket and preserve scanner stack invariants. Arbitrary multiline and full grammar claims remain separate."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",

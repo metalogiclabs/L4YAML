@@ -2471,16 +2471,19 @@
           161
         ],
         "action": "INTERFACE_REPAIR",
-        "semantic_state": "UNKNOWN",
+        "semantic_state": "RECURSIVE_SCALAR_SEQUENCE_ARMS_CHECKED_FULL_NODE_CORRESPONDENCE_UNKNOWN",
         "definition_candidates": [
           "L4YAML/Surface/Node.lean:SFlowNode",
           "L4YAML/Surface/Node.lean:SFlowSequence",
           "L4YAML/Surface/Node.lean:SFlowMapping",
           "L4YAML/Surface/Node.lean:SFlowSeqEntry",
-          "L4YAML/Surface/Node.lean:SFlowMapEntry"
+          "L4YAML/Surface/Node.lean:SFlowMapEntry",
+          "research/whole-source/ExactFlowSequence.lean:Node"
         ],
         "obstruction": "Existing mutual grammar embeds scalar/property rules; repairing only its outer stream leaves broad children reachable.",
-        "decisive_check": "Map every entry alternative, adjacency/separation and implicit-key bound, then replace dependent node references with exact child relations."
+        "decisive_check": "Map every entry alternative, adjacency/separation and implicit-key bound, then replace dependent node references with exact child relations.",
+        "receipt": "obligations.json:receipts.exact_flow_sequence_delimiter",
+        "remaining": "Flow mappings and flow pairs, aliases, properties, implicit-key extent, enclosing document-marker exclusion, multiline scanner correspondence, and whole-source acceptance of the recursive fragment remain open."
       },
       {
         "id": "block-scalars",
