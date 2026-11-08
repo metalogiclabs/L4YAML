@@ -112,28 +112,30 @@ private lemma skip_comment (s : ScannerState) {start atBreak : SurfPos}
   simp at hWhiteLen hTextLen
   omega
 
-private lemma skip_loop {start : SurfPos} (tail : List Char) (col : Nat)
-    (hGrammar : FlowCloseSeparation start ⟨']' :: tail, col⟩) :
+private lemma skip_loop {start : SurfPos} (c : Char) (tail : List Char) (col : Nat)
+    (hSpace : c ≠ ' ') (hTab : c ≠ '\t') (hHash : c ≠ '#')
+    (hBreakChar : isLineBreakBool c = false)
+    (hGrammar : FlowCloseSeparation start ⟨c :: tail, col⟩) :
     ∀ (s : ScannerState) (fuel : Nat), ScannerSurfCorr s start →
       s.inFlow = true → s.currentIndent < 0 → start.chars.length ≤ fuel →
       ∃ land, skipToContentLoop s fuel = .ok land ∧
-        ScannerSurfCorr land ⟨']' :: tail, col⟩ := by
-  generalize hEnd : (⟨']' :: tail, col⟩ : SurfPos) = stop at hGrammar ⊢
+        ScannerSurfCorr land ⟨c :: tail, col⟩ := by
+  generalize hEnd : (⟨c :: tail, col⟩ : SurfPos) = stop at hGrammar ⊢
   induction hGrammar with
   | @inline start stop hWhite =>
     subst stop
     intro s fuel hCorr hFlow hIndent hFuel
-    obtain ⟨hLand, _⟩ := skipWhitespace_accepts s hWhite hCorr (by simp) (by simp)
+    obtain ⟨hLand, _⟩ := skipWhitespace_accepts s hWhite hCorr (by simpa using hSpace) (by simpa using hTab)
     have hPeek := (peek_of_corr hLand).1
     have hComment : skipToContentComment (skipWhitespace s) = skipWhitespace s := by
-      simp [skipToContentComment, hPeek]
+      simp [skipToContentComment, hPeek, hHash]
     have hLen := GStar_SSWhite_length hWhite
     cases fuel with
     | zero => simp at hLen; omega
     | succ fuel =>
       exact ⟨skipWhitespace s, by
         simp only [skipToContentLoop, whitespace_in_flow s hFlow hIndent, hComment,
-          hPeek, show isLineBreakBool ']' = false from by decide, Bool.false_eq_true,
+          hPeek, hBreakChar, Bool.false_eq_true,
           ite_false], hLand⟩
   | @next start atBreak nextLine stop hWhite hBreak _ ih =>
     intro s fuel hCorr hFlow hIndent hFuel
@@ -191,6 +193,19 @@ private lemma skip_loop {start : SurfPos} (tail : List Char) (col : Nat)
           hPeek, hLB, ite_true, show consumeNewline comment = next from rfl,
           hNextFlow, Bool.not_true, Bool.false_eq_true, ite_false, hLoop], hLand⟩
 
+lemma skip_flow_separation (s : ScannerState) {start : SurfPos} (c : Char)
+    (tail : List Char) (col : Nat)
+    (hSource : ScannerSurfCorr s start)
+    (hGrammar : FlowCloseSeparation start ⟨c :: tail, col⟩)
+    (hFlow : s.inFlow = true) (hIndent : s.currentIndent < 0)
+    (hSpace : c ≠ ' ') (hTab : c ≠ '\t') (hHash : c ≠ '#')
+    (hBreak : isLineBreakBool c = false) :
+    ∃ land, skipToContent s = .ok land ∧ ScannerSurfCorr land ⟨c :: tail, col⟩ :=
+  skip_loop c tail col hSpace hTab hHash hBreak hGrammar s
+    (s.inputEnd - s.offset + 1) hSource hFlow hIndent (by
+      have := fuel_of_corr hSource
+      omega)
+
 lemma nested_close_after_grammar_separation (s : ScannerState) (tail : List Char) (col : Nat)
     {start : SurfPos} (hSource : ScannerSurfCorr s start)
     (hGrammar : FlowCloseSeparation start ⟨']' :: tail, col⟩)
@@ -202,11 +217,8 @@ lemma nested_close_after_grammar_separation (s : ScannerState) (tail : List Char
       final.simpleKey = s.simpleKeyStack.back?.getD {} ∧
       (∀ i, i < s.tokens.size → final.tokens[i]? = s.tokens[i]?) := by
   have hFlow : s.inFlow = true := by simp [ScannerState.inFlow]; omega
-  obtain ⟨land, hSkip, hLand⟩ := skip_loop tail col hGrammar s
-    (s.inputEnd - s.offset + 1) hSource hFlow hIndent (by
-      have := fuel_of_corr hSource
-      omega)
-  change skipToContent s = .ok land at hSkip
+  obtain ⟨land, hSkip, hLand⟩ := skip_flow_separation s ']' tail col
+    hSource hGrammar hFlow hIndent (by decide) (by decide) (by decide) (by decide)
   have hLandIndent : land.currentIndent = s.currentIndent := by
     unfold ScannerState.currentIndent
     rw [L4YAML.Proofs.PreprocessIndentStable.skipToContent_preserves_indents s land hSkip]
