@@ -173,6 +173,16 @@
       "boundary": "Independent FlowCloseSeparation at negative currentIndent proves actual nested close and exact suffix, depth and key/prefix preservation. Standard-only axiom profile. Local checked-in harness ran using the recovered library-only Lake build and executable-path shim. Whole-source proof/control harness only. Hosted proof/control job and source identity also passed. Hosted unchanged-production job skipped.",
       "artifact": 13616278514,
       "artifact_sha256": "31e8003ad5aab6dfb5be6c4c8ce9c0974095a02baedfab5065f3d8e09c52b7d4"
+    },
+    "flow_quoted_child": {
+      "commit": "e87b6ea97fc8e8ac7d015f6c6651f8d6d96c5094",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42481340531",
+      "job": 128733734019,
+      "state": "LOCAL_HARNESS_PASS_HOSTED_PASS",
+      "local_module_log_sha256": "50cb2a4a1a94fe439e918029c80f0822b889b09d265a97833155ed37283720b4",
+      "boundary": "One independently derived double-quoted child, directly after a nested opener, at the negative scanner indentation floor. Actual three-step scanner chain, exact source suffix and restored saved parent key. Whole-source proof/control harness only.",
+      "artifact": 13617571492,
+      "artifact_sha256": "4f112aa37fd0131b38bf7afad9c44801709cda05158b999a4fd0762ece00f52e"
     }
   },
   "obligations": [
@@ -783,11 +793,11 @@
       "source_boundary": "Frozen legacy Scanner.scanFiltered and TokenParser.parseYaml at 64795a8db28ccfdae85082c93b6453001ae9d3e4. Local conditional lemma nested_sequence_scans starts already in flow with a negative current indent and same-line token premises.",
       "requirement": "Group 7.7 completeness and YAML 1.2.2 [137]\u2013[139], [150], [154]\u2013[155].",
       "state": "UNKNOWN",
-      "obligation_state": "STREAM_FLOOR_SEPARATION_CHECKED_GENERAL_CHILD_OPEN",
+      "obligation_state": "QUOTED_CHILD_CHAIN_CHECKED_ARBITRARY_ENTRIES_OPEN",
       "obstruction": "A child-to-parent handoff must account for a reserved token slot updated by a later colon, and valid multiline children can violate the emitter's whole-array line invariant.",
       "diagnosis": {
         "state": "LOCAL_EXECUTABLE_CHECKS",
-        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions. Both nested close lemmas now compile without the whole-array same-line hypothesis. The bare-LF lemma derives the actual landing from source, restores the saved simple key and preserves every pre-close token slot. The new FlowCloseSeparation induction handles arbitrary space/tab runs, LF/CRLF/lone CR, and comment lines after inline separation or at column zero. It derives the actual skipToContent landing at the closing bracket from source grammar and preserves the close guarantees."
+        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions. Both nested close lemmas now compile without the whole-array same-line hypothesis. The bare-LF lemma derives the actual landing from source, restores the saved simple key and preserves every pre-close token slot. The new FlowCloseSeparation induction handles arbitrary space/tab runs, LF/CRLF/lone CR, and comment lines after inline separation or at column zero. It derives the actual skipToContent landing at the closing bracket from source grammar and preserves the close guarantees. The independently derived SCDoubleQuotedOk child preserves the parent key stack and token prefix; composing its actual scanner step with the opener and grammar-derived close produces a three-step chain with exact suffix and restored opener key."
       },
       "dependencies": [
         "research/whole-source/SourceBridge.lean:Obligation",
@@ -795,14 +805,16 @@
         "L4YAML/Proofs/Output/EmitterScannability/ScanSteps.lean",
         "L4YAML/Proofs/Output/EmitterScannability/ScannerAcceptance.lean:FlowNoOverwriteAt",
         "L4YAML/Proofs/Output/EmitterScannability/ScannerAcceptance.lean:SimpleKeyAboveFloor",
-        "research/whole-source/FlowSeparationLanding.lean:nested_close_after_grammar_separation"
+        "research/whole-source/FlowSeparationLanding.lean:nested_close_after_grammar_separation",
+        "research/whole-source/FlowQuotedChild.lean:nested_sequence_quoted_entry"
       ],
-      "next_experiment": "Connect the independent entries derivation to a ScanChain stopping before FlowCloseSeparation, preserving the exact parent simple-key stack and stable prefix. Reuse the verified close for negative currentIndent; separately connect the block-enclosed indentation context and existing source grammar to the separation relation.",
+      "next_experiment": "Generalize the stream-floor separation landing from the closing bracket to the comma, derive the actual comma step and its next-entry readiness, and compose two independently derived quoted entries. Keep parent stack preservation separate from mutable key placeholders before extending to flow pairs.",
       "verification": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate.",
       "receipts": [
         "flow_producer_case",
         "flow_close_landing",
-        "flow_separation_landing"
+        "flow_separation_landing",
+        "flow_quoted_child"
       ],
       "failed_experiments": [
         {
@@ -823,7 +835,8 @@
       "limits": [
         "BodyToClose remains a premise and is not derived from the independent entries grammar.",
         "The local wrapper does not prove token grammar, token state validity or sufficient production fuel.",
-        "Separation is proved from FlowCloseSeparation at the negative indentation floor. Block-enclosed flow needs its indentation proof. CommentCharOk is the existing non-break class, and this proof does not assert full normative grammar equivalence. Arbitrary child scanning and token grammar remain open."
+        "Separation is proved from FlowCloseSeparation at the negative indentation floor. Block-enclosed flow needs its indentation proof. CommentCharOk is the existing non-break class, and this proof does not assert full normative grammar equivalence. Arbitrary child scanning and token grammar remain open.",
+        "The three-step result covers one double-quoted child immediately after the opener. Opening separation, multiple entries, other child forms, flow-pair key rewrites and block-enclosed indentation remain open."
       ]
     }
   ],
@@ -899,8 +912,8 @@
   },
   "next_experiment": {
     "id": "L4-FLOW-RECURSIVE-HANDOFF",
-    "action": "Connect the independent entries derivation to a ScanChain stopping before FlowCloseSeparation, preserving the exact parent simple-key stack and stable prefix. Reuse the verified close for negative currentIndent; separately connect the block-enclosed indentation context and existing source grammar to the separation relation.",
-    "success_boundary": "Derive the child scan chain from an independent entries judgment, without assuming scanner success, and compose it with the grammar-derived close. Verify the parent key stack and exact suffix at the actual scanner transition."
+    "action": "Generalize the stream-floor separation landing from the closing bracket to the comma, derive the actual comma step and its next-entry readiness, and compose two independently derived quoted entries. Keep parent stack preservation separate from mutable key placeholders before extending to flow pairs.",
+    "success_boundary": "An independently grammatical two-entry sequence yields an actual scanner chain across comma and close, with exact source suffix and parent key restoration. Then lift the entry-list induction across the remaining child productions."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",

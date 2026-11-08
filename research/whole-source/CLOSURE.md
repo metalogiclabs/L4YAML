@@ -382,3 +382,31 @@ whole-source proof/control harness and source-identity checks on the same
 commit. Receipt artifact 13616278514 has SHA-256
 31e8003ad5aab6dfb5be6c4c8ce9c0974095a02baedfab5065f3d8e09c52b7d4.
 The unchanged-production job was skipped.
+
+### Nested sequence with a double-quoted child
+
+Code e87b6ea97fc8e8ac7d015f6c6651f8d6d96c5094 adds
+`FlowQuotedChild.quoted_child_and_close` and
+`FlowQuotedChild.nested_sequence_quoted_entry`. A source-only
+`SCDoubleQuotedOk` derivation discharges the scanner step for one
+double-quoted child. The proof preserves every prior token slot across the
+child and close and restores the parent stack. Composed with the existing
+opener result, it gives a three-step actual `ScanChain` at the negative
+indentation floor, with the exact suffix and the exact key saved by the
+opener. The executable control checks an escape, trailing comment, CRLF,
+a tab, parent key restoration, and public parse acceptance.
+
+The case starts with the quoted child immediately after the opener. The
+opener still uses its existing line premises. Opening separation, additional
+entries, other child productions, block-enclosed indentation, and final
+token-grammar obligations are open. Next connect separation and the actual
+comma step to a second independently derived child. Account separately for
+legitimate key-slot rewriting when introducing flow pairs. Group 7.7 remains
+UNKNOWN.
+
+Both the local and hosted whole-source proof/control harnesses passed with
+source identity retained. Both new statements use only propext,
+Classical.choice, and Quot.sound. Hosted run 42481340531, job 128733734019,
+artifact 13617571492 (SHA-256
+4f112aa37fd0131b38bf7afad9c44801709cda05158b999a4fd0762ece00f52e).
+The separate unchanged-production job was skipped.
