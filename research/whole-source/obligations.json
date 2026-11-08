@@ -155,6 +155,14 @@
       "state": "LOCAL_HARNESS_PASS_HOSTED_TOOLCHAIN_DOWNLOAD_FAILURE",
       "local_module_log_sha256": "280c93228779965020c78c0cd00255e6c22d56c0ee052f177ed356a89cee39f6",
       "boundary": "Exact FlowProducerCase module and retained whole-source qualification script passed with checksum-pinned Lean 4.35.0 using a temporary library-only Lake configuration and a process-local executable-path shim. Both hosted attempts failed HTTP 504 before Lean; full production suite was not run."
+    },
+    "flow_close_landing": {
+      "commit": "236203b43a966fbc1b1a05b413043e6405793719",
+      "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42468778762",
+      "job": 128694386661,
+      "state": "LOCAL_PROJECT_HARNESS_PASS_HOSTED_TOOLCHAIN_DOWNLOAD_FAILURE",
+      "local_module_log_sha256": "c2811e44acc43aac52e74b3d0ab3a2d73e6d0464749dd94284809c95155639c6",
+      "boundary": "Full checked-in whole-source harness with original Lake project and checksum-pinned Lean 4.35.0 plus local executable-path shim. Production source identity, retained controls, expected RED and two standard-only axiom profiles pass. Hosted proof job stopped before compilation on HTTP 504. Full production suite not run."
     }
   },
   "obligations": [
@@ -765,11 +773,11 @@
       "source_boundary": "Frozen legacy Scanner.scanFiltered and TokenParser.parseYaml at 64795a8db28ccfdae85082c93b6453001ae9d3e4. Local conditional lemma nested_sequence_scans starts already in flow with a negative current indent and same-line token premises.",
       "requirement": "Group 7.7 completeness and YAML 1.2.2 [137]\u2013[139], [150], [154]\u2013[155].",
       "state": "UNKNOWN",
-      "obligation_state": "CONDITIONAL_CASE_LOCALLY_CHECKED",
+      "obligation_state": "NESTED_CLOSE_CHECKED_GENERAL_CHILD_OPEN",
       "obstruction": "A child-to-parent handoff must account for a reserved token slot updated by a later colon, and valid multiline children can violate the emitter's whole-array line invariant.",
       "diagnosis": {
         "state": "LOCAL_EXECUTABLE_CHECKS",
-        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions."
+        "evidence": "[[]: x] rewrites an earlier placeholder into a key after child close. [[], x] preserves that slot against such rewrite. Both parse. [[\\n a\\n ], x] parses and emits tokens spanning lines 0, 1 and 2. Same-line premises in the imported close lemma are used to prove same-line postconditions. Both nested close lemmas now compile without the whole-array same-line hypothesis. The bare-LF lemma derives the actual landing from source, restores the saved simple key and preserves every pre-close token slot."
       },
       "dependencies": [
         "research/whole-source/SourceBridge.lean:Obligation",
@@ -778,16 +786,22 @@
         "L4YAML/Proofs/Output/EmitterScannability/ScannerAcceptance.lean:FlowNoOverwriteAt",
         "L4YAML/Proofs/Output/EmitterScannability/ScannerAcceptance.lean:SimpleKeyAboveFloor"
       ],
-      "next_experiment": "Prove a nested close transition for an independently derived multiline child and its legal trailing separation. Factor the operational dispatch from the emitter-only AllTokensOnLine postcondition, then transport the pending parent key slot using existing FlowNoOverwriteAt/SimpleKeyAboveFloor lemmas.",
+      "next_experiment": "Derive the actual skipToContent landing from independent flow separation at a closing bracket, using the bare-LF derivation as the first constructor. Then connect it to an arbitrary child chain carrying the parent simple-key stack and stable prefix.",
       "verification": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate.",
       "receipts": [
-        "flow_producer_case"
+        "flow_producer_case",
+        "flow_close_landing"
       ],
       "failed_experiments": [
         {
           "commit": "8d2ea59ddc5c86ae1d7157dd765d2042f385eb25",
           "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42464546256",
           "reason": "Both hosted attempts returned HTTP 504 downloading Lean; no Lean proof verdict was observed."
+        },
+        {
+          "commit": "236203b43a966fbc1b1a05b413043e6405793719",
+          "run": "https://github.com/metalogiclabs/L4YAML/actions/runs/42468778762",
+          "reason": "Hosted toolchain release download returned HTTP 504 before Lean; same pinned archive used in successful local project harness."
         }
       ],
       "unlocks": [
@@ -796,7 +810,8 @@
       ],
       "limits": [
         "BodyToClose remains a premise and is not derived from the independent entries grammar.",
-        "The local wrapper does not prove token grammar, token state validity or sufficient production fuel."
+        "The local wrapper does not prove token grammar, token state validity or sufficient production fuel.",
+        "General close uses an actual skipToContent landing. Only the immediate LF before a column-zero close is derived here from source without assuming skipToContent success. Arbitrary child scanning and token grammar remain open."
       ]
     }
   ],
@@ -872,8 +887,8 @@
   },
   "next_experiment": {
     "id": "L4-FLOW-RECURSIVE-HANDOFF",
-    "action": "Prove a nested close transition for an independently derived multiline child and its legal trailing separation. Factor the operational dispatch from the emitter-only AllTokensOnLine postcondition, then transport the pending parent key slot using existing FlowNoOverwriteAt/SimpleKeyAboveFloor lemmas.",
-    "success_boundary": "Derive the close from the original source suffix and actual scanner state, retaining the caller's key reservation and leaving its tail at the exact source position. Replay the multiline witness and colon/comma separator, inspect axioms, and retain hosted qualification as a separate gate."
+    "action": "Derive the actual skipToContent landing from independent flow separation at a closing bracket, using the bare-LF derivation as the first constructor. Then connect it to an arbitrary child chain carrying the parent simple-key stack and stable prefix.",
+    "success_boundary": "No assumed skipToContent success at the source-facing interface. Cover inline, multiline, and comment separation with exact source and indentation premises. Check the actual next step and saved parent slot, inspect axioms, and reuse ScanChain.fuel_bound for final assembly once the whole chain and EOF are supplied."
   },
   "previous_next_experiment": {
     "id": "L4-NORMATIVE-RUNTIME-REPAIR",

@@ -321,3 +321,33 @@ Next: prove the nested close for an independently derived multiline child
 with trailing separation, retaining the parent key reservation and exact
 suffix. Then lift that contract to the arbitrary-child induction. Full Group
 7.7 remains UNKNOWN.
+
+### Multiline nested close without the emitter line invariant
+
+Code 236203b43a966fbc1b1a05b413043e6405793719 adds
+`FlowCloseLanding.nested_close_after_separation`. Given the actual
+`skipToContent` landing at `]`, a sequence on the flow stack at depth at
+least two, an adequate landing column and no pending directives, the actual
+`scanNextToken` consumes the bracket. It leaves the exact suffix one column
+after the landing, decrements depth, pops the key stack, restores its prior
+top as the pending simple key and preserves every pre-close token slot.
+It has no whole-array same-line or saved-key same-line assumption.
+
+`nested_close_after_lf` constructs that landing from source correspondence
+at LF followed by `]` at a negative indentation floor. It consumes both
+characters and lands at column one, with the same key and prefix guarantees.
+The executable control on `[["a"\n], x]` checks the reachable LF position
+after the child, the restored live key index, line and depth movement,
+preserved token values, comma suffix, and public acceptance.
+
+The checked-in whole-source harness passed locally with the original Lake
+project, checksum-pinned Lean 4.35.0 and the process-local path workaround.
+Both theorem profiles contain only propext, Classical.choice and Quot.sound.
+Retained controls, expected RED, and pre/post frozen-source identity passed.
+Hosted run 42468778762 job 128694386661 stopped on HTTP 504 before Lean.
+The full production suite was outside this run's local boundary.
+
+The next source obligation is arbitrary legal trailing flow separation,
+followed by the arbitrary child chain carrying the parent key stack. The
+bare-LF case is already discharged. Reuse the existing `ScanChain.fuel_bound`
+once a whole chain and EOF are supplied. Full Group 7.7 remains UNKNOWN.
