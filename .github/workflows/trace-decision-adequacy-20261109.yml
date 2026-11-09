@@ -1,0 +1,100 @@
+name: L4YAML trace decision adequacy witness
+on:
+  push:
+    branches: [research/l4yaml-trace-decision-20261109]
+permissions:
+  contents: read
+jobs:
+  trace-decision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch single exact public upstream source
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream fix-a-grammar-completeness
+          git checkout --detach 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(git rev-parse HEAD)" = "46d33cf6123782f91c91e5fc396211c7e6bf4351"
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.35.0"
+          echo "EXACT_UPSTREAM_SOURCE=$(git rev-parse HEAD)"
+      - name: Install original pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile source TraceOf definitions
+        run: lake build L4YAML.Proofs.Serialization.TraceOf.Document
+      - name: Generate independent alias-ambiguity witness
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path("Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean").read_text()
+          marker = "end ImplicitContinue"
+          assert s.count(marker) == 1
+          t = s[:s.index(marker)+len(marker)]
+          assert "lemma readAnchor" in t
+          t = t.replace("nsc_amp", "nsc_star").replace("'&'", "'*'")
+          t = t.replace("a\\n&x", "a\\n*x")
+          t = t.replace('Event.defineAnchor "x"', 'Event.useAlias "x"')
+          t = t.replace("readAnchor", "readAlias").replace("traceOf_anchor", "traceOf_alias")
+          start = t.index("        (.propsEmpty 0 .flowOut u2 u4")
+          end = t.index("        (eofComments 2)", start)
+          replacement = """        (.alias 0 .flowOut u2 u4 [Event.useAlias "x"]
+                    (And.intro
+                      (SCNsAliasNode.mk _ 0 u4
+                        (GPlus.mk _ _ _ (GChar.mk 'x' _ 1 ns_x) (.nil _))
+                        (fun _ hg => by cases hg))
+                      (by decide)))
+          """
+          t = t[:start] + replacement + t[end:]
+          t += r"""
+          /-- The grammar can treat *x after a bare scalar as an alias document. -/
+          private lemma badAliasTrace :
+              TraceOf "a\n*x" [Event.useAlias "x"] := traceOf_alias
+
+          private lemma badAliasNotWellFormed :
+              ¬ SerializationWellFormed [Event.useAlias "x"] := by
+            intro h
+            have htrue : checkFrom {} [Event.useAlias "x"] = true :=
+              (serializationWellFormed_iff_check _).mp h
+            have hfalse : checkFrom {} [Event.useAlias "x"] = false := by decide
+            rw [hfalse] at htrue
+            contradiction
+
+          /-- Exact proposed universal trace well-formedness is falsified. -/
+          lemma traceWellFormed_refuted_for_alias :
+              ¬ TraceWellFormed "a\n*x" := by
+            intro hall
+            exact badAliasNotWellFormed (hall _ badAliasTrace)
+
+          #check traceWellFormed_refuted_for_alias
+          #guard checkFrom {} [Event.useAlias "x"] == false
+          #eval
+            match L4YAML.TokenParser.parseYaml "a\n*x" with
+            | .ok _ => "PARSER_ACCEPT"
+            | .error _ => "PARSER_REJECT"
+
+          end L4YAML.Tests.Guards.TraceOfBlockAmbiguity
+          """
+          Path("ProofAdequacyAliasWitness.lean").write_text(t)
+          print("WITNESS_SOURCE_GENERATED", len(t), "bytes", flush=True)
+          PY
+      - name: Compile exact grammar and semantic decision certificate
+        run: |
+          set -eo pipefail
+          lake env lean ProofAdequacyAliasWitness.lean 2>&1 | tee witness-native-lean.log
+          grep -q 'traceWellFormed_refuted_for_alias' witness-native-lean.log
+          echo WITNESS_LEAN_COMPILED
+      - name: Archive bounded experiment, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trace-decision-source-and-receipt
+          path: |
+            ProofAdequacyAliasWitness.lean
+            witness-native-lean.log
+          if-no-files-found: warn
+          retention-days: 14
