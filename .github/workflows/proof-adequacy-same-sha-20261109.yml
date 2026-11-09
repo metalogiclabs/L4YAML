@@ -1,0 +1,69 @@
+name: Proof adequacy same-source SuffixGap and parser replay
+on:
+  push:
+    branches: [ research/proof-adequacy-same-sha-20261109 ]
+
+permissions:
+  contents: read
+
+jobs:
+  same-source-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout the one exact upstream source tree
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream fix-a-grammar-completeness
+          git checkout --detach 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(git rev-parse HEAD)" = "46d33cf6123782f91c91e5fc396211c7e6bf4351"
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.35.0"
+          git status --porcelain
+          echo EXACT_SOURCE_SHA="$(git rev-parse HEAD)"
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build scanner and parser at exact source
+        run: |
+          lake build tryscan tryparse
+      - name: Compile original SuffixGapAudit with native Lean
+        run: |
+          set -euo pipefail
+          lake env lean Tests/Guards/Proofs/SuffixGapAudit.lean
+          echo SUFFIX_GAP_LEAN_COMPILED
+      - name: Verify literal source obligations and repeat scanner/parser cases
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, subprocess, tempfile
+          source = Path("Tests/Guards/Proofs/SuffixGapAudit.lean").read_text()
+          surface = Path("L4YAML/Surface/Document.lean").read_text()
+          assert "lemma inYamlLanguage_everything" in source
+          assert "SLYamlStream.scannerDrop" in source
+          assert "| scannerDrop" in surface
+          print("SUFFIX_GAP_SOURCE_AT_EXACT_SHA", flush=True)
+          cases = [
+            ("legal-comment", b"a: 1 # xy\n", True),
+            ("raw-SOH-in-comment", b"a: 1 # x\x01y\n", True),
+            ("raw-SOH-in-plain-scalar", b"a: x\x01y\n", False),
+            ("escaped-SOH-in-quoted-scalar", b'a: "\\u0001"\n', True),
+            ("raw-SOH-in-literal-block", b"a: |\n  x\x01y\n", False),
+          ]
+          with tempfile.TemporaryDirectory() as td:
+            for name, data, accept in cases:
+              path = Path(td) / (name + ".yaml")
+              path.write_bytes(data)
+              outcomes={}
+              for binary in ("tryscan", "tryparse"):
+                proc=subprocess.run([str(Path(".lake/build/bin") / binary),str(path)],capture_output=True,text=True,timeout=30)
+                observed=proc.returncode==0
+                outcomes[binary]={"exit":proc.returncode,"accept":observed}
+                if observed!=accept: raise AssertionError(f"{name} {binary} {observed} != {accept}")
+              print(json.dumps({"name":name,"hex":data.hex(),"expected_accept":accept,"outcomes":outcomes}),flush=True)
+          print("SUFFIX_GAP_AND_SOH_SAME_SHA_PASS_10_OF_10", flush=True)
+          PY
