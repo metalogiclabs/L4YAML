@@ -1,0 +1,80 @@
+name: Research - Row 19 explicit-continuation falsifier replay
+
+on:
+  push:
+    branches: [ research/row19-explicit-continuation-20261109 ]
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-row19-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Freeze owned experiments and select unchanged upstream source
+        run: |
+          set -euo pipefail
+          FORK_HEAD=$(git rev-parse HEAD)
+          git show "$FORK_HEAD:experiments/row19-explicit-continuation.patch" > /tmp/row19.patch
+          git show "$FORK_HEAD:experiments/Row19PositiveControls.lean" > /tmp/Row19PositiveControls.lean
+          git show "$FORK_HEAD:experiments/TraceDecisionAdequacy.lean" > /tmp/TraceDecisionAdequacy.lean
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream fix-a-grammar-completeness
+          git checkout --detach 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(git rev-parse HEAD)" = 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.35.0
+          echo "EXACT_UPSTREAM=46d33cf6123782f91c91e5fc396211c7e6bf4351"
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Red control - original source admits opposing traces
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Serialization.TraceOf.Document
+          cp /tmp/TraceDecisionAdequacy.lean OriginalRow19Witness.lean
+          lake env lean OriginalRow19Witness.lean | tee /tmp/original-row19.log
+          grep -F 'SOURCE_PARSER_ACCEPT' /tmp/original-row19.log
+          grep -F 'traceWellFormedRefuted' /tmp/original-row19.log
+          rm OriginalRow19Witness.lean
+          test -z "$(git status --porcelain)"
+          echo "RED_BASELINE_CONFIRMED"
+      - name: Apply the two-constructor research-only source restriction
+        run: |
+          set -euo pipefail
+          git apply --check /tmp/row19.patch
+          git apply /tmp/row19.patch
+          git diff --check
+          git diff --stat
+          echo "ROW19_RESTRICTION_APPLIED"
+      - name: Green controls - multiline scalar and explicit next document survive
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Serialization.TraceOf.Document
+          cp /tmp/Row19PositiveControls.lean Row19PositiveControls.lean
+          lake env lean Row19PositiveControls.lean | tee /tmp/row19-positive.log
+          grep -F '"SCALAR_ACCEPT"' /tmp/row19-positive.log
+          grep -F '"EXPLICIT_CONTINUE_ACCEPT"' /tmp/row19-positive.log
+          grep -F '"UNDEFINED_ALIAS_REJECT"' /tmp/row19-positive.log
+          rm Row19PositiveControls.lean
+          echo "ROW19_POSITIVE_CONTROLS_COMPILED"
+      - name: Negative control - original spurious bare-alias derivation must not elaborate
+        run: |
+          set -euo pipefail
+          cp /tmp/TraceDecisionAdequacy.lean OriginalRow19Witness.lean
+          if lake env lean OriginalRow19Witness.lean > /tmp/row19-negative.log 2>&1; then
+            echo "UNEXPECTED_BAD_DERIVATION_STILL_COMPILES"
+            exit 1
+          fi
+          grep -E 'type mismatch|TLExplicitDocument|application type mismatch' /tmp/row19-negative.log
+          rm OriginalRow19Witness.lean
+          echo "BAD_BARE_ALIAS_CONSTRUCTION_REJECTED"
+      - name: Full original native build against narrowed relations
+        run: |
+          set -euo pipefail
+          lake build tryscan tryparse
+          echo "FULL_PRODUCTION_BUILD_GREEN"
