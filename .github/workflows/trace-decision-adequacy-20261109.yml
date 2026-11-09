@@ -26,7 +26,7 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - name: Compile source TraceOf definitions
-        run: lake build L4YAML.Proofs.Serialization.TraceOf.Document
+        run: lake build L4YAML
       - name: Generate independent alias-ambiguity witness
         run: |
           python3 - <<'PY'
@@ -38,7 +38,7 @@ jobs:
           assert "lemma readAnchor" in t
           t = t.replace(
               "public import L4YAML.Proofs.Serialization.TraceOf.Document",
-              "public import L4YAML.Proofs.Serialization.TraceOf.Document\npublic import L4YAML.Parser.TokenParser"
+              "public import L4YAML.Proofs.Serialization.TraceOf.Document\npublic import L4YAML"
           )
           t = t.replace("nsc_amp", "nsc_star").replace("'&'", "'*'")
           t = t.replace("a\\n&x", "a\\n*x")
@@ -74,6 +74,14 @@ jobs:
             intro hall
             exact badAliasNotWellFormed (hall _ badAliasTrace)
 
+          /-- Same input also admits an event-free, well-formed trace. -/
+          private lemma existentialWellFormed :
+              ∃ ev, TraceOf "a\n*x" ev ∧ SerializationWellFormed ev := by
+            refine ⟨[], traceOf_plain, ?_⟩
+            simp [SerializationWellFormed, WellFormedFrom]
+
+          #check existentialWellFormed
+          #print axioms traceWellFormed_refuted_for_alias
           #check traceWellFormed_refuted_for_alias
           #guard checkFrom {} [Event.useAlias "x"] == false
           #eval
