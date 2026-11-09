@@ -110,6 +110,32 @@ lemma traceWellFormedRefuted : ¬ TraceWellFormed "a\n*x" := by
 -- A successful parser result would also refute parse-acceptance → TraceWellFormed.
 #eval if (L4YAML.TokenParser.parseYaml "a\n*x").isOk then
   "SOURCE_PARSER_ACCEPT" else "SOURCE_PARSER_REJECT"
+/-! ## Source-native parser qualification (evaluation, not kernel acceptance proof) -/
+
+-- The same input must yield exactly one plain scalar whose folded content is "a *x".
+#eval L4YAML.TokenParser.parseYamlSingle "a\\n*x"
+#eval (L4YAML.TokenParser.parseYaml "a\\n*x").map (fun docs => docs.size)
+#guard (match L4YAML.TokenParser.parseYamlSingle "a\\n*x" with
+  | .ok (.scalar s) => s.content == "a *x" && s.style == .plain
+  | _ => false)
+#guard (match L4YAML.TokenParser.parseYaml "a\\n*x" with
+  | .ok docs => docs.size == 1
+  | .error _ => false)
+
+-- A real document start marker changes the stream into two documents.
+#eval (L4YAML.TokenParser.parseYaml "a\\n---\\nb").map (fun docs => docs.size)
+#guard (match L4YAML.TokenParser.parseYaml "a\\n---\\nb" with
+  | .ok docs => docs.size == 2
+  | .error _ => false)
+#guard (match L4YAML.TokenParser.parseYamlSingle "a\\n---\\nb" with
+  | .error _ => true
+  | _ => false)
+
+-- Kernel dependencies of the Lean-checked trace refutation.
+#print axioms traceOf_plain
+#print axioms traceOf_alias
+#print axioms undefinedAliasNotWellFormed
+#print axioms traceWellFormedRefuted
 #check traceWellFormedRefuted
 
 end L4YAML.Tests.Guards.TraceOfBlockAmbiguity
