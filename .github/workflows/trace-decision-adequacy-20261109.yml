@@ -1,0 +1,46 @@
+name: Research - source-pinned TraceOf decision adequacy
+
+on:
+  push:
+    branches: [ research/trace-decision-adequacy-20261109 ]
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source-lean:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Freeze research material and check out exact upstream source
+        run: |
+          set -euo pipefail
+          FORK_HEAD=$(git rev-parse HEAD)
+          git show "$FORK_HEAD:experiments/TraceDecisionAdequacy.lean" > /tmp/TraceDecisionAdequacy.lean
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream fix-a-grammar-completeness
+          git checkout --detach 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(git rev-parse HEAD)" = 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.35.0
+          echo "UPSTREAM_SOURCE=$(git rev-parse HEAD)"
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build original source
+        run: |
+          lake build tryscan tryparse
+          lake env lean Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean
+          echo "ORIGINAL_TRACE_AMBIGUITY_COMPILED"
+      - name: Check same-input differing truth of trace wellformedness
+        run: |
+          set -euo pipefail
+          cp /tmp/TraceDecisionAdequacy.lean ProofAdequacyDecisionWitness.lean
+          lake env lean ProofAdequacyDecisionWitness.lean | tee /tmp/trace-decision-witness.log
+          grep -F "traceWellFormedRefuted" /tmp/trace-decision-witness.log
+          echo "SOURCE_BOUND_LEAN_WITNESS_COMPILED"
+          rm ProofAdequacyDecisionWitness.lean
+          test -z "$(git status --porcelain)"
