@@ -3,6 +3,7 @@ module
 public import L4YAML
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public import L4YAML.Proofs.Serialization.ScannerShape
+public meta import L4YAML.Proofs.Serialization.TokenEvents
 public meta import L4YAML.Proofs.Serialization.TraceOf.Document
 
 /-! # Independent decision-equivalence adequacy witness (source-derived) -/
@@ -124,7 +125,7 @@ lemma acceptedLoadHasWellFormedScannerTrace
     cases hp : parseStream ts with
     | error e => simp [hs, hp] at hload
     | ok rawDocs =>
-      exact ⟨ts, hs, executedScannerTraceWellFormed input ts rawDocs hs hp⟩
+      exact ⟨ts, by simp [hs], executedScannerTraceWellFormed input ts rawDocs hs hp⟩
 
 /-! ## New requirement-relevant distinction -/
 lemma emptyEventsWellFormed : SerializationWellFormed ([] : List Event) := by
