@@ -1,6 +1,6 @@
 module
 
-public import L4YAML
+public import L4YAML.Parser.Composition
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public meta import L4YAML.Proofs.Serialization.TraceOf.Document
 
