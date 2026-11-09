@@ -36,6 +36,10 @@ jobs:
           assert s.count(marker) == 1
           t = s[:s.index(marker)+len(marker)]
           assert "lemma readAnchor" in t
+          t = t.replace(
+              "public import L4YAML.Proofs.Serialization.TraceOf.Document",
+              "public import L4YAML.Proofs.Serialization.TraceOf.Document\\npublic import L4YAML.Parser.TokenParser"
+          )
           t = t.replace("nsc_amp", "nsc_star").replace("'&'", "'*'")
           t = t.replace("a\\n&x", "a\\n*x")
           t = t.replace('Event.defineAnchor "x"', 'Event.useAlias "x"')
