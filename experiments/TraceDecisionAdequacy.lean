@@ -146,8 +146,8 @@ lemma traceWellFormedRefuted : ¬ TraceWellFormed "a\n*x" := by
 trace does not entail that *every* annotated trace is valid. It does not need
 the parser-acceptance observation as a premise. -/
 lemma existentialGoodUniversalBad :
-    (∃ ev, TraceOf "a\\n*x" ev ∧ SerializationWellFormed ev) ∧
-      ¬ TraceWellFormed "a\\n*x" :=
+    (∃ ev, TraceOf "a\n*x" ev ∧ SerializationWellFormed ev) ∧
+      ¬ TraceWellFormed "a\n*x" :=
   ⟨⟨[], traceOf_plain, emptyEventsWellFormed⟩, traceWellFormedRefuted⟩
 
 lemma existentialTraceDoesNotEntailUniversal :
@@ -156,7 +156,7 @@ lemma existentialTraceDoesNotEntailUniversal :
         TraceWellFormed input) := by
   intro h
   exact traceWellFormedRefuted
-    (h "a\\n*x" ⟨[], traceOf_plain, emptyEventsWellFormed⟩)
+    (h "a\n*x" ⟨[], traceOf_plain, emptyEventsWellFormed⟩)
 
 -- A successful parser result would also refute parse-acceptance → TraceWellFormed.
 #eval if (L4YAML.TokenParser.parseYaml "a\n*x").isOk then
@@ -181,6 +181,17 @@ lemma existentialTraceDoesNotEntailUniversal :
 #guard (match L4YAML.TokenParser.parseYamlSingle "a\n---\nb" with
   | .error _ => true
   | _ => false)
+
+-- Inserting an actual document marker makes *x an undefined alias.
+#eval L4YAML.TokenParser.parseYaml "a\n---\n*x"
+#guard (match L4YAML.TokenParser.parseYaml "a\n---\n*x" with
+  | .error _ => true
+  | .ok _ => false)
+
+-- The executed scanner emits no anchor/alias events for the folded scalar.
+#guard (match L4YAML.Scanner.scanFiltered "a\n*x" with
+  | .ok ts => (tokenEvents ts).isEmpty
+  | .error _ => false)
 
 -- Kernel dependencies of the Lean-checked trace refutation.
 #print axioms traceOf_plain
