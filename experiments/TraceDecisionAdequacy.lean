@@ -102,7 +102,7 @@ open L4YAML.Proofs.Serialization.TokenEvents
 open L4YAML.Proofs.Serialization.ScannerShape
 
 lemma executedScannerTraceWellFormed
-    (input : String) (ts : Toks) (docs : Array YamlDocument)
+    (input : String) (ts : L4YAML.Proofs.Serialization.ParseCheckFrom.Toks) (docs : Array YamlDocument)
     (hs : scanFiltered input = .ok ts)
     (hp : parseStream ts = .ok docs) :
     SerializationWellFormed (tokenEvents ts) := by
@@ -114,7 +114,8 @@ lemma executedScannerTraceWellFormed
 lemma acceptedLoadHasWellFormedScannerTrace
     (input : String) (docs : Array YamlDocument)
     (hload : parseYaml input = .ok docs) :
-    ∃ ts : Toks, scanFiltered input = .ok ts ∧
+    ∃ ts : L4YAML.Proofs.Serialization.ParseCheckFrom.Toks,
+      scanFiltered input = .ok ts ∧
       SerializationWellFormed (tokenEvents ts) := by
   unfold parseYaml parseYamlRaw at hload
   cases hs : scanFiltered input with
@@ -140,6 +141,22 @@ lemma undefinedAliasNotWellFormed :
 lemma traceWellFormedRefuted : ¬ TraceWellFormed "a\n*x" := by
   intro h
   exact undefinedAliasNotWellFormed (h _ traceOf_alias)
+
+/-! A pure, kernel-checked no-go statement: having one valid annotated
+trace does not entail that *every* annotated trace is valid. It does not need
+the parser-acceptance observation as a premise. -/
+lemma existentialGoodUniversalBad :
+    (∃ ev, TraceOf "a\\n*x" ev ∧ SerializationWellFormed ev) ∧
+      ¬ TraceWellFormed "a\\n*x" :=
+  ⟨⟨[], traceOf_plain, emptyEventsWellFormed⟩, traceWellFormedRefuted⟩
+
+lemma existentialTraceDoesNotEntailUniversal :
+    ¬ (∀ input : String,
+        (∃ ev, TraceOf input ev ∧ SerializationWellFormed ev) →
+        TraceWellFormed input) := by
+  intro h
+  exact traceWellFormedRefuted
+    (h "a\\n*x" ⟨[], traceOf_plain, emptyEventsWellFormed⟩)
 
 -- A successful parser result would also refute parse-acceptance → TraceWellFormed.
 #eval if (L4YAML.TokenParser.parseYaml "a\n*x").isOk then
@@ -172,6 +189,8 @@ lemma traceWellFormedRefuted : ¬ TraceWellFormed "a\n*x" := by
 #print axioms traceWellFormedRefuted
 #print axioms executedScannerTraceWellFormed
 #print axioms acceptedLoadHasWellFormedScannerTrace
+#print axioms existentialGoodUniversalBad
+#print axioms existentialTraceDoesNotEntailUniversal
 #check traceWellFormedRefuted
 
 end L4YAML.Tests.Guards.TraceOfBlockAmbiguity
