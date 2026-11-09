@@ -113,21 +113,21 @@ lemma traceWellFormedRefuted : ¬ TraceWellFormed "a\n*x" := by
 /-! ## Source-native parser qualification (evaluation, not kernel acceptance proof) -/
 
 -- The same input must yield exactly one plain scalar whose folded content is "a *x".
-#eval L4YAML.TokenParser.parseYamlSingle "a\\n*x"
-#eval (L4YAML.TokenParser.parseYaml "a\\n*x").map (fun docs => docs.size)
-#guard (match L4YAML.TokenParser.parseYamlSingle "a\\n*x" with
+#eval L4YAML.TokenParser.parseYamlSingle "a\n*x"
+#eval (L4YAML.TokenParser.parseYaml "a\n*x").map (fun docs => docs.size)
+#guard (match L4YAML.TokenParser.parseYamlSingle "a\n*x" with
   | .ok (.scalar s) => s.content == "a *x" && s.style == .plain
   | _ => false)
-#guard (match L4YAML.TokenParser.parseYaml "a\\n*x" with
+#guard (match L4YAML.TokenParser.parseYaml "a\n*x" with
   | .ok docs => docs.size == 1
   | .error _ => false)
 
 -- A real document start marker changes the stream into two documents.
-#eval (L4YAML.TokenParser.parseYaml "a\\n---\\nb").map (fun docs => docs.size)
-#guard (match L4YAML.TokenParser.parseYaml "a\\n---\\nb" with
+#eval (L4YAML.TokenParser.parseYaml "a\n---\nb").map (fun docs => docs.size)
+#guard (match L4YAML.TokenParser.parseYaml "a\n---\nb" with
   | .ok docs => docs.size == 2
   | .error _ => false)
-#guard (match L4YAML.TokenParser.parseYamlSingle "a\\n---\\nb" with
+#guard (match L4YAML.TokenParser.parseYamlSingle "a\n---\nb" with
   | .error _ => true
   | _ => false)
 
