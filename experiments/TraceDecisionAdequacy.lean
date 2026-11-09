@@ -2,6 +2,7 @@ module
 
 public import L4YAML
 public import L4YAML.Proofs.Serialization.TraceOf.Document
+public import L4YAML.Proofs.Serialization.ScannerShape
 public meta import L4YAML.Proofs.Serialization.TraceOf.Document
 
 /-! # Independent decision-equivalence adequacy witness (source-derived) -/
@@ -91,6 +92,39 @@ lemma traceOf_unique_refuted_alias :
 
 end ImplicitContinue
   
+/-! ## Positive boundary: the event trace actually emitted by the scanner -/
+
+-- This is a corollary of the *existing upstream* scanner/parser S5 theorem,
+-- not a new upstream finding. It intentionally quantifies over the executed
+-- scanner stream instead of every admissible surface-grammar derivation.
+open L4YAML.Scanner L4YAML.TokenParser
+open L4YAML.Proofs.Serialization.TokenEvents
+open L4YAML.Proofs.Serialization.ScannerShape
+
+lemma executedScannerTraceWellFormed
+    (input : String) (ts : Toks) (docs : Array YamlDocument)
+    (hs : scanFiltered input = .ok ts)
+    (hp : parseStream ts = .ok docs) :
+    SerializationWellFormed (tokenEvents ts) := by
+  apply (serializationWellFormed_iff_check (tokenEvents ts)).mpr
+  exact scanFiltered_parseStream_ok_checkFrom_full input ts docs hs hp
+
+-- The public Load function composes parsed documents, but cannot accept
+-- unless the source scanner and token parser have both succeeded.
+lemma acceptedLoadHasWellFormedScannerTrace
+    (input : String) (docs : Array YamlDocument)
+    (hload : parseYaml input = .ok docs) :
+    ∃ ts : Toks, scanFiltered input = .ok ts ∧
+      SerializationWellFormed (tokenEvents ts) := by
+  unfold parseYaml parseYamlRaw at hload
+  cases hs : scanFiltered input with
+  | error e => simp [hs] at hload
+  | ok ts =>
+    cases hp : parseStream ts with
+    | error e => simp [hs, hp] at hload
+    | ok rawDocs =>
+      exact ⟨ts, hs, executedScannerTraceWellFormed input ts rawDocs hs hp⟩
+
 /-! ## New requirement-relevant distinction -/
 lemma emptyEventsWellFormed : SerializationWellFormed ([] : List Event) := by
   apply (serializationWellFormed_iff_check _).mpr
@@ -136,6 +170,8 @@ lemma traceWellFormedRefuted : ¬ TraceWellFormed "a\n*x" := by
 #print axioms traceOf_alias
 #print axioms undefinedAliasNotWellFormed
 #print axioms traceWellFormedRefuted
+#print axioms executedScannerTraceWellFormed
+#print axioms acceptedLoadHasWellFormedScannerTrace
 #check traceWellFormedRefuted
 
 end L4YAML.Tests.Guards.TraceOfBlockAmbiguity
