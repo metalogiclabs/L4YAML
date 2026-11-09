@@ -1,6 +1,7 @@
 module
 
 public import L4YAML.Proofs.Serialization.TraceOf.Document
+public import L4YAML.Parser.TokenParser
 public meta import L4YAML.Proofs.Serialization.TraceOf.Document
 
 /-! # `traceOf_unique` on the block/document fragment (Rule 2): refutations -/
