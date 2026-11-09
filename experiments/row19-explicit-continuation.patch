@@ -1,7 +1,7 @@
 diff --git a/L4YAML/Surface/Document.lean b/L4YAML/Surface/Document.lean
 --- a/L4YAML/Surface/Document.lean
 +++ b/L4YAML/Surface/Document.lean
-@@ -167,12 +167,11 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
+@@ -167,11 +167,10 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
        GStar SLDocumentSuffix s₄ s' →
        SLYamlStream s s'
 -  /-- Implicit continuation: previous stream + prefix(es) + any document.
@@ -19,7 +19,7 @@ diff --git a/L4YAML/Surface/Document.lean b/L4YAML/Surface/Document.lean
 diff --git a/L4YAML/Proofs/Serialization/TraceOf/Document.lean b/L4YAML/Proofs/Serialization/TraceOf/Document.lean
 --- a/L4YAML/Proofs/Serialization/TraceOf/Document.lean
 +++ b/L4YAML/Proofs/Serialization/TraceOf/Document.lean
-@@ -84,9 +84,9 @@ inductive TLYamlStream : TRel where
+@@ -84,8 +84,8 @@ inductive TLYamlStream : TRel where
        TStar TLDocumentSuffix s₄ s' e₃ →
        TLYamlStream s s' (e₀ ++ e₁ ++ e₂ ++ e₃)
    | implicitContinue (s s₁ s₂ s₃ s' : SurfPos) (e₀ e₁ e₂ : List Event) :
