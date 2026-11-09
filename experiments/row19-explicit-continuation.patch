@@ -1,0 +1,31 @@
+diff --git a/L4YAML/Surface/Document.lean b/L4YAML/Surface/Document.lean
+--- a/L4YAML/Surface/Document.lean
++++ b/L4YAML/Surface/Document.lean
+@@ -167,12 +167,11 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
+       GStar SLDocumentSuffix s₄ s' →
+       SLYamlStream s s'
+-  /-- Implicit continuation: previous stream + prefix(es) + any document.
+-      Matches spec [211] `l-document-prefix* l-any-document?` branch.
+-      This includes bare documents (no `---` marker). -/
++  /-- Implicit continuation: only an explicitly marked next document.
++      Matches spec [211] `l-document-prefix* l-explicit-document?` branch. -/
+   | implicitContinue (s s₁ s₂ s₃ s' : SurfPos) :
+       SLYamlStream s s₁ →
+       GStar SLDocumentPrefix s₁ s₂ →
+-      GOpt SLAnyDocument s₂ s₃ →
++      GOpt SLExplicitDocument s₂ s₃ →
+       GStar SLDocumentSuffix s₃ s' →
+       SLYamlStream s s'
+diff --git a/L4YAML/Proofs/Serialization/TraceOf/Document.lean b/L4YAML/Proofs/Serialization/TraceOf/Document.lean
+--- a/L4YAML/Proofs/Serialization/TraceOf/Document.lean
++++ b/L4YAML/Proofs/Serialization/TraceOf/Document.lean
+@@ -84,9 +84,9 @@ inductive TLYamlStream : TRel where
+       TStar TLDocumentSuffix s₄ s' e₃ →
+       TLYamlStream s s' (e₀ ++ e₁ ++ e₂ ++ e₃)
+   | implicitContinue (s s₁ s₂ s₃ s' : SurfPos) (e₀ e₁ e₂ : List Event) :
+       TLYamlStream s s₁ e₀ →
+       GStar SLDocumentPrefix s₁ s₂ →
+-      TOpt TLAnyDocument s₂ s₃ e₁ →
++      TOpt TLExplicitDocument s₂ s₃ e₁ →
+       TStar TLDocumentSuffix s₃ s' e₂ →
+       TLYamlStream s s' (e₀ ++ e₁ ++ e₂)
