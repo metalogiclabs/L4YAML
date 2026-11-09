@@ -1,7 +1,7 @@
 name: L4YAML trace decision adequacy witness
 on:
   push:
-    branches: [research/l4yaml-trace-decision-20261109]
+    branches: [research/l4yaml-parser-to-trace-iff-20261109]
 permissions:
   contents: read
 jobs:
@@ -26,7 +26,7 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - name: Compile source TraceOf definitions
-        run: lake build L4YAML
+        run: lake build L4YAML.Parser.Composition L4YAML.Proofs.Serialization.TraceOf.Document
       - name: Generate independent alias-ambiguity witness
         run: |
           python3 - <<'PY'
@@ -38,7 +38,7 @@ jobs:
           assert "lemma readAnchor" in t
           t = t.replace(
               "public import L4YAML.Proofs.Serialization.TraceOf.Document",
-              "public import L4YAML.Proofs.Serialization.TraceOf.Document\npublic import L4YAML"
+              "public import L4YAML.Proofs.Serialization.TraceOf.Document\npublic import L4YAML.Parser.Composition"
           )
           t = t.replace("nsc_amp", "nsc_star").replace("'&'", "'*'")
           t = t.replace("a\\n&x", "a\\n*x")
@@ -88,6 +88,28 @@ jobs:
             match L4YAML.TokenParser.parseYaml "a\n*x" with
             | .ok _ => "PARSER_ACCEPT"
             | .error _ => "PARSER_REJECT"
+
+
+          set_option maxHeartbeats 1200000
+          set_option maxRecDepth 4000
+
+          /-- Fully proved acceptance by the executable Lean parser. -/
+          private lemma parserAccepts :
+              ∃ docs, L4YAML.TokenParser.parseYaml "a\n*x" = .ok docs := by
+            have h : (L4YAML.TokenParser.parseYaml "a\n*x").isOk = true := by decide
+            cases hparse : L4YAML.TokenParser.parseYaml "a\n*x" with
+            | error e => simp [hparse] at h
+            | ok docs => exact ⟨docs, hparse⟩
+
+          /-- A parser-accepted input falsifies the universal trace condition. -/
+          lemma parserAccepts_not_traceWellFormed :
+              ¬ ((∃ docs, L4YAML.TokenParser.parseYaml "a\n*x" = .ok docs) →
+                  TraceWellFormed "a\n*x") := by
+            intro h
+            exact traceWellFormed_refuted_for_alias (h parserAccepts)
+
+          #check parserAccepts_not_traceWellFormed
+          #print axioms parserAccepts_not_traceWellFormed
 
           end L4YAML.Tests.Guards.TraceOfBlockAmbiguity
           """
