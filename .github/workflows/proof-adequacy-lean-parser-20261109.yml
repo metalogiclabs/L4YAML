@@ -1,0 +1,59 @@
+name: Exact-source Lean parser adequacy control
+on:
+  push:
+    branches: [ research/proof-adequacy-lean-parser-20261109 ]
+
+permissions:
+  contents: read
+
+jobs:
+  lean-parser-control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check out the exact public upstream source
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream fix-a-grammar-completeness
+          git checkout --detach 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(git rev-parse HEAD)" = "46d33cf6123782f91c91e5fc396211c7e6bf4351"
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.35.0"
+          echo "EXACT_SOURCE_SHA=$(git rev-parse HEAD)"
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile original universal source predicate and parser
+        run: |
+          lake build tryscan tryparse
+          lake env lean Tests/Guards/Proofs/SuffixGapAudit.lean
+          echo "SOURCE_UNIVERSAL_LEMMA_COMPILED"
+      - name: Prove parser rejection by native Lean source evaluation
+        run: |
+          set -euo pipefail
+          cat > ProofAdequacyParserExactSHA.lean <<'LEAN'
+          import L4YAML
+
+          private def invalidPlain : String :=
+            "a: x" ++ String.singleton (Char.ofNat 0x01) ++ "y\n"
+
+          -- Execute the Lean parser, not the executable's exit status.
+          #eval
+            match L4YAML.TokenParser.parseYaml invalidPlain with
+            | .error _ => "REJECT"
+            | .ok _ => "ACCEPT"
+
+          #guard
+            match L4YAML.TokenParser.parseYaml invalidPlain with
+            | .error _ => true
+            | .ok _ => false
+          LEAN
+          lake env lean ProofAdequacyParserExactSHA.lean | tee lean-parser-exact-sha.log
+          grep -Fx REJECT lean-parser-exact-sha.log
+          echo "SOURCE_PARSER_LEAN_GUARD_PASS"
+          rm ProofAdequacyParserExactSHA.lean lean-parser-exact-sha.log
+          test -z "$(git status --porcelain)"
