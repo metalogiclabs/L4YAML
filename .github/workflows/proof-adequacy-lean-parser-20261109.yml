@@ -32,28 +32,30 @@ jobs:
           lake build tryscan tryparse
           lake env lean Tests/Guards/Proofs/SuffixGapAudit.lean
           echo "SOURCE_UNIVERSAL_LEMMA_COMPILED"
-      - name: Prove parser rejection by native Lean source evaluation
+      - name: Compile original universal lemma and parser guard in one Lean file
         run: |
           set -euo pipefail
-          cat > ProofAdequacyParserExactSHA.lean <<'LEAN'
-          import L4YAML
+          # Keep the upstream file unchanged. The ephemeral file preserves all
+          # original source bytes and adds an independent executable check.
+          cp Tests/Guards/Proofs/SuffixGapAudit.lean ProofAdequacyCombined.lean
+          cat >> ProofAdequacyCombined.lean <<'LEAN'
 
-          private def invalidPlain : String :=
+          #check Tests.Guards.SuffixGapAudit.inYamlLanguage_everything
+
+          private def proofAdequacyInvalidPlain : String :=
             "a: x" ++ String.singleton (Char.ofNat 0x01) ++ "y\n"
 
-          -- Execute the Lean parser, not the executable's exit status.
-          #eval
-            match L4YAML.TokenParser.parseYaml invalidPlain with
-            | .error _ => "REJECT"
-            | .ok _ => "ACCEPT"
-
           #guard
-            match L4YAML.TokenParser.parseYaml invalidPlain with
+            match L4YAML.TokenParser.parseYaml proofAdequacyInvalidPlain with
             | .error _ => true
             | .ok _ => false
+
+          #eval
+            match L4YAML.TokenParser.parseYaml proofAdequacyInvalidPlain with
+            | .error _ => "REJECT"
+            | .ok _ => "ACCEPT"
           LEAN
-          lake env lean ProofAdequacyParserExactSHA.lean | tee lean-parser-exact-sha.log
-          grep -Fx '\"REJECT\"' lean-parser-exact-sha.log
-          echo "SOURCE_PARSER_LEAN_GUARD_PASS"
-          rm ProofAdequacyParserExactSHA.lean lean-parser-exact-sha.log
+          lake env lean ProofAdequacyCombined.lean
+          echo "SOURCE_LEMMA_AND_PARSER_GUARD_PASS_IN_ONE_FILE"
+          rm ProofAdequacyCombined.lean
           test -z "$(git status --porcelain)"
