@@ -21,7 +21,7 @@ jobs:
           FORK_HEAD=$(git rev-parse HEAD)
           git show "$FORK_HEAD:experiments/TraceDecisionAdequacy.lean" > /tmp/TraceDecisionAdequacy.lean
           git remote add upstream https://github.com/nasa-jpl/L4YAML.git
-          git fetch --no-tags --depth=1 upstream fix-a-grammar-completeness
+          git fetch --no-tags --depth=1 upstream 46d33cf6123782f91c91e5fc396211c7e6bf4351
           git checkout --detach 46d33cf6123782f91c91e5fc396211c7e6bf4351
           test "$(git rev-parse HEAD)" = 46d33cf6123782f91c91e5fc396211c7e6bf4351
           test "$(cat lean-toolchain)" = leanprover/lean4:v4.35.0
