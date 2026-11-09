@@ -53,7 +53,7 @@ jobs:
             | .ok _ => false
           LEAN
           lake env lean ProofAdequacyParserExactSHA.lean | tee lean-parser-exact-sha.log
-          grep -Fx REJECT lean-parser-exact-sha.log
+          grep -Fx '\"REJECT\"' lean-parser-exact-sha.log
           echo "SOURCE_PARSER_LEAN_GUARD_PASS"
           rm ProofAdequacyParserExactSHA.lean lean-parser-exact-sha.log
           test -z "$(git status --porcelain)"
