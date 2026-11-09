@@ -1,0 +1,44 @@
+name: MathGraph S3 alias adequacy witness (source-qualified)
+on:
+  push:
+    branches: [ research/mathgraph-s3-alias-adequacy-20261109 ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-pinned-lean-witness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Preserve research-only witness
+        run: |
+          cp research/mathgraph_s3/MathGraphAliasAdequacy.lean "$RUNNER_TEMP/MathGraphAliasAdequacy.lean"
+      - name: Freeze upstream source bytes
+        run: |
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream fix-a-grammar-completeness
+          git checkout --detach 46d33cf6123782f91c91e5fc396211c7e6bf4351
+          test "$(git rev-parse HEAD)" = "46d33cf6123782f91c91e5fc396211c7e6bf4351"
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.35.0"
+          echo "EXACT_UPSTREAM_SHA=$(git rev-parse HEAD)"
+      - name: Install exact Lean toolchain
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build and compile original counterexamples
+        run: |
+          set -euo pipefail
+          lake build tryparse
+          lake env lean Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean
+          echo ORIGINAL_TRACE_AMBIGUITY_COMPILED
+      - name: Compile new orphan alias witness and parser acceptance guard
+        run: |
+          set -euo pipefail
+          lake env lean "$RUNNER_TEMP/MathGraphAliasAdequacy.lean"
+          echo MATHGRAPH_ORPHAN_ALIAS_TRACE_WITNESS_COMPILED
+          test -z "$(git status --porcelain)"
