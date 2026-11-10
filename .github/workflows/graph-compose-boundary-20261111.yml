@@ -31,7 +31,7 @@ jobs:
       - name: Build upstream Lean
         run: |
           set -euo pipefail
-          lake build L4YAML
+          lake build L4YAML.Config.Limits L4YAML.Parser.IndexedComposition
       - name: Run Lean-only boundary probe
         run: |
           set -euo pipefail

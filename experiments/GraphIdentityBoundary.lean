@@ -1,3 +1,6 @@
+import L4YAML.Config.Limits
+import L4YAML.Parser.IndexedComposition
+
 /-!
 MathGraph research-only graph-identity boundary audit.
 
@@ -10,8 +13,6 @@ This probe isolates raw serialization, pure composition and the exact
 safe/limited composition used by the public FFI. It never changes
 the upstream source or treats a comparison as a theorem proof.
 -/
-import L4YAML.Config.Limits
-import L4YAML.Parser.IndexedComposition
 
 open L4YAML
 open L4YAML.TokenParser
