@@ -83,8 +83,8 @@ def main() -> int:
     # Pair test: the YAML graph with one shared node versus two independent
     # value-equal nodes. Value equality alone cannot expose this distinction.
     for name, source in [
-        ("alias-shared-sequence", "a: &shared [1]\\nb: *shared\\n"),
-        ("independent-copy-sequences", "a: [1]\\nb: [1]\\n"),
+        ("alias-shared-sequence", "a: &shared [1]\nb: *shared\n"),
+        ("independent-copy-sequences", "a: [1]\nb: [1]\n"),
     ]:
         try:
             root = l4yaml.load(source)
