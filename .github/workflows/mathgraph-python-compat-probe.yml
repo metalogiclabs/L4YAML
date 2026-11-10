@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          ref: b8ff8827aa958f29543c7f59118a865d7c59b3f7
       - name: Install pinned Lean
         run: |
           curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
@@ -23,6 +24,7 @@ jobs:
         run: |
           export PATH="$HOME/.elan/bin:$PATH"
           elan toolchain install "$(cat lean-toolchain)"
+          git rev-parse HEAD
           lean --version
           lake build L4YAML
           cmake -B ffi/out -S ffi
@@ -67,8 +69,12 @@ jobs:
           for item in observations:
               print(json.dumps(item, ensure_ascii=True))
           assert all(ok for _,ok in controls), 'positive control failed; cannot qualify candidates'
+          assert all(i['equal'] for i in observations), 'a native scalar-fidelity case failed on repair'
           print('NATIVE_CANDIDATE_SUMMARY=' + json.dumps(
               {i['case']: 'preserved' if i['equal'] else
                ('exception' if i['error'] else 'changed-value')
                for i in observations}, sort_keys=True))
           PY
+          python3 -m pip install --user pytest
+          python3 -m pytest python/tests/test_compat.py -k 'scalar_lexical_fidelity or bom_prefixed_mapping_key' -q
+          python3 -m pytest python/tests/test_compat.py -q
