@@ -1,0 +1,49 @@
+name: Research - exact Lean graph composition distinction boundary
+on:
+  push:
+    branches:
+      - research/graph-compose-boundary-20261111
+permissions:
+  contents: read
+jobs:
+  lean-first-loss:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Pin probe and upstream original
+        run: |
+          set -euo pipefail
+          FORK_HEAD="$(git rev-parse HEAD)"
+          git show "$FORK_HEAD:experiments/GraphIdentityBoundary.lean" > /tmp/GraphIdentityBoundary.lean
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream f4632f53c468e94307e6537d22c951fd7c1edba9
+          git checkout --detach f4632f53c468e94307e6537d22c951fd7c1edba9
+          test "$(git rev-parse HEAD)" = "f4632f53c468e94307e6537d22c951fd7c1edba9"
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.32.0"
+      - name: Install pinned Lean
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build upstream Lean
+        run: |
+          set -euo pipefail
+          lake build L4YAML
+      - name: Run Lean-only boundary probe
+        run: |
+          set -euo pipefail
+          cp /tmp/GraphIdentityBoundary.lean ./GraphIdentityBoundary.lean
+          lake env lean GraphIdentityBoundary.lean | tee "$RUNNER_TEMP/graph-compose-boundary.log"
+          grep -F 'MG_RAW_BOTH_OK=true' "$RUNNER_TEMP/graph-compose-boundary.log"
+          grep -F 'MG_PUBLIC_SAFE_BOTH_OK=true' "$RUNNER_TEMP/graph-compose-boundary.log"
+          grep -F 'MG_POSITIVE_DISTINCT=true' "$RUNNER_TEMP/graph-compose-boundary.log"
+      - name: Preserve output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graph-compose-boundary-lean
+          path: ${{ runner.temp }}/graph-compose-boundary.log
+          if-no-files-found: warn
