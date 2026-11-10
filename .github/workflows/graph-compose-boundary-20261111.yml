@@ -40,6 +40,8 @@ jobs:
           grep -F 'MG_RAW_BOTH_OK=true' "$RUNNER_TEMP/graph-compose-boundary.log"
           grep -F 'MG_PUBLIC_SAFE_BOTH_OK=true' "$RUNNER_TEMP/graph-compose-boundary.log"
           grep -F 'MG_POSITIVE_DISTINCT=true' "$RUNNER_TEMP/graph-compose-boundary.log"
+          grep -F 'MG2_RAW_ALIAS_ANCHORED_DIFFERENT=true' "$RUNNER_TEMP/graph-compose-boundary.log"
+          grep -F 'MG2_PUBLIC_THREE_EQUAL=true' "$RUNNER_TEMP/graph-compose-boundary.log"
       - name: Preserve output
         if: always()
         uses: actions/upload-artifact@v4

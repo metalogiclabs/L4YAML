@@ -74,4 +74,66 @@ def positiveDistinct : Bool :=
 #eval IO.println s!"MG_PUBLIC_SAFE_EQUAL={publicSafeEqual}"
 #eval IO.println s!"MG_POSITIVE_DISTINCT={positiveDistinct}"
 
+
+/-! ## Second-stage probe: anchor-present but never aliased -/
+def anchoredCopySource : String := "a: &shared [1]\nb: [1]\n"
+
+def rawAliasAnchoredDifferent : Bool :=
+  match TokenParser.Indexed.parseYamlSingleRawIx aliasSource,
+        TokenParser.Indexed.parseYamlSingleRawIx anchoredCopySource with
+  | .ok a, .ok b => !(a.value == b.value)
+  | _, _ => false
+
+def pureResolvedAliasAnchoredEqual : Bool :=
+  match TokenParser.Indexed.parseYamlSingleRawIx aliasSource,
+        TokenParser.Indexed.parseYamlSingleRawIx anchoredCopySource with
+  | .ok a, .ok b =>
+      (a.value.resolveAliasesOrdered a.anchors).fst ==
+        (b.value.resolveAliasesOrdered b.anchors).fst
+  | _, _ => false
+
+def limitedResolvedAliasAnchoredEqual : Bool :=
+  match TokenParser.Indexed.parseYamlSingleRawIx aliasSource,
+        TokenParser.Indexed.parseYamlSingleRawIx anchoredCopySource with
+  | .ok a, .ok b =>
+      match resolveAliasesLimited a.value a.anchors ({} : AliasLimits),
+            resolveAliasesLimited b.value b.anchors ({} : AliasLimits) with
+      | .ok ra, .ok rb => ra == rb
+      | _, _ => false
+  | _, _ => false
+
+def limitedResolvedAnchoredPlainDifferent : Bool :=
+  match TokenParser.Indexed.parseYamlSingleRawIx anchoredCopySource,
+        TokenParser.Indexed.parseYamlSingleRawIx copySource with
+  | .ok a, .ok b =>
+      match resolveAliasesLimited a.value a.anchors ({} : AliasLimits),
+            resolveAliasesLimited b.value b.anchors ({} : AliasLimits) with
+      | .ok ra, .ok rb => !(ra == rb)
+      | _, _ => false
+  | _, _ => false
+
+def strippedAnchoredPlainEqual : Bool :=
+  match TokenParser.Indexed.parseYamlSingleRawIx anchoredCopySource,
+        TokenParser.Indexed.parseYamlSingleRawIx copySource with
+  | .ok a, .ok b =>
+      match resolveAliasesLimited a.value a.anchors ({} : AliasLimits),
+            resolveAliasesLimited b.value b.anchors ({} : AliasLimits) with
+      | .ok ra, .ok rb => ra.stripAnchors == rb.stripAnchors
+      | _, _ => false
+  | _, _ => false
+
+def publicThreeEqual : Bool :=
+  match parseYamlSingleSafe aliasSource,
+        parseYamlSingleSafe anchoredCopySource,
+        parseYamlSingleSafe copySource with
+  | .ok a, .ok b, .ok c => a == b && b == c
+  | _, _, _ => false
+
+#eval IO.println s!"MG2_RAW_ALIAS_ANCHORED_DIFFERENT={rawAliasAnchoredDifferent}"
+#eval IO.println s!"MG2_PURE_RESOLVED_ALIAS_ANCHORED_EQUAL={pureResolvedAliasAnchoredEqual}"
+#eval IO.println s!"MG2_LIMITED_RESOLVED_ALIAS_ANCHORED_EQUAL={limitedResolvedAliasAnchoredEqual}"
+#eval IO.println s!"MG2_LIMITED_RESOLVED_ANCHORED_PLAIN_DIFFERENT={limitedResolvedAnchoredPlainDifferent}"
+#eval IO.println s!"MG2_STRIPPED_ANCHORED_PLAIN_EQUAL={strippedAnchoredPlainEqual}"
+#eval IO.println s!"MG2_PUBLIC_THREE_EQUAL={publicThreeEqual}"
+
 end MathGraph.GraphIdentityBoundary
