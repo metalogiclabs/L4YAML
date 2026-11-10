@@ -1,0 +1,61 @@
+name: Research - source-pinned native distinction boundaries
+on:
+  push:
+    branches:
+      - research/distinction-native-20261110
+permissions:
+  contents: read
+
+jobs:
+  exact-default-source-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout research probe
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Freeze probe and checkout exact upstream source
+        run: |
+          set -euo pipefail
+          FORK_HEAD="$(git rev-parse HEAD)"
+          git show "$FORK_HEAD:experiments/distinction_native_20261110.py" > /tmp/distinction_native_20261110.py
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags --depth=1 upstream f4632f53c468e94307e6537d22c951fd7c1edba9
+          git checkout --detach f4632f53c468e94307e6537d22c951fd7c1edba9
+          test "$(git rev-parse HEAD)" = "f4632f53c468e94307e6537d22c951fd7c1edba9"
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.32.0"
+
+      - name: Install pinned Lean toolchain
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Compile exact upstream Lean and Python FFI
+        run: |
+          set -euo pipefail
+          lake build L4YAML tryparse
+          cmake -B ffi/out -S ffi
+          cmake --build ffi/out --parallel 2
+          test -f ffi/out/libl4yaml.so
+
+      - name: Run public API distinction probe and preserve diagnostics
+        env:
+          PYTHONPATH: ${{ github.workspace }}/python
+          L4YAML_LIB: ${{ github.workspace }}/ffi/out/libl4yaml.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/ffi/out
+        run: |
+          set -euo pipefail
+          cp /tmp/distinction_native_20261110.py distinction_native_20261110.py
+          python3 distinction_native_20261110.py | tee "$RUNNER_TEMP/distinction-diagnostic.log"
+          grep -F '"case": "diagnostic-summary"' "$RUNNER_TEMP/distinction-diagnostic.log"
+
+      - name: Preserve raw diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: distinction-native-default
+          path: ${{ runner.temp }}/distinction-diagnostic.log
+          if-no-files-found: warn
