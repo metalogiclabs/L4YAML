@@ -79,9 +79,50 @@ def main() -> int:
                    error=str(exc))
         observed += 1
 
+
+    # Pair test: the YAML graph with one shared node versus two independent
+    # value-equal nodes. Value equality alone cannot expose this distinction.
+    for name, source in [
+        ("alias-shared-sequence", "a: &shared [1]\\nb: *shared\\n"),
+        ("independent-copy-sequences", "a: [1]\\nb: [1]\\n"),
+    ]:
+        try:
+            root = l4yaml.load(source)
+            emitted = l4yaml.dump(root)
+            result = safe_load(source)
+            before = repr(result)
+            same = result["a"] is result["b"]
+            result["a"].append(2)
+            report(name, native_before=before, native_after=repr(result),
+                   same_object=same, emitted_repr=repr(emitted),
+                   b_reflected_mutation=result["b"] == [1, 2])
+        except Exception as exc:
+            report(name, error_type=type(exc).__name__, error=str(exc))
+        observed += 1
+
+    # Reverse path: a Python mapping with a shared list versus copies.
+    shared_list = [1]
+    for name, original_graph in [
+        ("python-shared-sequence-dump", {"a": shared_list, "b": shared_list}),
+        ("python-independent-sequences-dump", {"a": [1], "b": [1]}),
+    ]:
+        try:
+            before_shared = original_graph["a"] is original_graph["b"]
+            emitted = safe_dump(original_graph)
+            restored = safe_load(emitted)
+            after_shared = restored["a"] is restored["b"]
+            restored["a"].append(2)
+            report(name, original_shared=before_shared,
+                   restored_shared=after_shared, emitted_repr=repr(emitted),
+                   restored_after_mutation=repr(restored),
+                   b_reflected_mutation=restored["b"] == [1, 2])
+        except Exception as exc:
+            report(name, error_type=type(exc).__name__, error=str(exc))
+        observed += 1
+
     report("diagnostic-summary", cases_observed=observed,
            note="Diagnostic completed; semantic mismatches are intentionally not CI failures")
-    return 0 if observed == 10 else 3
+    return 0 if observed == 14 else 3
 
 
 if __name__ == "__main__":
