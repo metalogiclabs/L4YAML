@@ -1,0 +1,74 @@
+name: MathGraph native Python scalar-fidelity probe
+on:
+  push:
+    branches: [fix/python-compat-scalar-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-compat:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build pinned Lean library and C adapter
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+          lake build L4YAML
+          cmake -B ffi/out -S ffi
+          cmake --build ffi/out -j 2
+          test -f ffi/out/libl4yaml.so
+      - name: Execute native Python fidelity cases, including positive controls
+        env:
+          PYTHONPATH: python
+          L4YAML_LIB: ${{ github.workspace }}/ffi/out/libl4yaml.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/ffi/out
+        run: |
+          python3 - <<'PY'
+          import json
+          from l4yaml.compat import safe_dump, safe_load, _python_to_yaml
+          cases = [
+              ('ordinary-string-control', {'target': 'plain value'}),
+              ('unicode-apostrophe-control', {'target': 'O\u2019Reilly'}),
+              ('quoted-apostrophe', {'target': "O'Reilly"}),
+              ('doubled-apostrophe', {'target': "a''b"}),
+              ('comment-truncation', {'target': "x' # comment"}),
+              ('leading-bom-key-collision', {'\ufeffa': 'correct', 'a': 'wrong'}),
+              ('leading-bom-scalar', '\ufefffoo'),
+          ]
+          observations = []
+          controls = []
+          for name, value in cases:
+              source_yaml = _python_to_yaml(value)
+              try:
+                  dumped = safe_dump(value)
+                  actual = safe_load(dumped)
+                  equal = type(actual) is type(value) and actual == value
+                  observations.append({'case': name, 'source_yaml': source_yaml,
+                                       'dumped': dumped, 'actual': repr(actual),
+                                       'equal': equal, 'error': None})
+              except Exception as exc:
+                  equal = False
+                  observations.append({'case': name, 'source_yaml': source_yaml,
+                                       'actual': None, 'equal': False,
+                                       'error': type(exc).__name__ + ': ' + str(exc)})
+              if name.endswith('-control'):
+                  controls.append((name, equal))
+          for item in observations:
+              print(json.dumps(item, ensure_ascii=True))
+          assert all(ok for _,ok in controls), 'positive control failed; cannot qualify candidates'
+          print('NATIVE_CANDIDATE_SUMMARY=' + json.dumps(
+              {i['case']: 'preserved' if i['equal'] else
+               ('exception' if i['error'] else 'changed-value')
+               for i in observations}, sort_keys=True))
+          PY
