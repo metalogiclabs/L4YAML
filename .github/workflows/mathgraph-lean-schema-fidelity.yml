@@ -1,0 +1,36 @@
+name: MathGraph unchanged Lean Core Schema fidelity witness
+on:
+  push:
+    branches: [test/lean-core-schema-fidelity]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lean-schema-adequacy:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Assert original production schema is untouched
+        run: |
+          echo "WORKFLOW_SHA=$(git rev-parse HEAD)"
+          echo "ORIGINAL_SOURCE_SHA=218b41c974027f7433e6b0c369789a38e50b3740"
+          git diff --exit-code 218b41c974027f7433e6b0c369789a38e50b3740 HEAD -- L4YAML/Schema/Schema.lean L4YAML/Proofs/Schema
+          git diff --name-only 218b41c974027f7433e6b0c369789a38e50b3740 HEAD
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile original source and independent Lean witness
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+          lake build L4YAML
+          lake env lean MathGraphSchemaFidelityWitness.lean
+          echo "LEAN_SCHEMA_FIDELITY_WITNESS=PASS"
