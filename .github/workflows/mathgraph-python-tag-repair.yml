@@ -1,0 +1,43 @@
+name: MathGraph native explicit-tag repair qualification
+on:
+  push:
+    branches: [fix/python-explicit-core-tags]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-tag-repair:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: 41aefc87bd76771c5557e6167e7809a6a51a3795
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build exact patched Lean library and C adapter
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "41aefc87bd76771c5557e6167e7809a6a51a3795"
+          lean --version
+          lake build L4YAML
+          cmake -B ffi/out -S ffi
+          cmake --build ffi/out -j 2
+          test -f ffi/out/libl4yaml.so
+      - name: Run native explicit-tag and protected Python compatibility suites
+        env:
+          PYTHONPATH: python
+          L4YAML_LIB: ${{ github.workspace }}/ffi/out/libl4yaml.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/ffi/out
+        run: |
+          python3 -m pip install --user pytest PyYAML
+          python3 -m unittest discover -s python/tests -p 'test_compat_explicit_tags.py' -v
+          python3 -m pytest python/tests/test_compat.py -q
+          python3 -m pytest python/tests/test_parse.py -q
