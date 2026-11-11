@@ -1,0 +1,92 @@
+name: MathGraph native YAML Core Schema scalar probe
+on:
+  push:
+    branches: [test/python-core-numeric-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-core-numeric-fidelity:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: 218b41c974027f7433e6b0c369789a38e50b3740
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile exact unmodified Lean and C sources
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          lean --version
+          lake build L4YAML
+          cmake -B ffi/out -S ffi
+          cmake --build ffi/out -j 2
+          test -f ffi/out/libl4yaml.so
+      - name: Record specification-selected numeric cases and protected controls
+        env:
+          PYTHONPATH: python
+          L4YAML_LIB: ${{ github.workspace }}/ffi/out/libl4yaml.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/ffi/out
+        run: |
+          python3 - <<'PY'
+          import json
+          import l4yaml
+          from l4yaml.compat import safe_load
+
+          # Reference oracle: YAML 1.2.2 Core Schema regexes, not PyYAML 1.1.
+          # The exact input and result type are both part of the contract.
+          cases = [
+              ('decimal-control', '42', 42, int, False),
+              ('quoted-decimal-control', '"42"', '42', str, False),
+              ('octal-control', '0o7', 7, int, False),
+              ('hex-control', '0x3A', 58, int, False),
+              ('float-control', '.5', 0.5, float, False),
+              ('string-control', 'version-42', 'version-42', str, False),
+              ('leading-zero-decimal', '012', 12, int, True),
+              ('leading-zero-007', '007', 7, int, True),
+              ('digit-underscore', '1_000', '1_000', str, True),
+              ('zero-underscore', '0_1', '0_1', str, True),
+              ('hex-underscore', '0x_F', '0x_F', str, True),
+              ('signed-hex', '+0xF', '+0xF', str, True),
+              ('signed-octal', '-0o7', '-0o7', str, True),
+              ('float-underscore', '1_0.2', '1_0.2', str, True),
+          ]
+          observations=[]
+          for name, source, expected, expected_type, candidate in cases:
+              result={
+                  'case':name, 'source':source, 'expected':repr(expected),
+                  'expected_type':expected_type.__name__, 'candidate':candidate,
+              }
+              try:
+                  raw=l4yaml.load(source)
+                  result.update(raw_tag=raw.tag, raw_style=raw.style,
+                                raw_content=raw.as_str())
+              except Exception as exc:
+                  result['raw_error']=type(exc).__name__+': '+str(exc)
+              try:
+                  actual=safe_load(source)
+                  result.update(actual=repr(actual), actual_type=type(actual).__name__,
+                                exact=(type(actual) is expected_type and actual==expected))
+              except Exception as exc:
+                  result.update(actual_error=type(exc).__name__+': '+str(exc), exact=False)
+              observations.append(result)
+              print('NATIVE_CORE_NUMERIC_OBSERVATION='+json.dumps(result,sort_keys=True))
+          controls=[x for x in observations if not x['candidate']]
+          candidates=[x for x in observations if x['candidate']]
+          print('NATIVE_CORE_NUMERIC_SUMMARY='+json.dumps({
+              'source_sha':'218b41c974027f7433e6b0c369789a38e50b3740',
+              'controls_exact':sum(x['exact'] for x in controls),
+              'controls_total':len(controls),
+              'candidates_exact':sum(x['exact'] for x in candidates),
+              'candidates_total':len(candidates),
+          },sort_keys=True))
+          assert all(x['exact'] for x in controls), 'A positive control failed'
+          PY
