@@ -30,29 +30,29 @@ example : resolveImplicit "1." = .str "1." := by rfl
 -- Each statement qualifies this exact API path, not Python's separate coercer.
 -- Match only the expected constructor to avoid broad equality/float assumptions.
 example : (match L4YAML.parseTyped "42" with
-  | .ok (.int n) => n = 42
-  | _ => False) := by native_decide
+  | .ok (.int n) => n == 42
+  | _ => false) = true := by native_decide
 
 example : (match L4YAML.parseTyped "\"42\"" with
-  | .ok (.str s) => s = "42"
-  | _ => False) := by native_decide
+  | .ok (.str s) => s == "42"
+  | _ => false) = true := by native_decide
 
 example : (match L4YAML.parseTyped "0x3A" with
-  | .ok (.int n) => n = 58
-  | _ => False) := by native_decide
+  | .ok (.int n) => n == 58
+  | _ => false) = true := by native_decide
 
 -- Contract-disagreeing observations, if the full entry point admits the sources.
 example : (match L4YAML.parseTyped "1_000" with
-  | .ok (.int n) => n = 1000
-  | _ => False) := by native_decide
+  | .ok (.int n) => n == 1000
+  | _ => false) = true := by native_decide
 
 example : (match L4YAML.parseTyped "0x" with
-  | .ok (.int n) => n = 0
-  | _ => False) := by native_decide
+  | .ok (.int n) => n == 0
+  | _ => false) = true := by native_decide
 
 example : (match L4YAML.parseTyped "1." with
-  | .ok (.str s) => s = "1."
-  | _ => False) := by native_decide
+  | .ok (.str s) => s == "1."
+  | _ => false) = true := by native_decide
 
 -- Evaluated values are diagnostic only; checked propositions are above.
 #eval isInt "1_000"
