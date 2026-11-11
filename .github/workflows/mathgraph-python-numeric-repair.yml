@@ -1,0 +1,88 @@
+name: MathGraph native Core Schema numeric key-fidelity repair
+on:
+  push:
+    branches: [fix/python-core-schema-numerics]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-key-loss:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: 218b41c974027f7433e6b0c369789a38e50b3740
+      - name: Install Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build original Lean and native C adapter
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          lake build L4YAML
+          cmake -B ffi/out -S ffi
+          cmake --build ffi/out -j 2
+      - name: Record actual unchanged mapping-key loss
+        env:
+          PYTHONPATH: python
+          L4YAML_LIB: ${{ github.workspace }}/ffi/out/libl4yaml.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/ffi/out
+        run: |
+          python3 - <<'PY'
+          import json
+          from l4yaml.compat import safe_load
+          cases = [
+              ('positive-control', 'left: first\n2: second\n', {'left': 'first', 2: 'second'}, False),
+              ('underscore-decimal', '1_000: first\n1000: second\n', {'1_000': 'first', 1000: 'second'}, True),
+              ('underscore-zero', '0_1: first\n1: second\n', {'0_1': 'first', 1: 'second'}, True),
+              ('underscore-hex', '0x_F: first\n15: second\n', {'0x_F': 'first', 15: 'second'}, True),
+          ]
+          for name, source, expected, candidate in cases:
+              result={'case':name,'candidate':candidate,'source':source}
+              try:
+                  actual=safe_load(source)
+                  result.update(actual=repr(actual),actual_len=len(actual),
+                                expected_len=len(expected),exact=actual==expected)
+              except Exception as exc:
+                  result.update(error=type(exc).__name__+': '+str(exc),exact=False)
+              print('NATIVE_NUMERIC_KEY_BASELINE='+json.dumps(result,sort_keys=True))
+              if not candidate:
+                  assert result['exact'], 'Positive control failed'
+          PY
+
+  patched-native-qualification:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: 4a0cc4d9ee1d1d2e39324553083529e0322972c5
+      - name: Install Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build exactly patched Lean and native C adapter
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          lake build L4YAML
+          cmake -B ffi/out -S ffi
+          cmake --build ffi/out -j 2
+      - name: Run native key-distinction and protected Python test suites
+        env:
+          PYTHONPATH: python
+          L4YAML_LIB: ${{ github.workspace }}/ffi/out/libl4yaml.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/ffi/out
+        run: |
+          python3 -m pip install --user pytest
+          python3 -m unittest discover -s python/tests -p 'test_compat_core_numeric_fidelity.py' -v
+          python3 -m pytest python/tests/test_compat.py -q
+          python3 -m pytest python/tests/test_parse.py -q
