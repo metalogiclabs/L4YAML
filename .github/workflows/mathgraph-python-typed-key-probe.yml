@@ -1,0 +1,77 @@
+name: MathGraph unchanged native typed-key collision probe
+on:
+  push:
+    branches: [test/python-typed-key-collision]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typed-key-collision:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: 218b41c974027f7433e6b0c369789a38e50b3740
+      - name: Install pinned Lean
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build exact original Lean and native C adapter
+        run: |
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          lake build L4YAML
+          cmake -B ffi/out -S ffi
+          cmake --build ffi/out -j 2
+      - name: Contrast raw YAML tags with Python key equality
+        env:
+          PYTHONPATH: python
+          L4YAML_LIB: ${{ github.workspace }}/ffi/out/libl4yaml.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/ffi/out
+        run: |
+          python3 - <<'PY'
+          import json
+          import l4yaml
+          from l4yaml.compat import safe_load
+
+          print('PYTHON_BOOLEAN_INTEGER_KEY_EQ='+str(True==1))
+          print('PYTHON_BOOLEAN_INTEGER_HASH_EQ='+str(hash(True)==hash(1)))
+          print('PYTHON_INTEGER_FLOAT_KEY_EQ='+str(1==1.0))
+          cases = [
+            ('positive-control', 'true: yes\n2: two\n', False),
+            ('bool-int', 'true: yes\n1: one\n', True),
+            ('int-float', '1: one\n1.0: decimal\n', True),
+            ('false-zero', 'false: no\n0: zero\n', True),
+            ('explicit-bool-int', '!!bool true: yes\n!!int 1: one\n', True),
+          ]
+          for name,source,candidate in cases:
+              observation={'case':name,'source':source,'candidate':candidate}
+              try:
+                  root=l4yaml.load(source)
+                  raw=root.raw_items()
+                  observation['raw_count']=len(raw)
+                  observation['raw_keys']=[
+                    {'text':k.as_str(),'tag':k.tag,'style':k.style}
+                    for k,v in raw
+                  ]
+              except Exception as exc:
+                  observation['raw_error']=type(exc).__name__+': '+str(exc)
+              try:
+                  result=safe_load(source)
+                  observation['python_count']=len(result)
+                  observation['python_items']=[
+                    {'key':repr(k),'key_type':type(k).__name__,'value':repr(v)}
+                    for k,v in result.items()
+                  ]
+              except Exception as exc:
+                  observation['python_error']=type(exc).__name__+': '+str(exc)
+              print('TYPED_KEY_OBSERVATION='+json.dumps(observation,sort_keys=True))
+              if not candidate:
+                  assert observation.get('raw_count')==2
+                  assert observation.get('python_count')==2
+          PY
