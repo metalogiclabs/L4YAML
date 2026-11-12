@@ -2,6 +2,7 @@ module
 
 public import L4YAML.Spec.Types
 public import Tests.VerifiedResult
+public import Tests.Guards.SchemaZeroExponent
 
 @[expose] public section Blanket
 

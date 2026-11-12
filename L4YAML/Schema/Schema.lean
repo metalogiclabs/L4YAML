@@ -241,7 +241,11 @@ def parseFloatL? (l : List Char) : Option Float :=
         match parseMantissaL? mantissaStr, parseExponentL? expStr with
         | some mantissa, some exp =>
           let signedMantissa := if isNeg then -mantissa else mantissa
-          some (signedMantissa * (Float.pow 10.0 (Float.ofInt exp)))
+          -- A lexically zero mantissa stays zero at every exponent. Check
+          -- digits, not `mantissa == 0.0`: a tiny nonzero source may have
+          -- underflowed to zero while parsing the mantissa itself.
+          if mantissaStr.all (fun c => c == '0' || c == '.') then some signedMantissa
+          else some (signedMantissa * (Float.pow 10.0 (Float.ofInt exp)))
         | _, _ => none
       | _ => none
     else
