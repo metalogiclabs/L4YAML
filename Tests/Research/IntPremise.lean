@@ -3,7 +3,8 @@ import L4YAML.Proofs.Schema.SchemaResolution
 /-!
 Bounded research proof spike for nasa-jpl/L4YAML PR #302, Lean 4.35.0.
 The universal integer conversion-success premise is proved below without `sorry`.
-The additional exponent and digit-only mantissa lemmas are preparatory only;
+The additional exponent, digit-only, leading-dot and whole-dot mantissa lemmas
+are preparatory only;
 the universal float premise and unconditional capstone are NOT proved here.
 This file is not part of the production library or registered as a capstone.
 -/
@@ -332,4 +333,91 @@ private lemma mantissa_some_digits (cs : List Char)
         exact hs2 (by simp [hp.1, hp.2])
       have hn := toInt_some_digits (c :: rest) h
       simpa [parseMantissaL?, hnd, hneqc, hnrec, hsp1, hsp2] using hn
+
+private lemma mantissa_some_leading_dot (frac : List Char)
+    (h : oneOrMore asciiDigit frac = true) :
+    (parseMantissaL? ('.' :: frac)).isSome = true := by
+  have hn := nat_some frac h
+  simpa [parseMantissaL?] using hn
+
+private lemma splitOnChar_no_dot (cs : List Char) (h : '.' ∉ cs) :
+    splitOnChar '.' cs = [cs] := by
+  induction cs with
+  | nil => rfl
+  | cons c tail ih =>
+      have hc : c ≠ '.' := by
+        intro hc
+        exact h (by simp [hc])
+      have ht : '.' ∉ tail := by
+        intro hm
+        exact h (List.mem_cons_of_mem c hm)
+      simp [splitOnChar, hc, ih ht]
+
+private lemma splitOnChar_one_dot (whole frac : List Char)
+    (hw : '.' ∉ whole) (hf : '.' ∉ frac) :
+    splitOnChar '.' (whole ++ '.' :: frac) = [whole, frac] := by
+  induction whole with
+  | nil =>
+      simp [splitOnChar, splitOnChar_no_dot frac hf]
+  | cons c tail ih =>
+      have hc : c ≠ '.' := by
+        intro hc
+        exact hw (by simp [hc])
+      have ht : '.' ∉ tail := by
+        intro hm
+        exact hw (List.mem_cons_of_mem c hm)
+      simp [splitOnChar, hc, ih ht]
+
+private lemma mantissa_some_whole_dot (whole frac : List Char)
+    (hw : oneOrMore asciiDigit whole = true)
+    (hf : frac.all asciiDigit = true) :
+    (parseMantissaL? (whole ++ '.' :: frac)).isSome = true := by
+  have hwAll : whole.all asciiDigit = true := by
+    have hp : whole.isEmpty = false ∧ whole.all asciiDigit = true := by
+      simpa [oneOrMore, Bool.and_eq_true] using hw
+    exact hp.2
+  have hnWhole := digits_no_dot whole hwAll
+  have hnFrac := digits_no_dot frac hf
+  have hs := splitOnChar_one_dot whole frac hnWhole hnFrac
+  have hi := toInt_some_digits whole hw
+  have hfracOpt : (if frac.isEmpty then some 0 else toNatL? frac).isSome = true := by
+    by_cases he : frac.isEmpty
+    · simp [he]
+    · have hm : oneOrMore asciiDigit frac = true := by
+        simp [oneOrMore, he, hf]
+      simpa [he] using nat_some frac hm
+  cases whole with
+  | nil => simp [oneOrMore] at hw
+  | cons c rest =>
+      have hc : asciiDigit c = true :=
+        (Bool.and_eq_true _ _).mp hwAll |>.1
+      have hcdot : c ≠ '.' := digit_not c '.' hc (by decide)
+      have hcontains : (c :: rest ++ '.' :: frac).contains '.' = true := by
+        simp
+      by_cases hsp1 : (c :: rest ++ '.' :: frac) = ['0', '.']
+      · simp [parseMantissaL?, hsp1]
+      · by_cases hsp2 : (c :: rest ++ '.' :: frac) = ['0', '.', '0']
+        · simp [parseMantissaL?, hsp2]
+        · have hs' : splitOnChar '.' (c :: rest ++ '.' :: frac) = [c :: rest, frac] := hs
+          have hs'' : splitOnChar '.' (c :: (rest ++ '.' :: frac)) = [c :: rest, frac] := by
+            simpa using hs'
+          have hsp1' : ¬(c = '0' ∧ rest ++ '.' :: frac = ['.']) := by
+            intro hp
+            exact hsp1 (by simp [hp.1, hp.2])
+          have hsp2' : ¬(c = '0' ∧ rest ++ '.' :: frac = ['.', '0']) := by
+            intro hp
+            exact hsp2 (by simp [hp.1, hp.2])
+          have hfracOpt' : (if frac = [] then some 0 else toNatL? frac).isSome = true := by
+            simpa using hfracOpt
+          cases hi' : toIntL? (c :: rest) with
+          | none => simp [hi'] at hi
+          | some i =>
+              cases hf' : (if frac = [] then some 0 else toNatL? frac) with
+              | none => simp [hf'] at hfracOpt'
+              | some f =>
+                  simp only [parseMantissaL?]
+                  simp [hcdot]
+                  simp only [hsp1', hsp2']
+                  rw [hs'']
+                  simp [hi', hf']
 
