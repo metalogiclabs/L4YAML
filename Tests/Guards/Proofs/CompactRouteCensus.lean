@@ -157,8 +157,9 @@ def census : Nat × Nat × Nat × Nat × Nat := Id.run do
 /-! **2026-11-21 repaired keyless sequence-floor colon.**
     The native 35,937-program census was rerun on the strict scanner at
     [run #44788236288]. Accepted 8,514 → 8,508; hitMid 0, reachedOk 0,
-    noMidOk 934 unchanged. The six rejections are measured, not inferred
-    from the separate four-case scanner/parser differential probe. -/
+    noMidOk 934 unchanged. This is a NET six fewer acceptances; the
+    aggregate count alone does not enumerate all changed individual inputs.
+    The separate four-case scanner/parser differential uses other sources. -/
 #guard census == (35937, 8508, 0, 0, 934)
 
 /-- What refuses a program: the error's constructor name, or `ACCEPTED`. -/
