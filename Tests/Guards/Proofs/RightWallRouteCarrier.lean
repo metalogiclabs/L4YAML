@@ -18,6 +18,7 @@ open L4YAML.Proofs.Serialization.SerializationWellFormed
 open L4YAML.Proofs.Serialization.TraceOf
 open L4YAML.Proofs.Serialization.TraceOf.DocBridge
 open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+open L4YAML.Proofs.Serialization.EventsOf (declaredHandle)
 
 /-!
 Proof-carrying directive provenance. Exactly two legal origins for the
@@ -110,6 +111,70 @@ lemma docStart_step_run_withRoute
   refine ⟨sp', hcorr', by simpa using hS', ?_⟩
   exact TPendingNode.pendingDocStart _ _ _ _ fun sp_end eb hb => by
     simpa using closeDirective hRoute (h_acc sp_prep h_pre) hde hb
+
+/-! ## Native transition correspondence (conditional at the entry state) -/
+
+/-- The actual scanDocumentEnd transition supplies a lawful post-suffix
+    route certificate once its trailing comments have been read. -/
+lemma scanDocumentEnd_producesRoute
+    {start before : SurfPos} {sc sc' : ScannerState} {closed : List Event}
+    (hS : TSLYamlStream start sc before closed [] [])
+    (hcorr : ScannerSurfCorr sc before)
+    (rest : List Char) (hchars : before.chars = '.' :: '.' :: '.' :: rest)
+    (hcol : before.col = 0) (hok : scanDocumentEnd sc = .ok sc') :
+    ∃ markerEnd, ScannerSurfCorr sc' markerEnd ∧
+      ∀ next, SSLComments markerEnd next →
+        DirectiveRoute start next (closed ++ [.endDocument]) := by
+  obtain ⟨markerEnd, hMarker, hcorr', _⟩ :=
+    hS.docEnd before hcorr rest hchars hcol sc' hok
+  exact ⟨markerEnd, hcorr', fun next hComments =>
+    afterDocumentEnd hS.stream hMarker hComments⟩
+
+/-- The first "%" of a directive run preserves its lawful route
+    while opening the annotated pending-directive park. -/
+lemma directive_step_noPending_preservesRoute
+    {start sp sp_prep : SurfPos} {sc sc' : ScannerState}
+    {closed : List Event}
+    (hS : TSLYamlStream start sc sp closed [] [])
+    (hRoute : DirectiveRoute start sp closed) (hcol : sp.col = 0)
+    (hpre : SSLComments sp sp_prep)
+    (hcorr : ScannerSurfCorr sc sp_prep) (hpeek : sc.peek? = some '%')
+    (hok : scanDirective sc = .ok sc') :
+    ∃ sp', ScannerSurfCorr sc' sp' ∧
+      TSLYamlStream start sc' sp_prep closed []
+        (declaredHandle (span sp_prep sp')).toList ∧
+      DirectiveRoute start sp_prep closed ∧
+      TPendingNode start true sp_prep sp' closed []
+        (declaredHandle (span sp_prep sp')).toList := by
+  obtain ⟨sp', hcorr', hS', hPending⟩ :=
+    TPendingNode.directive_step_noPending hS hcol hpre hcorr hpeek hok
+  exact ⟨sp', hcorr', hS', throughComments hRoute hcol hpre, hPending⟩
+
+/-- Further directives extend the run but leave the closed-stream route
+    unchanged. No new first/suffix assumption is invented by the step. -/
+lemma directive_step_run_preservesRoute
+    {start block scan prep : SurfPos} {sc sc' : ScannerState}
+    {closed : List Event} {p : List String}
+    (hS : TSLYamlStream start sc block closed [] p)
+    (hRoute : DirectiveRoute start block closed)
+    (h_acc : ∀ middle, SSLComments scan middle →
+      TPlus TLDirective block middle (p.reverse.map .declareTag))
+    (hpre : SSLComments scan prep)
+    (hcorr : ScannerSurfCorr sc prep) (hpeek : sc.peek? = some '%')
+    (hok : scanDirective sc = .ok sc') :
+    ∃ sp', ScannerSurfCorr sc' sp' ∧
+      TSLYamlStream start sc' block closed []
+        ((declaredHandle (span prep sp')).toList ++ p) ∧
+      DirectiveRoute start block closed ∧
+      TPendingNode start true block sp' closed []
+        ((declaredHandle (span prep sp')).toList ++ p) := by
+  obtain ⟨sp', hcorr', hS', hPending⟩ :=
+    TPendingNode.directive_step_run hS h_acc hpre hcorr hpeek hok
+  exact ⟨sp', hcorr', hS', hRoute, hPending⟩
+
+#print axioms scanDocumentEnd_producesRoute
+#print axioms directive_step_noPending_preservesRoute
+#print axioms directive_step_run_preservesRoute
 
 #print axioms initial
 #print axioms throughComments
