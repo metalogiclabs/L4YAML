@@ -40,6 +40,12 @@ jobs:
           set -o pipefail
           lake env lean Tests/Guards/Proofs/AnnotatedColonDecision.lean 2>&1 | tee annotated-colon.log
           ! grep -E 'sorryAx|declaration uses .sorry' annotated-colon.log
+      - name: Attempt full seven-byte annotated stream derivation
+        shell: bash
+        run: |
+          set -o pipefail
+          lake env lean Tests/Guards/Proofs/ColonTwoBareDocuments.lean 2>&1 | tee two-bare-documents.log
+          ! grep -E 'sorryAx|declaration uses .sorry' two-bare-documents.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -47,4 +53,5 @@ jobs:
           path: |
             grammar-dependencies.log
             annotated-colon.log
+            two-bare-documents.log
           if-no-files-found: ignore
