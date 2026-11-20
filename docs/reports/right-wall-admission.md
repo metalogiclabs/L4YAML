@@ -2,6 +2,85 @@
 
 Date: 21 November 2026 (Pacific/Auckland).
 
+## Stronger checked result: the present forward contract is impossible
+
+The new evidence is a complete kernel proof on the unchanged owner library
+at `14eb6dbab845d2ac61f171a9ed61906d3f9ffb2f`, not merely a conditional
+theorem paired with a native parser guard. The entire `L4YAML` tree remains
+`4197c0b6f2fb369e9806ca486d38aef87b077c81`; only tests, this report, and
+their isolated qualification workflow are added.
+
+[UpstreamForwardCounterexample.lean](../../Tests/Guards/Proofs/UpstreamForwardCounterexample.lean)
+uses the four exact bytes `61 0a 2a 78` (`a\n*x`, one actual LF).
+It proves, in one checked module:
+
+- The actual `TokenParser.parseYaml` accepts that input. Its success bit is
+  proved by kernel reduction (`cbv`), not an assumed parser-success premise.
+- The original annotated grammar also admits a second, spurious two-bare-document
+  reading with event `useAlias "x"`.
+- That reading is not serialization-well-formed, so the current universally
+  quantified `TraceWellFormed` predicate is false on the accepted input.
+- Therefore the documented universal forward serialization implication is
+  false with these fixed definitions.
+- For **every** proposed predicate `P : String → Prop`, the proposed
+  biconditional with right-hand side `P input ∧ TraceWellFormed input`
+  is false while the original parser and trace semantics remain fixed.
+
+The decisive declaration is:
+
+```lean
+lemma no_biconditional (ExactSurfaceLanguage : String → Prop) :
+    ¬ (∀ s : String,
+      (∃ docs, TokenParser.parseYaml s = .ok docs) ↔
+        ExactSurfaceLanguage s ∧ TraceWellFormed s)
+```
+
+This is a contract-admission result, not a claim that a proved capstone or
+Lean is unsound. Group 7.7 is planned against a future corrected grammar.
+The ambiguity mechanism is already documented by the owner; the new
+increment is an unconditional executable-to-capstone contradiction on
+the pinned integration source. The existing adversarial suite explicitly
+retains `a\n*x` as an accepted plain continuation `a *x`
+(`Tests/AdversarialInstantiation.lean`, the row-19 token grid).
+Rejecting that valid acceptance merely to satisfy the current overbroad
+trace predicate would violate this intended positive control.
+
+[UpstreamScannerTrace.lean](../../Tests/Guards/Proofs/UpstreamScannerTrace.lean)
+also closes the precise seven-byte question on the **original** owner grammar:
+kernel reduction binds the actual returned scanner tokens to `tokenEvents ts = []`,
+then proves `TraceOf input (tokenEvents ts)`, with a nonvacuous successful-scan
+witness. This positive upstream result and the separate negative
+[corrected-T research result](https://github.com/metalogiclabs/L4YAML/blob/e94baa39f828852390ff65f9441c4bb4253b9cfc/Tests/Guards/Proofs/ColonAnnotatedDecision.lean)
+concern different formal grammars and must be reported together.
+
+Both new modules have exact byte guards and empty-input controls. Local
+Lean 4.35.0 checks exited zero, with every printed headline declaration
+depending only on `propext`, `Classical.choice`, and `Quot.sound`.
+They use no new axioms, `sorry`, or `native_decide`.
+The isolated `colon-contract-boundary.yml` workflow rebuilds both modules
+from a clean checkout and hard-checks the unchanged owner library tree.
+
+Ordinary module sealing initially blocked kernel reduction after conversion
+from legacy imports. The final modules use the repository's existing
+`import all` patterns for TokenEvents and Init.Data.Range.Basic; no
+production definition changed. Those failed elaborations are infrastructure
+lineage, not refutations of the statements.
+
+**Actionable consequence:** repair the grammar/trace contract before expanding
+a global proof against it. For the forward serialization consumer, the checked
+composition below permits a parser-success-qualified trace bridge plus
+agreement on serialization well-formedness, instead of demanding a trace
+for every successful scan and equality of all possible traces. Neither new
+bridge is thereby proved. The reverse direction must retain an independent
+source-to-scanner/token-grammar/trace certificate; assuming parser success
+there would be circular.
+
+The row-19 constructor and substantially the same migration cost were already
+recorded in the owner's
+[October 26 ledger](https://github.com/nasa-jpl/L4YAML/blob/14eb6dbab845d2ac61f171a9ed61906d3f9ffb2f/Blueprint/ledgers/parse_iff_grammar/2026-10-26.md).
+These results sharpen that known obligation and its proof order; they do
+not establish that the existing proof campaign was wasted.
+
 ## Objective and current decision
 
 Determine whether the proposed scanner-wide `scan_trace` theorem is true on

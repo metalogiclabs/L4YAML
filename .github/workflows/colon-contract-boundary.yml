@@ -1,0 +1,43 @@
+name: Exact upstream parser and trace contract boundary
+on:
+  push:
+    branches: [test/colon-contract-boundary]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  kernel-contract-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install repository-pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Assert unchanged owner library and exact verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:L4YAML)" = 4197c0b6f2fb369e9806ca486d38aef87b077c81
+          git rev-parse HEAD HEAD^{tree} HEAD:L4YAML
+          cat lean-toolchain
+          lean --version
+          sha256sum Tests/Guards/Proofs/UpstreamScannerTrace.lean Tests/Guards/Proofs/UpstreamForwardCounterexample.lean
+      - name: Check exact scanner binding and unconditional capstone refutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build Tests.Guards.Proofs.UpstreamScannerTrace Tests.Guards.Proofs.UpstreamForwardCounterexample 2>&1 | tee contract-proof.log
+          if grep -E 'sorryAx|declaration uses .sorry|_native\.native_decide\.ax' contract-proof.log; then
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-upstream-contract-proof
+          path: contract-proof.log
+          if-no-files-found: error
