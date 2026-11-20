@@ -19,7 +19,7 @@ public import L4YAML.Proofs.Serialization.TraceOf.Document
 
 @[expose] public section Blanket
 
-namespace L4YAML.Tests.Guards.S3ConsumerRetarget
+namespace L4YAML.Tests.Guards.S3ConsumerRetargetCurrent
 
 open L4YAML
 open L4YAML.Scanner
@@ -81,8 +81,8 @@ lemma forward_wellformedness_from_two_minimal_bridges
   intro ev he
   exact (hAdeq (tokenEvents ts) ev hTrace he).mp hWF
 
-#print axioms L4YAML.Tests.Guards.S3ConsumerRetarget.forward_wellformedness_from_two_minimal_bridges
+#print axioms L4YAML.Tests.Guards.S3ConsumerRetargetCurrent.forward_wellformedness_from_two_minimal_bridges
 
-end L4YAML.Tests.Guards.S3ConsumerRetarget
+end L4YAML.Tests.Guards.S3ConsumerRetargetCurrent
 
 end Blanket
