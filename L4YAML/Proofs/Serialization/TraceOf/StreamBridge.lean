@@ -213,24 +213,9 @@ lemma docStart_step_noPending {sp_start sp sp_prep : SurfPos} {s_prep : ScannerS
   exact TPendingNode.pendingDocStart _ _ _ [] fun sp_end eb hb => by
     simpa using TLYamlStream.explicitRoute hS.stream (SSLComments_to_GStar_prefix h_col h_pre) hde hb
 
-/-- **`---`** after a run: the handles flush after `beginDocument` in directive order, the route is
-`directiveRoute` on the run. -/
-lemma docStart_step_run {sp_start sp_block sp_scan sp_prep : SurfPos} {s_prep : ScannerState}
-    {ev_c : List Event} {p : List String}
-    (hS : TSLYamlStream sp_start s_prep sp_block ev_c [] p)
-    (h_acc : ∀ sp_mid, SSLComments sp_scan sp_mid →
-      TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag))
-    (h_pre : SSLComments sp_scan sp_prep)
-    (hcorr : ScannerSurfCorr s_prep sp_prep)
-    (rest : List Char) (hchars : sp_prep.chars = '-' :: '-' :: '-' :: rest) (hcol : sp_prep.col = 0) :
-    ∃ sp', ScannerSurfCorr (scanDocumentStart s_prep) sp' ∧
-      TSLYamlStream sp_start (scanDocumentStart s_prep) sp_block ev_c
-        (.beginDocument :: p.reverse.map .declareTag) [] ∧
-      TPendingNode sp_start false sp_block sp' ev_c (.beginDocument :: p.reverse.map .declareTag) [] := by
-  obtain ⟨sp', hde, hcorr', hS'⟩ := hS.docStart sp_prep hcorr rest hchars hcol
-  refine ⟨sp', hcorr', by simpa using hS', ?_⟩
-  exact TPendingNode.pendingDocStart _ _ _ _ fun sp_end eb hb => by
-    simpa using TLYamlStream.directiveRoute hS.stream (GStar.nil _) (h_acc sp_prep h_pre) hde hb
+/-! RIGHT-WALL DIAGNOSTIC ABLATION: docStart_step_run uses unqualified
+TLYamlStream.directiveRoute. The run case is intentionally removed only from
+this isolation experiment; no claim of full stream closure is made. -/
 
 /-- **`...`** at a line-start park: `endDocument` opens, awaiting `[79]`; the closed stream is
 extended over the park's landing first. -/
