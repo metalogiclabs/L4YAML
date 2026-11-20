@@ -1757,7 +1757,7 @@ lemma accum_step_flow_trace {n : Nat} {sc s' : L4YAML.Scanner.ScannerState} {c :
           (TFlowOpenStack.closeNestedMapProps parent h_tail_p h_lead_p h_props h_psep h_open h_sep st
             h_lead' h_lit')
       · simp at h_top
-  | closeBase b sp_flow₂ sp_prep sp_tok gap h_depth h_c h_top h_lead h_lit h_fl h_ks h_tl =>
+  | closeBase b sp_flow₂ sp_prep sp_tok gap h_depth h_c h_top h_lead h_lit h_fl h_ks h_tl h_corr_close =>
     rw [h_depth] at hT
     cases hT with
     | «open» _ _ _ _ _ _ _ hTO =>

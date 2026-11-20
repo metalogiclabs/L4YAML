@@ -14,6 +14,7 @@ public import L4YAML.Proofs.Serialization.TraceOf.RightWallContent
 @[expose] public section Blanket
 namespace L4YAML.Proofs.Serialization.TraceOf.FlowReturn
 open L4YAML L4YAML.Scanner L4YAML.Surface
+open L4YAML.Proofs.CouplingBridge
 open L4YAML.Proofs.Serialization.SerializationWellFormed
 open L4YAML.Proofs.Serialization.TraceOf
 open L4YAML.Proofs.Serialization.TraceOf.FlowWalk
@@ -616,7 +617,7 @@ lemma accum_step_flow_return {Return : SurfPos → List Event → Prop} {n : Nat
     (hn : n ≤ L4YAML.Proofs.PreprocessIndentStable.minContentIndentOf sc)
     (active : 0 < sc.flowLevel) :
     ∃ ev_g,
-      (0 < sc.flowLevel ∧ ∃ km',
+      (0 < s'.flowLevel ∧ ∃ km',
         ((c = ',' ∧ km' = km) ∨
           ((c = '[' ∨ c = '{') ∧ ColonKeyCase sc ∧
             ∃ b, km' = km.push b ∧ (b = true ↔ ∃ kj, tailOf sc.tokens = .colon kj)) ∨
@@ -627,7 +628,7 @@ lemma accum_step_flow_return {Return : SurfPos → List Event → Prop} {n : Nat
               GLit ':' sp_prep sp_tok →
               FlowStackR n Return s'.flowLevel s'.flowStack km' (.colon kj) sp_block' sp_tok (ev ++ ev_g))) ∨
       (s'.flowLevel = 0 ∧ s'.flowStack = #[] ∧ sp_flow' = sp_block' ∧
-        ∃ sp_prep sp_tok, GLit c sp_prep sp_tok ∧ Return sp_tok (ev ++ ev_g)) := by
+        ∃ sp_prep sp_tok, ScannerSurfCorr s' sp_tok ∧ GLit c sp_prep sp_tok ∧ Return sp_tok (ev ++ ev_g)) := by
   cases arm with
   | openBase b sp_br sp_open sp_block'' sp_flow'' h_depth h_c h_open h_fl h_ks h_tl h_km h_sp =>
     omega
@@ -784,14 +785,14 @@ lemma accum_step_flow_return {Return : SurfPos → List Event → Prop} {n : Nat
           | value kj => exact absurd rfl (h_tail_p kj)
         · exact Or.inl ⟨rfl, rfl⟩
       · simp at h_top
-  | closeBase b sp_flow₂ sp_prep sp_tok gap h_depth h_c h_top h_lead h_lit h_fl h_ks h_tl =>
+  | closeBase b sp_flow₂ sp_prep sp_tok gap h_depth h_c h_top h_lead h_lit h_fl h_ks h_tl h_corr_close =>
     have h_lead' := (h_lead n).resolve_right (fun h => h hn)
     generalize hks : sc.flowStack = ks at hT
     rw [h_depth] at hT
     cases hT with
     | «open» _ _ _ _ _ _ _ hTO =>
       obtain ⟨ev_g, hTO₂⟩ := gapRead_onR hTO gap hn
-      refine ⟨ev_g, Or.inr ⟨h_fl, h_ks, rfl, sp_prep, sp_tok, h_lit, ?_⟩⟩
+      refine ⟨ev_g, Or.inr ⟨h_fl, h_ks, rfl, sp_prep, sp_tok, h_corr_close, h_lit, ?_⟩⟩
       rw [hks] at h_top
       exact hTO₂.closeBase rfl b h_top h_lead' (by simpa [← h_c] using h_lit)
 
@@ -1236,6 +1237,29 @@ lemma accum_step_content_returnK {Return : SurfPos → List Event → Prop} {n d
       exact ⟨ev_p ++ [], sp_prep, sp_a, hcorr_ad, arm, Or.inl ⟨kj, sp_ne, h_tl', ⟨hamp, hbang⟩, h_ws, h_nd, by
         rw [h_tl']; exact .«open» _ _ _ _ _ _ _ h_open⟩⟩
 
+
+
+/-- Spend a funded base return at the very same source cursor returned by
+accum_step_flow. Both native close arms supply that cursor correspondence.
+The existing S pending park can therefore retain its actual indices. -/
+lemma base_close_pending {n : Nat} {sc after : ScannerState} {c : Char}
+    {start outer flow scan outer' flow' scan' : SurfPos}
+    {prior events : List Event} (mask : Array Bool)
+    (arm : FlowArm sc after c outer flow scan outer' flow')
+    (stack : FlowStackR n (StreamReturn start prior) sc.flowLevel sc.flowStack
+      mask (tailOf sc.tokens) outer flow events)
+    (floor : n ≤ minContentIndentOf sc)
+    (active : 0 < sc.flowLevel) (closed : after.flowLevel = 0)
+    (corr : ScannerSurfCorr after scan') :
+    ∃ gapEvents, StreamBridge.TPendingNode start false flow' scan'
+      prior (events ++ gapEvents) [] := by
+  obtain ⟨gapEvents, h⟩ := accum_step_flow_return mask arm stack floor active
+  rcases h with ⟨h_live, _⟩ | ⟨_, _, h_boundary, prep, stop, h_corr, _, h_return⟩
+  · omega
+  · have h_stop : stop = scan' := ScannerSurfCorr_unique h_corr corr
+    subst stop
+    rw [h_boundary]
+    exact ⟨gapEvents, returned_pending h_return⟩
 
 end L4YAML.Proofs.Serialization.TraceOf.FlowReturn
 end Blanket

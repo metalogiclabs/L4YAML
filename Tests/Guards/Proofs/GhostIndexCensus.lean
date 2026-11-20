@@ -313,7 +313,7 @@ def expectedTally : List String :=
    "DanglingPred: surface=0 state=0 prop=0 scalar=6 snapshot=0 ghost=0 or=0",
    "ExplValueLine: surface=5 state=0 prop=3 scalar=1 snapshot=0 ghost=0 or=0",
    "ExplicitValueRefused: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
-   "FlowArm: surface=21 state=2 prop=46 scalar=15 snapshot=0 ghost=0 or=9",
+   "FlowArm: surface=21 state=2 prop=47 scalar=15 snapshot=0 ghost=0 or=9",
    "FlowBaseAnchor: surface=0 state=5 prop=0 scalar=4 snapshot=2 ghost=0 or=0",
    "FlowBaseRoutes: surface=23 state=1 prop=30 scalar=9 snapshot=1 ghost=3 or=7",
    "FlowOpenHeld: surface=0 state=0 prop=0 scalar=3 snapshot=0 ghost=2 or=0",

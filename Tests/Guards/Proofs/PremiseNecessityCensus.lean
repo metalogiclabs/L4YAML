@@ -409,7 +409,7 @@ def expectedModuleTallyP : String :=
 -- Item 519: constants/decls −1 (the open's ladders), READ 1482 → 1479, RELAY 2725 → 2724, UNUSED 26 → 27 — `accum_step_flow`'s
 -- `h_mono` is read by nothing once the four flow-close `Classical.em` splits are PAID from `vslot`.
 -- Item 519 (review round): constants / decls +2 (the two `vslot` fallback `match` auxiliaries), READ +8 (the ancestors' covers and `h_expl`'s route / third conjunct read again at the open).
-  "constants=1761 decls=1392 eta=612 FIELD=201 READ=1486 RELAY=2706 RETURN=176 UNUSED=27"
+  "constants=1761 decls=1392 eta=613 FIELD=201 READ=1486 RELAY=2706 RETURN=176 UNUSED=27"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and

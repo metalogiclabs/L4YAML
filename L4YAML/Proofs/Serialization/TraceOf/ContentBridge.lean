@@ -2073,7 +2073,7 @@ lemma accum_step_flow_trace_uniform {sc s' : L4YAML.Scanner.ScannerState} {c : C
           | value kj => exact absurd rfl (h_tail_p kj)
         · exact Or.inl ⟨rfl, rfl⟩
       · simp at h_top
-  | closeBase b sp_flow₂ sp_prep sp_tok gap h_depth h_c h_top h_lead h_lit h_fl h_ks h_tl =>
+  | closeBase b sp_flow₂ sp_prep sp_tok gap h_depth h_c h_top h_lead h_lit h_fl h_ks h_tl h_corr_close =>
     obtain ⟨ev_g, hG⟩ := gapRead_onT_uniform gap
     refine ⟨ev_g, Or.inr (Or.inl ⟨h_fl, h_ks, by omega, rfl, fun {n} hn hT => ?_⟩)⟩
     generalize hks : sc.flowStack = ks at hT

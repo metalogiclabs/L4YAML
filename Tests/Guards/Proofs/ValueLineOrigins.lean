@@ -1226,7 +1226,7 @@ def expectedLine : String :=
 -- Item 519: stamp 42 → 40, built 151 → 153, origins 67 → 69, originRows 32 → 34, invariant 4 → 6, noneHeld 98 → 100 —
 -- the two flow-close `h_vpack` stamps are built from `FlowBaseRoutes.vslot` (the invariant); term sizes moved with the open's ladders.
 -- Item 519 (review round): term size only — lets 753 → 756, lapps 1204 → 1209, alts 5620 → 5625, liteNodes 688005 → 688691 (the `vslot` writers' fallback funders: `have hnode`, `by_cases`); no row, origin or hold moved.
-  "positions=52 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=197 ctorRows=104 paramRows=93 packagedRows=29 punt=4 stamp=40 built=153 origins=70 originRows=35 route=12 frames=29 tail=15 other=0 concl=8 invariant=6 heldOrigins=15 allHeld=2 someHeld=124 noneHeld=13 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=412 lets=763 lapps=1237 alts=5677 nodes=14837 liteNodes=697200"
+  "positions=52 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=197 ctorRows=104 paramRows=93 packagedRows=29 punt=4 stamp=40 built=153 origins=70 originRows=35 route=12 frames=29 tail=15 other=0 concl=8 invariant=6 heldOrigins=15 allHeld=2 someHeld=124 noneHeld=13 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=4 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=412 lets=763 lapps=1237 alts=5677 nodes=14837 liteNodes=697202"
 
 /-! ## §4 The reading -/
 

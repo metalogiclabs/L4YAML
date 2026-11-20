@@ -2,6 +2,8 @@
 
 Decision: **UNKNOWN for global hRoute**. This tree does not declare a completed
 `scan_trace` or Group 7.7 theorem. No reachable counterexample was found.
+The sections below preserve successive verification boundaries; the final
+sections contain the current flow-return and native cursor results.
 
 ## Source and lineage
 
@@ -404,3 +406,72 @@ Remaining Group 7.7 work includes the other S3 producers, the global paired
 scanner induction, `scannerDrop`/Row 12, S4/coherence, exact surface
 correspondence, and the scanner/parser converse obligations. Neither this
 closed path nor a green adversarial run establishes Group 7.7 completion.
+
+## Actual source-cursor alignment at both native base closes
+
+The next incremental source change starts at published
+`5aa511658c49f4b3b1f3d317f07d97774cdaf2b3`, tree
+`2e19ea5fe3af2fd69933d8122420335eb84f1c13`. That exact ancestor's hosted
+qualification is https://github.com/metalogiclabs/L4YAML/actions/runs/44712708402
+(still running at this source-change checkpoint).
+
+`FlowArm.closeBase` now retains `ScannerSurfCorr s' sp_tok`. Both actual
+`accum_step_flow` construction sites, for `]` and `}`, pay it with the existing
+`hcorr_tok` from `scanFlowSequenceEnd_prod` / `scanFlowMappingEnd_prod`.
+The source module compiles on its own: 120/120 jobs. The two old T consumers
+are adjusted for the additional proof field without changing their conclusions.
+This strengthens the native one-step conclusion; it does not restrict scanner
+reachability or insert a route assumption.
+
+`FlowReturn.accum_step_flow_return` consequently returns correspondence at the
+very same endpoint as its funded return. Its live branch explicitly retains
+positive post-depth. `base_close_pending` reads the source fold's post-state
+correspondence, uses `ScannerSurfCorr_unique`, and obtains a T pending park at
+exactly its source-side block and cursor indices. This is valid for either
+native base-close arm once the return is funded. The gap-event suffix remains
+explicit: the global invariant must still couple it to the actual token fold.
+The closed native consumer proof continues to compile unchanged.
+
+The new bridge uses only the standard three axioms. The new axiom gate now
+checks 41 return proof declarations; the closed native instance still has
+exactly its 41 inherited dependencies, with no fresh axiom. Targeted build:
+158/158 jobs. The first full build correctly rejected the old FlowArm census
+pin: the added correspondence obligation changes `prop=46` to `prop=47`.
+That FlowArm row is repinned; scalar, snapshot, ghost and disjunction
+counts, and the overall ghost summary, are unchanged. This expected failure
+is a census update, not a relaxation of an axiom or reachability gate.
+
+Global hRoute remains UNKNOWN. This closes a source-position handoff at both
+actual native producers. It does not fund all enclosing T returns, supply the
+missing implicit-key/block pending producers, prove the held-property event
+split, or replace the unpaid total paired scanner induction.
+
+The full source-change build also measured one extra eta-expanded declaration
+in `HypothesisReaderCensus`: `eta=612` to `eta=613`. Constants, authored
+declarations, FIELD/READ/RELAY/RETURN/UNUSED counts are unchanged. That single
+measured pin is updated; no candidate is removed from the census.
+
+`ValueLineOrigins` also records the two extra producer proof arguments:
+`liteNodes=697200` to `697202`. Every position, origin, route, frame,
+held-row and other summary count is unchanged; only this measured term-size
+pin is repinned.
+
+The dependent `PremiseNecessityCensus` observes the same eta change, 612 to
+613, with its peeled FIELD/READ/RELAY/RETURN/UNUSED counts unchanged. It was
+updated only after the dependent full build exposed and measured that row.
+
+The source `FlowBaseRoutes.value` is gated by `GateOf g`. A global T twin must
+preserve and discharge the actual dangling-node/flow-value gate obligations
+at their native success checks. This experiment does not establish that the
+unconditional `StreamReturn` used by the paid root cases exists at every
+arbitrary opener. The generic Return predicate can retain those actual gate
+obligations; its use must still be paid by native producers. The exact global
+target remains the annotated stream at a *successful* document-end boundary
+with all native gates, as stated above, without restricting raw reachability.
+
+Final source-change verification: the targeted return/control/axiom build
+passes 158/158 jobs; after the four measured census-row updates, the full
+default build passes 1,573/1,573 jobs. The unchanged protected executable
+passes 62,260/62,260 assertions. The keyword gate still reports 26 capstones;
+the strict serialization sweep still reports 61 profiles with no placeholder
+or reduction axiom. No further proof or grammar change was needed to pass.

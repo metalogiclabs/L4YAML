@@ -9,6 +9,9 @@ public meta import Lean
 #print axioms L4YAML.Proofs.Serialization.TraceOf.FlowReturn.accum_step_key_return
 #print axioms L4YAML.Proofs.Serialization.TraceOf.FlowReturn.return_first
 #print axioms L4YAML.Proofs.Serialization.TraceOf.FlowReturn.return_explicit
+#print axioms L4YAML.Proofs.Serialization.TraceOf.FlowReturn.base_close_pending
+#print axioms L4YAML.Proofs.StructureProduction.scanFlowSequenceEnd_prod
+#print axioms L4YAML.Proofs.StructureProduction.scanFlowMappingEnd_prod
 
 open Lean Elab Command in
 run_cmd do
@@ -24,14 +27,17 @@ run_cmd do
       let fresh := axs.filter (fun a => !standard.contains a && !sourceBase.contains a && !contentBase.contains a)
       unless fresh.isEmpty do throwError "return proof {n} adds fresh axioms: {fresh}"
       count := count + 1
-  unless count == 40 do throwError "return proof coverage moved: expected 40, got {count}"
+  unless count == 41 do throwError "return proof coverage moved: expected 41, got {count}"
   logInfo m!"{count} return proofs: no new axiom or placeholder"
   for n in #[
+      ``L4YAML.Proofs.StructureProduction.scanFlowSequenceEnd_prod,
+      ``L4YAML.Proofs.StructureProduction.scanFlowMappingEnd_prod,
       ``L4YAML.Proofs.Serialization.TraceOf.FlowReturn.FlowOpenR.closeBase,
       ``L4YAML.Proofs.Serialization.TraceOf.FlowReturn.accum_step_flow_return,
       ``L4YAML.Proofs.Serialization.TraceOf.FlowReturn.accum_step_key_return,
       ``L4YAML.Proofs.Serialization.TraceOf.FlowReturn.return_first,
       ``L4YAML.Proofs.Serialization.TraceOf.FlowReturn.return_explicit,
+      ``L4YAML.Proofs.Serialization.TraceOf.FlowReturn.base_close_pending,
       ``L4YAML.Proofs.Serialization.TraceOf.FlowReturn.returned_pending] do
     let axs ← collectAxioms n
     let fresh := axs.filter (fun a => !standard.contains a)

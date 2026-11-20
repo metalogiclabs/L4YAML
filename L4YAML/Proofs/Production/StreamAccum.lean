@@ -7188,7 +7188,10 @@ inductive FlowArm (sc s' : ScannerState) (c : Char) (sp_block sp_flow sp_scan : 
       (h_lead : ∀ m, (SSeparateLines m sp_flow₂ sp_prep ∨ (sp_prep = sp_flow₂ ∧ (gapTail sc).closeFree = true)) ∨
         ¬ (m ≤ minContentIndentOf sc))
       (h_lit : GLit c sp_prep sp_tok)
-      (h_fl : s'.flowLevel = 0) (h_ks : s'.flowStack = #[]) (h_tl : tailOf s'.tokens = .value true) :
+      (h_fl : s'.flowLevel = 0) (h_ks : s'.flowStack = #[]) (h_tl : tailOf s'.tokens = .value true)
+      -- The actual closer's source endpoint, already proved by both native
+      -- scanFlow*End_prod branches; retained for the paired T return.
+      (h_corr_close : ScannerSurfCorr s' sp_tok) :
       FlowArm sc s' c sp_block sp_flow sp_scan sp_block sp_block
 
 /-- The arm `accum_step_block` took INSIDE a flow collection (`1 ≤ sc.flowLevel`): the `?` / `:`
@@ -20258,7 +20261,7 @@ lemma accum_step_flow (sc : ScannerState)
                 have h_seq := SeqFrame.closeLead h_open h_sep st (h_lead₂.imp (fun h => ⟨h, h⟩) id) h_close_lit
                 rw [show (#[true] : Array Bool).pop = #[] from rfl]
                 exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                  FlowStackK.withArm nn 0 #[] none sc (.closeBase true sp_flow₂ sp_prep sp_tok h_gap₂ (by rw [hd]) rfl hks (by rw [← h_gt]; exact h_lead₂m) h_close_lit (by rw [h_fl']) (by rw [ScannerFlowCollection.scanFlowSequenceEnd_pops, h_ad_ks]; rfl) (tailOf_scanFlowSequenceEnd _).1) ⟨FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega), fun h => absurd h (by omega), h_floorK',
+                  FlowStackK.withArm nn 0 #[] none sc (.closeBase true sp_flow₂ sp_prep sp_tok h_gap₂ (by rw [hd]) rfl hks (by rw [← h_gt]; exact h_lead₂m) h_close_lit (by rw [h_fl']) (by rw [ScannerFlowCollection.scanFlowSequenceEnd_pops, h_ad_ks]; rfl) (tailOf_scanFlowSequenceEnd _).1 hcorr_tok) ⟨FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega), fun h => absurd h (by omega), h_floorK',
                      fun h => absurd h (by omega)⟩,
                   (fun _ => PendingNode.pendingContent (sp_gram := sp_tok) (h_run := GStar.nil _) (h_gate := fun _ hcol h => CommentOk_false_of_peekBack hcol (scanFlowSequenceEnd_peekBack hcorr_ad (hpeek_ad.trans (preprocess_some_peek h_preprocess))) (by decide) h.1) (h_live := fun _ => close_poss_of_base (by omega) h_km rfl h_preprocess h_ad_def (ScannerCorrectness.scanFlowSequenceEnd_simpleKey_restored s_ad) ⟨_, scanFlowSequenceEnd_tokens s_ad⟩) sp_start sp_block sp_tok
                     (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
@@ -20496,7 +20499,7 @@ lemma accum_step_flow (sc : ScannerState)
                     have h_map := MapFrame.closeLead h_open h_sep st (h_lead₂.imp (fun h => ⟨h, h⟩) id) h_close_lit
                     rw [show (#[false] : Array Bool).pop = #[] from rfl]
                     exact ⟨sp_gram, sp_block, sp_block, sp_tok, h_stream, h_stack,
-                      FlowStackK.withArm nn 0 #[] none sc (.closeBase false sp_flow₂ sp_prep sp_tok h_gap₂ (by rw [hd]) rfl hks (by rw [← h_gt]; exact h_lead₂m) h_close_lit (by rw [h_fl']) (by rw [ScannerFlowCollection.scanFlowMappingEnd_pops, h_ad_ks]; rfl) (tailOf_scanFlowMappingEnd _).1) ⟨FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega), fun h => absurd h (by omega), h_floorK',
+                      FlowStackK.withArm nn 0 #[] none sc (.closeBase false sp_flow₂ sp_prep sp_tok h_gap₂ (by rw [hd]) rfl hks (by rw [← h_gt]; exact h_lead₂m) h_close_lit (by rw [h_fl']) (by rw [ScannerFlowCollection.scanFlowMappingEnd_pops, h_ad_ks]; rfl) (tailOf_scanFlowMappingEnd _).1 hcorr_tok) ⟨FlowStackB.nil sp_block _, rfl, fun h => absurd h (by omega), fun h => absurd h (by omega), h_floorK',
                      fun h => absurd h (by omega)⟩,
                       (fun _ => PendingNode.pendingContent (sp_gram := sp_tok) (h_run := GStar.nil _) (h_gate := fun _ hcol h => CommentOk_false_of_peekBack hcol (scanFlowMappingEnd_peekBack hcorr_ad (hpeek_ad.trans (preprocess_some_peek h_preprocess))) (by decide) h.1) (h_live := fun _ => close_poss_of_base (by omega) h_km rfl h_preprocess h_ad_def (ScannerCorrectness.scanFlowMappingEnd_simpleKey_restored s_ad) ⟨_, scanFlowMappingEnd_tokens s_ad⟩) sp_start sp_block sp_tok
                         (Or.inr ((restNodeStop_of_validateFlowClose hcorr_tok.end_eq
