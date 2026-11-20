@@ -35,13 +35,13 @@ lemma noUses_implies_WellFormedFrom (env : Env) (events : List Event)
   induction events generalizing env with
   | nil => trivial
   | cons event tail ih =>
-    cases event <;> simp only [NoUses] at h
-    · exact ih _ h
-    · exact ih _ h
-    · exact ih _ h
-    · exact False.elim h
-    · exact ih _ h
-    · exact False.elim h
+    cases event with
+    | beginDocument => exact ih _ h
+    | endDocument => exact ih _ h
+    | defineAnchor _ => exact ih _ h
+    | useAlias _ => cases h
+    | declareTag _ => exact ih _ h
+    | useTag _ => cases h
 
 lemma noUses_implies_SerializationWellFormed (events : List Event)
     (h : NoUses events) : SerializationWellFormed events :=
@@ -61,6 +61,13 @@ theorem property_directed_fixed_goal
   intro ev hDerivation
   exact noUses_implies_SerializationWellFormed ev
     (hSourceInvariant ev hDerivation)
+
+/-! Negative control: the NoUses shortcut is NOT a general YAML
+adequacy property: a definition followed by its use is still well-formed. -/
+example : SerializationWellFormed [Event.defineAnchor "x", Event.useAlias "x"] := by
+  decide
+example : ¬ NoUses [Event.defineAnchor "x", Event.useAlias "x"] := by
+  decide
 
 #print axioms noUses_implies_WellFormedFrom
 #print axioms noUses_implies_SerializationWellFormed
