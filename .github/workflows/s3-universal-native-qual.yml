@@ -1,0 +1,53 @@
+name: Universal S3 seven-byte refutation — exact-source native qualification
+on:
+  push:
+    branches: [research/s3-universal-native-qual-20261121]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pin source and original negative witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e94baa39f828852390ff65f9441c4bb4253b9cfc HEAD
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 17181c36e8713db40fdd58a2369eac0bc00ef445
+          test "$(git rev-parse HEAD:L4YAML/Scanner/Scanner.lean)" = 7c19020cc2c6d0c4a7ceb2c580253962cf9cbbaf
+          test "$(git rev-parse HEAD:Tests/Guards/Proofs/ColonAnnotatedDecision.lean)" = e68d352790fd0fe690c20a113b973d6233ebce83
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.35.0"
+          echo "unchanged original source, scanner, annotated grammar, and witness"
+      - name: Install pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build seven-byte native universal S3 refutation
+        shell: bash
+        run: |
+          set -o pipefail
+          lake build Tests.Guards.Proofs.ColonAnnotatedDecision 2>&1 | tee s3-native-build.log
+      - name: Read kernel axiom profile and exact native input checks
+        shell: bash
+        run: |
+          set -o pipefail
+          lake env lean Tests/Guards/Proofs/ColonAnnotatedDecision.lean 2>&1 | tee s3-native-axioms.log
+          ! grep -E 'sorryAx|declaration uses .sorry|_native\\.native_decide\\.ax' s3-native-axioms.log
+          grep -q 'universal_scan_trace_refuted.*depends on axioms' s3-native-axioms.log
+          grep -q 'exact_body_has_no_trace.*depends on axioms' s3-native-axioms.log
+          echo "both negative theorem and kernel axiom readback present"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-s3-native-refutation
+          path: |
+            s3-native-build.log
+            s3-native-axioms.log
+          if-no-files-found: ignore
