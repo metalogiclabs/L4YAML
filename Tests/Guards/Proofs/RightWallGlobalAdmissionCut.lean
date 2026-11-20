@@ -100,6 +100,77 @@ lemma source_and_trace_yield_directive_route
   | pendingMapValue =>
     exact False.elim (absurd hAllow (by simp [show sc.allowDirectives = false from by assumption]))
 
+/-!
+## Source-prefix event hygiene: close the first-event obligation under
+an independently checkable scanner-token restriction.
+
+Before a YAML document has started, only streamStart, placeholders and
+directive tokens may have been emitted. Named %TAG handles can be pending,
+but they do not become events until a following documentStart.
+
+This is a genuine theorem over goOut, not a one-input example. The global
+loop must still prove the token restriction on its first-document branch.
+-/
+
+def PreDocumentToken (v : YamlToken) : Prop :=
+  v = .streamStart ∨ v = .placeholder ∨
+  (∃ a b : Nat, v = .versionDirective a b) ∨
+  (∃ h p : String, v = .tagDirective h p)
+
+lemma preDoc_tokens_emit_no_events
+    (ts : List (Positioned YamlToken)) :
+    ∀ (pending : List String),
+      (∀ t ∈ ts, PreDocumentToken t.val) →
+      (L4YAML.Proofs.Serialization.TokenEvents.goOut ts pending).1 = [] := by
+  induction ts with
+  | nil =>
+    intro pending _
+    rfl
+  | cons t ts ih =>
+    intro pending hall
+    have ht : PreDocumentToken t.val := hall t (by simp)
+    have hrest : ∀ u ∈ ts, PreDocumentToken u.val :=
+      fun u hu => hall u (by simp [hu])
+    rcases ht with hStart | hPh | hVersion | hTag
+    · rw [L4YAML.Proofs.Serialization.TokenEvents.goOut_silent t
+        (by rw [hStart]; rfl)
+        (by rw [hStart]; simp)
+        (by intro _ _; rw [hStart]; simp) ts pending]
+      exact ih pending hrest
+    · rw [L4YAML.Proofs.Serialization.TokenEvents.goOut_silent t
+        (by rw [hPh]; rfl)
+        (by rw [hPh]; simp)
+        (by intro _ _; rw [hPh]; simp) ts pending]
+      exact ih pending hrest
+    · obtain ⟨major, minor, hv⟩ := hVersion
+      rw [L4YAML.Proofs.Serialization.TokenEvents.goOut_silent t
+        (by rw [hv]; rfl)
+        (by rw [hv]; simp)
+        (by intro _ _; rw [hv]; simp) ts pending]
+      exact ih pending hrest
+    · obtain ⟨handle, prefix, hv⟩ := hTag
+      rw [L4YAML.Proofs.Serialization.TokenEvents.goOut_tagDirective
+        t handle prefix hv ts pending]
+      exact ih _ hrest
+
+/-- The trace accumulator's missing first-event equation follows from
+the concrete no-content-token invariant, regardless of pending handles. -/
+lemma first_event_shape_of_token_history
+    {sc : ScannerState} {start block : SurfPos}
+    {closed openEvents : List Event} {handles : List String}
+    (hT : TSLYamlStream start sc block closed openEvents handles)
+    (hNoDocumentTokens :
+      ∀ t ∈ sc.tokens.toList, PreDocumentToken t.val) :
+    closed ++ openEvents = [] := by
+  calc
+    closed ++ openEvents =
+      (L4YAML.Proofs.Serialization.TokenEvents.goOut sc.tokens.toList []).1 :=
+        (congrArg Prod.fst hT.events).symm
+    _ = [] := preDoc_tokens_emit_no_events _ _ hNoDocumentTokens
+
+#print axioms preDoc_tokens_emit_no_events
+#print axioms first_event_shape_of_token_history
+
 #print axioms source_eligible_origin
 #print axioms source_and_trace_yield_directive_route
 
