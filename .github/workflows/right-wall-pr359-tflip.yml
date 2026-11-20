@@ -1,9 +1,9 @@
-name: Right Wall — PR359 trace grammar correction
+name: Right Wall — PR359 scoped route ablation
 
 on:
   push:
     branches:
-      - research/right-wall-359-corrected-trace-20261120
+      - research/right-wall-359-route-ablation-20261120
   workflow_dispatch:
 
 permissions:
@@ -26,7 +26,7 @@ jobs:
           git rev-parse HEAD
           elan toolchain install "$(cat lean-toolchain)"
           lake --version
-      - name: Compile Devin PR359 trace producer against corrected grammar
+      - name: Compile Devin PR359 trace producer after isolated route removal
         run: lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge
       - name: Build complete library without old deliberate refutation guards
         run: lake build L4YAML
