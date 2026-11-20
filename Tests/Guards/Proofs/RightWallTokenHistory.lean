@@ -41,13 +41,13 @@ lemma no_events_of_nonemitting
     have hRest : ∀ u ∈ rest, NonEmitting u.val := by
       intro u hu
       exact h u (by simp [hu])
-    by_cases hDir : ∃ handle prefix, t.val = .tagDirective handle prefix
-    · rcases hDir with ⟨handle, prefix, hTag⟩
+    by_cases hDir : ∃ handle pfx, t.val = .tagDirective handle pfx
+    · rcases hDir with ⟨handle, pfx, hTag⟩
       have hTail := ih (if isNamedHandle handle then handle :: p else p) hRest
       simp [goOut, hTag, hTail]
-    · have hNoDir : ∀ handle prefix, t.val ≠ .tagDirective handle prefix := by
-        intro handle prefix hTag
-        exact hDir ⟨handle, prefix, hTag⟩
+    · have hNoDir : ∀ handle pfx, t.val ≠ .tagDirective handle pfx := by
+        intro handle pfx hTag
+        exact hDir ⟨handle, pfx, hTag⟩
       rw [goOut_silent t ht.1 ht.2 hNoDir rest p]
       exact ih p hRest
 
