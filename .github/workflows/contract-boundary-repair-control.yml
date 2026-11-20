@@ -1,0 +1,54 @@
+name: Core Schema repair-arm native control
+
+on:
+  push:
+    branches:
+      - research/contract-boundary-repair-control-20261121
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repaired-source-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify PR 302 source identity and exact ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor bb790c7e93f2d2f2ffa40b6178ccc3f675a94504 HEAD
+          test "$(git rev-parse HEAD:L4YAML/Schema/Schema.lean)" = bda62ed5cad86edcf2a1a40abe297053e80af226
+          test "$(git rev-parse HEAD:L4YAML/Spec/CoreSchema.lean)" = 94145db07d86ebd957d116b617827b00737fc9d3
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Schema/SchemaResolution.lean)" = 2153a0dd73688a794587689df8c8f5770b1a4407
+          echo "PR302 schema, proof and standard oracle match pinned blobs"
+      - name: Install Lean 4.35.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build official PR 302 Core Schema proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Schema.SchemaResolution
+      - name: Check original matched examples and universal tag theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean Tests/Guards/Proofs/ContractBoundaryRepairControl.lean 2>&1 | tee native-repair.log
+          if grep -E '(sorryAx|declaration uses .sorry)' native-repair.log; then
+            echo "unexpected sorry dependency"; exit 1
+          fi
+          echo "All matched before/after examples and universal tag theorem compiled"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-boundary-repair-log
+          path: native-repair.log
+          if-no-files-found: ignore
