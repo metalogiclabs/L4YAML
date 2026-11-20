@@ -2116,6 +2116,10 @@ lemma scanValueValidate_explicit_at_indent {s : ScannerState} {ekLine : Nat}
   simp only [bind, Except.bind, h_ek, h_poss, h_noflow, Bool.false_and,
     Bool.not_false, Bool.and_true, Bool.and_self,
     ite_eq_right (by simp : ¬((false : Bool) = true))] at h
+  -- The added keyless-sequence check must have succeeded before the
+  -- explicit-value tests can be used; its rejecting arm is impossible.
+  split at h
+  · cases h
   rw [ite_eq_left trivial] at h
   have hline : s.line ≠ ekLine := by
     intro hl
