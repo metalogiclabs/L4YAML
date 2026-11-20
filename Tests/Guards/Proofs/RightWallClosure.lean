@@ -60,6 +60,16 @@ example : ∃ witness : ValidYaml, witness.input = "\u0001" :=
 #guard !(L4YAML.TokenParser.parseYaml "\u0001").isOk
 
 /-! # Probe C: independent source lexer versus native parser on [211] -/
+-- Bounded source-pinned *observed divergence* (not the desired contract):
+-- native parser accepts one plain scalar; the independent reference lexer
+-- invents an alias on its continuation line and rejects the trace.
+-- These pins document the baseline and should be REVERSED when refLex is fixed.
+#guard (L4YAML.TokenParser.parseYaml "a\n*x").isOk
+#guard L4YAML.Proofs.Serialization.EventsOf.eventsOf "a\n*x" =
+  [.useAlias "x"]
+#guard L4YAML.Proofs.Serialization.EventsOf.wellFormedB "a\n*x" = false
+#guard L4YAML.Proofs.Serialization.EventsOf.wellFormedB "a" = true
+
 #eval (L4YAML.TokenParser.parseYaml "a\n*x").isOk
 #eval L4YAML.Proofs.Serialization.EventsOf.eventsOf "a\n*x"
 #eval L4YAML.Proofs.Serialization.EventsOf.wellFormedB "a\n*x"
