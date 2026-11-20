@@ -1,0 +1,43 @@
+name: TAG directive requirement and event projection
+on:
+  push:
+    branches: [test/tag-directive-contract]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  kernel-contract-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install repository-pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Bind unchanged upstream library and exact proof files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:L4YAML)" = 4197c0b6f2fb369e9806ca486d38aef87b077c81
+          git rev-parse HEAD HEAD^{tree} HEAD:L4YAML
+          cat lean-toolchain
+          lean --version
+          sha256sum Tests/Guards/Proofs/TagDirectiveAnnotated.lean Tests/Guards/Proofs/TagDirectiveContract.lean
+      - name: Check actual parser pair, annotated witnesses and information loss
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build Tests.Guards.Proofs.TagDirectiveAnnotated Tests.Guards.Proofs.TagDirectiveContract 2>&1 | tee tag-directive-proof.log
+          if grep -E 'sorryAx|declaration uses .sorry|_native\.native_decide\.ax' tag-directive-proof.log; then
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tag-directive-contract-proof
+          path: tag-directive-proof.log
+          if-no-files-found: error
