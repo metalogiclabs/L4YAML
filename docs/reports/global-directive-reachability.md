@@ -275,3 +275,132 @@ There is no `sorryAx`, custom axiom or new reflected leaf. All protected cases
 and production sources are unchanged. Default build: 1,573/1,573 jobs;
 protected executable: 62,260/62,260 checks; keyword gate: 26 sites;
 strict serialization hygiene: 61 profiles. Global hRoute remains UNKNOWN.
+
+## Funded base-flow return and native consumer
+
+`research/directive-flow-return` starts at exact published origin-audit commit
+`29d1589bf85d210bd1a33190a8d2118723fbe915`, tree
+`fc3b2c3ad2378b2f1a98e47199f51d109d01cf6d`. The parent audit now has a successful
+hosted run: https://github.com/metalogiclabs/L4YAML/actions/runs/44707781956.
+Upstream main was rechecked as `122064d0c853be8d6c2f4cd255c6fcd67acc4ae8`;
+PR 359 remains open at `57721b243c6f1bdd33e8d49c9aedd4f15e552c58`.
+This is a separate research line; no concurrent branch or upstream PR is edited.
+
+### Warranted boundary
+
+`TraceOf/FlowReturn.lean` carries an enclosing return obligation at the actual
+base opening literal, next to the existing `TSeqFrame` / `TMapFrame`. The
+nested frames retain that same obligation. The 26 existing frame-operation
+proofs are adapted to this carrier while reusing the original frame algebra.
+The native flow-indicator proof retains the key-map effect and the next-colon
+continuation, including held properties and nested closes. The content,
+property and key arm proofs, and actual preprocessing/content dispatch, also
+preserve it. Their premises remain explicit; they do not create an enclosing
+return out of an arbitrary source-only route.
+
+`return_first` funds the base return from the real first-document source
+prefix and separation. `return_explicit` funds it from the preceding annotated
+stream and actual `---` grammar evidence. `returned_pending` spends the return
+at the existing `TPendingNode.pendingContent` constructor, preserving the real
+node endpoint. At base close the returned endpoint is the closing literal's
+endpoint, rather than the source invariant's separate block boundary.
+
+`Tests/Guards/Proofs/FlowReturnNative.lean` proves the closed native path
+`[a]\n...\n%YAML 1.2\n---\ny`. It constructs the return at the real opener,
+reads the actual content dispatch into the stronger carrier, consumes the
+native closer, obtains the matching T pending state, and calls the existing
+`directive_after_pending_document` consumer. That consumer supplies `hRoute`
+at `directive_step_noPending`. All five `scanNextToken` edges and captured
+native states are kernel checked. The final conclusion includes native
+`ScannerReachable`, scanner/source correspondence, annotated stream and
+pending state with the actual event prefix, and `DirectiveRoute`. It has no
+route or return hypothesis. This is a closed instance, not the universal
+scanner induction.
+
+The 20 positive native event controls include empty/singleton/nested sequence
+and map bodies, explicit keys, JSON-style pairs, trailing commas, properties,
+aliases, explicit documents and the next implicit-map-value case `a: [b]`.
+Fuel 0/1/2 controls remain. Protected adversarial cases are unchanged.
+
+### Verification and failures
+
+Lean is the repository-pinned 4.35.0, compiler commit
+`eb6cafb7290e8bd5f2937522d8d804f58f02bafc`.
+
+- Explicit new proof/control/axiom targets: 158/158 jobs.
+- Default `lake build`: 1,573/1,573 jobs.
+- Unchanged `lake exe adversarialinstantiation`: 62,260/62,260 checks.
+- Keyword gate: 26 whitelisted capstones.
+- Strict serialization hygiene: 61 observed profiles, exact headline sets.
+- New axiom guard inspects 40 return proof declarations, including an auxiliary
+  proof; it hard-fails on coverage drift, `sorryAx` or any dependency outside
+  the unchanged original source/content producers' axiom sets. The structural
+  return/flow/key lemmas are standard-only. The closed native witness has 41
+  inherited dependencies (the standard three plus 38 pre-existing reflected
+  leaves); no new reflected leaf or custom axiom is introduced.
+
+The default build alone does not compile the experimental module: the workflow
+now explicitly builds its native control and axiom targets. No proof census,
+protected case, toolchain pin, source grammar or scanner implementation is
+changed in this phase.
+
+Compiler failures were corrected rather than promoted: base-close dependent
+elimination over fixed array literals required general kind indices;
+reserved identifiers and missing namespace opens caused elaboration errors;
+computed scanner-state definitions did not reduce adequately during type
+inference, so independently checked captured states are used; floor/position
+arguments must be named before checking arithmetic premises. An initial
+axiom enumeration using `ConstantInfo.isTheorem` observed zero imported
+proofs under Lean's module system. It was rejected and replaced with
+`Lean.wasOriginallyTheorem` plus an exact nonzero coverage gate. These are
+implementation failures, not reachable counterexamples.
+
+### Global result: UNKNOWN
+
+The actual global `ScannerReachable → DirectiveRoute` theorem is still not
+present. The stronger carrier's enclosing return must be created at every
+native base-flow birth and coupled with the maintained S pending/block state
+and full `goOut` split. The current paid first-document and explicit-document
+routes do not discharge all block-context births. In particular, a successful
+implicit-key `:` transition needs the T sibling of the source
+`ImplicitKeyPack` mapping-entry route, then a matching
+`TPendingNode.pendingMapValue` whose closure funds the subsequent flow opener.
+The current content pending constructor retains a stream-closing continuation;
+it does not itself supply this mapping-entry continuation.
+
+The unpaid return at an actual base opener has type, with the enclosing event
+prefix fixed by the native `goOut` invariant:
+
+```lean
+∀ finish events, TFlowContent n .flowOut root finish events →
+  ∀ mid, SSLComments finish mid →
+    TLYamlStream start mid (prior ++ events)
+```
+
+The source-only `FlowBaseRoutes.value` proves the S sibling, not this type.
+The paired implicit-key producer must additionally retain a T implicit key
+and a source-bound mapping-entry continuation of the form:
+
+```lean
+∀ stop events, TBlockMapEntry k keyStart stop events →
+  TLYamlStream start stop (closedEvents ++ precedingOpenEvents ++ events)
+```
+
+These obligations originate in the native block-indicator transition and its
+source `ImplicitKeyPack`/pending-map return; they are not replaced by a new
+free `hRoute` or assumed global return. The source `pendingFlow` /
+`SLYamlStream.scannerDrop` escape still gives no automatic T conversion.
+No actual reachable refutation of global hRoute was found.
+
+The smallest consequential next experiment is the **paired native implicit
+mapping producer** on `a: [b]\n...\n%YAML 1.2\n---\ny`: preserve the key's
+T derivation and enclosing mapping-entry route through the successful `:`,
+construct the real pending-map-value closure, use it to fund the flow return,
+and consume the next directive. Its native event control already passes.
+Then all corresponding native producer cases must pay the same invariant;
+more example counts do not discharge that universal obligation.
+
+Remaining Group 7.7 work includes the other S3 producers, the global paired
+scanner induction, `scannerDrop`/Row 12, S4/coherence, exact surface
+correspondence, and the scanner/parser converse obligations. Neither this
+closed path nor a green adversarial run establishes Group 7.7 completion.
