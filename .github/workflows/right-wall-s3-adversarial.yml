@@ -1,0 +1,29 @@
+name: Right-Wall corrected S3 adversarial replay
+
+on:
+  push:
+    branches: [research/right-wall-s3-adversarial-20261120]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Compile S3 adversarial execution on corrected YAML [211]
+        run: |
+          git rev-parse HEAD
+          lake build adversarialinstantiation
+      - name: Run existing adversarial suite unchanged
+        run: lake run adversarialinstantiation
