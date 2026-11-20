@@ -23897,7 +23897,10 @@ lemma scanValueValidate_ok_explicit_col {s : ScannerState} {ek : Nat}
   · exfalso
     simp only [h_ne, ite_false, beq_iff_eq, bne_iff_ne, ne_eq, hcol, not_false_eq_true,
       ite_true] at h
-    exact absurd h (by simp)
+    -- Either the sequence-floor or explicit-column refusal fires.
+    -- Their output constructors are incompatible with validator success.
+    exact absurd h (by
+      cases hseq : atSequenceIndent s <;> simp [hseq])
 
 /-- **The lift through `scanValueClearKey`** — the two checks joined at the one
     state that separates them.
