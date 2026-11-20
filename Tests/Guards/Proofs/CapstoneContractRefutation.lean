@@ -30,10 +30,10 @@ set_option maxHeartbeats 1000000
 This is a concrete executable calculation, not a postulated parse success. -/
 theorem accepted_input :
     ∃ docs, L4YAML.TokenParser.parseYaml "a\n*x" = .ok docs := by
-  have hok : (L4YAML.TokenParser.parseYaml "a\n*x").isOk = true := by native_decide
+  have hok : (L4YAML.TokenParser.parseYaml "a\n*x").isOk = true := by decide
   cases h : L4YAML.TokenParser.parseYaml "a\n*x" with
   | error err =>
-    simp at hok
+    cases hok
   | ok docs =>
     exact ⟨docs, rfl⟩
 
@@ -42,7 +42,7 @@ the existing annotated grammar also parses '*x' as a separate alias
 document, producing an ill-formed trace. -/
 theorem current_grammar_requirement_refuted :
     ¬ TraceWellFormed "a\n*x" :=
-  Tests.Guards.TraceOfBlockAmbiguity.traceWellFormed_refuted
+  L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceWellFormed_refuted
 
 /-- A direct refutation of the *forward* proposed capstone guarantee
 under the pinned current formal grammar and native parser. -/
