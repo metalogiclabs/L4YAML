@@ -11,6 +11,7 @@ public import L4YAML.Proofs.Serialization.ExecutableBoundary
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public meta import L4YAML.Parser.Composition
 public import L4YAML.Schema.Schema
+public import L4YAML.Proofs.Serialization.TokenEvents
 public meta import L4YAML.Schema.Schema
 public import L4YAML.Proofs.Serialization.RefLex
 public meta import L4YAML.Proofs.Serialization.RefLex
@@ -135,5 +136,27 @@ lemma acceptance_iff_from_four_bridges
 #print axioms any_source_has_ValidYaml_record
 #print axioms rebind_source_preserves_grammar_and_value
 #print axioms acceptance_iff_from_four_bridges
+
+/-!
+# Proof-route test: exactly why S3 is useful and exactly why S3 alone cannot finish 7.7.
+
+A scanner trace (S3) plus scanner-token serialization well-formedness (S5)
+only establishes the *universal* target when a uniqueness proof (S4)
+identifies every grammatical trace with the scanner's trace.
+The current grammar refutes S4 on some block/document inputs.
+-/
+lemma scanner_trace_closes_universal_if_unique
+    (source : String)
+    (tokens : Array (L4YAML.Positioned L4YAML.YamlToken))
+    (hS3 : TraceOf source (L4YAML.Proofs.Serialization.TokenEvents.tokenEvents tokens))
+    (hS4 : ∀ e₁ e₂, TraceOf source e₁ → TraceOf source e₂ → e₁ = e₂)
+    (hS5 : L4YAML.Proofs.Serialization.SerializationWellFormed.SerializationWellFormed
+      (L4YAML.Proofs.Serialization.TokenEvents.tokenEvents tokens)) :
+    TraceWellFormed source := by
+  intro ev hTrace
+  rw [hS4 ev (L4YAML.Proofs.Serialization.TokenEvents.tokenEvents tokens) hTrace hS3]
+  exact hS5
+
+#print axioms scanner_trace_closes_universal_if_unique
 
 end L4YAML.Proofs.RightWallClosure
