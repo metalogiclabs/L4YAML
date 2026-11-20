@@ -164,6 +164,23 @@ lemma eligibleHistory_append_docEnd
   exact Or.inr ⟨ts, [], marker, by simp, h, by simp⟩
 
 
+/-! A SOURCE-NATIVE, non-conditional scanner transition: a successful
+scanDocumentEnd really appends blockEnd tokens and one documentEnd token.
+Those blockEnd tokens are irrelevant to the final-event admission rule.
+This is the second eligible-history producer used by the global scan loop.
+-/
+lemma native_scanDocumentEnd_establishes_history
+    (sc sc' : ScannerState)
+    (h : scanDocumentEnd sc = .ok sc') :
+    EligibleHistory sc'.tokens.toList := by
+  obtain ⟨ends, marker, hTokens, _, hMarker⟩ :=
+    L4YAML.Proofs.Serialization.TraceOf.DocBridge.scanDocumentEnd_tokens sc sc' h
+  rw [hTokens]
+  simpa [List.append_assoc] using
+    eligibleHistory_append_docEnd (sc.tokens.toList ++ ends) marker hMarker
+
+#print axioms native_scanDocumentEnd_establishes_history
+
 #print axioms eligibleHistory_event_shape
 #print axioms eligibleHistory_append_nonemitting
 #print axioms eligibleHistory_append_docEnd
