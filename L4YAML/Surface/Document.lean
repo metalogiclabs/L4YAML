@@ -164,13 +164,14 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       GOpt SLAnyDocument s₃ s₄ →
       GStar SLDocumentSuffix s₄ s' →
       SLYamlStream s s'
-  /-- Implicit continuation: previous stream + prefix(es) + any document.
-      Matches spec [211] `l-document-prefix* l-any-document?` branch.
-      This includes bare documents (no `---` marker). -/
+  /-- The [211] implicit continuation after an unterminated document
+      may extend prefixes/comments or start an explicit document (---).
+      Repeating a bare document without --- is not a lawful stream.
+      This matches the existing event-annotated TLYamlStream twin. -/
   | implicitContinue (s s₁ s₂ s₃ s' : SurfPos) :
       SLYamlStream s s₁ →
       GStar SLDocumentPrefix s₁ s₂ →
-      GOpt SLAnyDocument s₂ s₃ →
+      GOpt SLExplicitDocument s₂ s₃ →
       GStar SLDocumentSuffix s₃ s' →
       SLYamlStream s s'
   /-- Scanner content absorption: previous stream + opaque scanned content
