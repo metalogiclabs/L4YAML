@@ -304,10 +304,8 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       `SBlockSeqEntries.single`, whose conclusion ends where the ENTRY'S
       CONTENT ends: **what the six owe is a block node, not a character** —
       `Tests/Guards/Proofs/ParkGapProduction.lean` (DOCS item 245). -/
-  | scannerDrop (s s₁ s₂ s' : SurfPos) :
-      SLYamlStream s s₁ →
-      SSLComments s₂ s' →
-      SLYamlStream s s'
+  /- RIGHT-WALL DIAGNOSTIC: scannerDrop intentionally removed on this
+     disposable branch. Unrepaired dependencies are expected to fail. -/
 
 /-! ## Top-Level Predicate -/
 
