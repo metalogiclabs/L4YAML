@@ -1,0 +1,43 @@
+name: Repaired plain-alias witness
+on:
+  push:
+    branches: [test/repaired-plain-alias]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  kernel-witness-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install repository-pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Bind unchanged corrected research library and exact proof file
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:L4YAML)" = c7200b9434cbd8f0fd344ed7a6b06ca81bc31df7
+          git rev-parse HEAD HEAD^{tree} HEAD:L4YAML
+          cat lean-toolchain
+          lean --version
+          sha256sum Tests/Guards/Proofs/RepairedPlainAlias.lean
+      - name: Check repaired witness, all readings and actual parser acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build Tests.Guards.Proofs.RepairedPlainAlias 2>&1 | tee repaired-plain-alias-proof.log
+          if grep -E 'sorryAx|declaration uses .sorry|_native\.native_decide\.ax' repaired-plain-alias-proof.log; then
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: repaired-plain-alias-proof
+          path: repaired-plain-alias-proof.log
+          if-no-files-found: error
