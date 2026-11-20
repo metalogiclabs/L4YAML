@@ -74,6 +74,26 @@ There is no `sorry`, new axiom, or `native_decide` proof leaf.
 
 ## Existing checks already exercise the mechanism
 
+### The existing completeness consumer requires acceptance
+
+`Tests/Guards/Proofs/TagDirectiveCompleteness.lean` strengthens the admission
+result on the same unchanged upstream library. It kernel-checks the actual
+scanner output, proves `TokenGrammar` and `TokenStateOk` for those tokens,
+and applies the production `parseStream_accepts` theorem with both premises
+discharged. The theorem therefore requires acceptance of the duplicate input.
+
+An independent token projection retains explicit directive handles and proves
+their uniqueness requirement false. Two checked countertheorems show that no
+replacement token parser can retain the original two-premise completeness
+contract while rejecting this stream or enforcing this uniqueness condition.
+The targeted local build passed 66/66 jobs, with standard-three axiom profiles.
+
+This is a specification boundary of a valid theorem. A token-parser repair
+must narrow the admitted token contract as well. A scanner-only repair could
+instead narrow which arrays reach the token parser while retaining the more
+permissive raw-token API. Neither result says the Lean theorem is unsound or
+that every future source-level Group 7.7 contract is impossible.
+
 At the pinned upstream source:
 
 - `Tests/AdversarialInstantiation.lean`, Priority 55, includes two `%TAG !t!`
@@ -127,7 +147,7 @@ Default builtin availability is not an explicit declaration.
 Use the repository's pinned Lean 4.35.0 toolchain:
 
 ```sh
-lake build Tests.Guards.Proofs.TagDirectiveAnnotated Tests.Guards.Proofs.TagDirectiveContract
+lake build Tests.Guards.Proofs.TagDirectiveAnnotated Tests.Guards.Proofs.TagDirectiveContract Tests.Guards.Proofs.TagDirectiveCompleteness
 ```
 
 The dedicated workflow asserts the unchanged production-tree identity, prints

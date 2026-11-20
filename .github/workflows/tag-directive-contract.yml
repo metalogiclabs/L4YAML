@@ -26,12 +26,12 @@ jobs:
           git rev-parse HEAD HEAD^{tree} HEAD:L4YAML
           cat lean-toolchain
           lean --version
-          sha256sum Tests/Guards/Proofs/TagDirectiveAnnotated.lean Tests/Guards/Proofs/TagDirectiveContract.lean
+          sha256sum Tests/Guards/Proofs/TagDirectiveAnnotated.lean Tests/Guards/Proofs/TagDirectiveContract.lean Tests/Guards/Proofs/TagDirectiveCompleteness.lean
       - name: Check actual parser pair, annotated witnesses and information loss
         shell: bash
         run: |
           set -euo pipefail
-          lake build Tests.Guards.Proofs.TagDirectiveAnnotated Tests.Guards.Proofs.TagDirectiveContract 2>&1 | tee tag-directive-proof.log
+          lake build Tests.Guards.Proofs.TagDirectiveAnnotated Tests.Guards.Proofs.TagDirectiveContract Tests.Guards.Proofs.TagDirectiveCompleteness 2>&1 | tee tag-directive-proof.log
           if grep -E 'sorryAx|declaration uses .sorry|_native\.native_decide\.ax' tag-directive-proof.log; then
             exit 1
           fi
