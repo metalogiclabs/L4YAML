@@ -8,7 +8,7 @@ module
 
 public import L4YAML.Proofs.Serialization.TraceOf.StreamBridge
 
-@[expose] public section
+@[expose] public section Blanket
 
 namespace L4YAML.Proofs.Serialization.TraceOf.RightWallRoute
 
@@ -27,7 +27,8 @@ equivalent to the scanner's allowDirectives Boolean on arbitrary states.
 -/
 def DirectiveRoute (start here : SurfPos) (ev : List Event) : Prop :=
   (ev = [] ∧ GStar SLDocumentPrefix start here) ∨
-  ∃ before after (earlier suffixEvents : List Event),
+  ∃ before : SurfPos, ∃ after : SurfPos, ∃ earlier : List Event,
+    ∃ suffixEvents : List Event,
     TLYamlStream start before earlier ∧
     TPlus TLDocumentSuffix before after suffixEvents ∧
     GStar SLDocumentPrefix after here ∧
@@ -51,7 +52,7 @@ lemma throughComments {start here next : SurfPos} {ev : List Event}
     (hRoute : DirectiveRoute start here ev) (hcol : here.col = 0)
     (hComments : SSLComments here next) : DirectiveRoute start next ev := by
   have hPrefix : GStar SLDocumentPrefix here next :=
-    SSLComments_to_GStar_prefix hcol hComments
+    TPendingNode.SSLComments_to_GStar_prefix hcol hComments
   rcases hRoute with ⟨he, hFirst⟩ | ⟨before, after, earlier, suffEv, hPrev, hSuffix, hp, he⟩
   · exact Or.inl ⟨he, star_compose hFirst hPrefix⟩
   · exact Or.inr ⟨before, after, earlier, suffEv, hPrev, hSuffix,
