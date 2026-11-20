@@ -2,7 +2,7 @@ name: Global directive reachability research
 
 on:
   push:
-    branches: [research/global-directive-reachability, research/directive-paired-content, research/directive-flow-origin, research/directive-flow-return, research/directive-map-return]
+    branches: [research/global-directive-reachability, research/directive-paired-content, research/directive-flow-origin, research/directive-flow-return, research/directive-map-return, research/directive-colon-discriminator-20261121]
   workflow_dispatch:
 
 permissions:
@@ -25,6 +25,7 @@ jobs:
         run: |
           git rev-parse HEAD HEAD^{tree}
           lake --version
+          lake build Tests.Guards.Proofs.DirectiveColonProbe
           lake build L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary Tests.Guards.Proofs.RightWallReachability
           lake build Tests.Guards.Proofs.RightWallContentProbe Tests.Guards.Proofs.RightWallContentAxioms
           lake build Tests.Guards.Proofs.RightWallFlowOrigin
