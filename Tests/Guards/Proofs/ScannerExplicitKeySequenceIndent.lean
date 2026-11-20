@@ -106,6 +106,21 @@ private def scannerRefuses (input : String) : Bool :=
    | .error _, .error _ => true
    | _, _ => false)
 
+/-! ## Sequence-indent colon after explicit-key clear (2026-11-21)
+
+The scanner previously accepted these four source bodies and their following
+directive despite a parser refusal. The '?'-frame's cross-line key-clear
+left a keyless ':' standing at a stacked sequence's own indentation. Both
+scanner implementations must now reject before opening a mapping entry.
+These are bounded native witnesses, not a global grammar-completeness proof. -/
+
+#guard scannerRefuses "? -\n  :\n...\n%YAML 1.2\n---\ny"
+#guard scannerRefuses "?\n -\n :\n...\n%YAML 1.2\n---\ny"
+#guard scannerRefuses "?\n  -\n  :\n...\n%YAML 1.2\n---\ny"
+#guard scannerRefuses "?\n- -\n  :\n...\n%YAML 1.2\n---\ny"
+#guard accepts "? a\n: b\n"
+#guard accepts "- ? a\n  : b\n"
+
 -- The stack under all three: a mapping at 0, a sequence at 2, a mapping at 4.
 -- The landing is at column 2 — the sequence level's own.
 #guard scannerRefuses "a:\n  - b:\n      x: 1\n  ? c\n  : 2\n"
