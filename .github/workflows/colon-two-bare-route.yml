@@ -22,4 +22,5 @@ jobs:
         run: |
           git rev-parse HEAD HEAD^{tree}
           lake --version
+          lake build Tests.Guards.Proofs.TwoBareSurfaceWitness
           lake build Tests.Guards.Proofs.ColonTwoBareDocuments
