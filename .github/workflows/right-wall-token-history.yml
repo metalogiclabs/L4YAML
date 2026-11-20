@@ -1,0 +1,28 @@
+name: MathGraph Right-Wall universal token history
+
+on:
+  push:
+    branches: [research/right-wall-token-history-20261120]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  token-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install exact Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Check source SHA, then prove universal token-history bridges
+        run: |
+          git rev-parse HEAD
+          lake --version
+          lake build Tests.Guards.Proofs.RightWallTokenHistory
