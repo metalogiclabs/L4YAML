@@ -12,7 +12,7 @@ module
 
 public import Tests.Guards.Proofs.TraceOfBlockAmbiguity
 public import L4YAML.Parser.Composition
-public import Tests.Guards.Proofs.SuffixGapAudit
+public import L4YAML.Surface.Document
 public meta import L4YAML.Parser.Composition
 
 @[expose] public section Blanket
@@ -69,8 +69,12 @@ theorem no_biconditional_with_current_trace
 is true of every string, so an acceptance=>membership theorem proves no
 negative recognition property until scannerDrop is removed. -/
 theorem language_accepts_every_string (input : String) :
-    L4YAML.Surface.InYamlLanguage input :=
-  Tests.Guards.SuffixGapAudit.inYamlLanguage_everything input
+    L4YAML.Surface.InYamlLanguage input := by
+  refine ⟨⟨[], 0⟩, ?_, rfl⟩
+  exact L4YAML.Surface.SLYamlStream.scannerDrop
+    ⟨input.toList, 0⟩ ⟨input.toList, 0⟩ ⟨[], 0⟩ ⟨[], 0⟩
+    (.single _ _ _ _ (.nil _) (.none _) (.nil _))
+    (.startOfLine [] ⟨[], 0⟩ (.nil _))
 
 #print axioms L4YAML.Tests.Guards.CapstoneContractRefutation.language_accepts_every_string
 #print axioms L4YAML.Tests.Guards.CapstoneContractRefutation.accepted_input
