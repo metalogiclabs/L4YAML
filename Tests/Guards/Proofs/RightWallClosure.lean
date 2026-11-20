@@ -91,6 +91,11 @@ YAML 1.2.2 §10.3.2 requires 1_000 and 0x to be strings, 1. to be float.
 #guard (L4YAML.Schema.resolveImplicit "0x").isInt
 #guard (L4YAML.Schema.resolveImplicit "1.").isStr
 
+/-! # Probe E: directive route choices reflect actual scanner behavior. -/
+#eval (L4YAML.TokenParser.parseYaml "a\n%YAML 1.2\n---\nb").isOk
+#eval (L4YAML.TokenParser.parseYaml "a\n...\n%YAML 1.2\n---\nb").isOk
+#eval (L4YAML.TokenParser.parseYaml "a\n---\nb").isOk
+
 -- Positive control: even an ordinary scalar source gets the very same empty-node witness.
 example : ∃ witness : ValidYaml, witness.input = "a" :=
   any_source_has_ValidYaml_record "a"
