@@ -12,6 +12,8 @@ module
 
 public import Tests.Guards.Proofs.TraceOfBlockAmbiguity
 public import L4YAML.Parser.Composition
+public import Tests.Guards.Proofs.SuffixGapAudit
+public meta import L4YAML.Parser.Composition
 
 @[expose] public section Blanket
 
@@ -31,16 +33,16 @@ theorem accepted_input :
   have hok : (L4YAML.TokenParser.parseYaml "a\n*x").isOk = true := by native_decide
   cases h : L4YAML.TokenParser.parseYaml "a\n*x" with
   | error err =>
-    simp [h] at hok
+    simp at hok
   | ok docs =>
-    exact ⟨docs, h⟩
+    exact ⟨docs, rfl⟩
 
 /-- This previously checked lemma comes from the exact owner experiment:
 the existing annotated grammar also parses '*x' as a separate alias
 document, producing an ill-formed trace. -/
 theorem current_grammar_requirement_refuted :
     ¬ TraceWellFormed "a\n*x" :=
-  L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceWellFormed_refuted
+  Tests.Guards.TraceOfBlockAmbiguity.traceWellFormed_refuted
 
 /-- A direct refutation of the *forward* proposed capstone guarantee
 under the pinned current formal grammar and native parser. -/
@@ -63,13 +65,14 @@ theorem no_biconditional_with_current_trace
   have both := (h "a\n*x").mp accepted_input
   exact current_grammar_requirement_refuted both.2
 
-/-- Independent negative control: an external interpretation is NOT
-deduced merely from this internal formal counterexample. The source
-semantics of YAML 1.2.2 must remain a separately checked obligation. -/
-def NeedIndependentYAMLBridge : Prop :=
-  ∀ input : String, TraceWellFormed input →
-    TraceWellFormed input
+/-- In the same source, the existing *forward* InYamlLanguage target
+is true of every string, so an acceptance=>membership theorem proves no
+negative recognition property until scannerDrop is removed. -/
+theorem language_accepts_every_string (input : String) :
+    L4YAML.Surface.InYamlLanguage input :=
+  Tests.Guards.SuffixGapAudit.inYamlLanguage_everything input
 
+#print axioms L4YAML.Tests.Guards.CapstoneContractRefutation.language_accepts_every_string
 #print axioms L4YAML.Tests.Guards.CapstoneContractRefutation.accepted_input
 #print axioms L4YAML.Tests.Guards.CapstoneContractRefutation.current_grammar_requirement_refuted
 #print axioms L4YAML.Tests.Guards.CapstoneContractRefutation.proposed_forward_false
