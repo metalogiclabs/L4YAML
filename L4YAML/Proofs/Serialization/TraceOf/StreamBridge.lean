@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 module
 public import L4YAML.Proofs.Production.StreamAccum
-public import L4YAML.Proofs.Serialization.TraceOf.DocBridge
+public import L4YAML.Proofs.Serialization.TraceOf.RouteProvenance
 public import L4YAML.Proofs.Serialization.TraceOf.ContentBridge
 public import L4YAML.Proofs.Foundation.SurfaceSpan
 
@@ -32,6 +32,7 @@ open L4YAML L4YAML.Scanner L4YAML.Surface
 open L4YAML.Proofs.Serialization.SerializationWellFormed
 open L4YAML.Proofs.Serialization.TokenEvents
 open L4YAML.Proofs.Serialization.TraceOf L4YAML.Proofs.Serialization.TraceOf.DocBridge
+open L4YAML.Proofs.Serialization.TraceOf.RightWallRoute (DirectiveRoute throughComments closeDirective)
 open L4YAML.Proofs.Serialization.EventsOf (declaredHandle)
 open L4YAML.Proofs.StreamAccum (scannedDirective_toSL white_prepend_SSLComments)
 open L4YAML.Proofs.PreprocessProduction (SSLComments_to_GStar)
@@ -66,6 +67,7 @@ inductive TPendingNode (sp_start : SurfPos) :
   /-- A directive run since `sp_block`: no event yet; closed by `[79]` it is `[82]+` with the
   pending handles' declarations in textual order (`p` is newest first). -/
   | pendingDirective (sp_block sp_scan : SurfPos) (ev_c : List Event) (p : List String)
+      (h_legal_origin : DirectiveRoute sp_start sp_block ev_c)
       (h_dir_acc : ∀ sp_mid, SSLComments sp_scan sp_mid →
         TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag)) :
       TPendingNode sp_start true sp_block sp_scan ev_c [] p
@@ -155,7 +157,9 @@ lemma option_toList_reverse {α : Type} (o : Option α) : o.toList.reverse = o.t
 handle (if named) is pending, no event.  Stated at the preprocessed state `s_prep`. -/
 lemma directive_step_noPending {sp_start sp sp_prep : SurfPos} {s_prep s' : ScannerState}
     {ev_c : List Event}
-    (hS : TSLYamlStream sp_start s_prep sp ev_c [] []) (h_col : sp.col = 0)
+    (hS : TSLYamlStream sp_start s_prep sp ev_c [] [])
+    (hRoute : DirectiveRoute sp_start sp ev_c)
+    (h_col : sp.col = 0)
     (h_pre : SSLComments sp sp_prep)
     (hcorr : ScannerSurfCorr s_prep sp_prep) (hpeek : s_prep.peek? = some '%')
     (hok : scanDirective s_prep = .ok s') :
@@ -167,7 +171,8 @@ lemma directive_step_noPending {sp_start sp sp_prep : SurfPos} {s_prep s' : Scan
   have hS' : TSLYamlStream sp_start s' sp ev_c [] (declaredHandle (span sp_prep sp')).toList := by
     simpa using hS.push htoks (hgo [])
   refine ⟨sp', hcorr', ⟨TLYamlStream.extendComments hS'.stream h_col h_pre, hS'.events⟩, ?_⟩
-  refine TPendingNode.pendingDirective _ _ _ _ fun sp_mid hssl => ?_
+  refine TPendingNode.pendingDirective _ _ _ _
+    (throughComments hRoute h_col h_pre) (fun sp_mid hssl => ?_)
   have := hstable sp_mid (List.IsSuffix.length_le (sslComments_suffix hssl))
   simpa [option_toList_reverse] using TPlus.mk _ _ _ _ [] (⟨scannedDirective_toSL hsd hbrk hssl, by rw [this]⟩ :
     TLDirective sp_prep sp_mid ((declaredHandle (span sp_prep sp')).toList.map .declareTag)) (TStar.nil _)
@@ -176,6 +181,7 @@ lemma directive_step_noPending {sp_start sp sp_prep : SurfPos} {s_prep s' : Scan
 lemma directive_step_run {sp_start sp_block sp_scan sp_prep : SurfPos} {s_prep s' : ScannerState}
     {ev_c : List Event} {p : List String}
     (hS : TSLYamlStream sp_start s_prep sp_block ev_c [] p)
+    (hRoute : DirectiveRoute sp_start sp_block ev_c)
     (h_acc : ∀ sp_mid, SSLComments sp_scan sp_mid →
       TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag))
     (h_pre : SSLComments sp_scan sp_prep)
@@ -187,7 +193,7 @@ lemma directive_step_run {sp_start sp_block sp_scan sp_prep : SurfPos} {s_prep s
   obtain ⟨sp', hsd, hcorr', hbrk, new, htoks, hgo, hstable⟩ :=
     scanDirective_trace s_prep sp_prep hcorr hpeek s' hok
   refine ⟨sp', hcorr', by simpa using hS.push htoks (hgo p), ?_⟩
-  refine TPendingNode.pendingDirective _ _ _ _ fun sp_mid hssl => ?_
+  refine TPendingNode.pendingDirective _ _ _ _ hRoute (fun sp_mid hssl => ?_)
   have := hstable sp_mid (List.IsSuffix.length_le (sslComments_suffix hssl))
   simpa [option_toList_reverse, List.reverse_append] using
     TPlus_TLDirective_snoc (h_acc sp_prep h_pre) (⟨scannedDirective_toSL hsd hbrk hssl, by rw [this]⟩ :
@@ -276,6 +282,33 @@ lemma docStart_step_run_afterSuffix
     simpa [h_events, List.append_assoc] using
       TLYamlStream.directiveAfterSuffixRoute h_prev h_suffix
         (GStar.nil _) (h_acc sp_prep h_pre) hde hb
+
+/-! The directive-document consumer is now type-safe: a caller must
+supply a *pending directive proof carrying a lawful origin*. The stale
+unconditional continuation no longer exists in the corrected grammar. -/
+lemma docStart_step_run {sp_start sp_block sp_scan sp_prep : SurfPos}
+    {s_prep : ScannerState} {ev_c : List Event} {p : List String}
+    (hS : TSLYamlStream sp_start s_prep sp_block ev_c [] p)
+    (hP : TPendingNode sp_start true sp_block sp_scan ev_c [] p)
+    (h_pre : SSLComments sp_scan sp_prep)
+    (hcorr : ScannerSurfCorr s_prep sp_prep)
+    (rest : List Char) (hchars : sp_prep.chars = '-' :: '-' :: '-' :: rest)
+    (hcol : sp_prep.col = 0) :
+    ∃ sp', ScannerSurfCorr (scanDocumentStart s_prep) sp' ∧
+      TSLYamlStream sp_start (scanDocumentStart s_prep) sp_block ev_c
+        (.beginDocument :: p.reverse.map .declareTag) [] ∧
+      TPendingNode sp_start false sp_block sp' ev_c
+        (.beginDocument :: p.reverse.map .declareTag) [] := by
+  obtain ⟨hRoute, hAcc⟩ :
+      DirectiveRoute sp_start sp_block ev_c ∧
+      (∀ sp_mid, SSLComments sp_scan sp_mid →
+        TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag)) := by
+    cases hP with
+    | pendingDirective _ _ _ _ hRoute hAcc => exact ⟨hRoute, hAcc⟩
+  obtain ⟨sp', hde, hcorr', hS'⟩ := hS.docStart sp_prep hcorr rest hchars hcol
+  refine ⟨sp', hcorr', by simpa using hS', ?_⟩
+  exact TPendingNode.pendingDocStart _ _ _ _ fun sp_end eb hb => by
+    simpa using closeDirective hRoute (hAcc sp_prep h_pre) hde hb
 
 /-- **`...`** at a line-start park: `endDocument` opens, awaiting `[79]`; the closed stream is
 extended over the park's landing first. -/
