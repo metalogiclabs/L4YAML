@@ -2,6 +2,8 @@ module
 
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public meta import L4YAML.Proofs.Serialization.TraceOf.Document
+public import L4YAML.Parser.Composition
+public meta import L4YAML.Parser.Composition
 
 /-! # `traceOf_unique` on the block/document fragment (Rule 2): refutations -/
 
@@ -351,5 +353,109 @@ lemma scannerTrace_wf : SerializationWellFormed ([] : List Event) := by
   rw [serializationWellFormed_iff_check]; decide
 
 end AliasContinue
+
+/-!
+## MathGraph source-contract adequacy audit (exact historical problem tree)
+
+The following statements are appended to the ORIGINAL checked refutation
+on a separate experimental fork branch. They do not modify any grammar or
+scanner function. In particular the first two are *conditional* on successful
+native parsing and do not claim to kernel-evaluate the parser's opaque code.
+
+The #guard executes the real native parser separately from those proofs.
+-/
+namespace MathGraphClaimAudit
+
+open L4YAML.TokenParser
+
+/-- The scanner emits one accepted trace. For the serialization-well-formed
+part of the capstone, it suffices for all possible traces to AGREE ON THE
+VERDICT. Their entire event lists need not be equal. -/
+def WFAdequacy (input : String) : Prop :=
+  ∀ e₁ e₂ : List Event, TraceOf input e₁ → TraceOf input e₂ →
+    (SerializationWellFormed e₁ ↔ SerializationWellFormed e₂)
+
+theorem wf_lift_without_trace_uniqueness
+    (input : String) (observed : List Event)
+    (hObserved : TraceOf input observed)
+    (hWF : SerializationWellFormed observed)
+    (hAdequate : WFAdequacy input) :
+    TraceWellFormed input := by
+  intro ev hTrace
+  exact (hAdequate observed ev hObserved hTrace).mp hWF
+
+theorem trace_uniqueness_implies_verdict_coherence
+    (input : String)
+    (hUnique : ∀ e₁ e₂ : List Event,
+      TraceOf input e₁ → TraceOf input e₂ → e₁ = e₂) :
+    WFAdequacy input := by
+  intro e₁ e₂ h₁ h₂
+  rw [hUnique e₁ e₂ h₁ h₂]
+
+private theorem wf_empty : SerializationWellFormed ([] : List Event) := by
+  rw [serializationWellFormed_iff_check]
+  decide
+
+private theorem wf_anchor :
+    SerializationWellFormed [Event.defineAnchor "x"] := by
+  rw [serializationWellFormed_iff_check]
+  decide
+
+/-- Nonunique but individually safe: the two existing R1 traces differ in
+events, but both pass the actual well-formedness predicate.
+This does NOT prove WFAdequacy for ALL derivations of this input. -/
+theorem harmless_nonuniqueness_witness :
+    TraceOf "a\n&x" [] ∧
+    TraceOf "a\n&x" [Event.defineAnchor "x"] ∧
+    ([] : List Event) ≠ [Event.defineAnchor "x"] ∧
+    SerializationWellFormed ([] : List Event) ∧
+    SerializationWellFormed [Event.defineAnchor "x"] := by
+  exact ⟨traceOf_plain, traceOf_anchor, by decide, wf_empty, wf_anchor⟩
+
+/-- Consequential ambiguity: the current R3 witness refutes even the weaker
+property-relative adequacy condition. A real semantic repair is still owed. -/
+theorem consequential_ambiguity_refutes_adequacy :
+    ¬ WFAdequacy "a\n*x" := by
+  intro h
+  have hBoth := h [] [Event.useAlias "x"] traceOf_plainStar traceOf_alias
+  exact not_wf_alias (hBoth.mp wf_empty)
+
+/-- The planned *forward* Group 7.7 serialization implication is false
+whenever the actual parser accepts this input. Native acceptance is checked
+in a separate executable #guard; it is not smuggled in as an axiom. -/
+theorem forward_capstone_refuted_given_acceptance
+    (docs : Array L4YAML.YamlDocument)
+    (hAccepted : L4YAML.TokenParser.parseYaml "a\n*x" = .ok docs) :
+    ¬ (∀ input : String,
+       (∃ ds, L4YAML.TokenParser.parseYaml input = .ok ds) →
+       TraceWellFormed input) := by
+  intro h
+  exact traceWellFormed_refuted (h "a\n*x" ⟨docs, hAccepted⟩)
+
+/-- Changing only the surface-language conjunct cannot repair the proposed
+biconditional with the current TraceWellFormed conjunct unchanged. -/
+theorem no_biconditional_given_acceptance
+    (ExactSurfaceLanguage : String → Prop)
+    (docs : Array L4YAML.YamlDocument)
+    (hAccepted : L4YAML.TokenParser.parseYaml "a\n*x" = .ok docs) :
+    ¬ (∀ input : String,
+       (∃ ds, L4YAML.TokenParser.parseYaml input = .ok ds) ↔
+       (ExactSurfaceLanguage input ∧ TraceWellFormed input)) := by
+  intro h
+  have hBoth := (h "a\n*x").mp ⟨docs, hAccepted⟩
+  exact traceWellFormed_refuted hBoth.2
+
+-- Separate native API observation, NOT a kernel proof of parser acceptance.
+#guard (L4YAML.TokenParser.parseYaml "a\n*x").isOk
+#guard (L4YAML.TokenParser.parseYamlRaw "a\n*x").isOk
+
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.MathGraphClaimAudit.wf_lift_without_trace_uniqueness
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.MathGraphClaimAudit.trace_uniqueness_implies_verdict_coherence
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.MathGraphClaimAudit.harmless_nonuniqueness_witness
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.MathGraphClaimAudit.consequential_ambiguity_refutes_adequacy
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.MathGraphClaimAudit.forward_capstone_refuted_given_acceptance
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.MathGraphClaimAudit.no_biconditional_given_acceptance
+
+end MathGraphClaimAudit
 
 end L4YAML.Tests.Guards.TraceOfBlockAmbiguity
