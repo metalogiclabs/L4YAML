@@ -53,7 +53,7 @@ theorem nested_colon_literal (rest : List Char) :
     GLit ':' (nestedColon rest) ⟨rest, 3⟩ := by
   exact .mk rest 2
 
-/-- The *same* native scanner/parser split, not a substituted model. -/
+/- The *same* native scanner/parser split, not a substituted model. -/
 #guard (scanFiltered "? -\n  :").isOk
 #guard !((scanFiltered "? -\n  :").bind
   (fun ts => L4YAML.TokenParser.parseStream ts)).isOk
