@@ -31,8 +31,8 @@ partial def visitsNewGuard (s : ScannerState) : Nat → Bool
       | _ => false
 
 def oldAcceptedAtNewGuard : List String :=
-  L4YAML.Tests.Guards.CompactRouteCensus.programs.filter fun p =>
-    let (_, _, ok) := L4YAML.Tests.Guards.CompactRouteCensus.probe p
+  Tests.Guards.CompactRouteCensus.programs.filter fun p =>
+    let (_, _, ok) := Tests.Guards.CompactRouteCensus.probe p
     ok && visitsNewGuard ((ScannerState.mk' p).emit .streamStart) 200
 
 #eval (oldAcceptedAtNewGuard.length, oldAcceptedAtNewGuard.map reprStr)
