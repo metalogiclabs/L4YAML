@@ -73,10 +73,10 @@ Two different event streams can both be SerializationWellFormed.
 A relation accepting precisely those two streams has total semantic
 validity but not unique event lists.
 -/
-private def TwoValidTraces (ev : List Event) : Prop :=
+def TwoValidTraces (ev : List Event) : Prop :=
   ev = [] ∨ ev = [.defineAnchor "x"]
 
-private lemma two_valid_traces_wf (ev : List Event)
+lemma two_valid_traces_wf (ev : List Event)
     (h : TwoValidTraces ev) : SerializationWellFormed ev := by
   rcases h with h | h
   · subst ev
