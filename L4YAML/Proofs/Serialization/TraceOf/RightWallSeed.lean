@@ -13,6 +13,8 @@ namespace L4YAML.Proofs.Serialization.TraceOf.RightWallSeed
 
 open L4YAML L4YAML.Scanner L4YAML.Surface
 open L4YAML.Proofs.StreamAccum (initial_stream_and_prefix)
+open L4YAML.Proofs.CouplingBridge (ScannerSurfCorr)
+open L4YAML.Proofs.Serialization.TraceOf
 open L4YAML.Proofs.ScannerCorrectness (consumeBOM_preserves_tokens)
 open L4YAML.Proofs.Serialization.TraceOf.DocBridge (TSLYamlStream)
 open L4YAML.Proofs.Serialization.TraceOf.RightWallRoute (DirectiveRoute)
@@ -33,16 +35,17 @@ lemma seed_tokens_only_streamStart (input : String) :
           t.val = .streamStart := by
     intro t ht
     simp [ScannerState.mk', ScannerState.emit] at ht
-    simpa [ht]
-  unfold scanSeed
-  split
-  · rw [consumeBOM_preserves_tokens]
-    exact h0
-  · exact h0
+    simp [ht]
+  intro t ht
+  unfold scanSeed at ht
+  split at ht
+  · rw [consumeBOM_preserves_tokens] at ht
+    exact h0 t ht
+  · exact h0 t ht
 
 /-- True global-induction BASE CASE: the executable scanner's real seed
     carries the event-annotated empty stream and the source-grammar route.
-    No hRoute premise or new axiom is admitted. -/
+    The optional BOM is covered by the source prefix, not ignored. -/
 theorem scanner_seed_has_directive_route (input : String) :
     ∃ sp : SurfPos,
       ScannerSurfCorr (scanSeed input) sp ∧
@@ -50,9 +53,15 @@ theorem scanner_seed_has_directive_route (input : String) :
       DirectiveRoute ⟨input.toList, 0⟩ sp [] := by
   obtain ⟨sp, _hStream, hCorr, _hCol, hPrefix⟩ :=
     initial_stream_and_prefix input
-  refine ⟨sp, hCorr, ?_, Or.inl ⟨rfl, hPrefix⟩⟩
-  exact TSLYamlStream.seed input.toList (scanSeed input)
-    (seed_tokens_only_streamStart input)
+  have hSeed : TSLYamlStream ⟨input.toList, 0⟩ (scanSeed input)
+      ⟨input.toList, 0⟩ [] [] [] :=
+    TSLYamlStream.seed input.toList (scanSeed input)
+      (seed_tokens_only_streamStart input)
+  have hPrefixStream : TLYamlStream ⟨input.toList, 0⟩ sp [] := by
+    simpa using TLYamlStream.single ⟨input.toList, 0⟩ sp sp sp [] []
+      hPrefix (TOpt.none _) (TStar.nil _)
+  refine ⟨sp, hCorr, ⟨hPrefixStream, ?_⟩, Or.inl ⟨rfl, hPrefix⟩⟩
+  simpa using hSeed.events
 
 #print axioms seed_tokens_only_streamStart
 #print axioms scanner_seed_has_directive_route
