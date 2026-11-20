@@ -111,6 +111,48 @@ lemma eligibleHistory_append_docEnd
     EligibleHistory (ts ++ [marker]) := by
   exact Or.inr ⟨ts, [], marker, by simp, h, by simp⟩
 
+/-! Reverse direction: a goOut fold cannot silently cancel an
+event-producing token or a documentStart. This is needed because the native
+scanDirective_trace lemma describes emitted tokens via goOut, not by enumerating
+their constructors. -/
+lemma no_events_implies_nonemitting
+    (ts : List (Positioned YamlToken)) (p : List String)
+    (h : (goOut ts p).1 = []) :
+    ∀ t ∈ ts, NonEmitting t.val := by
+  induction ts generalizing p with
+  | nil =>
+    intro t ht
+    cases ht
+  | cons t rest ih =>
+    by_cases hDir : ∃ handle pfx, t.val = .tagDirective handle pfx
+    · rcases hDir with ⟨handle, pfx, hTag⟩
+      have hRest : (goOut rest (if isNamedHandle handle then handle :: p else p)).1 = [] := by
+        simpa [goOut, hTag] using h
+      intro u hu
+      rcases List.mem_cons.mp hu with heq | hu
+      · subst u
+        simp [NonEmitting, hTag, tokenEvent]
+      · exact ih _ hRest u hu
+    · have hNoDir : ∀ handle pfx, t.val ≠ .tagDirective handle pfx := by
+        intro handle pfx hTag
+        exact hDir ⟨handle, pfx, hTag⟩
+      by_cases hStart : t.val = .documentStart
+      · simp [goOut, hStart] at h
+      · cases hEv : tokenEvent t.val with
+        | none =>
+          have hRest : (goOut rest p).1 = [] := by
+            rw [goOut_silent t hEv hStart hNoDir rest p] at h
+            exact h
+          intro u hu
+          rcases List.mem_cons.mp hu with heq | hu
+          · subst u
+            exact ⟨hEv, hStart⟩
+          · exact ih p hRest u hu
+        | some ev =>
+          cases hVal : t.val <;> simp_all [goOut, tokenEvent]
+
+#print axioms no_events_implies_nonemitting
+
 #print axioms eligibleHistory_event_shape
 #print axioms eligibleHistory_append_nonemitting
 #print axioms eligibleHistory_append_docEnd
