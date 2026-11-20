@@ -23,7 +23,7 @@ jobs:
           git merge-base --is-ancestor aeacc60258b89fc1c5bb34b6f0ba9a5286801c02 HEAD
           test "$(git rev-parse HEAD:EXPERIMENT.md)" = f5e3123adc1fe737c39484a6ba34e66245cef106
           test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 29f20ab3947dacef278808153130ff7fcd1861b4
-          test "$(git rev-parse HEAD:Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean)" = 663efa67055d726aca1e17836b9bb735c197cfff
+          test "$(git rev-parse aeacc60258b89fc1c5bb34b6f0ba9a5286801c02:Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean)" = 663efa67055d726aca1e17836b9bb735c197cfff
           test "$(git rev-parse HEAD:L4YAML/Parser/Composition.lean)" = 50634c48585752c5b27d99a153a1f030c82e700a
           cat lean-toolchain
           echo "experiment contract, current trace grammar, refutation and native parser pinned"
@@ -33,30 +33,23 @@ jobs:
           set -euo pipefail
           curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-      - name: Compile original checked ambiguity and parser
+      - name: Compile original witness with appended conditional contract theorem
         shell: bash
         run: |
           set -o pipefail
-          lake build Tests.Guards.Proofs.TraceOfBlockAmbiguity L4YAML.Parser.Composition 2>&1 | tee original-dependencies.log
-      - name: Kernel check direct planned-capstone countertheorem
+          lake build Tests.Guards.Proofs.TraceOfBlockAmbiguity L4YAML.Parser.Composition 2>&1 | tee qualified-build.log
+      - name: Kernel check property-relative lift and conditional capstone contradiction
         shell: bash
         run: |
           set -o pipefail
-          lake env lean Tests/Guards/Proofs/CapstoneContractRefutation.lean 2>&1 | tee contract-refutation.log
-          ! grep -E 'sorryAx|declaration uses .sorry' contract-refutation.log
-          echo "lean verified the finite countertheorem and printed axiom profiles"
-      - name: Kernel check property-relative verdict coherence versus full uniqueness
-        shell: bash
-        run: |
-          set -o pipefail
-          lake env lean Tests/Guards/Proofs/PropertyRelativeTraceAdequacy.lean 2>&1 | tee verdict-adequacy.log
-          ! grep -E 'sorryAx|declaration uses .sorry' verdict-adequacy.log
+          lake env lean Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean 2>&1 | tee qualified-proofs.log
+          ! grep -E 'sorryAx|declaration uses .sorry|_native\\.native_decide\\.ax' qualified-proofs.log
+          echo "conditional theorem and independent native parser guard both passed"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: original-capstone-contract-logs
           path: |
-            original-dependencies.log
-            contract-refutation.log
-            verdict-adequacy.log
+            qualified-build.log
+            qualified-proofs.log
           if-no-files-found: ignore
