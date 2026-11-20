@@ -880,6 +880,46 @@ lemma TLYamlStream.explicitRoute {s s₁ s₂ s₃ s' : SurfPos} {e eb : List Ev
 The normative [211] grammar requires a separator for a subsequent directive document.
 This is not a production repair; its consumer is removed in the same experiment. -/
 
+/-! ### Right-Wall lawful directive continuation witnesses
+The old unconditional `directiveRoute` tried to append a directive
+document to an arbitrary preceding stream.  Production [211] permits a
+directive document as the first document, or after an explicit `...`
+suffix; it does not permit arbitrary directive continuations.
+These two lemmas expose that distinction.  Neither asserts the caller
+can discharge the relevant first/suffix premises.
+-/
+
+/-- First document: initial prefixes followed by a directive document. -/
+lemma TLYamlStream.directiveFirstRoute
+    {s s₁ s₂ s₃ s' : SurfPos} {ed eb : List Event}
+    (hp : GStar SLDocumentPrefix s s₁)
+    (hd : TPlus TLDirective s₁ s₂ ed)
+    (hde : SCDirectivesEnd s₂ s₃)
+    (hb : TLExplicitBody s₃ s' eb) :
+    TLYamlStream s s' (.beginDocument :: ed ++ eb) := by
+  have hDoc : TLAnyDocument s₁ s' (.beginDocument :: ed ++ eb) :=
+    .directive _ _ _ (TLDirectiveDocument.mk s₁ s₂ s₃ s' ed eb hd hde hb)
+  simpa using TLYamlStream.single s s₁ s' s'
+    (.beginDocument :: ed ++ eb) [] hp (TOpt.some _ _ _ hDoc) (TStar.nil _)
+
+/-- Later directive document: a previous stream explicitly terminated
+    with one or more `...` suffixes before the new prefix and directives. -/
+lemma TLYamlStream.directiveAfterSuffixRoute
+    {s s₁ s₂ s₃ s₄ s₅ s' : SurfPos} {e eSuffix ed eb : List Event}
+    (hStream : TLYamlStream s s₁ e)
+    (hSuffix : TPlus TLDocumentSuffix s₁ s₂ eSuffix)
+    (hp : GStar SLDocumentPrefix s₂ s₃)
+    (hd : TPlus TLDirective s₃ s₄ ed)
+    (hde : SCDirectivesEnd s₄ s₅)
+    (hb : TLExplicitBody s₅ s' eb) :
+    TLYamlStream s s' (e ++ eSuffix ++ (.beginDocument :: ed ++ eb)) := by
+  have hDoc : TLAnyDocument s₃ s' (.beginDocument :: ed ++ eb) :=
+    .directive _ _ _ (TLDirectiveDocument.mk s₃ s₄ s₅ s' ed eb hd hde hb)
+  simpa [List.append_assoc] using TLYamlStream.suffixContinue
+    s s₁ s₂ s₃ s' s'
+    e eSuffix (.beginDocument :: ed ++ eb) []
+    hStream hSuffix hp (TOpt.some _ _ _ hDoc) (TStar.nil _)
+
 /-- A star grows at its end. -/
 lemma TStar_snoc {P : TRel} {s₁ s₂ s₃ : SurfPos} {ed e : List Event}
     (h : TStar P s₁ s₂ ed) (hd : P s₂ s₃ e) : TStar P s₁ s₃ (ed ++ e) := by
