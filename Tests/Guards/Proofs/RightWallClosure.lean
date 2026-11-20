@@ -92,9 +92,13 @@ YAML 1.2.2 §10.3.2 requires 1_000 and 0x to be strings, 1. to be float.
 #guard (L4YAML.Schema.resolveImplicit "1.").isStr
 
 /-! # Probe E: directive route choices reflect actual scanner behavior. -/
-#eval (L4YAML.TokenParser.parseYaml "a\n%YAML 1.2\n---\nb").isOk
-#eval (L4YAML.TokenParser.parseYaml "a\n...\n%YAML 1.2\n---\nb").isOk
-#eval (L4YAML.TokenParser.parseYaml "a\n---\nb").isOk
+-- `a\n%YAML` is NOT an unambiguous test: the second line could
+-- be plain-scalar continuation rather than a parsed directive.
+-- A closed flow sequence forces a genuine document-boundary decision.
+#eval (L4YAML.TokenParser.parseYaml "[1]\n%YAML 1.2\n---\n[2]").isOk
+#eval (L4YAML.TokenParser.parseYaml "[1]\n...\n%YAML 1.2\n---\n[2]").isOk
+#eval (L4YAML.TokenParser.parseYaml "[1]\n---\n[2]").isOk
+#eval (L4YAML.Scanner.scanFiltered "[1]\n%YAML 1.2\n---\n[2]").isOk
 
 -- Positive control: even an ordinary scalar source gets the very same empty-node witness.
 example : ∃ witness : ValidYaml, witness.input = "a" :=
