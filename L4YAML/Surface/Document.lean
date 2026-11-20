@@ -173,7 +173,7 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
       GOpt SLAnyDocument s₂ s₃ →
       GStar SLDocumentSuffix s₃ s' →
       SLYamlStream s s'
-  /-- Scanner content absorption: previous stream + opaque scanned content
+  /- Scanner content absorption: previous stream + opaque scanned content
       + trailing SSLComments. When the scanner processes flow indicators
       (`[`, `{`, `]`, `}`, `,`) or block indicators (`-`, `?`, `:`) that
       don't correspond to a complete grammar production at closing time, the
