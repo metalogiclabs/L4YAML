@@ -1,0 +1,30 @@
+name: Annotated [211] owner-version port price
+on:
+  push:
+    branches: [research/t-stream-rule211-port]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  first-consumers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Pinned grammar identities
+        run: |
+          git rev-parse HEAD HEAD^{tree}
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 17181c36e8713db40fdd58a2369eac0bc00ef445
+          cat lean-toolchain
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Check corrected T grammar and real document consumer
+        run: |
+          lake build L4YAML.Proofs.Serialization.TraceOf.DocBridge
+      - name: Price existing ambiguity guard under narrowed T
+        run: lake build Tests.Guards.Proofs.TraceOfBlockAmbiguity
