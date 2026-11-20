@@ -101,10 +101,18 @@ lemma no_explicit_optional_second (ev : List L4YAML.Proofs.Serialization.Seriali
   | some s s' e hDoc =>
     exact no_explicit_second_document _ hDoc
 
+/-- Exact native input: real line feeds, not literal backslash-n characters. -/
+def fullStreamInput : String := "? -\n  :\n...\n%YAML 1.2\n---\ny"
+#guard fullStreamInput.utf8ByteSize = 27
+#guard fullStreamInput.toList =
+  ['?', ' ', '-', '\n', ' ', ' ', ':', '\n',
+   '.', '.', '.', '\n', '%', 'Y', 'A', 'M', 'L', ' ',
+   '1', '.', '2', '\n', '-', '-', '-', '\n', 'y']
+
 /-- REMAINING TARGET (not promoted): rule out or construct the *whole*
 annotated TLYamlStream over the source with marker and directive. -/
 def FullStreamQuestion : Prop :=
-  ∀ ev, ¬ TraceOf "? -\\n  :\\n...\\n%YAML 1.2\\n---\\ny" ev
+  ∀ ev, ¬ TraceOf fullStreamInput ev
 
 #print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.initial_key
 #print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.first_bare
