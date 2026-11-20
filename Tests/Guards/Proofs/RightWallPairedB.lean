@@ -65,9 +65,9 @@ theorem property_directed_fixed_goal
 /-! Negative control: the NoUses shortcut is NOT a general YAML
 adequacy property: a definition followed by its use is still well-formed. -/
 example : SerializationWellFormed [Event.defineAnchor "x", Event.useAlias "x"] := by
-  decide
+  simp [SerializationWellFormed, WellFormedFrom, AliasAllowed]
 example : ¬ NoUses [Event.defineAnchor "x", Event.useAlias "x"] := by
-  decide
+  simp [NoUses]
 
 #print axioms noUses_implies_WellFormedFrom
 #print axioms noUses_implies_SerializationWellFormed
