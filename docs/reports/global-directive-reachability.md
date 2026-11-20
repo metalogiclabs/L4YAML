@@ -475,3 +475,106 @@ default build passes 1,573/1,573 jobs. The unchanged protected executable
 passes 62,260/62,260 assertions. The keyword gate still reports 26 capstones;
 the strict serialization sweep still reports 61 profiles with no placeholder
 or reduction axiom. No further proof or grammar change was needed to pass.
+
+## Native implicit-map return and falsification checkpoint (2026-11-21 NZ)
+
+Separate branch: `research/directive-map-return`, parent
+`fa6de14fb9afd0bac447616e6075f13b03eab9dc`, parent tree
+`ca251c2d52d38cfc212f15ff2a8030d7442cfbff`. Parent exact-source
+[Actions 44716360968](https://github.com/metalogiclabs/L4YAML/actions/runs/44716360968)
+is now SUCCESS (job completed 2026-11-20T10:28:54Z); the earlier pending
+qualification is superseded. NASA main, owner integration and PR #359 were
+rechecked unchanged at the three SHAs in the lineage table. The owner Python
+scalar-fix divergence remains; this is not an overall supersession of that tree.
+
+**WARRANTED local proof result.** `MapReturnNative.native_directive_after_implicit_mapping`
+closes `a: [b]\n...\n%YAML 1.2\n---\ny` from the real seed through seven
+kernel-checked successful scanner edges. The ordinary key is built by the existing
+native key productions; the successful colon constructs the first mapping-entry
+return from the actual source prefix and indentation, produces its T pending
+map value, funds the actual `[` value's flow return, and spends it through the
+existing `directive_after_pending_document` / `directive_step_noPending` consumer.
+The final statement contains real reachability, source correspondence, the
+actual T stream/event fold, pending state and DirectiveRoute, without a free
+route, return or event-prefix premise.
+
+**Universal native work.** `Reachability.lean` relocates the SAME seed/step
+`ScannerReachable` declaration verbatim into production, preserving its namespace,
+constructors and unrestricted successful native transitions.
+`KeyEvents.reachable_key_reservations` folds the already verified reservation-only
+preservation lemmas through every native scanner branch. Unlike an initial attempt,
+it does not inherit the unrelated full scalar-validity invariant.
+`reachable_colon_goOut` derives equality of the full `(events, pending handles)`
+fold for every reachable predecessor's successful native block colon. The old slots
+are actual placeholders by this induction, so their in-place rewrites to silent
+mapping/key tokens and the final value token preserve the fold. No event equality
+is assumed at this producer.
+
+**Reusable but not yet globally funded.** `KeyLift.lean` transports the actual
+events through all ten flow/key mutual conversions and the properties conversion.
+Each residue is the genuine `BreakBetween s s' ∨ atEnd s'`, never `True`.
+These converters are checked separately and are NOT represented as a native
+collection-key producer: the general native same-line/no-break bridge remains
+unpaid. `ScannerSurfCorr` has no line component. An unrelated source-side
+`ImplicitKeyHead ∨ True` cannot pay this T obligation.
+
+**Local qualification.** Lean 4.35.0; explicit mapping probes/profile build
+162/162; unchanged default `lake build` 1,573/1,573; unchanged protected
+adversarial executable 62,260/62,260; keyword 26; original strict serialization
+sweep 61 profiles. The new axiom guard enumerates 12 key-event proofs, 11 key-lift
+proofs, 5 mapping proofs and 9 native-candidate proofs (including compiler-generated
+auxiliaries), with hard exact coverage counts. Key-event/conversion/candidate
+proofs and the mapping route/colon/return structures use standard axioms only.
+The closed native mapping path has 41 inherited dependencies, the same pre-existing
+source/content ceiling; no new axiom/reflected leaf or `sorryAx` is admitted.
+Protected blob: `da380dcfaf2211960d0924d7fbafdbd0579dd2b1`.
+No scanner execution, grammar, protected test, toolchain or dependency changed.
+The workflow explicitly builds the new experimental modules.
+
+**CANDIDATE native obstruction — not yet REJECTED.** A complete bounded sweep of
+62,208 three-chunk/two-separator sources, each followed by
+`\n...\n%YAML 1.2\n---\ny`, has 26,350 scanner successes and FOUR downstream
+parser failures. Exact reproduction is `DirectiveColonProbe.sweepSummary`:
+
+```
+? -\n  :
+?\n -\n :
+?\n  -\n  :
+?\n- -\n  :
+```
+
+The smallest observed body is seven bytes, `? -\n  :`; global byte-minimality is
+not claimed. The candidate module kernel-proves real five-step reachability of
+the successful directive and its true directive flags, plus the actual native
+colon gate: column/currentIndent are both 2; the pre-clear key is possible;
+`scanValueClearKey` clears it; `atSequenceIndent` is true; the validator still
+returns `.ok ()`. The native filtered scanner accepts both the bare body and
+its suffix/directive extension, while the native parser rejects them.
+This is strong falsification evidence, but parser refusal alone is NOT a proof
+that the source lacks the required `TLYamlStream`/DirectiveRoute.
+
+**Failed experiments retained.** The first differential sweep fed raw placeholder
+slots to the parser and therefore produced a false all-fail comparison; that
+reading is rejected. The corrected sweep uses the repository's `scanFiltered`.
+Compiler repairs concerned qualified namespaces, an already-solved rewrite,
+Boolean reduction, implicit fuel inference, opaque Int normalization, a reserved
+metaprogram identifier and explicit Nat typing. The first candidate axiom pin
+predicted four user lemmas but measured nine with generated auxiliaries; all nine
+were checked against the same standard-only boundary. A generic grammar-inversion
+probe currently times out/gets stuck on dependent indentation cases; no incomplete
+probe or placeholder is imported into the qualified source.
+
+**Decision and next decisive obligation.** Global hRoute is still UNKNOWN.
+Before extending the positive fold further, decide the seven-byte candidate in
+the ACTUAL annotated grammar: prove or refute
+`∃ stop events, TLYamlStream start stop events` for a stop crossing its colon
+and reaching the actual `...` marker. The local grammar analysis is that the
+compact sequence is at column 2, so its child needs index 3 and the colon at
+column 2 can neither be its node nor the outer explicit value at column 0.
+That analysis remains an inference until the derivation/non-membership is checked.
+If no annotated derivation exists, combine that result with the already proved
+native reachability and actual marker/directive positions to refute the global
+route target. Do not weaken reachability or import scannerDrop. If the grammar
+admits it, preserve that derivation and continue the full paired native fold.
+S3 producers, held properties, gated enclosing returns, total scanLoop induction,
+scannerDrop/Row 12, S4/coherence and the other Group 7.7 obligations remain open.

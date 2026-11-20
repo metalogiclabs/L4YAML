@@ -7,7 +7,7 @@ consumer. The paired trace-prefix equality is a separate obligation.
 module
 
 public import Tests.Guards.Proofs.RightWallDirectiveStep
-public import L4YAML.Proofs.Serialization.TraceOf.RightWallSeed
+public import L4YAML.Proofs.Serialization.TraceOf.Reachability
 public meta import L4YAML.Proofs.Serialization.TraceOf.RightWallSeed
 
 @[expose] public section Blanket
@@ -41,12 +41,6 @@ private def probe (s : ScannerState) : Nat → Bool
   "[a]\n%YAML 1.2\n---\nb", "...\n...\n%TAG !e! tag:x\n---\nx"] : List String).all
   (fun src => [0, 1, 2, 64].all (probe (scanSeed src)))
 
-/-- Exactly the states visited by a finite prefix of the real scanner loop.
-No successful-final-scan requirement hides a bad intermediate state. -/
-inductive ScannerReachable (input : String) : ScannerState → Prop where
-  | seed : ScannerReachable input (scanSeed input)
-  | step {s t : ScannerState} : ScannerReachable input s →
-      scanNextToken s = .ok (some t) → ScannerReachable input t
 
 lemma nonemitting_of_map_eq {a b : List (Positioned YamlToken)}
     (heq : a.map Positioned.val = b.map Positioned.val)

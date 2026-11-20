@@ -2,7 +2,7 @@ name: Global directive reachability research
 
 on:
   push:
-    branches: [research/global-directive-reachability, research/directive-paired-content, research/directive-flow-origin, research/directive-flow-return]
+    branches: [research/global-directive-reachability, research/directive-paired-content, research/directive-flow-origin, research/directive-flow-return, research/directive-map-return]
   workflow_dispatch:
 
 permissions:
@@ -29,6 +29,7 @@ jobs:
           lake build Tests.Guards.Proofs.RightWallContentProbe Tests.Guards.Proofs.RightWallContentAxioms
           lake build Tests.Guards.Proofs.RightWallFlowOrigin
           lake build Tests.Guards.Proofs.FlowReturnProbe Tests.Guards.Proofs.FlowReturnAxioms
+          lake build Tests.Guards.Proofs.MapReturnProbe Tests.Guards.Proofs.MapReturnAxioms
       - name: Repository default build
         run: lake build
       - name: Proof hygiene and complete serialization axiom sweep
