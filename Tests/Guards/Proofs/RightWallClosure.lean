@@ -10,6 +10,8 @@ public import L4YAML.Spec.Grammar
 public import L4YAML.Proofs.Serialization.ExecutableBoundary
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public meta import L4YAML.Parser.Composition
+public import L4YAML.Schema.Schema
+public meta import L4YAML.Schema.Schema
 public import L4YAML.Proofs.Serialization.RefLex
 public meta import L4YAML.Proofs.Serialization.RefLex
 
@@ -75,6 +77,18 @@ example : ∃ witness : ValidYaml, witness.input = "\u0001" :=
 #eval L4YAML.Proofs.Serialization.EventsOf.wellFormedB "a\n*x"
 #eval L4YAML.Proofs.Serialization.EventsOf.eventsOf "a\n&x"
 #eval L4YAML.Proofs.Serialization.EventsOf.wellFormedB "a\n&x"
+
+/-! ## Probe D: acceptance proof cannot certify Core Schema semantics.
+This tests the already known upstream defect addressed by open PR #302.
+It is not a new reported defect or a proposed final schema specification.
+YAML 1.2.2 §10.3.2 requires 1_000 and 0x to be strings, 1. to be float.
+-/
+#guard (L4YAML.TokenParser.parseYaml "1_000").isOk
+#guard (L4YAML.TokenParser.parseYaml "0x").isOk
+#guard (L4YAML.TokenParser.parseYaml "1.").isOk
+#guard (L4YAML.Schema.resolveImplicit "1_000").isInt
+#guard (L4YAML.Schema.resolveImplicit "0x").isInt
+#guard (L4YAML.Schema.resolveImplicit "1.").isStr
 
 -- Positive control: even an ordinary scalar source gets the very same empty-node witness.
 example : ∃ witness : ValidYaml, witness.input = "a" :=
