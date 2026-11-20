@@ -81,30 +81,38 @@ theorem second_bare : TLBareDocument p4 p6 [] := by
       (.none p4) (.startOfLine p4.chars p4 (.nil p4)) hEntries
   exact .mk p4 p6 [] hNode
 
-/-- Literal use of TLYamlStream's two-document continuation, WITHOUT a
-document separator, as the repository grammar currently specifies it. -/
-theorem actual_annotated_stream : TLYamlStream p0 p6 [] := by
-  have hFirst : TLYamlStream p0 p4 [] :=
-    .single p0 p0 p4 p4 [] []
-      (.nil p0)
-      (.some p0 p4 [] (.bare p0 p4 [] first_bare))
-      (.nil p4)
-  exact .implicitContinue p0 p4 p4 p6 p6 [] [] []
-    hFirst (.nil p4)
-    (.some p4 p6 [] (.bare p4 p6 [] second_bare))
-    (.nil p6)
+/-- IMPORTANT: the actual `TLYamlStream.implicitContinue` requires
+`TOpt TLExplicitDocument`, NOT a second `TLAnyDocument.bare`.
+Although each half has a bare-document derivation, that does not
+license an implicit two-bare-document stream. -/
+theorem no_explicit_second_document (ev : List Event) :
+    ¬ TLExplicitDocument p4 p6 ev := by
+  intro h
+  cases h with
+  | withContent _ _ _ _ hMarker _ =>
+    cases hMarker
 
-/-- If checked, this refutes the hypothesis that even the seven-byte
-bare source has no derivation in the ACTUAL annotated grammar. -/
-theorem seven_bytes_have_grammar_trace : TraceOf "? -\n  :" [] := by
-  refine ⟨3, ?_⟩
-  exact actual_annotated_stream
+/-- No implicit continuation can reinterpret the colon line as another
+bare document via the actual explicit-document-only arm. -/
+theorem no_explicit_optional_second (ev : List Event) :
+    ¬ TOpt TLExplicitDocument p4 p6 ev := by
+  intro h
+  cases h with
+  | none s =>
+    simp [p4, p6] at *
+  | some s s' e hDoc =>
+    exact no_explicit_second_document _ hDoc
+
+/-- REMAINING TARGET (not promoted): rule out or construct the *whole*
+annotated TLYamlStream over the source with marker and directive. -/
+def FullStreamQuestion : Prop :=
+  ∀ ev, ¬ TraceOf "? -\\n  :\\n...\\n%YAML 1.2\\n---\\ny" ev
 
 #print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.initial_key
 #print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.first_bare
 #print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.second_bare
-#print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.actual_annotated_stream
-#print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.seven_bytes_have_grammar_trace
+#print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.no_explicit_second_document
+#print axioms L4YAML.Tests.Guards.ColonTwoBareDocuments.no_explicit_optional_second
 
 end L4YAML.Tests.Guards.ColonTwoBareDocuments
 end Blanket
