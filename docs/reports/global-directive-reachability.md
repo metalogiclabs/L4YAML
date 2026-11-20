@@ -232,3 +232,46 @@ without adding an unproved T-resume premise. Generalizing that certificate
 must fund every relevant block/flow producer in the actual global induction.
 S3, S4/coherence, Row 12, exact surface correspondence and the scanner/parser
 converses remain separate Group 7.7 obligations.
+
+## Base-flow source-origin interface audit
+
+Separate `research/directive-flow-origin` starts at exact `80a0536c45d27fe711818eff60c7a45244faf09b`.
+No production grammar, scanner transition or invariant is changed by this audit.
+
+`TFlowOpenStack.seqBase` / `mapBase` deliberately keep the outer boundary
+separate from the opening bracket. Their documentation explicitly omits the
+enclosing source stack's `resume`, `promise` and `inject` evidence. The existing
+T frame algebra and `TSeqFrame.closeBase` are reused unchanged.
+
+`Tests/Guards/Proofs/RightWallFlowOrigin.lean` proves, for every character
+suffix, that an empty flow base can have either of two distinct opening
+positions while fitting the same exposed T-stack indices and empty event
+list. The shared closing literal yields T flow content at either origin.
+`base_origin_uniqueness_refuted` rejects the precise interface claim that the
+optional separation and current cursor uniquely determine the opener.
+
+Native controls use ` [ ]\n...\n%YAML 1.2\n---\ny`: real preprocessing reports
+the opening bracket at offset/column 1 and the closer at offset/column 3;
+the complete native scan accepts and emits the expected document events.
+Fuel 0/1/2 controls refuse completion. The native control and the abstract
+interface refutation have different verification boundaries.
+
+This is **not** a pair of scanner-reachable histories with contradictory
+routes, a counterexample to global hRoute, or proof that no stronger existing
+native evidence can recover the binding. It establishes that the required
+source-origin identity must not be inferred from these exposed indices alone.
+The next consumer must either derive that identity from actual opener evidence
+or preserve an explicitly source-bound T return obligation. Its native
+construction and preservation remain unpaid; no speculative carrier is added.
+
+The existing `FlowArm.openBase.h_sp` already supplies its stated landing
+equality on this tree (item 520). The old census's `broken` label is not
+evidence that this paid equality is still missing. Source/T-origin binding and
+the T return into the enclosing stream are separate obligations.
+
+The narrow Lean 4.35.0 audit passes 149/149 jobs. The two origin statements use
+`propext`/`Quot.sound`; the existing-close composition uses the standard three.
+There is no `sorryAx`, custom axiom or new reflected leaf. All protected cases
+and production sources are unchanged. Default build: 1,573/1,573 jobs;
+protected executable: 62,260/62,260 checks; keyword gate: 26 sites;
+strict serialization hygiene: 61 profiles. Global hRoute remains UNKNOWN.
