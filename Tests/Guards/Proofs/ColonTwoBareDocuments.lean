@@ -1,4 +1,4 @@
-/-!
+/-
 # Seven-byte input: *positive* annotated-grammar derivation experiment
 
 Hypothesis: the actual `TLYamlStream.implicitContinue` constructor may parse
