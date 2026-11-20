@@ -1,10 +1,10 @@
-/-! Bounded counterfactual on the unpatched, exact parent
-14eb6dbab845d2ac61f171a9ed61906d3f9ffb2f. Does not replace the
-scanner, change a predicate, or assert global grammar membership. -/
 module
 public import Tests.Guards.Proofs.CompactRouteCensus
 public meta import Tests.Guards.Proofs.CompactRouteCensus
 @[expose] public section Blanket
+/-! Bounded counterfactual on the unpatched, exact parent
+14eb6dbab845d2ac61f171a9ed61906d3f9ffb2f. Does not replace the
+scanner, change a predicate, or assert global grammar membership. -/
 namespace L4YAML.Tests.Guards.SequenceColonCounterfactual
 open L4YAML L4YAML.Scanner
 set_option maxRecDepth 20000
