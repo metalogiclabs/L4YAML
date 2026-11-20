@@ -118,6 +118,18 @@ These are bounded native witnesses, not a global grammar-completeness proof. -/
 #guard scannerRefuses "?\n -\n :\n...\n%YAML 1.2\n---\ny"
 #guard scannerRefuses "?\n  -\n  :\n...\n%YAML 1.2\n---\ny"
 #guard scannerRefuses "?\n- -\n  :\n...\n%YAML 1.2\n---\ny"
+
+/-! Independent old-scanner counterfactual [run #44792718601]:
+all six newly refused inputs in the existing 35,937-source compact-route
+census. They were previously ACCEPTED by that scanner; the isolated
+same-source rule fires on each. PyYAML SafeLoader and libyaml CSafeLoader
+both refuse all six. Keep them separately from the four directive cases. -/
+#guard scannerRefuses "?\n- - a\n  : a\n"
+#guard scannerRefuses "?\n- - a\n  :\n"
+#guard scannerRefuses "?\n  - a\n  : a\n"
+#guard scannerRefuses "?\n  - a\n  :\n"
+#guard scannerRefuses "?\n    - a\n    : a\n"
+#guard scannerRefuses "  ?\n    - a\n    : a\n"
 #guard accepts "? a\n: b\n"
 #guard accepts "- ? a\n  : b\n"
 
