@@ -10,6 +10,8 @@ public import L4YAML.Spec.Grammar
 public import L4YAML.Proofs.Serialization.ExecutableBoundary
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public meta import L4YAML.Parser.Composition
+public import L4YAML.Proofs.Serialization.RefLex
+public meta import L4YAML.Proofs.Serialization.RefLex
 
 @[expose] public section
 
@@ -56,6 +58,13 @@ example : ∃ witness : ValidYaml, witness.input = "\u0001" :=
 -- distinguishes a valid scalar from raw U+0001 (forbidden by YAML 1.2.2 §5.1).
 #guard (L4YAML.TokenParser.parseYaml "a").isOk
 #guard !(L4YAML.TokenParser.parseYaml "\u0001").isOk
+
+/-! # Probe C: independent source lexer versus native parser on [211] -/
+#eval (L4YAML.TokenParser.parseYaml "a\n*x").isOk
+#eval L4YAML.Proofs.Serialization.EventsOf.eventsOf "a\n*x"
+#eval L4YAML.Proofs.Serialization.EventsOf.wellFormedB "a\n*x"
+#eval L4YAML.Proofs.Serialization.EventsOf.eventsOf "a\n&x"
+#eval L4YAML.Proofs.Serialization.EventsOf.wellFormedB "a\n&x"
 
 -- Positive control: even an ordinary scalar source gets the very same empty-node witness.
 example : ∃ witness : ValidYaml, witness.input = "a" :=
