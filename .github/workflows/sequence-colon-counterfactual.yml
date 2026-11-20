@@ -1,0 +1,24 @@
+name: Old-scanner sequence-colon counterfactual
+on:
+  push:
+    branches: [research/sequence-colon-would-reject]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Lean toolchain
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Exact parent and bounded original acceptance
+        run: |
+          git rev-parse HEAD HEAD^{tree}
+          lake build Tests.Guards.Proofs.SequenceColonCounterfactual
