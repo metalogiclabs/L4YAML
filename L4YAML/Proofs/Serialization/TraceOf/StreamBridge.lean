@@ -217,6 +217,66 @@ lemma docStart_step_noPending {sp_start sp sp_prep : SurfPos} {s_prep : ScannerS
 TLYamlStream.directiveRoute. The run case is intentionally removed only from
 this isolation experiment; no claim of full stream closure is made. -/
 
+/-! # Right-Wall diagnostic: lawful directives with explicit route provenance
+The old `docStart_step_run` had no proof that the open directive
+run was the initial document or followed a `...` suffix.  Instead
+of weakening YAML [211], give those two cases their needed premises.
+These lemmas are valid reproof candidates; proving the callers' route
+provenance remains a separate obligation.
+-/
+
+/-- Directive run for the first document, with independently established
+    initial prefixes.  No stream is silently placed before the directives. -/
+lemma docStart_step_run_first
+    {sp_start sp_block sp_scan sp_prep : SurfPos} {s_prep : ScannerState}
+    {p : List String}
+    (hS : TSLYamlStream sp_start s_prep sp_block [] [] p)
+    (h_initial : GStar SLDocumentPrefix sp_start sp_block)
+    (h_acc : ∀ sp_mid, SSLComments sp_scan sp_mid →
+      TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag))
+    (h_pre : SSLComments sp_scan sp_prep)
+    (hcorr : ScannerSurfCorr s_prep sp_prep)
+    (rest : List Char) (hchars : sp_prep.chars = '-' :: '-' :: '-' :: rest)
+    (hcol : sp_prep.col = 0) :
+    ∃ sp', ScannerSurfCorr (scanDocumentStart s_prep) sp' ∧
+      TSLYamlStream sp_start (scanDocumentStart s_prep) sp_block []
+        (.beginDocument :: p.reverse.map .declareTag) [] ∧
+      TPendingNode sp_start false sp_block sp' []
+        (.beginDocument :: p.reverse.map .declareTag) [] := by
+  obtain ⟨sp', hde, hcorr', hS'⟩ := hS.docStart sp_prep hcorr rest hchars hcol
+  refine ⟨sp', hcorr', by simpa using hS', ?_⟩
+  exact TPendingNode.pendingDocStart _ _ _ _ fun sp_end eb hb => by
+    simpa using TLYamlStream.directiveFirstRoute h_initial (h_acc sp_prep h_pre) hde hb
+
+/-- Directive run after a preceding document that has been explicitly ended.
+    The event and suffix equalities are obligations of the caller, not guessed
+    from token counts or an unrestricted `TSLYamlStream` proof. -/
+lemma docStart_step_run_afterSuffix
+    {sp_start sp_block sp_scan sp_prep sp_prev : SurfPos}
+    {s_prep : ScannerState} {ev_c ev_prev ev_suffix : List Event}
+    {p : List String}
+    (hS : TSLYamlStream sp_start s_prep sp_block ev_c [] p)
+    (h_prev : TLYamlStream sp_start sp_prev ev_prev)
+    (h_suffix : TPlus TLDocumentSuffix sp_prev sp_block ev_suffix)
+    (h_events : ev_c = ev_prev ++ ev_suffix)
+    (h_acc : ∀ sp_mid, SSLComments sp_scan sp_mid →
+      TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag))
+    (h_pre : SSLComments sp_scan sp_prep)
+    (hcorr : ScannerSurfCorr s_prep sp_prep)
+    (rest : List Char) (hchars : sp_prep.chars = '-' :: '-' :: '-' :: rest)
+    (hcol : sp_prep.col = 0) :
+    ∃ sp', ScannerSurfCorr (scanDocumentStart s_prep) sp' ∧
+      TSLYamlStream sp_start (scanDocumentStart s_prep) sp_block ev_c
+        (.beginDocument :: p.reverse.map .declareTag) [] ∧
+      TPendingNode sp_start false sp_block sp' ev_c
+        (.beginDocument :: p.reverse.map .declareTag) [] := by
+  obtain ⟨sp', hde, hcorr', hS'⟩ := hS.docStart sp_prep hcorr rest hchars hcol
+  refine ⟨sp', hcorr', by simpa using hS', ?_⟩
+  exact TPendingNode.pendingDocStart _ _ _ _ fun sp_end eb hb => by
+    simpa [h_events, List.append_assoc] using
+      TLYamlStream.directiveAfterSuffixRoute h_prev h_suffix
+        (GStar.nil _) (h_acc sp_prep h_pre) hde hb
+
 /-- **`...`** at a line-start park: `endDocument` opens, awaiting `[79]`; the closed stream is
 extended over the park's landing first. -/
 lemma docEnd_step {sp_start sp sp_prep : SurfPos} {s_prep s' : ScannerState} {ev_c : List Event}
