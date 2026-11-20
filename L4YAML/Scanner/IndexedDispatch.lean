@@ -799,6 +799,11 @@ def scanValueValidateIx {input : String} (s : ScannerStateIx input) :
       if let some top := s.indents.back? then
         if top.isSequence && keyCol == top.column then
           throw (.trailingContent s.simpleKey.cursor.pos.line s.simpleKey.cursor.pos.col)
+  -- §8.2.1: parity with legacy. A keyless ':' at the active sequence
+  -- indentation is not an enclosing mapping entry, including after the
+  -- explicit-key clear erased a phantom simple-key reservation.
+  if !s.inFlow && !s.simpleKey.possible && atSequenceIndentIx s then
+    throw (.trailingContent s.cursor.pos.line s.cursor.pos.col)
   -- T833: missing comma in flow mapping (item 9r: line-independent).
   -- Mirrors the legacy strictening (`Scanner/SimpleKey.lean`): the
   -- reservation at `simpleKey.tokenIndex` is the entry's start, and a

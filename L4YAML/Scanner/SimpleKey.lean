@@ -317,6 +317,11 @@ def scanValueValidate (s : ScannerState) : Except ScanError Unit := do
       if let some top := s.indents.back? then
         if top.isSequence && keyCol == top.column then
           throw (.trailingContent s.simpleKey.pos.line s.simpleKey.pos.col)
+  -- §8.2.1: a keyless ':' cannot start an entry at a stacked sequence's
+  -- own indentation. The key-clear step can erase the phantom reservation
+  -- at this colon; check the actual sequence level instead.
+  if !s.inFlow && !s.simpleKey.possible && atSequenceIndent s then
+    throw (.trailingContent s.line s.col)
   -- T833: missing comma in flow mapping (item 9r: line-independent).
   -- The reservation at `simpleKey.tokenIndex` is the entry's start.  If the
   -- slot immediately below it is a `.value`, the previous entry was already
