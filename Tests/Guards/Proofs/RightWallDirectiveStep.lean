@@ -62,13 +62,16 @@ theorem native_scanDirective_preserves_eligible_history
       List.mem_map.mpr ⟨t, ht, rfl⟩
     rcases hCase with hSame | ⟨d, hOne, hDir⟩
     · have hNil : new.map Positioned.val = [] := by
-        apply List.append_cancel_left
-        simpa [hValues] using hSame
+        have hEq : vals sc ++ new.map Positioned.val =
+            vals sc ++ ([] : List YamlToken) := by
+          simpa only [List.append_nil] using hValues.symm.trans hSame
+        exact List.append_cancel_left hEq
       rw [hNil] at hMember
       simp at hMember
     · have hSingle : new.map Positioned.val = [d] := by
-        apply List.append_cancel_left
-        simpa [hValues] using hOne
+        have hEq : vals sc ++ new.map Positioned.val = vals sc ++ [d] :=
+          hValues.symm.trans hOne
+        exact List.append_cancel_left hEq
       have hVal : t.val = d := by
         simpa [hSingle] using hMember
       simpa [hVal] using directive_token_nonemitting hDir
