@@ -1,0 +1,32 @@
+name: Right Wall — PR359 trace grammar correction
+
+on:
+  push:
+    branches:
+      - research/right-wall-359-corrected-trace-20261120
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  corrected-trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Print exact source and toolchain
+        run: |
+          git rev-parse HEAD
+          elan toolchain install "$(cat lean-toolchain)"
+          lake --version
+      - name: Compile Devin PR359 trace producer against corrected grammar
+        run: lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+      - name: Build complete library without old deliberate refutation guards
+        run: lake build L4YAML
