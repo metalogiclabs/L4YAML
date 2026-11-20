@@ -1,0 +1,34 @@
+name: MathGraph Right-Wall directive-state integration
+
+on:
+  push:
+    branches:
+      - research/right-wall-integrated-directive-state-20261120
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verified-route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source and corpus
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Pin provenance and compile corrected scanner-route state
+        run: |
+          git rev-parse HEAD
+          lake --version
+          lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+      - name: Compile unchanged adversarial cases with strengthened route premises
+        run: lake build adversarialinstantiation
+      - name: Execute full existing adversarial suite
+        run: lake run adversarialinstantiation
