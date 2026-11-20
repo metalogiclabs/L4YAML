@@ -90,7 +90,9 @@ Its witness is the same seven-byte body, with the actual scanner token array.
 Therefore this universal claim is **REJECTED on the frozen combination**.
 The separate [proof-decision commit e94baa39](https://github.com/metalogiclabs/L4YAML/commit/e94baa39f828852390ff65f9441c4bb4253b9cfc),
 tree `dd733c2157ba189c060412ff73809cd84a0700b0`, preserves the exact source
-and hosted workflow. The locally checked tree equals the hosted tree.
+and hosted workflow. [Actions 44801062375](https://github.com/metalogiclabs/L4YAML/actions/runs/44801062375)
+is SUCCESS: 40 proof-build jobs and the retained 14-job source witness,
+with the stated axiom profiles. The locally checked tree equals the hosted tree.
 This does not refute S3 on the already patched scanner.
 
 The earlier `ColonTwoBareDocuments.FullStreamQuestion` was only an unproved
@@ -196,10 +198,47 @@ failed (exit 1), precisely because its `SLAnyDocument.bare ...` has type
 
 The source patch, unchanged consumer, and actual compiler error are saved in
 [`right-wall/`](right-wall/). This is a local, exact-body price, **not a full
-rebuild of the narrowed library**. The other predicted sites remain a
-source-analysis roster, not a measured full failure count. No repair through
-`scannerDrop` was attempted. The green branch's library stays byte-identical
-to its upstream parent.
+rebuild of the narrowed library**. No repair through `scannerDrop` was
+attempted. The green branch's library stays byte-identical to its upstream
+parent.
+
+**Parallel durable evidence recovered after this local experiment:**
+[commit 8294fc18](https://github.com/metalogiclabs/L4YAML/commit/8294fc18cde2cc5883205322ec7cccc281ac5781)
+and [Actions 44798896252](https://github.com/metalogiclabs/L4YAML/actions/runs/44798896252)
+already performed the fuller source-only flip. The corrected
+`Surface.Document` built successfully (13 jobs), then the actual
+`StreamAccum` module failed at exactly five type-mismatch sites:
+
+| Consumer | Original upstream error line | Mismatch |
+| --- | --- | --- |
+| `topLevelFlowResumeSep` | 6847 | bare document |
+| `rootMapRoute` | 8621 | bare document |
+| `rootMapRouteF` | 8644 | bare document |
+| `bareNodeRoute` | 8813 | bare document |
+| `structural_dispatch_to_pending` | 10397 | redundant explicit wrapper |
+
+This independent hosted evidence promotes the four-site roster from source
+analysis to a measured first-module failure result. Reuse it; do not repeat
+the full price. It is not a successful integrated grammar repair, a full
+dependency fixpoint, a test-suite run, or proof that all four general lemma
+statements are logically false. That branch changes the source grammar and
+its CI workflow only; its new docstring incorrectly implies alignment with
+the existing T twin. The actual upstream T twin remains broad and was not
+changed by that source-only experiment.
+
+**Latest price residual, independently rechecked:** the same parallel
+branch is now at
+[`bb987b3fd1868ad82c1e7ed715190ec5500cd97f`](https://github.com/metalogiclabs/L4YAML/commit/bb987b3fd1868ad82c1e7ed715190ec5500cd97f),
+tree `024e945b75b15acb4439216bda3b9d003af92562`.
+It removes the explicit-document wrappers in
+`structural_dispatch_to_pending` and `DocumentProduction.stream_implicit_continue`.
+[Actions 44800229310](https://github.com/metalogiclabs/L4YAML/actions/runs/44800229310)
+now fails at **only the four bare-route sites** above. The source grammar
+still builds successfully; the failed target is `StreamAccum`.
+The document-production edit is present but not separately built by that
+workflow. Do not repeat the already completed mechanical wrapper edits or
+claim whole-library qualification. The next semantic work is the four
+lawful continuation obligations, not the superseded fifth mismatch.
 
 An initial isolated-loader attempt lacked the imported `Surface.Node` object
 under its alternate module root; that infrastructure failure was corrected
