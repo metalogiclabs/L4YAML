@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/right-wall-integrated-directive-state-20261120
+      - research/right-wall-hroute-closure-20261120
   workflow_dispatch:
 
 permissions:
@@ -28,6 +29,8 @@ jobs:
           git rev-parse HEAD
           lake --version
           lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+      - name: Check actual scanner seed has a lawful annotated route
+        run: lake build L4YAML.Proofs.Serialization.TraceOf.RightWallSeed
       - name: Compile unchanged adversarial cases with strengthened route premises
         run: lake build adversarialinstantiation
       - name: Execute full existing adversarial suite
