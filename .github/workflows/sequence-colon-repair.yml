@@ -1,0 +1,38 @@
+name: Sequence-indent colon repair qualification
+
+on:
+  push:
+    branches: [fix/sequence-indent-colon-20261121]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install repository Lean toolchain
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Exact source and two-scanner reproducer
+        run: |
+          git rev-parse HEAD HEAD^{tree}
+          lake --version
+          lake build Tests.Guards.Proofs.ScannerExplicitKeySequenceIndent
+      - name: Full repository build
+        run: lake build
+      - name: Proof hygiene and import gates
+        run: |
+          lake run check-theorem-keyword
+          lake run check-serialization-proofs
+      - name: Protected adversarial executable
+        run: lake exe adversarialinstantiation
+      - name: Ordinary full regression
+        run: lake run run-all-tests
