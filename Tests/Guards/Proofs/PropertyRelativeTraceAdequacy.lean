@@ -66,8 +66,8 @@ theorem distinct_wellformed_ambiguity :
     ([] : List Event) ≠ [Event.defineAnchor "x"] ∧
     SerializationWellFormed ([] : List Event) ∧
     SerializationWellFormed [Event.defineAnchor "x"] := by
-  exact ⟨Tests.Guards.TraceOfBlockAmbiguity.traceOf_plain,
-    Tests.Guards.TraceOfBlockAmbiguity.traceOf_anchor,
+  exact ⟨L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_plain,
+    L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_anchor,
     by decide, wf_empty, wf_single_anchor⟩
 
 /-- The other checked ambiguity example is CONSEQUENTIAL: the empty
@@ -78,9 +78,9 @@ theorem alias_counterexample_refutes_wf_adequacy :
   intro hAdequacy
   have hBoth := hAdequacy []
     [Event.useAlias "x"]
-    Tests.Guards.TraceOfBlockAmbiguity.traceOf_plainStar
-    Tests.Guards.TraceOfBlockAmbiguity.traceOf_alias
-  exact Tests.Guards.TraceOfBlockAmbiguity.not_wf_alias
+    L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_plainStar
+    L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_alias
+  exact L4YAML.Tests.Guards.TraceOfBlockAmbiguity.not_wf_alias
     (hBoth.mp wf_empty)
 
 #print axioms L4YAML.Tests.Guards.PropertyRelativeTraceAdequacy.scanner_wf_lifts_without_uniqueness
