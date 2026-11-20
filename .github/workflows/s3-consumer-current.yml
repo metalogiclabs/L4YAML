@@ -1,0 +1,29 @@
+name: Current S3 minimum-consumer proof
+on:
+  push:
+    branches: [research/s3-consumer-current-20261121]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  current-owner-consumer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Confirm parent and pinned toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 14eb6dbab845d2ac61f171a9ed61906d3f9ffb2f HEAD
+          cat lean-toolchain
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile actual owner current consumer path
+        shell: bash
+        run: |
+          set -eo pipefail
+          lake build Tests.Guards.Proofs.S3ConsumerRetargetCurrent 2>&1 | tee s3-consumer.log
+          ! grep -E 'sorryAx|declaration uses .sorry|_native\\.native_decide\\.ax' s3-consumer.log
