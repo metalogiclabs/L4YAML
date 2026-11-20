@@ -1,0 +1,27 @@
+name: Right-Wall fixed-source Arm A — trace identity
+
+on:
+  push:
+    branches: [research/right-wall-paired-a-20261120]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arm-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Build exact after-case theorem (PR307 port)
+        run: |
+          git rev-parse HEAD
+          lake build Tests.Guards.Proofs.RightWallAfterCaseA
