@@ -1,9 +1,9 @@
-name: Right Wall — PR359 scoped route ablation
+name: Right Wall — lawful directive routes under corrected trace
 
 on:
   push:
     branches:
-      - research/right-wall-359-route-ablation-20261120
+      - research/right-wall-359-lawful-directives-20261120
   workflow_dispatch:
 
 permissions:
