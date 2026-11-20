@@ -1,0 +1,32 @@
+name: MathGraph Right-Wall Lean probes
+
+on:
+  push:
+    branches:
+      - research/right-wall-closure-20261120
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact experimental tree
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Lean toolchain manager
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check toolchain and source
+        run: |
+          elan toolchain install "$(cat lean-toolchain)"
+          lake --version
+          git rev-parse HEAD
+      - name: Compile Right-Wall witness and conditional closure theorem
+        run: |
+          lake build Tests.Guards.Proofs.RightWallClosure
