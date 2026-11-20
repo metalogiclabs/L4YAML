@@ -27,6 +27,21 @@ def scanSeed (input : String) : ScannerState :=
   | some '\uFEFF' => s.consumeBOM
   | _ => s
 
+/-- Optional BOM consumption leaves the already emitted token array intact. -/
+lemma scanSeed_preserves_tokens (input : String) :
+    (scanSeed input).tokens =
+      (((ScannerState.mk' input).emit .streamStart).tokens) := by
+  unfold scanSeed
+  dsimp only
+  cases h : (((ScannerState.mk' input).emit .streamStart).peek?) with
+  | none => simp [h]
+  | some c =>
+    by_cases hc : c = '\uFEFF'
+    · subst c
+      simpa [h] using (consumeBOM_preserves_tokens
+        ((ScannerState.mk' input).emit .streamStart))
+    · simp [h, hc]
+
 /-- The seed contains only the streamStart token; a BOM does not emit a token. -/
 lemma seed_tokens_only_streamStart (input : String) :
     ∀ t ∈ (scanSeed input).tokens.toList, t.val = .streamStart := by
@@ -37,11 +52,8 @@ lemma seed_tokens_only_streamStart (input : String) :
     simp [ScannerState.mk', ScannerState.emit] at ht
     simp [ht]
   intro t ht
-  unfold scanSeed at ht
-  split at ht
-  · rw [consumeBOM_preserves_tokens] at ht
-    exact h0 t ht
-  · exact h0 t ht
+  rw [scanSeed_preserves_tokens] at ht
+  exact h0 t ht
 
 /-- True global-induction BASE CASE: the executable scanner's real seed
     carries the event-annotated empty stream and the source-grammar route.
