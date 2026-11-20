@@ -1,0 +1,33 @@
+name: Owner integration TraceWellFormed counterexample
+on:
+  push:
+    branches: [research/owner-tracewf-refutation-20261121]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  kernel-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Pin actual historical logic and current owner parent
+        run: |
+          git rev-parse HEAD HEAD^{tree}
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 29f20ab3947dacef278808153130ff7fcd1861b4
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Node.lean)" = 49df0e029ac02f71595bee51b2691c23e800742e
+          test "$(git rev-parse HEAD:L4YAML/Parser/Composition.lean)" = 50634c48585752c5b27d99a153a1f030c82e700a
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Build original refutation and owner-consumer theorem
+        run: |
+          lake build Tests.Guards.Proofs.TraceOfBlockAmbiguity
+      - name: Require a full native run and no sorry in checked new proofs
+        run: |
+          lake env lean Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean | tee /tmp/owner-tracewf.log
+          ! grep -E "sorryAx|declaration uses .sorry" /tmp/owner-tracewf.log
