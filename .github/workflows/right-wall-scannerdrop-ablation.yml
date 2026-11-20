@@ -1,0 +1,27 @@
+name: Right-Wall diagnostic — retire scannerDrop
+
+on:
+  push:
+    branches: [research/right-wall-scanner-drop-ablation-20261120]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Record exact tree and compile main S3 proof path
+        run: |
+          git rev-parse HEAD
+          lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge
