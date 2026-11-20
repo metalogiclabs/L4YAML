@@ -1,0 +1,55 @@
+name: Claim adequacy — planned Group 7.7 countertheorem (pinned)
+
+on:
+  push:
+    branches: [research/l4yaml-capstone-contract-refutation-20261121]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-source-capstone-refutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Assert exact original contract and proof inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor aeacc60258b89fc1c5bb34b6f0ba9a5286801c02 HEAD
+          test "$(git rev-parse HEAD:EXPERIMENT.md)" = f5e3123adc1fe737c39484a6ba34e66245cef106
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 29f20ab3947dacef278808153130ff7fcd1861b4
+          test "$(git rev-parse HEAD:Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean)" = 663efa67055d726aca1e17836b9bb735c197cfff
+          test "$(git rev-parse HEAD:L4YAML/Parser/Composition.lean)" = 50634c48585752c5b27d99a153a1f030c82e700a
+          cat lean-toolchain
+          echo "experiment contract, current trace grammar, refutation and native parser pinned"
+      - name: Install pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Compile original checked ambiguity and parser
+        shell: bash
+        run: |
+          set -o pipefail
+          lake build Tests.Guards.Proofs.TraceOfBlockAmbiguity L4YAML.Parser.Composition 2>&1 | tee original-dependencies.log
+      - name: Kernel check direct planned-capstone countertheorem
+        shell: bash
+        run: |
+          set -o pipefail
+          lake env lean Tests/Guards/Proofs/CapstoneContractRefutation.lean 2>&1 | tee contract-refutation.log
+          ! grep -E 'sorryAx|declaration uses .sorry' contract-refutation.log
+          echo "lean verified the finite countertheorem and printed axiom profiles"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-capstone-contract-logs
+          path: |
+            original-dependencies.log
+            contract-refutation.log
+          if-no-files-found: ignore
