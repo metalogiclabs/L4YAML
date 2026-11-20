@@ -874,18 +874,11 @@ lemma TLYamlStream.explicitRoute {s s₁ s₂ s₃ s' : SurfPos} {e eb : List Ev
     (hde : SCDirectivesEnd s₂ s₃) (hb : TLExplicitBody s₃ s' eb) :
     TLYamlStream s s' (e ++ .beginDocument :: eb) := by
   simpa using TLYamlStream.implicitContinue s s₁ s₂ s' s' e (.beginDocument :: eb) [] h hp
-    (TOpt.some _ _ _ (TLAnyDocument.explicit _ _ _
-      (TLExplicitDocument.withContent s₂ s₃ s' eb hde hb))) (TStar.nil _)
+    (TOpt.some _ _ _ (TLExplicitDocument.withContent s₂ s₃ s' eb hde hb)) (TStar.nil _)
 
-/-- Directives then `---` body: the declarations follow the `beginDocument` (the twin of
-`h_dir_route`). -/
-lemma TLYamlStream.directiveRoute {s s₁ s₂ s₃ s₄ s' : SurfPos} {e ed eb : List Event}
-    (h : TLYamlStream s s₁ e) (hp : GStar SLDocumentPrefix s₁ s₂)
-    (hd : TPlus TLDirective s₂ s₃ ed) (hde : SCDirectivesEnd s₃ s₄) (hb : TLExplicitBody s₄ s' eb) :
-    TLYamlStream s s' (e ++ .beginDocument :: ed ++ eb) := by
-  simpa using TLYamlStream.implicitContinue s s₁ s₂ s' s' e (.beginDocument :: ed ++ eb) [] h hp
-    (TOpt.some _ _ _ (TLAnyDocument.directive _ _ _
-      (TLDirectiveDocument.mk s₂ s₃ s₄ s' ed eb hd hde hb))) (TStar.nil _)
+/-! RIGHT-WALL DIAGNOSTIC ABLATION: unqualified directiveRoute removed.
+The normative [211] grammar requires a separator for a subsequent directive document.
+This is not a production repair; its consumer is removed in the same experiment. -/
 
 /-- A star grows at its end. -/
 lemma TStar_snoc {P : TRel} {s₁ s₂ s₃ : SurfPos} {ed e : List Event}
