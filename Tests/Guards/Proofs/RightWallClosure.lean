@@ -36,6 +36,16 @@ lemma any_source_has_ValidYaml_record (source : String) :
     ∃ witness : ValidYaml, witness.input = source := by
   exact ⟨arbitraryValidYaml source, rfl⟩
 
+/-- Stronger property: the *same* grammar and value evidence can be carried
+    by a record whose source string is replaced arbitrarily. -/
+lemma rebind_source_preserves_grammar_and_value
+    (w : ValidYaml) (newSource : String) :
+    ∃ rebound : ValidYaml,
+      rebound.input = newSource ∧
+      rebound.grammar = w.grammar ∧
+      rebound.value = w.value := by
+  exact ⟨{ w with input := newSource }, rfl, rfl, rfl⟩
+
 -- Independent negative control: SOH is forbidden as a raw YAML source character.
 -- The existence of this record says nothing about YAML acceptance.
 example : ∃ witness : ValidYaml, witness.input = "\u0001" :=
@@ -82,5 +92,9 @@ lemma acceptance_iff_from_four_bridges
     obtain ⟨rawDocs, hParse⟩ :=
       backward_parser source ts hSurface hTrace hScan
     exact ⟨ts, rawDocs, hScan, hParse⟩
+
+#print axioms any_source_has_ValidYaml_record
+#print axioms rebind_source_preserves_grammar_and_value
+#print axioms acceptance_iff_from_four_bridges
 
 end L4YAML.Proofs.RightWallClosure
