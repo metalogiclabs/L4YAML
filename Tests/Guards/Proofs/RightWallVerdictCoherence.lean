@@ -10,6 +10,7 @@ module
 
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public import L4YAML.Proofs.Serialization.TokenEvents
+public import Tests.Guards.Proofs.TraceOfBlockAmbiguity
 
 @[expose] public section Blanket
 
@@ -93,6 +94,29 @@ lemma toy_semantic_validity_with_multiple_traces :
     have h : ([] : List Event) = [.defineAnchor "x"] :=
       hUnique [] [.defineAnchor "x"] (Or.inl rfl) (Or.inr rfl)
     cases h
+
+/-!
+Concrete old-grammar control (known to Nicolas, not a new reported issue):
+for "a\\n&x" the current grammar admits two different traces, each of
+which passes the serialization well-formedness predicate. This shows that
+trace identity and validity verdict are different obligations *in the real
+model*. It does not establish coherence for ALL traces of that input, and
+the second reading should disappear when YAML [211] is corrected.
+-/
+lemma old_grammar_distinct_traces_both_valid :
+    TraceOf "a\n&x" ([] : List Event) ∧
+    TraceOf "a\n&x" ([Event.defineAnchor "x"] : List Event) ∧
+    SerializationWellFormed ([] : List Event) ∧
+    SerializationWellFormed ([Event.defineAnchor "x"] : List Event) ∧
+    ([] : List Event) ≠ [Event.defineAnchor "x"] := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · exact L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_plain
+  · exact L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_anchor
+  · simp [SerializationWellFormed, WellFormedFrom]
+  · simp [SerializationWellFormed, WellFormedFrom]
+  · decide
+
+#print axioms old_grammar_distinct_traces_both_valid
 
 #print axioms uniqueness_implies_verdict_coherence
 #print axioms scanner_trace_closes_universal_if_verdict_coherent
