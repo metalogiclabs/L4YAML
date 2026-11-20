@@ -45,6 +45,13 @@ jobs:
           lake env lean Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean 2>&1 | tee qualified-proofs.log
           ! grep -E 'sorryAx|declaration uses .sorry|_native\\.native_decide\\.ax' qualified-proofs.log
           echo "conditional theorem and independent native parser guard both passed"
+      - name: Verify parser-qualified S3 and verdict-coherent consumer composition
+        shell: bash
+        run: |
+          set -o pipefail
+          lake build L4YAML.Proofs.Serialization.ScannerShape L4YAML.Proofs.Composition 2>&1 | tee retarget-dependencies.log
+          lake env lean Tests/Guards/Proofs/S3ConsumerRetarget.lean 2>&1 | tee retarget-proof.log
+          ! grep -E 'sorryAx|declaration uses .sorry|_native\\.native_decide\\.ax' retarget-proof.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -52,4 +59,6 @@ jobs:
           path: |
             qualified-build.log
             qualified-proofs.log
+            retarget-dependencies.log
+            retarget-proof.log
           if-no-files-found: ignore
