@@ -59,15 +59,15 @@ theorem native_scanDirective_preserves_eligible_history
   have hNew : ∀ t ∈ new, NonEmitting t.val := by
     intro t ht
     have hMember : t.val ∈ new.map Positioned.val :=
-      List.mem_map_of_mem Positioned.val ht
+      List.mem_map.mpr ⟨t, ht, rfl⟩
     rcases hCase with hSame | ⟨d, hOne, hDir⟩
     · have hNil : new.map Positioned.val = [] := by
-        apply List.append_cancel_left (a := vals sc)
+        apply List.append_cancel_left
         simpa [hValues] using hSame
       rw [hNil] at hMember
       simp at hMember
     · have hSingle : new.map Positioned.val = [d] := by
-        apply List.append_cancel_left (a := vals sc)
+        apply List.append_cancel_left
         simpa [hValues] using hOne
       have hVal : t.val = d := by
         simpa [hSingle] using hMember
