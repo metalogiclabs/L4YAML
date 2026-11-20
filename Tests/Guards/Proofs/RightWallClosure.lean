@@ -51,6 +51,11 @@ lemma rebind_source_preserves_grammar_and_value
 example : ∃ witness : ValidYaml, witness.input = "\u0001" :=
   any_source_has_ValidYaml_record "\u0001"
 
+-- Native parser controls: unlike the source-free record, the actual parser
+-- distinguishes a valid scalar from raw U+0001 (forbidden by YAML 1.2.2 §5.1).
+#guard (L4YAML.TokenParser.parseYaml "a").isOk
+#guard !(L4YAML.TokenParser.parseYaml "\u0001").isOk
+
 -- Positive control: even an ordinary scalar source gets the very same empty-node witness.
 example : ∃ witness : ValidYaml, witness.input = "a" :=
   any_source_has_ValidYaml_record "a"
