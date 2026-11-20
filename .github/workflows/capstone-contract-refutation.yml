@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          lake build Tests.Guards.Proofs.TraceOfBlockAmbiguity L4YAML.Parser.Composition 2>&1 | tee original-dependencies.log
+          lake build Tests.Guards.Proofs.TraceOfBlockAmbiguity Tests.Guards.Proofs.SuffixGapAudit L4YAML.Parser.Composition 2>&1 | tee original-dependencies.log
       - name: Kernel check direct planned-capstone countertheorem
         shell: bash
         run: |
