@@ -2,7 +2,7 @@ name: Global directive reachability research
 
 on:
   push:
-    branches: [research/global-directive-reachability]
+    branches: [research/global-directive-reachability, research/directive-paired-content]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,7 @@ jobs:
           git rev-parse HEAD HEAD^{tree}
           lake --version
           lake build L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary Tests.Guards.Proofs.RightWallReachability
+          lake build Tests.Guards.Proofs.RightWallContentProbe Tests.Guards.Proofs.RightWallContentAxioms
       - name: Repository default build
         run: lake build
       - name: Proof hygiene and complete serialization axiom sweep
