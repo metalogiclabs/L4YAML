@@ -19181,6 +19181,68 @@ end Statements
 
 end P138
 
+/-! ## P139: Right-Wall source-marker/event alignment diagnostic
+An executable *bounded* probe of the S-to-T bridge's missing event-shape
+clauses, never a proof that all reachable states satisfy DirectiveRoute.
+Read every scanner step of an accepted corpus row without modifying the
+scanner, parser or existing adversarial assertions. -/
+namespace P139
+open L4YAML L4YAML.Scanner P107 P113 P118 P135
+open L4YAML.Proofs.Serialization.TokenEvents (goOut)
+open L4YAML.Proofs.Serialization.SerializationWellFormed (Event)
+
+structure Tally where
+  acceptedRows : Nat := 0
+  eligible : Nat := 0
+  first : Nat := 0
+  postSuffix : Nat := 0
+  unexpected : List String := []
+  deriving Repr
+
+def lastDocumentMarker (ts : List (L4YAML.Positioned L4YAML.YamlToken)) :
+    Option Bool :=
+  (ts.filterMap fun t => match t.val with
+    | .documentStart => some false
+    | .documentEnd => some true
+    | _ => none).getLast?
+
+def tally (rows : List String) : Tally := Id.run do
+  let mut t : Tally := {}
+  for s in rows do
+    match scanFiltered s, P107.stepsOf s with
+    | .ok _, some steps =>
+      t := { t with acceptedRows := t.acceptedRows + 1 }
+      for (pre, _) in steps do
+        if pre.allowDirectives && pre.flowLevel == 0 then
+          let (ev, _) := goOut pre.tokens.toList []
+          t := { t with eligible := t.eligible + 1 }
+          match lastDocumentMarker pre.tokens.toList with
+          | none =>
+            t := { t with first := t.first + 1 }
+            if !ev.isEmpty then
+              t := { t with unexpected := t.unexpected ++
+                [s!"first with events={repr ev} on {repr (String.ofList (s.toList.take 80))}"] }
+          | some true =>
+            t := { t with postSuffix := t.postSuffix + 1 }
+            if ev.getLast? != some Event.endDocument then
+              t := { t with unexpected := t.unexpected ++
+                [s!"post-suffix with last={repr ev.getLast?} on {repr (String.ofList (s.toList.take 80))}"] }
+          | some false =>
+            t := { t with unexpected := t.unexpected ++
+              [s!"directive-eligible after documentStart on {repr (String.ofList (s.toList.take 80))}"] }
+    | _, _ => pure ()
+  return t
+end P139
+
+namespace P139Test
+def testSourceEventAlignment (state : IO.Ref TestCollector) : IO Unit := do
+  let t := P139.tally (P113.allRows ++ P118.extraRows ++ P135.extraRows)
+  IO.println s!"P139 {repr t}"
+  check state "P139 source/event alignment at all sampled directive-eligible scanner states"
+    (t.unexpected.isEmpty && t.eligible == t.first + t.postSuffix
+      && t.first > 0 && t.postSuffix > 0)
+end P139Test
+
 namespace P138Test
 def testContentProducerLineStart (state : IO.Ref TestCollector) : IO Unit := do
   let t := P138.tally (P113.allRows ++ P118.extraRows ++ P135.extraRows)
@@ -19499,6 +19561,7 @@ def collectTests : IO VerifiedSuiteResult := do
   P136Test.testDepth0Parks state
   P137Test.testContentStepEvents state
   P138Test.testContentProducerLineStart state
+  P139Test.testSourceEventAlignment state
   P131Test.testOpenCarrierShadow state
   let results ← finish state
   return { name := "adversarialinstantiation",
