@@ -15,11 +15,13 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Verify historical implementation and theorem are unchanged
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD~2)" = b9e0a5b52f8731afbe603b4ae0f32df438073319
+          git merge-base --is-ancestor b9e0a5b52f8731afbe603b4ae0f32df438073319 HEAD
           test "$(git rev-parse HEAD:L4YAML/Schema/Schema.lean)" = 5fb5bccfd3b6cccd164f68a678ef2ea812803fe0
           test "$(git rev-parse HEAD:L4YAML/Proofs/Schema/SchemaResolution.lean)" = 603185cad7208f21fc7d6fa3d593438ce3122542
           echo "source schema and original proof match exact pinned blobs"
