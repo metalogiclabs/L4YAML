@@ -1,0 +1,26 @@
+name: Exact right-wall grammar and consumer checks
+on:
+  push:
+    branches: [test/right-wall-grammar]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-lean-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Exact source identity
+        run: |
+          git rev-parse HEAD HEAD^{tree}
+          lake --version
+      - name: Whole-input grammar admission and native controls
+        run: lake build Tests.Guards.Proofs.UpstreamColonTrace Tests.Guards.Proofs.UpstreamColonRuntime
+      - name: Actual forward and reverse consumer composition
+        run: lake build Tests.Guards.Proofs.AcceptedTraceContract

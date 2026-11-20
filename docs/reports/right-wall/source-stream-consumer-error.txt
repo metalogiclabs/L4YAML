@@ -1,0 +1,15 @@
+Tests/Guards/Proofs/SourceStreamConsumerPrice.lean:20:8: error: Application type mismatch: The argument
+  SLAnyDocument.bare sp_mid sp_m
+    (SLBareDocument.mk sp_mid sp_m
+      (SBlockNode.flowInBlock 0 YamlContext.blockIn sp_mid sp_br sp_ne sp_m h_sep
+        (SFlowNode.content 0 YamlContext.flowOut sp_br sp_ne h_content) h_ssl))
+has type
+  SLAnyDocument sp_mid sp_m
+but is expected to have type
+  SLExplicitDocument sp_mid sp_m
+in the application
+  GOpt.some sp_mid sp_m
+    (SLAnyDocument.bare sp_mid sp_m
+      (SLBareDocument.mk sp_mid sp_m
+        (SBlockNode.flowInBlock 0 YamlContext.blockIn sp_mid sp_br sp_ne sp_m h_sep
+          (SFlowNode.content 0 YamlContext.flowOut sp_br sp_ne h_content) h_ssl)))

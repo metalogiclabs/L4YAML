@@ -1,0 +1,21 @@
+diff --git a/L4YAML/Surface/Document.lean b/L4YAML/Surface/Document.lean
+index 9d0a2aa..8c8eae6 100644
+--- a/L4YAML/Surface/Document.lean
++++ b/L4YAML/Surface/Document.lean
+@@ -164,13 +164,12 @@ inductive SLYamlStream : SurfPos → SurfPos → Prop where
+       GOpt SLAnyDocument s₃ s₄ →
+       GStar SLDocumentSuffix s₄ s' →
+       SLYamlStream s s'
+-  /-- Implicit continuation: previous stream + prefix(es) + any document.
+-      Matches spec [211] `l-document-prefix* l-any-document?` branch.
+-      This includes bare documents (no `---` marker). -/
++  /-- Without a document-end suffix, the next document must be explicit.
++      YAML 1.2.2 [211] does not allow another unseparated bare document. -/
+   | implicitContinue (s s₁ s₂ s₃ s' : SurfPos) :
+       SLYamlStream s s₁ →
+       GStar SLDocumentPrefix s₁ s₂ →
+-      GOpt SLAnyDocument s₂ s₃ →
++      GOpt SLExplicitDocument s₂ s₃ →
+       GStar SLDocumentSuffix s₃ s' →
+       SLYamlStream s s'
+   /-- Scanner content absorption: previous stream + opaque scanned content
