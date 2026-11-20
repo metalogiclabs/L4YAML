@@ -1,0 +1,31 @@
+name: Right-Wall directive route proof carrier
+
+on:
+  push:
+    branches:
+      - research/right-wall-359-provenance-carrier-20261120
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  route-proofs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout fork and YAML corpus
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Show verified source
+        run: |
+          git rev-parse HEAD
+          elan toolchain install "$(cat lean-toolchain)"
+          lake --version
+      - name: Prove first or suffix route and the conditional consumer
+        run: lake build Tests.Guards.Proofs.RightWallRouteCarrier
