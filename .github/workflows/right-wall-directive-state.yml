@@ -31,4 +31,4 @@ jobs:
       - name: Compile unchanged adversarial cases with strengthened route premises
         run: lake build adversarialinstantiation
       - name: Execute full existing adversarial suite
-        run: lake run adversarialinstantiation
+        run: lake exe adversarialinstantiation
