@@ -10394,8 +10394,7 @@ lemma structural_dispatch_to_pending
         SLYamlStream.implicitContinue sp_start sp sp sp_end sp_end
           h_stream (GStar.nil _)
           (GOpt.some sp sp_end
-            (SLAnyDocument.explicit sp sp_end
-              (SLExplicitDocument.withContent sp sp' sp_end h_marker h_content)))
+            (SLExplicitDocument.withContent sp sp' sp_end h_marker h_content))
           (GStar.nil _))
       -- Item 223: the `---` park's rung, at both of this constructor's two
       -- producers.  `scanDocumentStart` re-arms and clears in one scan.
