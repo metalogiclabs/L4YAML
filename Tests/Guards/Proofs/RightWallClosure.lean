@@ -9,6 +9,7 @@ module
 public import L4YAML.Spec.Grammar
 public import L4YAML.Proofs.Serialization.ExecutableBoundary
 public import L4YAML.Proofs.Serialization.TraceOf.Document
+public meta import L4YAML.Parser.Composition
 
 @[expose] public section
 
