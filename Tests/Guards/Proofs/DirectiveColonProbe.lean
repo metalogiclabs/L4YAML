@@ -4,6 +4,7 @@ Global hRoute remains UNKNOWN until the annotated grammar decides the case. -/
 module
 public import L4YAML.Proofs.Serialization.TraceOf.Reachability
 public import L4YAML.Parser.TokenParser
+public import L4YAML.Scanner.IndexedDispatch
 public meta import L4YAML.Proofs.Serialization.TraceOf.Reachability
 public meta import L4YAML.Parser.TokenParser
 @[expose] public section Blanket
@@ -71,6 +72,16 @@ private def disagrees (body : String) : Bool :=
 
 #guard (["? -\n  :", "?\n -\n :", "?\n  -\n  :", "?\n- -\n  :"] : List String).all
   (fun body => !(scanFiltered (body ++ "\n...\n%YAML 1.2\n---\ny")).isOk)
+-- Indexed scanner parity on the same four native source witnesses; this
+-- checks the separate indexed implementation rather than assuming parity.
+#guard (["? -\n  :", "?\n -\n :", "?\n  -\n  :", "?\n- -\n  :"] : List String).all
+  (fun body => !(L4YAML.Indexed.ScannerStateIx.scanIx
+    (body ++ "\n...\n%YAML 1.2\n---\ny")).isOk)
+-- Legitimate explicit mapping values must remain accepted in both scanners.
+#guard (scanFiltered "? a\n: b").isOk
+#guard (L4YAML.Indexed.ScannerStateIx.scanIx "? a\n: b").isOk
+#guard (scanFiltered "- ? a\n  : b").isOk
+#guard (L4YAML.Indexed.ScannerStateIx.scanIx "- ? a\n  : b").isOk
 -- Native minimal-body reproduction, independent of the following directive.
 #guard !(scanFiltered "? -\n  :").isOk
 #guard !((scanFiltered "? -\n  :").bind (fun ts => L4YAML.TokenParser.parseStream ts)).isOk
