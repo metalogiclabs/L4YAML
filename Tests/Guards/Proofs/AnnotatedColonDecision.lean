@@ -1,4 +1,4 @@
-/-!
+/-
 Seven-byte source-indexed annotated grammar discriminator, 2026-11-21.
 
 Source baseline: e389fcb62b95b9da954bd81c14427d56e3417dfd.
