@@ -154,10 +154,11 @@ def census : Nat × Nat × Nat × Nat × Nat := Id.run do
     all `… - ? a⏎- : b` programs, i.e. the `- : b` empty-key divergence libyaml
     refuses, recorded at item 333) and the rest → other refusals; `noMidOk`
     938 → 934. -/
--- Measurement-only instrumentation, with the original gate retained so a
--- changed scanner reading cannot silently pass without a measured re-pin.
-#eval census
-#guard census == (35937, 8514, 0, 0, 934)
+/-! **2026-11-21 sequence-floor repair, source-measured at #44788236288.**
+    Native finite census 35,937 programs; accepted 8,514 → 8,508;
+    reached/accepted mid-line route stays zero and noMid control stays 934.
+    Measured from this source before promoting the expected value. -/
+#guard census == (35937, 8508, 0, 0, 934)
 
 /-- What refuses a program: the error's constructor name, or `ACCEPTED`. -/
 partial def refusal (input : String) : String :=
