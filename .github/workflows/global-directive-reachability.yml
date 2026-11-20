@@ -1,0 +1,36 @@
+name: Global directive reachability research
+
+on:
+  push:
+    branches: [research/global-directive-reachability]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checked-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install repository toolchain
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Source identity and integrated proof profiles
+        run: |
+          git rev-parse HEAD HEAD^{tree}
+          lake --version
+          lake build L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary Tests.Guards.Proofs.RightWallReachability
+      - name: Repository default build
+        run: lake build
+      - name: Proof hygiene and complete serialization axiom sweep
+        run: |
+          lake run check-theorem-keyword
+          lake run check-serialization-proofs
+      - name: Unchanged protected adversarial cases
+        run: lake exe adversarialinstantiation

@@ -153,9 +153,10 @@ example {sc : ScannerState} {sp_start sp : SurfPos}
     (h_noek : sc.inFlow = false → sc.explicitKeyLine = none)
     -- Item 208: and the STACK face, the third of the same shape.
     (h_ntop : sc.inFlow = false → sc.currentIndent < 0)
-    (h_gate : sc.inFlow = false → sp.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#')) :
+    (h_gate : sc.inFlow = false → sp.col ≠ 0 → ¬(Proofs.ScannerCoupling.CommentOk sc ∧ sc.peek? = some '#'))
+    (h_seed_tokens : sc.inFlow = false → ∀ t ∈ sc.tokens.toList, t.val = .streamStart) :
     PendingNode sc false sp_start sp sp :=
-  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop h_gate
+  PendingNode.noPending sp_start sp h_col h_arm h_nodoc h_noek h_ntop h_gate h_seed_tokens
 
 -- The flow producers' payment is the refutation, from the one fact all
 -- seven sites hold: depth ≥ 1 makes the face's `inFlow = false` premise

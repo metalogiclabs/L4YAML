@@ -130,13 +130,25 @@ def run (o : Options) : IO UInt32 := do
   let (_, sorryLog) ← runLogged rootS "lake" #["env", "lean", (work / "SerializationSorryProbe.lean").toString]
   IO.FS.writeFile (work / "sorry.log") sorryLog
   let mut sites : List String := []
+  let mut modules : Array String := #["L4YAML.Proofs.Serialization"]
   for f in #[root / "L4YAML" / "Proofs" / "Serialization.lean"] ++ (← leanFilesUnder (root / "L4YAML" / "Proofs" / "Serialization")) do
-    sites := sites ++ axiomSites (← IO.FS.readFile f)
+    let fileSites := axiomSites (← IO.FS.readFile f)
+    sites := sites ++ fileSites
+    if !fileSites.isEmpty then
+      let modName := (((f.toString.drop (rootS.length + 1)).toString.dropEnd 5).toString).replace "/" "."
+      if !modules.contains modName then modules := modules.push modName
   IO.FS.writeFile (work / "sites.txt") ("\n".intercalate sites ++ (if sites.isEmpty then "" else "\n"))
   if sites.length < o.minSites then
     IO.println s!"axiom-site sweep found {sites.length} sites, expected >= {o.minSites}"
     return 1
-  let probe := "import L4YAML.Proofs.Serialization\n" ++ "\n".intercalate (sites.map (s!"#print axioms {·}")) ++ "\n"
+  -- A print site may live in a module the umbrella does not re-export.
+  -- Import its defining module explicitly; do not silently omit that site.
+  let (mc, _) ← runLogged rootS "lake" (#["build"] ++ modules)
+  if mc != 0 then
+    IO.eprintln "scripts-check-serialization-proofs: a print site's module failed to build"
+    return 2
+  let probe := "\n".intercalate (modules.toList.map (s!"import {·}")) ++ "\n" ++
+    "\n".intercalate (sites.map (s!"#print axioms {·}")) ++ "\n"
   IO.FS.writeFile (work / "SerializationAxiomProbe.lean") probe
   let (_, axLog) ← runLogged rootS "lake" #["env", "lean", (work / "SerializationAxiomProbe.lean").toString]
   IO.FS.writeFile (work / "axioms.log") axLog

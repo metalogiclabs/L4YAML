@@ -299,7 +299,7 @@ def expectedCensus : String :=
 -- the twin of `content_dispatch_routed`'s line-start sites; unreached until the depth-0 fold.
 -- 2026-11-19 (item 528, β PR 2): corrHyp 630 → 632 — the structural steps split by source park (StreamBridge: five lemmas
 -- hold `ScannerSurfCorr`, were three); they conclude the T pair, not `SLYamlStream`.
-  "corrHyp=633 streamConcl=92 both=45 free=0 pairConcl=1 held=3 pairAny=8"
+  "corrHyp=637 streamConcl=92 both=45 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=

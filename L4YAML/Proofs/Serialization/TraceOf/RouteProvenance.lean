@@ -86,10 +86,10 @@ lemma closeDirective {start here directiveEnd markerEnd finish : SurfPos}
     simpa [List.append_assoc] using
       TLYamlStream.directiveAfterSuffixRoute hPrev hSuffix hPrefix hDir hMark hBody
 
-#print axioms initial
-#print axioms throughComments
-#print axioms afterDocumentEnd
-#print axioms closeDirective
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallRoute.initial
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallRoute.throughComments
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallRoute.afterDocumentEnd
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallRoute.closeDirective
 
 end L4YAML.Proofs.Serialization.TraceOf.RightWallRoute
 end Blanket

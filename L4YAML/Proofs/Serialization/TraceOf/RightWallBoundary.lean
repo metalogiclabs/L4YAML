@@ -24,7 +24,7 @@ open L4YAML.Proofs.Serialization.EventsOf (declaredHandle)
     scanned source marker create BOTH the new closed trace and its future
     directive-origin certificate. The event equality comes from the existing
     `TSLYamlStream` token-to-event coupling, not a caller-provided hRoute. -/
-theorem after_document_end_rebases_both
+lemma after_document_end_rebases_both
     {start before markerEnd here : SurfPos} {sc : ScannerState}
     {ev : List Event}
     (hClosed : TSLYamlStream start sc before ev [.endDocument] [])
@@ -37,13 +37,14 @@ theorem after_document_end_rebases_both
       hClosed.stream hMarker hComments⟩
   simpa using hClosed.events
 
-/-- The first directive consumes the actual initial/source prefix rather
-    than an unqualified stream continuation.  The caller has to produce
-    `hPrefix` from the real source-level noPending park. -/
-theorem first_directive_from_prefix
-    {start park landing : SurfPos} {s_prep s' : ScannerState}
-    (hClosed : TSLYamlStream start s_prep park [] [] [])
-    (hPrefix : GStar SLDocumentPrefix start park)
+/-- The first directive consumes the source park supplied by the native
+S-side scanner induction. Empty events and the lawful prefix are derived;
+there is no free hRoute or hPrefix argument at this consumer. -/
+lemma first_directive_from_source_park
+    {start park landing : SurfPos} {sc s_prep s' : ScannerState} {c : Char}
+    (hPending : L4YAML.Proofs.StreamAccum.PendingNode sc false start park park)
+    (hNoFlow : sc.inFlow = false)
+    (hPreprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
     (hcol : park.col = 0)
     (hpre : SSLComments park landing)
     (hcorr : ScannerSurfCorr s_prep landing)
@@ -53,12 +54,12 @@ theorem first_directive_from_prefix
       TSLYamlStream start s' landing [] [] (declaredHandle (span landing stop)).toList ∧
       TPendingNode start true landing stop [] []
         (declaredHandle (span landing stop)).toList := by
-  exact TPendingNode.directive_step_noPending hClosed
-    (Or.inl ⟨rfl, hPrefix⟩) hcol hpre hcorr hpeek hok
+  exact TPendingNode.directive_step_source_noPending hPending hNoFlow
+    hPreprocess hcol hpre hcorr hpeek hok
 
 /-- A later directive can start only after a source-proven document suffix.
     No input to this theorem is named or typed as an unconstrained hRoute. -/
-theorem next_directive_after_document_end
+lemma next_directive_after_document_end
     {start before markerEnd park landing : SurfPos} {s_prep s' : ScannerState}
     {ev : List Event}
     (hClosed : TSLYamlStream start s_prep before ev [.endDocument] [])
@@ -81,7 +82,7 @@ theorem next_directive_after_document_end
 
 /-- Once a directive run exists, the previous pending node itself supplies
     the legally-originated route and exact accumulated events. -/
-theorem next_directive_in_existing_run
+lemma next_directive_in_existing_run
     {start park scanned landing : SurfPos} {s_prep s' : ScannerState}
     {ev : List Event} {handles : List String}
     (hClosed : TSLYamlStream start s_prep park ev [] handles)
@@ -100,10 +101,10 @@ theorem next_directive_in_existing_run
     exact TPendingNode.directive_step_run hClosed hOrigin hAccumulator
       hpre hcorr hpeek hok
 
-#print axioms after_document_end_rebases_both
-#print axioms first_directive_from_prefix
-#print axioms next_directive_after_document_end
-#print axioms next_directive_in_existing_run
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary.after_document_end_rebases_both
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary.first_directive_from_source_park
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary.next_directive_after_document_end
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary.next_directive_in_existing_run
 
 end L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary
 end Blanket

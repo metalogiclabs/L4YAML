@@ -1146,7 +1146,7 @@ def expectedLine : String :=
   -- 2026-10-28 (item 386): nodes 13665 → 13675 — the `-` opener's `h_lvl_old` beside the value-line packs it walks; no pack/row moved.
 -- Item 519: punt 21 → 19, chain 53 → 55, levelVar 51 → 53, touched 147 → 149 — the two flow-close `h_vpack`
 -- punts are PAID chains from `FlowBaseRoutes.vslot` (every mark of the open state, read at the close).
-  "packs=12 framesOn=7 params=33 paramLemmas=20 apps=51 rows=168 ctorRows=80 paramRows=88 punt=19 stamp=24 empty=0 relay=35 step=11 via=4 chain=55 route=2 frames=3 tail=2 other=6 alt=7 held=8 levelVar=56 none=15 spendTail=10 lemmas=21 helpers=[frameChainUnion,frameChainUnionD] touched=149 nodes=14492"
+  "packs=12 framesOn=7 params=33 paramLemmas=20 apps=51 rows=168 ctorRows=80 paramRows=88 punt=19 stamp=24 empty=0 relay=35 step=11 via=4 chain=55 route=2 frames=3 tail=2 other=6 alt=7 held=8 levelVar=56 none=15 spendTail=10 lemmas=21 helpers=[frameChainUnion,frameChainUnionD] touched=149 nodes=14802"
 
 /-! ## §4 The reading -/
 

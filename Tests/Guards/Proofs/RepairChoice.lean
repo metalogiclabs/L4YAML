@@ -277,6 +277,7 @@ def expectedParkUsers : List Name :=
    `L4YAML.Proofs.StreamAccum.PendingNode.dirRoute,
    `L4YAML.Proofs.StreamAccum.PendingNode.nic0,
    `L4YAML.Proofs.StreamAccum.PendingNode.nil_gate_of_allowDirectives,
+   `L4YAML.Proofs.StreamAccum.PendingNode.virgin_tokens,
    `L4YAML.Proofs.StreamAccum.accum_block_pending,
    `L4YAML.Proofs.StreamAccum.accum_content_pending,
    `L4YAML.Proofs.StreamAccum.accum_flow_open_depth0,
@@ -303,7 +304,7 @@ def expectedEmptyClass : String := "empty=10 onThread=6"
 -- 2026-10-24 (B3 [66] col-0 threading): users 10 → 12 (`close_with_sslFrom`, `nil_gate_of_allowDirectives`);
 -- the three readings now separate: one of the twelve reaches the park only through a generated
 -- auxiliary (rawRefs 11), and one does not apply it at full arity (fullApps 11).
-def expectedParkReadings : String := "users=12 rawRefs=11 fullApps=11"
+def expectedParkReadings : String := "users=13 rawRefs=12 fullApps=12"
 
 /-- The park's arity, pinned: a change to it re-aims `fullApps`.  Item 293
     re-aims it: the park reads `flag ∨ live` (`pendingFlow.h_live0`). -/

@@ -58,7 +58,7 @@ lemma seed_tokens_only_streamStart (input : String) :
 /-- True global-induction BASE CASE: the executable scanner's real seed
     carries the event-annotated empty stream and the source-grammar route.
     The optional BOM is covered by the source prefix, not ignored. -/
-theorem scanner_seed_has_directive_route (input : String) :
+lemma scanner_seed_has_directive_route (input : String) :
     ∃ sp : SurfPos,
       ScannerSurfCorr (scanSeed input) sp ∧
       TSLYamlStream ⟨input.toList, 0⟩ (scanSeed input) sp [] [] [] ∧
@@ -75,8 +75,8 @@ theorem scanner_seed_has_directive_route (input : String) :
   refine ⟨sp, hCorr, ⟨hPrefixStream, ?_⟩, Or.inl ⟨rfl, hPrefix⟩⟩
   simpa using hSeed.events
 
-#print axioms seed_tokens_only_streamStart
-#print axioms scanner_seed_has_directive_route
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallSeed.seed_tokens_only_streamStart
+#print axioms L4YAML.Proofs.Serialization.TraceOf.RightWallSeed.scanner_seed_has_directive_route
 
 end L4YAML.Proofs.Serialization.TraceOf.RightWallSeed
 end Blanket

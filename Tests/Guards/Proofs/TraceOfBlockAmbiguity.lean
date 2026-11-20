@@ -11,6 +11,20 @@ open L4YAML L4YAML.Surface L4YAML.CharPredicates
 open L4YAML.Proofs.Serialization.SerializationWellFormed
 open L4YAML.Proofs.Serialization.TraceOf
 
+/-- The exact superseded implicit-continuation rule, kept only as a
+negative control. Production TLYamlStream now requires TLExplicitDocument;
+these old ambiguity witnesses must not be misreported against that type. -/
+inductive LegacyStream : TRel where
+  | current (s s' : SurfPos) (ev : List Event) :
+      TLYamlStream s s' ev → LegacyStream s s' ev
+  | implicitContinue (s s₁ s₂ s₃ s' : SurfPos) (e₀ e₁ e₂ : List Event) :
+      TLYamlStream s s₁ e₀ → GStar SLDocumentPrefix s₁ s₂ →
+      TOpt TLAnyDocument s₂ s₃ e₁ → TStar TLDocumentSuffix s₃ s' e₂ →
+      LegacyStream s s' (e₀ ++ e₁ ++ e₂)
+
+def LegacyTraceOf (input : String) (ev : List Event) : Prop :=
+  ∃ col, LegacyStream ⟨input.toList, 0⟩ ⟨[], col⟩ ev
+
 private lemma ns_x : isNsAnchorChar 'x' := by unfold isNsAnchorChar isNsChar; decide
 private lemma nsc_a : isNsChar 'a' := by unfold isNsChar; decide
 private lemma nsc_amp : isNsChar '&' := by unfold isNsChar; decide
@@ -20,7 +34,7 @@ private lemma notInd_a : ¬ isIndicatorProp 'a' := by unfold isIndicatorProp; de
 private lemma eofComments (col : Nat) : SSLComments ⟨[], col⟩ ⟨[], col⟩ :=
   .withComment _ _ _ (.noSep _ _ (.eof col)) (.nil _)
 
-/-! ## Refutation 1 (OPEN — row 19 `implicitContinue`): `a⏎&x` -/
+/-! ## Historical refutation 1 (superseded row 19 `implicitContinue`): `a⏎&x` -/
 section ImplicitContinue
 
 abbrev u0 : SurfPos := ⟨['a', '\n', '&', 'x'], 0⟩
@@ -53,7 +67,7 @@ lemma readPlain : TLYamlStream u0 u4 [] :=
     (.nil _)
 
 /-- Reading B: bare document `a`, then `implicitContinue` with a second BARE document `&x`. -/
-lemma readAnchor : TLYamlStream u0 u4 [Event.defineAnchor "x"] :=
+lemma readAnchor : LegacyStream u0 u4 [Event.defineAnchor "x"] :=
   .implicitContinue u0 u2 u2 u4 u4 [] [Event.defineAnchor "x"] []
     (.single u0 u0 u2 u2 [] [] (.nil _)
       (.some _ _ _ (.bare _ _ _ (.mk _ _ _
@@ -82,17 +96,21 @@ lemma readAnchor : TLYamlStream u0 u4 [Event.defineAnchor "x"] :=
     (.nil _)
 
 lemma traceOf_plain : TraceOf "a\n&x" [] := ⟨2, readPlain⟩
-lemma traceOf_anchor : TraceOf "a\n&x" [Event.defineAnchor "x"] := ⟨2, readAnchor⟩
+lemma traceOf_anchor : LegacyTraceOf "a\n&x" [Event.defineAnchor "x"] := ⟨2, readAnchor⟩
 
-/-- `traceOf_unique` is FALSE as stated while `implicitContinue` admits a bare document. -/
+/-- Historical refutation: the superseded grammar's implicit continuation
+admits a bare document. This is not a refutation of the corrected grammar. -/
 lemma traceOf_unique_refuted :
     ¬ (∀ (input : String) (ev₁ ev₂ : List Event),
-        TraceOf input ev₁ → TraceOf input ev₂ → ev₁ = ev₂) :=
-  fun h => by cases h _ _ _ traceOf_plain traceOf_anchor
+        LegacyTraceOf input ev₁ → LegacyTraceOf input ev₂ → ev₁ = ev₂) :=
+  fun h => by
+    have he := h "a\n&x" [] [Event.defineAnchor "x"]
+      ⟨2, .current _ _ _ readPlain⟩ traceOf_anchor
+    cases he
 
 end ImplicitContinue
 
-/-! ## Refutation 2 (OPEN at the stream layer — row 19 `implicitContinue` + autodetected `m`;
+/-! ## Historical refutation 2 (superseded stream rule — row 19 `implicitContinue` + autodetected `m`;
     the `[173]` tail half is CLOSED, see `literalB`): `a: |⏎   x⏎  &x b: *x` -/
 section LiteralTail
 
@@ -243,8 +261,8 @@ lemma secondDoc : TBlockNode 0 .blockIn v10 vEnd [Event.defineAnchor "x", Event.
         keyAnchoredB (GLit.mk _ 6) (aliasValue 3)))
 
 /-- Reading B at the stream layer: two bare documents joined by `implicitContinue`. -/
-lemma readTwoDocs : TLYamlStream v0 vEnd [Event.defineAnchor "x", Event.useAlias "x"] := by
-  have := TLYamlStream.implicitContinue v0 v10 v10 vEnd vEnd
+lemma readTwoDocs : LegacyStream v0 vEnd [Event.defineAnchor "x", Event.useAlias "x"] := by
+  have := LegacyStream.implicitContinue v0 v10 v10 vEnd vEnd
     [] [Event.defineAnchor "x", Event.useAlias "x"] []
     (.single v0 v0 v10 v10 [] [] (.nil _)
       (.some _ _ _ (.bare _ _ _ (.mk _ _ _ readOneEntryB))) (.nil _))
@@ -261,7 +279,7 @@ private lemma streamOf {s' : SurfPos} {ev : List Event} (h : TBlockNode 0 .block
 
 lemma traceOf_literalA : TraceOf "a: |\n   x\n  &x b: *x" [] := ⟨10, streamOf readOneEntry⟩
 lemma traceOf_literalB :
-    TraceOf "a: |\n   x\n  &x b: *x" [Event.defineAnchor "x", Event.useAlias "x"] :=
+    LegacyTraceOf "a: |\n   x\n  &x b: *x" [Event.defineAnchor "x", Event.useAlias "x"] :=
   ⟨10, readTwoDocs⟩
 
 end LiteralTail

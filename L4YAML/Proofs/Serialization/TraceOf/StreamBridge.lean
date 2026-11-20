@@ -177,6 +177,73 @@ lemma directive_step_noPending {sp_start sp sp_prep : SurfPos} {s_prep s' : Scan
   simpa [option_toList_reverse] using TPlus.mk _ _ _ _ [] (⟨scannedDirective_toSL hsd hbrk hssl, by rw [this]⟩ :
     TLDirective sp_prep sp_mid ((declaredHandle (span sp_prep sp')).toList.map .declareTag)) (TStar.nil _)
 
+/-- Preprocessing can append only block ends and reserved placeholders.
+Both are silent, including their effect on pending tag handles. -/
+lemma preprocess_goOut {sc prep : ScannerState} {c : Char}
+    (hpre : scanNextToken_preprocess sc = .ok (some (prep, c))) (p : List String) :
+    goOut prep.tokens.toList p = goOut sc.tokens.toList p := by
+  have hsave : ∀ (s : ScannerState) (q : List String),
+      goOut (saveSimpleKey s).tokens.toList q = goOut s.tokens.toList q := by
+    intro s q
+    rcases L4YAML.Proofs.StreamAccum.saveSimpleKey_tokens_shape s with h | ⟨t, ht, h⟩
+    · rw [h]
+    · simp [h, goOut_append, goOut, ht, tokenEvent]
+  have hunwind : ∀ (s : ScannerState) (col : Int) (q : List String),
+      goOut (unwindIndents s col).tokens.toList q = goOut s.tokens.toList q := by
+    intro s col q
+    obtain ⟨ends, ht, he⟩ := unwindIndents_tokens_append s col
+    have hends := goOut_blockEnds ends he [] (goOut s.tokens.toList q).2
+    simp only [List.append_nil] at hends
+    rw [ht, goOut_append, hends]
+    simp [goOut]
+  obtain ⟨u, skipped, hskip, hstate, hcases⟩ :=
+    L4YAML.Proofs.EntryBoundaryLayout.preprocess_save_elim hpre
+  rw [hstate, L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_tokens, hsave]
+  rcases hcases with rfl | rfl
+  · rw [ScannerCorrectness.skipToContent_preserves_tokens _ _ hskip]
+  · change goOut (unwindIndents skipped skipped.col).tokens.toList p = _
+    rw [hunwind, ScannerCorrectness.skipToContent_preserves_tokens sc skipped hskip]
+
+/-- The actual S-side induction now supplies the first-document route.
+There is no route, event-emptiness, or caller-invented fingerprint premise:
+the source park's scanner-token projection and the native preprocess equation
+establish the empty closed trace at this real directive consumer. -/
+lemma directive_step_source_noPending
+    {sp_start sp sp_prep : SurfPos} {sc s_prep s' : ScannerState}
+    {c : Char}
+    (hP : L4YAML.Proofs.StreamAccum.PendingNode sc false sp_start sp sp)
+    (hnoflow : sc.inFlow = false)
+    (hpreprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+    (h_col : sp.col = 0) (h_pre : SSLComments sp sp_prep)
+    (hcorr : ScannerSurfCorr s_prep sp_prep) (hpeek : s_prep.peek? = some '%')
+    (hok : scanDirective s_prep = .ok s') :
+    ∃ sp', ScannerSurfCorr s' sp' ∧
+      TSLYamlStream sp_start s' sp_prep [] [] (declaredHandle (span sp_prep sp')).toList ∧
+      TPendingNode sp_start true sp_prep sp' [] [] (declaredHandle (span sp_prep sp')).toList := by
+  have had : sc.allowDirectives = true :=
+    (L4YAML.Proofs.ScannerAllowDirectives.preprocess_preserves_allowDirectives
+      sc s_prep c hpreprocess).symm.trans
+        (L4YAML.Proofs.ScannerAllowDirectives.scanDirective_allowDirectives hok)
+  obtain ⟨hPrefix, hTokens⟩ := hP.virgin_tokens hnoflow had
+  have hEmpty : ∀ ts : List (Positioned YamlToken),
+      (∀ t ∈ ts, t.val = .streamStart) → goOut ts [] = ([], []) := by
+    intro ts
+    induction ts with
+    | nil => intro _; rfl
+    | cons t ts ih =>
+      intro hall
+      have ht := hall t (by simp)
+      simpa [goOut, ht, tokenEvent] using ih (fun u hu => hall u (by simp [hu]))
+  have hStream : TLYamlStream sp_start sp [] := by
+    simpa using TLYamlStream.single sp_start sp sp sp [] [] hPrefix
+      (TOpt.none _) (TStar.nil _)
+  have hS : TSLYamlStream sp_start s_prep sp [] [] [] :=
+    ⟨hStream, by
+      rw [preprocess_goOut hpreprocess [], hEmpty sc.tokens.toList hTokens]
+      rfl⟩
+  exact directive_step_noPending hS (Or.inl ⟨rfl, hPrefix⟩)
+    h_col h_pre hcorr hpeek hok
+
 /-- **`%`** inside a run: the run grows at its end, the handle (if named) joins the pending list. -/
 lemma directive_step_run {sp_start sp_block sp_scan sp_prep : SurfPos} {s_prep s' : ScannerState}
     {ev_c : List Event} {p : List String}
@@ -325,6 +392,30 @@ lemma docEnd_step {sp_start sp sp_prep : SurfPos} {s_prep s' : ScannerState} {ev
   exact ⟨sp', hcorr', ⟨TLYamlStream.extendComments hS'.stream h_col h_pre, by simpa using hS'.events⟩,
     TPendingNode.pendingDocEnd _ _ _ _ hm⟩
 
+/-- Close the actual pending document before scanning `...`. This produces
+the matched T park and fixes the old-token event prefix to `ev_c ++ ev_o`;
+neither the prefix equality nor an end-event shape is a new hypothesis. -/
+lemma docEnd_step_from_pending
+    {start block scan landing : SurfPos} {sc prep s' : ScannerState}
+    {ev_c ev_o : List Event} {c : Char}
+    (hS : TSLYamlStream start sc block ev_c ev_o [])
+    (hP : TPendingNode start false block scan ev_c ev_o [])
+    (hpreprocess : scanNextToken_preprocess sc = .ok (some (prep, c)))
+    (hcomments : SSLComments scan landing)
+    (hcorr : ScannerSurfCorr prep landing)
+    (rest : List Char) (hchars : landing.chars = '.' :: '.' :: '.' :: rest)
+    (hcol : landing.col = 0) (hok : scanDocumentEnd prep = .ok s') :
+    ∃ stop, ScannerSurfCorr s' stop ∧
+      TSLYamlStream start s' landing (ev_c ++ ev_o) [.endDocument] [] ∧
+      TPendingNode start false landing stop (ev_c ++ ev_o) [.endDocument] [] := by
+  have hclosed : TSLYamlStream start prep landing (ev_c ++ ev_o) [] [] :=
+    ⟨hP.close_with_ssl hS hcomments, by
+      rw [preprocess_goOut hpreprocess []]
+      simpa using hS.events⟩
+  exact docEnd_step hclosed hcol
+    (L4YAML.Proofs.StreamAccum.sslComments_refl_of_col0 hcol)
+    hcorr rest hchars hcol hok
+
 /-- **The content step at a line-start park** (item 529, the twin of `content_dispatch_routed`'s two
 sites): from `noPending` at `sp`, the depth-0 content dispatch parks as `pendingContent` (a scalar, an
 alias) or `pendingProps` (`&` / `!`), the step's events read off `accum_step_content_trace_out`;
@@ -386,6 +477,10 @@ lemma content_step_noPending {sp_start sp sp_prep sp_a : SurfPos} {s_prep s' : S
       (GStar.nil _)
 
 end TPendingNode
+
+#print axioms L4YAML.Proofs.Serialization.TraceOf.StreamBridge.TPendingNode.preprocess_goOut
+#print axioms L4YAML.Proofs.Serialization.TraceOf.StreamBridge.TPendingNode.directive_step_source_noPending
+#print axioms L4YAML.Proofs.Serialization.TraceOf.StreamBridge.TPendingNode.docEnd_step_from_pending
 
 /-- The bare-document route at the first document's line start: a completed `TBlockNode` at the park is
 the stream's `[210]` body (the twin of `nodocNodeRoute`). -/

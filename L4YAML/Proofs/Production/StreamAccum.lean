@@ -2041,7 +2041,12 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
       (h_ntop : sc.inFlow = false → sc.currentIndent < 0)
       -- `[66]` narrowed to col 0: the scanner's comment gate at this park, off a
       -- line start — the token that parked here is the last consumed char.
-      (h_gate : sc.inFlow = false → sp.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#')) :
+      (h_gate : sc.inFlow = false → sp.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#'))
+      -- Source/event correspondence at the genuinely virgin park. The native
+      -- seed pays this; every other noPending producer is inside a flow.
+      -- This is a projection of scanner tokens, not a route assumption.
+      (h_seed_tokens : sc.inFlow = false →
+        ∀ t ∈ sc.tokens.toList, t.val = .streamStart) :
       PendingNode sc false sp_start sp sp
   /-- Content token scanned (scalar, anchor, alias, tag).
       The gap sp_block → sp_scan contains SSeparate + content.
@@ -4259,6 +4264,25 @@ lemma ssl_comments_extend_suffixRun {sp_start sp sp_final : SurfPos}
   match h_sfx with
   | ⟨sp₁, sp₂, h_stream, h_plus, h_pre⟩ =>
     ⟨sp₁, sp₂, h_stream, h_plus, ssl_comments_extend_prefixes h_pre hcol h_ssl⟩
+
+/-- At a directive-eligible virgin park, the globally maintained source
+invariant supplies both the initial source prefix and its real token history. -/
+lemma PendingNode.virgin_tokens {sc : ScannerState} {sp_start sp : SurfPos}
+    (h : PendingNode sc false sp_start sp sp)
+    (h_noflow : sc.inFlow = false) (h_allow : sc.allowDirectives = true) :
+    GStar SLDocumentPrefix sp_start sp ∧
+      (∀ t ∈ sc.tokens.toList, t.val = .streamStart) := by
+  cases h with
+  | noPending _ _ _ _ h_nodoc _ _ _ h_seed_tokens =>
+    exact ⟨h_nodoc h_noflow, h_seed_tokens h_noflow⟩
+  | pendingDocEnd _ _ _ _ h_marker => cases h_marker
+  | pendingContent => exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingProps => exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingDocStart => exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingFlow => exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingBlockContent => exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingBlock => exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
+  | pendingMapValue => exact absurd h_allow (by simp [show sc.allowDirectives = false from by assumption])
 
 /-- **The directive-eligible park's `[211]` arm** (item 138).
 
@@ -14003,7 +14027,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
              ⟨_, h_km0 (preprocess_saved_key_possible_post h_ska h_noflow_prep h_preprocess)⟩, rfl⟩
     · exact h_nobreak hcol hws
   -- The completed constructs cannot reach a same-line `[`/`{`: their producers'
@@ -14125,7 +14150,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open,
      fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
      ⟨_, h_km0 h_kp_drop⟩, rfl⟩
   have opaque_resume : s_prep.simpleKey.possible = true →
@@ -14193,7 +14219,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
            (Or.inr (inFlow_of_flowLevel_eq h_fl1))
            (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
            (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open,
          fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
      ⟨_, h_km0 (preprocess_saved_key_possible_post hska h_noflow_prep h_preprocess)⟩, rfl⟩
   cases h_pending with
@@ -14238,7 +14265,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
              ⟨_, h_km0 (preprocess_saved_key_fresh (h_armN.resolve_right (by rw [h_scflow]; simp)).1 h_noflow_prep h_preprocess).1⟩, rfl⟩
   | pendingContent _ _ _ _ h_line h_closableA _ _ _ _ h_frS176 h_frV201 _ h_tail143 _ _ h_runA h_gateA _ =>
     -- Item 37: §7.5's set weakens to item 10's here, exactly as `[204]`'s does.
@@ -14420,7 +14448,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open,
              fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
              ⟨_, h_km0 (preprocess_possible_of_live0 (Or.inr h_possP0) h_noflow_prep h_preprocess)⟩, rfl⟩
     · -- Item 172: the run-end half of the under-run is no longer the scanner's
@@ -14475,7 +14504,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
      ⟨_, h_km0 (preprocess_saved_key_fresh h_armD.1 h_noflow_prep h_preprocess).1⟩, rfl⟩
   | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
       h_kslotUp_old _ _ h_offer_b h_gateB =>
@@ -14566,7 +14596,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
              ⟨_, h_km0 (preprocess_saved_key_fresh h_sk_old h_noflow_prep h_preprocess).1⟩, rfl⟩
     · -- Item 73: `pendingBlock`'s floor is a measurement, not an option, which
       -- is what LOCATES the under-run; item 265 measures which half the
@@ -14699,7 +14730,8 @@ lemma accum_flow_open_depth0 (sc : ScannerState)
                (Or.inr (inFlow_of_flowLevel_eq h_fl1))
                (nodoc_of_flowLevel_succ h_fl1) (noek_of_flowLevel_succ h_fl1)
                (ntop_of_flowLevel_succ h_fl1)
-           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
+           (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1))
+           (fun hnf => absurd (inFlow_of_flowLevel_eq h_fl1) (by rw [hnf]; simp)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
              ⟨_, h_km0 (preprocess_saved_key_fresh h_sk_mv h_noflow_prep h_preprocess).1⟩, rfl⟩
     · -- Item 68: the TAB half is §6.1's refusal, for `pendingProps`' reason.
       -- Item 82: the park's floor is REAL, which is what locates the run-end
@@ -42609,7 +42641,16 @@ lemma scan_content_gives_stream_v2
             (ScannerLoopInvariant.advance_indents _)]
           exact h_emit
         · exact h_emit)
-      (fun _ hne => absurd h_col hne))
+      (fun _ hne => absurd h_col hne)
+      (fun _ => by
+        split
+        · rw [ScannerCorrectness.consumeBOM_preserves_tokens]
+          intro t ht
+          simp [ScannerState.mk', ScannerState.emit] at ht
+          simp [ht]
+        · intro t ht
+          simp [ScannerState.mk', ScannerState.emit] at ht
+          simp [ht]))
     (fun hb => Bool.noConfusion hb) h_corr
     (fun hge => absurd hge (by
       -- the seed scanner is at flow level 0, so the flow-interior conjunct is vacuous
