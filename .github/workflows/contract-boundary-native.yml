@@ -1,0 +1,51 @@
+name: Contract boundary native Lean experiment
+
+on:
+  push:
+    branches:
+      - research/contract-boundary-native-20261121
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-indexed-native-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify historical implementation and theorem are unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD~2)" = b9e0a5b52f8731afbe603b4ae0f32df438073319
+          test "$(git rev-parse HEAD:L4YAML/Schema/Schema.lean)" = 5fb5bccfd3b6cccd164f68a678ef2ea812803fe0
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Schema/SchemaResolution.lean)" = 603185cad7208f21fc7d6fa3d593438ce3122542
+          echo "source schema and original proof match exact pinned blobs"
+      - name: Install pinned Lean toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build exact original schema proof imports
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Schema.SchemaResolution
+      - name: Kernel check source/requirement witness and controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean Tests/Guards/Proofs/ContractBoundaryNative.lean 2>&1 | tee native-lean.log
+          if grep -E '(sorryAx|declaration uses .sorry)' native-lean.log; then
+            echo "unexpected sorry dependency"; exit 1
+          fi
+          echo "All named source-specific positive and negative lemmas compiled"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-boundary-native-log
+          path: native-lean.log
+          if-no-files-found: ignore
