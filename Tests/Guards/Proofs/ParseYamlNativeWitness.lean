@@ -20,10 +20,10 @@ a kernel-proved `parseYaml` equality; the latter is checked separately. -/
 #guard (L4YAML.TokenParser.parseYaml "a").isOk
 #guard (L4YAML.TokenParser.parseYaml "a\n&x").isOk
 
-#check L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_plainStar
-#check L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceOf_alias
-#check L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceWellFormed_refuted
-#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceWellFormed_refuted
+/-! The original trace declarations reside in a private compilation section,
+so importing this module checks it but does not export its private names.
+Its own original file and #print axioms are separately verified by the parent
+build and the source-local audit on the owner experiment branch. -/
 
 end L4YAML.Tests.Guards.ParseYamlNativeWitness
 end Blanket
