@@ -42,7 +42,6 @@ def afterTwo : ScannerState := (steps seed 2).getD seed
 def colon : ScannerState := match scanNextToken_preprocess afterTwo with
   | .ok (some (s, _)) => s
   | _ => seed
-def directed : ScannerState := (steps seed 5).getD seed
 
 /-- The candidate reaches the actual colon, but cannot cross it after the
 scanner-validation change. This is a bounded regression, NOT a proof of
@@ -64,24 +63,18 @@ lemma candidate_native_guard :
 lemma candidate_stops_before_directive :
     scanNextToken afterTwo = .error (.trailingContent colon.line colon.col) := by cbv
 
-private def disagrees (body : String) : Bool :=
-  let src := body ++ "\n...\n%YAML 1.2\n---\ny"
-  match scanFiltered src with
-  | .ok ts => !(L4YAML.TokenParser.parseStream ts).isOk
-  | .error _ => false
-
 #guard (["? -\n  :", "?\n -\n :", "?\n  -\n  :", "?\n- -\n  :"] : List String).all
   (fun body => !(scanFiltered (body ++ "\n...\n%YAML 1.2\n---\ny")).isOk)
 -- Indexed scanner parity on the same four native source witnesses; this
 -- checks the separate indexed implementation rather than assuming parity.
 #guard (["? -\n  :", "?\n -\n :", "?\n  -\n  :", "?\n- -\n  :"] : List String).all
-  (fun body => !(L4YAML.Indexed.ScannerStateIx.scanIx
+  (fun body => !(L4YAML.Scanner.Indexed.ScannerStateIx.scanIx
     (body ++ "\n...\n%YAML 1.2\n---\ny")).isOk)
 -- Legitimate explicit mapping values must remain accepted in both scanners.
 #guard (scanFiltered "? a\n: b").isOk
-#guard (L4YAML.Indexed.ScannerStateIx.scanIx "? a\n: b").isOk
+#guard (L4YAML.Scanner.Indexed.ScannerStateIx.scanIx "? a\n: b").isOk
 #guard (scanFiltered "- ? a\n  : b").isOk
-#guard (L4YAML.Indexed.ScannerStateIx.scanIx "- ? a\n  : b").isOk
+#guard (L4YAML.Scanner.Indexed.ScannerStateIx.scanIx "- ? a\n  : b").isOk
 -- Native minimal-body reproduction, independent of the following directive.
 #guard !(scanFiltered "? -\n  :").isOk
 #guard !((scanFiltered "? -\n  :").bind (fun ts => L4YAML.TokenParser.parseStream ts)).isOk
@@ -109,9 +102,7 @@ def sweepSummary : Nat × Nat × List String := Id.run do
   return (total, accepted, failures)
 -- Assert that the old four parser-only failures no longer reach the parser.
 -- The new exact acceptance count is logged and must be pinned after qualification.
-#guard (let (total, accepted, failures) := sweepSummary;
-  total == 62208 && accepted < 26350 && failures.isEmpty)
-#eval sweepSummary
+#guard sweepSummary == (62208, 26346, [])
 #print axioms L4YAML.Tests.Guards.DirectiveColonProbe.candidate_reaches_colon
 #print axioms L4YAML.Tests.Guards.DirectiveColonProbe.candidate_native_guard
 end L4YAML.Tests.Guards.DirectiveColonProbe
