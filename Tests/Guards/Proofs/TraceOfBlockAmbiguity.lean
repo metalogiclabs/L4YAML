@@ -2,6 +2,8 @@ module
 
 public import L4YAML.Proofs.Serialization.TraceOf.Document
 public meta import L4YAML.Proofs.Serialization.TraceOf.Document
+public import L4YAML.Parser.Composition
+public meta import L4YAML.Parser.Composition
 
 /-! # `traceOf_unique` on the block/document fragment (Rule 2): refutations -/
 
@@ -351,5 +353,42 @@ lemma scannerTrace_wf : SerializationWellFormed ([] : List Event) := by
   rw [serializationWellFormed_iff_check]; decide
 
 end AliasContinue
+
+/-! ## Exact owner-integration contract test
+
+The previous alias witness is an ACTUAL TLYamlStream derivation on owner
+14eb6dbab845d2ac61f171a9ed61906d3f9ffb2f, not a LegacyStream
+historical exhibit. Parser acceptance is a separate executable #guard.
+The theorem below declares acceptance as a premise rather than a fake axiom.
+This is not a proof of the opaque native parser success in the kernel. -/
+
+lemma owner_forward_tracewf_fails_if_parsed
+    (raw : Array L4YAML.YamlDocument)
+    (hAccepted : L4YAML.TokenParser.parseYaml "a\n*x" = .ok raw) :
+    ¬ (∀ input : String,
+       (∃ docs : Array L4YAML.YamlDocument,
+           L4YAML.TokenParser.parseYaml input = .ok docs) →
+         TraceWellFormed input) := by
+  intro h
+  exact traceWellFormed_refuted (h "a\n*x" ⟨raw, hAccepted⟩)
+
+lemma owner_biconditional_fails_if_parsed
+    (ExactSurfaceLanguage : String → Prop)
+    (raw : Array L4YAML.YamlDocument)
+    (hAccepted : L4YAML.TokenParser.parseYaml "a\n*x" = .ok raw) :
+    ¬ (∀ input : String,
+      (∃ docs : Array L4YAML.YamlDocument,
+         L4YAML.TokenParser.parseYaml input = .ok docs) ↔
+      (ExactSurfaceLanguage input ∧ TraceWellFormed input)) := by
+  intro h
+  exact traceWellFormed_refuted
+    ((h "a\n*x").mp ⟨raw, hAccepted⟩).2
+
+#guard (L4YAML.TokenParser.parseYaml "a\n*x").isOk
+#guard (L4YAML.TokenParser.parseYamlRaw "a\n*x").isOk
+
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.traceWellFormed_refuted
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.owner_forward_tracewf_fails_if_parsed
+#print axioms L4YAML.Tests.Guards.TraceOfBlockAmbiguity.owner_biconditional_fails_if_parsed
 
 end L4YAML.Tests.Guards.TraceOfBlockAmbiguity
