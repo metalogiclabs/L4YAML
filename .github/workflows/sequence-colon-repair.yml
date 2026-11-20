@@ -35,4 +35,8 @@ jobs:
       - name: Protected adversarial executable
         run: lake exe adversarialinstantiation
       - name: Ordinary full regression
-        run: lake run run-all-tests
+        run: |
+          # These three are non-default lean_exe targets in lakefile.lean;
+          # run-all-tests executes binaries directly and cannot build them.
+          lake build tests demo limittests
+          lake run run-all-tests
