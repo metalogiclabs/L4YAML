@@ -1,0 +1,50 @@
+name: Annotated colon discriminator (historical, isolated)
+on:
+  push:
+    branches: [research/annotated-colon-decision-20261121]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  exact-native-grammar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pin unchanged native scanner and annotated grammar
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e389fcb62b95b9da954bd81c14427d56e3417dfd HEAD
+          test "$(git rev-parse HEAD:Tests/Guards/Proofs/DirectiveColonProbe.lean)" = 8b6ce9a24fd836bc58f57f57350a693d62763a4a
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Node.lean)" = 49df0e029ac02f71595bee51b2691c23e800742e
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 17181c36e8713db40fdd58a2369eac0bc00ef445
+          echo "source and proof identities match pinned historical baseline"
+      - name: Install pinned Lean toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build exact native proof dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          lake build L4YAML.Proofs.Serialization.TraceOf.Reachability 2>&1 | tee grammar-dependencies.log
+      - name: Check local cut and actual scanner/parser reproducer
+        shell: bash
+        run: |
+          set -o pipefail
+          lake env lean Tests/Guards/Proofs/AnnotatedColonDecision.lean 2>&1 | tee annotated-colon.log
+          ! grep -E 'sorryAx|declaration uses .sorry' annotated-colon.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: annotated-colon-native
+          path: |
+            grammar-dependencies.log
+            annotated-colon.log
+          if-no-files-found: ignore
