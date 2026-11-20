@@ -12,8 +12,10 @@ public import L4YAML.Proofs.Serialization.TraceOf.RightWallSeed
 namespace L4YAML.Proofs.Serialization.TraceOf.RightWallBoundary
 
 open L4YAML L4YAML.Scanner L4YAML.Surface
+open L4YAML.Proofs.CouplingBridge (ScannerSurfCorr)
+open L4YAML.Proofs.Serialization.SerializationWellFormed
 open L4YAML.Proofs.Serialization.TraceOf
-open L4YAML.Proofs.Serialization.TraceOf.DocBridge (TSLYamlStream)
+open L4YAML.Proofs.Serialization.TraceOf.DocBridge
 open L4YAML.Proofs.Serialization.TraceOf.StreamBridge (TPendingNode)
 open L4YAML.Proofs.Serialization.TraceOf.RightWallRoute (DirectiveRoute)
 open L4YAML.Proofs.Serialization.EventsOf (declaredHandle)
