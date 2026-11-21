@@ -29,6 +29,10 @@ jobs:
         run: |
           set -euo pipefail
           lean --version
+          sudo fallocate -l 24G /pr361-docs.swap
+          sudo chmod 600 /pr361-docs.swap
+          sudo mkswap /pr361-docs.swap
+          sudo swapon /pr361-docs.swap
           free -h
           df -h .
           python3 - <<'PY' > "$RUNNER_TEMP/doc-targets"
@@ -47,7 +51,10 @@ jobs:
               visit(root)
           PY
           wc -l "$RUNNER_TEMP/doc-targets"
-          xargs -r -n 4 lake build < "$RUNNER_TEMP/doc-targets" > "$RUNNER_TEMP/doc-prime.log" 2>&1 || { tail -100 "$RUNNER_TEMP/doc-prime.log"; exit 1; }
+          xargs -r -n 4 bash -c '
+            echo "Building $*"
+            lake build "$@" > "$RUNNER_TEMP/doc-prime.log" 2>&1 || { tail -100 "$RUNNER_TEMP/doc-prime.log"; exit 255; }
+          ' _ < "$RUNNER_TEMP/doc-targets"
       - name: Run the complete repository API documentation gate
         shell: bash
         run: |
