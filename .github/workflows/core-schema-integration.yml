@@ -1,0 +1,46 @@
+name: Core Schema integration qualification
+on:
+  push:
+    branches: [test/core-schema-item529]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 72c30c166d560219a9c33204c8f6a0d2dbeebc40
+          submodules: recursive
+      - name: Verify PR source and install pinned toolchain
+        run: |
+          test "$(git rev-parse HEAD)" = 72c30c166d560219a9c33204c8f6a0d2dbeebc40
+          test "$(git rev-parse 'HEAD^{tree}')" = 61155df42959e36b011584c0675b8ed60bafd17d
+          git log -1 --format='%H %T %P'
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Full default build and test executables
+        run: |
+          lake build
+          lake build tests demo limittests
+      - name: Verify census, roster and integration guards
+        run: |
+          lake run dead-census -- --check
+          lake run census-dashboard -- --check
+          lake run check-closure-log
+          lake run check-theorem-keyword
+      - name: Verify schema capstone axioms
+        run: |
+          echo 'import L4YAML.Proofs.Schema.SchemaResolution' > "$RUNNER_TEMP/Profile.lean"
+          echo '#print axioms L4YAML.Proofs.SchemaResolution.coreTagCorrespondenceAll' >> "$RUNNER_TEMP/Profile.lean"
+          lake env lean "$RUNNER_TEMP/Profile.lean"
+      - name: Run adversarial checks and Lean suites
+        run: |
+          lake exe adversarialtests > "$RUNNER_TEMP/adversarial.log"
+          tail -10 "$RUNNER_TEMP/adversarial.log"
+          mkdir -p docs/reports
+          lake run run-all-tests -- docs/reports
