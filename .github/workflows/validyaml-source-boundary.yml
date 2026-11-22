@@ -12,7 +12,7 @@ permissions:
 jobs:
   lean-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,8 +22,9 @@ jobs:
           build: false
           test: false
           lint: false
-      - name: Compile exact countermodel
+      - name: Build imported grammar and compile countermodel
         run: |
           set -euo pipefail
           cat lean-toolchain
+          lake build L4YAML.Spec.Grammar
           lake env lean Tests/Research/ValidYamlSourceBoundary.lean
