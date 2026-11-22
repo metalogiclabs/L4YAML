@@ -465,7 +465,7 @@ imports LeanCopilot additionally needs `-Kleancopilot=on` to link CTranslate2
 lake build suiterunner tryparse && lake exe suiterunner --html docs/
 
 # Suite-runner process, comparison, and report regression controls
-lake build suiterunner tryparse suiteoutcomeregression && lake exe suiteoutcomeregression
+lake build suiterunner tryparse queryresults suiteoutcomeregression && lake exe suiteoutcomeregression
 
 # Per-stage runs
 lake exe suiterunner scalar      # scalar stage only

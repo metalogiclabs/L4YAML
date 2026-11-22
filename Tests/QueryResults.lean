@@ -112,6 +112,9 @@ def cmdVerifiedFailures (root : Json) : IO Unit := do
 def cmdSummary (root : Json) : IO Unit := do
   let overall := getObj root "overall"
   let date := getStr root "date"
+  let backendErrors := match overall.getObjValAs? Nat "errors" with
+    | .ok n => toString n
+    | .error _ => "not recorded"
   IO.println s!"# Test Summary ({date})\n"
   IO.println "| Metric | Value |"
   IO.println "|--------|------:|"
@@ -123,7 +126,7 @@ def cmdSummary (root : Json) : IO Unit := do
   IO.println s!"| Unexpected pass | {getNat overall "unexpectedPass"} |"
   IO.println s!"| Skipped | {getNat overall "skipped"} |"
   IO.println s!"| Timeout | {getNat overall "timeout"} |"
-  IO.println s!"| Backend errors | {getNat overall "errors"} |"
+  IO.println s!"| Backend errors | {backendErrors} |"
   IO.println s!"| **Correct** | **{getNat overall "correct"}/{getNat overall "applicable"}** |"
   -- Verified section
   let verified := getObj root "verified"

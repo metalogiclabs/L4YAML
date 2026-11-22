@@ -280,6 +280,28 @@ def main (args : List String) : IO UInt32 := do
      | .error _ => true
      | .ok _ => false)
 
+  -- A new counter is absent in older reports. Exercise the actual reader so
+  -- missing or malformed evidence cannot be displayed as a measured zero.
+  for (label, errors, expected) in [
+      ("legacy", (none : Option Lean.Json), "not recorded"),
+      ("malformed", some (Lean.Json.str "unknown"), "not recorded"),
+      ("zero", some (Lean.toJson (0 : Nat)), "0"),
+      ("nonzero", some (Lean.toJson (3 : Nat)), "3")] do
+    let fields := [("total", Lean.toJson (1 : Nat)), ("applicable", Lean.toJson (1 : Nat)),
+      ("passed", Lean.toJson (1 : Nat)), ("correct", Lean.toJson (1 : Nat))]
+    let fields := match errors with
+      | some n => fields ++ [("errors", n)]
+      | none => fields
+    let input := base / s!"reader-{label}.json"
+    IO.FS.writeFile input ((Lean.Json.mkObj [
+      ("date", Lean.Json.str label), ("overall", Lean.Json.mkObj fields)]).compress)
+    let result ← IO.Process.output {
+      cmd := (cwd / ".lake/build/bin/queryresults").toString
+      args := #[input.toString, "summary"] }
+    recordCheck s!"queryresults preserves {label} backend-error evidence"
+      (result.exitCode == 0 &&
+        (result.stdout.splitOn "\n").contains s!"| Backend errors | {expected} |")
+
   let failed ← failures.get
   IO.println s!"Suite outcome regression: {(← count.get) - failed.size}/{← count.get} passed"
   return if failed.isEmpty then 0 else 1

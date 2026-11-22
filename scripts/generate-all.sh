@@ -197,7 +197,7 @@ if wants 1; then
   # as the workflow reads it for collect-stats.
   set -o pipefail
   lake build L4YAML \
-    suiterunner suiteoutcomeregression tryparse tryroundtrip trydump \
+    suiterunner suiteoutcomeregression queryresults tryparse tryroundtrip trydump \
     tests demo explicitkeytests flowtests \
     validationtests dumproundtrip rawparsetests \
     specexamples schemadump derivingconsumer scannertests scannerspecexamples \
