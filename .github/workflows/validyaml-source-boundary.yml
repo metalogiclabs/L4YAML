@@ -1,0 +1,29 @@
+name: ValidYaml source boundary qualification
+
+on:
+  push:
+    branches:
+      - experiment/validyaml-source-boundary-20261122
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lean-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: leanprover/lean-action@v1
+        with:
+          build: false
+          test: false
+          lint: false
+      - name: Compile exact countermodel
+        run: |
+          set -euo pipefail
+          cat lean-toolchain
+          lake env lean Tests/Research/ValidYamlSourceBoundary.lean
