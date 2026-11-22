@@ -2,14 +2,14 @@ name: Combined Core and TAG qualification
 
 on:
   push:
-    branches: [test/core-tag-integration]
+    branches: [test/core-tag-lean436]
 
 permissions:
   contents: read
 
 env:
   LEAN_NUM_THREADS: 2
-  QUALIFICATION_BASE: 14eb6dbab845d2ac61f171a9ed61906d3f9ffb2f
+  QUALIFICATION_BASE: 37d8025ecc8c15e6764cc1a982104787de9463d8
   CORE_PARENT: 72c30c166d560219a9c33204c8f6a0d2dbeebc40
   TAG_PARENT: 0cbcd6caa72ae8b42dca351c327e334e5044f89a
 
