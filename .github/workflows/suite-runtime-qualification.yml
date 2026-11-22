@@ -1,0 +1,96 @@
+name: Suite runtime evidence qualification
+
+on:
+  push:
+    branches: [test/suite-runtime-qualification]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c06ec22e49c139a47a1ef08c96eb6726bb2b32ee
+          submodules: recursive
+      - name: Bind the tested source and install its pinned toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = c06ec22e49c139a47a1ef08c96eb6726bb2b32ee
+          test "$(git rev-parse 'HEAD^{tree}')" = a1d36507b49c60f6734f3450de1e6efe04e9185d
+          test "$(git rev-parse HEAD:L4YAML)" = 4197c0b6f2fb369e9806ca486d38aef87b077c81
+          test "$(git -C yaml-test-suite rev-parse HEAD)" = 478062b90533880678b1c9243891957c0f2a1b2b
+          git log -1 --format='%H %T %P' > qualification-source.txt
+          git submodule status >> qualification-source.txt
+          cat lean-toolchain >> qualification-source.txt
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Install binding prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev python3-venv
+          python3 -m venv "$RUNNER_TEMP/suite-evidence-venv"
+          "$RUNNER_TEMP/suite-evidence-venv/bin/python3" -m pip install --quiet pytest
+          "$RUNNER_TEMP/suite-evidence-venv/bin/python3" -m pytest --version >> qualification-source.txt
+          echo "$RUNNER_TEMP/suite-evidence-venv/bin" >> "$GITHUB_PATH"
+          lean --version >> qualification-source.txt
+          rustc --version >> qualification-source.txt
+          cargo --version >> qualification-source.txt
+          python3 --version >> qualification-source.txt
+          echo "L4YAML_LIB=$GITHUB_WORKSPACE/ffi/out/libl4yaml.so" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/ffi/out:$(lean --print-prefix)/lib/lean" >> "$GITHUB_ENV"
+      - name: Build runtime test executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build tests demo limittests suiteoutcomeregression tryparse suiterunner 2>&1 | tee qualification-runtime-build.log
+      - name: Build the C and Rust backends from the same source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -B ffi/out -S ffi 2>&1 | tee qualification-c-configure.log
+          cmake --build ffi/out --parallel 2 2>&1 | tee qualification-c-build.log
+          cargo build --manifest-path rust/l4yaml/Cargo.toml --release --example tryparse 2>&1 | tee qualification-rust-build.log
+          test -x ffi/out/tryparse_c
+          test -x rust/target/release/examples/tryparse
+          sha256sum .lake/build/bin/suiterunner .lake/build/bin/tryparse ffi/out/libl4yaml.so ffi/out/tryparse_c rust/target/release/examples/tryparse >> qualification-source.txt
+      - name: Check Python parsing and explicit rejection errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE/python" python3 -m pytest python/tests/test_parse.py -q 2>&1 | tee qualification-python-protocol.log
+      - name: Run the complete Lean suite and outcome regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/reports
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-tests.log
+      - name: Compare individual corpus cases across all four backends
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee qualification-comparison.log
+          lake run test-reports -- docs/reports 2>&1 | tee qualification-reports.log
+      - name: Retain source identity and qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-runtime-evidence
+          if-no-files-found: error
+          path: |
+            qualification-source.txt
+            qualification-*.log
+            docs/reports/coverage-summary.json
+            docs/reports/suite-outcome-regression.txt
+            docs/reports/cross-lang-results.json
+            docs/reports/cross-lang-comparison.html
+            docs/reports/observations-*.json
