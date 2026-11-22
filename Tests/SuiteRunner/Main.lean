@@ -4,6 +4,7 @@ public import L4YAML
 public import Tests.SuiteRunner.Meta
 public import Tests.SuiteRunner.HtmlReport
 public import Tests.SuiteRunner.Reports
+public import Tests.SuiteRunner.Protocol
 public import Tests.VerifiedResult
 public import Tests.Main
 public import Tests.ExplicitKeyTests
@@ -39,6 +40,7 @@ pass/fail results staged by feature coverage.
 .lake/build/bin/suiterunner [stage] [-v|--verbose]
 
 # Generate HTML reports
+# Both report modes write evidence, then exit nonzero on unexpected failures.
 .lake/build/bin/suiterunner --html docs/
 
 # Generate JSON summary only (faster, no HTML)
@@ -51,6 +53,7 @@ pass/fail results staged by feature coverage.
 # writes DIR/cross-lang-results.json when every backend agrees (a stale one is
 # removed first), exit 1 otherwise;
 # each run is killed after --compare-timeout SECS (default 600)
+# agreement concerns per-case acceptance, not parsed values or output
 .lake/build/bin/suiterunner --compare DIR [--compare-timeout SECS]
 
 # cross-lang-comparison.html and python-ffi-tests.html from DIR's
@@ -130,6 +133,8 @@ inductive TestResult where
   | pass (stdout : String := "")
   | fail (reason : String) (stdout : String := "")
   | skip (reason : String)
+  | error (reason : String)
+  | timeout
   deriving Repr
 
 /-- Run a single test case against our parser (pure computation). -/
@@ -148,7 +153,8 @@ def runTestCore (tc : TestCase) : TestResult :=
 
 /-- Run a single test case using OS-level process isolation.
     Writes YAML to a temp file, runs `tryparse` via `timeout(1)`,
-    and checks exit code: 0 = pass, 1 = parse error, 124 = timeout. -/
+    and requires the deliberate parse-result protocol. A nonzero exit by
+    itself is never evidence of expected rejection. -/
 def runTest (tc : TestCase) (timeoutSec : Nat := 2)
     (backend : Backend := .lean) (limitsPreset : Option String := none)
     : IO TestResult := do
@@ -158,29 +164,29 @@ def runTest (tc : TestCase) (timeoutSec : Nat := 2)
       && !yaml13Include.contains tc.id then
     return .skip "YAML 1.3 specific"
   -- Write yaml to temp file (use project-local tmp/ per workspace rules)
-  IO.FS.createDirAll "tmp"
-  let tmpPath := s!"tmp/yaml_suite_test_{tc.id}.yaml"
-  IO.FS.writeFile tmpPath yaml
-  -- Run the selected backend's tryparse with OS-level timeout
-  let (cmd, baseArgs) := backend.tryparseCmd
-  let result ← IO.Process.output {
-    cmd := "timeout"
-    args := #[s!"{timeoutSec}", cmd] ++ baseArgs ++ #[tmpPath]
-           ++ (match limitsPreset with | some p => #[p] | none => #[])
-  }
-  -- Clean up temp file
-  try IO.FS.removeFile tmpPath catch _ => pure ()
-  -- Capture stdout for parser output (used in JSON reports for UP/fail analysis)
-  let stdout := result.stdout.trimAscii.toString
-  -- Interpret exit code
-  if result.exitCode == 0 then
-    if tc.expectFail then return .fail "expected parse failure but succeeded" stdout
-    else return .pass stdout
-  else if result.exitCode == 124 then
-    return .fail "timeout (possible infinite loop)"
-  else
-    if tc.expectFail then return .pass stdout
-    else return .fail s!"parse error: {result.stderr.trimAscii.toString}" stdout
+  let tmpPath := s!"tmp/yaml_suite_test_{tc.id}_{tc.variant}.yaml"
+  try
+    IO.FS.createDirAll "tmp"
+    IO.FS.writeFile tmpPath yaml
+    let (cmd, baseArgs) := backend.tryparseCmd
+    let result ← IO.Process.output {
+      cmd := "timeout"
+      args := #[s!"{timeoutSec}", cmd] ++ baseArgs ++ #[tmpPath]
+             ++ (match limitsPreset with | some p => #[p] | none => #[])
+      env := #[("L4YAML_SUITE_PROTOCOL", some "1")]
+    }
+    match Protocol.classify result.exitCode result.stdout with
+    | .accepted =>
+      return if tc.expectFail then .fail "expected parse failure but succeeded" else .pass
+    | .rejected =>
+      return if tc.expectFail then .pass else .fail s!"parse error: {result.stderr.trimAscii.toString}"
+    | .timeout => return .timeout
+    | .error =>
+      return .error s!"backend error (exit {result.exitCode}, invalid or missing parse-result marker): {result.stderr.trimAscii.toString}"
+  catch e =>
+    return .error s!"backend launch or I/O error: {e}"
+  finally
+    try IO.FS.removeFile tmpPath catch _ => pure ()
 
 /-- Summary statistics for a test run. -/
 structure TestStats where
@@ -241,6 +247,16 @@ def runStage (stage : Stage) (testCases : Array TestCase)
     | .skip reason =>
       stats := { stats with skipped := stats.skipped + 1 }
       IO.println s!"○ {reason}"
+    | .error reason =>
+      stats := { stats with
+        failed := stats.failed + 1
+        failures := stats.failures.push (tc.id, reason) }
+      IO.println s!"✗ {reason}"
+    | .timeout =>
+      stats := { stats with
+        failed := stats.failed + 1
+        failures := stats.failures.push (tc.id, "timeout") }
+      IO.println "✗ timeout"
   IO.println (String.ofList (List.replicate 60 '-'))
   IO.println s!"  {stats}"
   if stats.failures.size > 0 && !verbose then
@@ -286,19 +302,18 @@ def runAllForReport (testCases : Array TestCase) (stage : Stage)
           { testCase := tc, outcome := .pass, parserOutput := po }
       | .fail reason stdout =>
         let po := if stdout.isEmpty then none else some stdout
-        if (reason.splitOn "timeout").length > 1 then
-          { testCase := tc, outcome := .timeout, errorMsg := some reason }
-        else if (reason.splitOn "expected parse failure but succeeded").length > 1 then
+        if tc.expectFail then
           { testCase := tc, outcome := .unexpectedPass, errorMsg := some reason,
-            parserOutput := po }
-        else if tc.expectFail then
-          { testCase := tc, outcome := .expectedFail, errorMsg := some reason,
             parserOutput := po }
         else
           { testCase := tc, outcome := .fail, errorMsg := some reason,
             parserOutput := po }
       | .skip reason =>
         { testCase := tc, outcome := .skip reason }
+      | .error reason =>
+        { testCase := tc, outcome := .error, errorMsg := some reason }
+      | .timeout =>
+        { testCase := tc, outcome := .timeout, errorMsg := some "timeout" }
     -- Console output
     match reportResult.outcome with
     | .pass => IO.println "✓"
@@ -307,6 +322,7 @@ def runAllForReport (testCases : Array TestCase) (stage : Stage)
     | .unexpectedPass => IO.println s!"⚠ unexpected pass"
     | .skip reason => IO.println s!"○ {reason}"
     | .timeout => IO.println s!"⏱ timeout"
+    | .error => IO.println s!"✗ {reportResult.errorMsg.getD "backend error"}"
     flushStdout
     -- Periodic stderr progress (every 25 tests)
     if idx % 25 == 0 then
@@ -314,6 +330,23 @@ def runAllForReport (testCases : Array TestCase) (stage : Stage)
     results := results.push reportResult
   dbg startMs s!"runAllForReport: finished all {filtered.size} tests"
   return results
+
+/-- Preserve the actual accept/reject observation separately from whether the
+    suite expected it. This is the comparison's evidence, including variants. -/
+def observationOfReport (r : ReportResult) : Reports.CaseObservation :=
+  { id := r.testCase.id
+    variant := r.testCase.variant
+    yaml := unescapeTestYaml r.testCase.yaml
+    expectFail := r.testCase.expectFail
+    outcome := match r.outcome with
+      | .pass | .unexpectedPass => .accepted
+      | .fail | .expectedFail => .rejected
+      | .skip _ => .skipped
+      | .timeout => .timeout
+      | .error => .error
+    detail := match r.outcome with
+      | .skip reason => reason
+      | _ => r.errorMsg.getD "" }
 
 /-- Python's `pathlib.Path(dir) / name` as a printed path: a leading `./` and
     trailing slashes dropped. -/
@@ -326,52 +359,80 @@ def underRoot (root : System.FilePath) (dir : String) : System.FilePath :=
 
 /-- Run a process with piped stdout/stderr and a deadline; `none` when it was
     killed at the deadline (the Python's `subprocess.run(timeout=600)`). -/
-def outputWithin (limitMs : Nat) (cfg : IO.Process.SpawnArgs) : IO (Option (String × String)) := do
+def outputWithin (limitMs : Nat) (cfg : IO.Process.SpawnArgs) : IO (Option IO.Process.Output) := do
   let child ← IO.Process.spawn { cfg with stdout := .piped, stderr := .piped, stdin := .null }
   let outT ← IO.asTask child.stdout.readToEnd
   let errT ← IO.asTask child.stderr.readToEnd
   let start ← IO.monoMsNow
   repeat
-    if (← child.tryWait).isSome then break
+    if let some exitCode ← child.tryWait then
+      return some { exitCode, stdout := ← IO.ofExcept outT.get, stderr := ← IO.ofExcept errT.get }
     if (← IO.monoMsNow) - start > limitMs then
       child.kill
       discard child.wait
       return none
     IO.sleep 200
-  return some (← IO.ofExcept outT.get, ← IO.ofExcept errT.get)
+  return none
 
-/-- `--compare DIR` (was `scripts/cross-lang-compare.py`): this executable run
-    for every backend × preset from ROOT, each within `timeoutS` seconds, the
-    `TOTAL:` lines compared per preset; `DIR/cross-lang-results.json` written
-    only when all agree — an earlier one is removed first, so a failed rerun
-    leaves nothing stale for `--reports`; exit 1 on a mismatch, a missing TOTAL
-    line or a run killed at its deadline. -/
+/-- `--compare DIR`: measure each unique case once for each backend/preset.
+    Compare keyed acceptance observations, retain individual run evidence, and
+    publish the combined JSON only after complete agreement. A restrictive
+    preset's deliberate rejection is a measurement, not an apparatus failure. -/
 def runCompare (root : System.FilePath) (dir : String) (timeoutS : Nat) : IO UInt32 := do
   let exe ← IO.appPath
+  let root ← IO.FS.realPath root
   let json := underRoot root dir / "cross-lang-results.json"
+  IO.FS.createDirAll (underRoot root dir)
   if ← json.pathExists then IO.FS.removeFile json
-  let mut results : List (String × List (String × Reports.Counts)) := []
+  let html := underRoot root dir / "cross-lang-comparison.html"
+  if ← html.pathExists then IO.FS.removeFile html
+  let mut results : Array Reports.BackendEvidence := #[]
   let mut allMatch := true
   for preset in Reports.presets do
-    let mut row : List (String × Reports.Counts) := []
+    let mut row : Array Reports.BackendEvidence := #[]
     for b in Reports.backends do
-      let r ← outputWithin (timeoutS * 1000)
-        { cmd := exe.toString, args := #["--backend", b, "--limits", preset], cwd := some root }
-      match r.bind fun (out, err) => Reports.parseTotal? (out ++ err) with
-      | some c => row := row ++ [(b, c)]
-      | none =>
-        if r.isNone then IO.eprintln s!"ERROR: {b}/{preset} killed after {timeoutS}s"
-        else IO.eprintln s!"ERROR: no TOTAL line for {b}/{preset}"
-        row := row ++ [(b, ⟨0, 0, 0, 0⟩)]
+      let observations := underRoot root dir / s!"observations-{b}-{preset}.json"
+      if ← observations.pathExists then IO.FS.removeFile observations
+      try
+        let r ← outputWithin (timeoutS * 1000)
+          { cmd := exe.toString,
+            args := #["--observations", observations.toString, "--backend", b, "--limits", preset],
+            cwd := some root }
+        match r with
+        | none =>
+          IO.eprintln s!"ERROR: {b}/{preset} killed after {timeoutS}s"
+          allMatch := false
+        | some process =>
+          if process.exitCode != 0 then
+            IO.eprintln s!"ERROR: {b}/{preset} observation run exited {process.exitCode}: {process.stderr.trimAscii}"
+            allMatch := false
+          else
+            let parsed : Except String Reports.BackendEvidence :=
+              Lean.Json.parse (← IO.FS.readFile observations) >>= Lean.fromJson?
+            match parsed with
+            | .error e =>
+              IO.eprintln s!"ERROR: {b}/{preset}: {e}"
+              allMatch := false
+            | .ok evidence =>
+              if evidence.backend != b || evidence.preset != preset then
+                IO.eprintln s!"ERROR: {b}/{preset}: wrong backend/preset identity"
+                allMatch := false
+              else row := row.push evidence
+      catch e =>
+        IO.eprintln s!"ERROR: {b}/{preset} launch or evidence I/O failed: {e}"
         allMatch := false
     let (line, same) := Reports.presetLine preset row
     IO.println line
     if !same then allMatch := false
-    results := results ++ [(preset, row)]
+    results := results ++ row
+  let evidence : Reports.CrossLangEvidence := { runs := results }
+  match Reports.validateCrossLang evidence with
+  | .error e => IO.eprintln s!"ERROR: {e}"; allMatch := false
+  | .ok _ => pure ()
   IO.println ""
   IO.println (Reports.verdictLine allMatch)
   if !allMatch then return 1
-  IO.FS.writeFile json (Reports.crossLangJson results)
+  IO.FS.writeFile json (Reports.crossLangJson evidence)
   return 0
 
 /-- `--reports DIR` (was `scripts/generate-test-reports.py`):
@@ -381,11 +442,16 @@ def runCompare (root : System.FilePath) (dir : String) (timeoutS : Nat) : IO UIn
 def runReports (root : System.FilePath) (dir : String) : IO UInt32 := do
   let d := underRoot root dir
   let jf := d / "cross-lang-results.json"
+  -- A missing or invalid source must not leave an older success page visible.
+  let hf := d / "cross-lang-comparison.html"
+  if ← hf.pathExists then IO.FS.removeFile hf
+  let pf := d / "python-ffi-tests.html"
+  if ← pf.pathExists then IO.FS.removeFile pf
   if ← jf.pathExists then
     match Lean.Json.parse (← IO.FS.readFile jf) >>= Reports.readCrossLang with
     | .error e => IO.eprintln s!"cross-lang-results.json: {e}"; return 1
     | .ok data =>
-      IO.FS.writeFile (d / "cross-lang-comparison.html") (Reports.crossLangHtml data)
+      IO.FS.writeFile hf (Reports.crossLangHtml data)
       IO.println s!"Generated {pyJoin dir "cross-lang-comparison.html"}"
   else
     IO.println "No cross-lang-results.json found, skipping"
@@ -400,7 +466,7 @@ def runReports (root : System.FilePath) (dir : String) : IO UInt32 := do
     IO.println "No JUnit XML files found, skipping Python FFI HTML report"
     return 0
   let (html, n) := Reports.pythonFfiHtml sections
-  IO.FS.writeFile (d / "python-ffi-tests.html") html
+  IO.FS.writeFile pf html
   IO.println s!"Generated {pyJoin dir "python-ffi-tests.html"} ({n} tests)"
   return 0
 
@@ -419,6 +485,7 @@ def main (args : List String) : IO UInt32 := do
   let mut limitsPreset : Option String := none
   let mut compareDir : Option String := none
   let mut reportsDir : Option String := none
+  let mut observationsFile : Option String := none
   let mut root : System.FilePath := "."
   let mut compareTimeout : Nat := 600
   let mut i : Nat := 0
@@ -438,6 +505,10 @@ def main (args : List String) : IO UInt32 := do
       | [] => IO.eprintln "Error: --json requires a directory argument"; return 1
     else if arg == "--snapshot" then
       snapshot := true
+    else if arg == "--observations" then
+      match args.drop (i + 1) with
+      | file :: _ => observationsFile := some file; skipNext := true
+      | [] => IO.eprintln "Error: --observations requires a file argument"; return 1
     else if arg == "--backend" then
       match args.drop (i + 1) with
       | name :: _ =>
@@ -524,6 +595,20 @@ def main (args : List String) : IO UInt32 := do
   flushStdout
   dbg t0 "distribution printed, entering main test loop"
 
+  -- Measurement mode used by --compare: run the unique roster, retain errors,
+  -- and distinguish completed acceptance measurements from conformance gates.
+  if let some file := observationsFile then
+    let results ← runAllForReport allCases .all (startMs := t0)
+      (backend := backend) (limitsPreset := limitsPreset)
+    let evidence : Reports.BackendEvidence := {
+      backend := toString backend
+      preset := limitsPreset.getD "unlimited"
+      cases := results.map observationOfReport }
+    IO.FS.writeFile file (Lean.toJson evidence).pretty
+    match Reports.validateRun evidence with
+    | .ok _ => return 0
+    | .error e => IO.eprintln e; return 1
+
   -- Shared helper: run all verified test suites and print progress
   let runVerifiedSuites : IO (Array Tests.VerifiedSuiteResult) := do
     IO.println "\nRunning verified test suites..."
@@ -589,7 +674,7 @@ def main (args : List String) : IO UInt32 := do
       (verifiedSuites := some verifiedSuites)
       (snapshot := snapshot)
     dbg t0 "done"
-    return 0
+    return if reportSucceeded results verifiedSuites then 0 else 1
   | none => pure ()
 
   -- HTML report mode: run all tests and generate reports
@@ -604,7 +689,7 @@ def main (args : List String) : IO UInt32 := do
     writeReports results dir
       (verifiedSuites := some verifiedSuites)
     dbg t0 "done"
-    return 0
+    return if reportSucceeded results verifiedSuites then 0 else 1
   | none => pure ()
 
   -- Console mode: run the requested stage(s)

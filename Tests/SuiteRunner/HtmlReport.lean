@@ -36,6 +36,7 @@ inductive TestOutcome where
   | unexpectedPass    -- parsed successfully (expected to fail) → incorrect
   | skip (reason : String)
   | timeout           -- timed out (possible infinite loop)
+  | error             -- backend launch, runtime, or protocol failure
   deriving Repr, BEq
 
 /-- A test result with its case and outcome. -/
@@ -56,6 +57,7 @@ structure CoverageStats where
   unexpectedPass : Nat
   skipped : Nat
   timeout : Nat
+  errors : Nat
   deriving Repr
 
 def CoverageStats.fromResults (results : Array ReportResult) : CoverageStats :=
@@ -65,6 +67,7 @@ def CoverageStats.fromResults (results : Array ReportResult) : CoverageStats :=
   let unexpectedPass := results.filter (fun r => r.outcome == .unexpectedPass) |>.size
   let skipped := results.filter (fun r => match r.outcome with | .skip _ => true | _ => false) |>.size
   let timeout := results.filter (fun r => r.outcome == .timeout) |>.size
+  let errors := results.filter (fun r => r.outcome == .error) |>.size
   { total := results.size
     applicable := results.size - skipped
     passed := passed
@@ -72,10 +75,20 @@ def CoverageStats.fromResults (results : Array ReportResult) : CoverageStats :=
     expectedFail := expectedFail
     unexpectedPass := unexpectedPass
     skipped := skipped
-    timeout := timeout }
+    timeout := timeout
+    errors := errors }
 
 def CoverageStats.correctCount (s : CoverageStats) : Nat :=
   s.passed + s.expectedFail
+
+/-- Report generation preserves failure evidence before returning a failing
+    status. Skipped cases are neutral; runtime failures are never expected fails. -/
+def reportSucceeded (results : Array ReportResult)
+    (verifiedSuites : Array Tests.VerifiedSuiteResult) : Bool :=
+  results.any (fun r => match r.outcome with | .skip _ => false | _ => true) &&
+  results.all (fun r => match r.outcome with
+    | .pass | .expectedFail | .skip _ => true
+    | _ => false) && verifiedSuites.all (·.allPass)
 
 def CoverageStats.successRate (s : CoverageStats) : Float :=
   if s.applicable == 0 then 0.0
@@ -100,6 +113,7 @@ instance : ToJson TestOutcome where
     | .unexpectedPass => "unexpected-pass"
     | .skip _         => "skip"
     | .timeout        => "timeout"
+    | .error          => "error"
 
 open Lean in
 instance : ToJson Stage where
@@ -130,6 +144,7 @@ instance : ToJson CoverageStats where
     ("unexpectedPass", toJson s.unexpectedPass),
     ("skipped",        toJson s.skipped),
     ("timeout",        toJson s.timeout),
+    ("errors",         toJson s.errors),
     ("correct",        toJson s.correctCount),
     ("correctRate",    Json.num (ratioPercent s.correctCount s.applicable))
   ]
@@ -137,6 +152,7 @@ instance : ToJson CoverageStats where
 /-- JSON-serializable per-test entry. -/
 structure JsonTestEntry where
   id      : String
+  variant : Nat
   name    : String
   stage   : Stage
   outcome : TestOutcome
@@ -149,6 +165,7 @@ instance : ToJson JsonTestEntry where
   toJson e :=
     let fields : List (String × Json) := [
       ("id",      toJson e.id),
+      ("variant", toJson e.variant),
       ("name",    toJson e.name),
       ("stage",   toJson e.stage),
       ("outcome", toJson e.outcome)]
@@ -244,6 +261,7 @@ def generateJsonSummary (results : Array ReportResult) (dateStamp : String)
   -- Per-test entries (include parserOutput for UP/fail)
   let testEntries := results.map fun r =>
     toJson ({ id      := r.testCase.id
+              variant := r.testCase.variant
               name    := r.testCase.name
               stage   := r.testCase.stage
               outcome := r.outcome
@@ -297,6 +315,7 @@ def outcomeClass : TestOutcome → String
   | .unexpectedPass => "unexpected-pass"
   | .skip _ => "skip"
   | .timeout => "timeout"
+  | .error => "error"
 
 def outcomeBadge : TestOutcome → String
   | .pass => "<span class=\"badge badge-pass\">Pass</span>"
@@ -305,6 +324,7 @@ def outcomeBadge : TestOutcome → String
   | .unexpectedPass => "<span class=\"badge badge-unexpected-pass\">Unexpected Pass</span>"
   | .skip reason => s!"<span class=\"badge badge-skip\" title=\"{escapeHtml reason}\">Skip</span>"
   | .timeout => "<span class=\"badge badge-timeout\">Timeout</span>"
+  | .error => "<span class=\"badge badge-fail\">Backend Error</span>"
 
 /-! ## CSS -/
 
@@ -581,6 +601,7 @@ def generateStatsHtml (stats : CoverageStats) : String :=
     s!"    <div class=\"stat-box stat-unexpected\"><h3>Unexpected Pass</h3><div class=\"number\">{stats.unexpectedPass}</div></div>\n",
     s!"    <div class=\"stat-box stat-skip\"><h3>Skipped (1.3)</h3><div class=\"number\">{stats.skipped}</div></div>\n",
     s!"    <div class=\"stat-box stat-timeout\"><h3>Timeout</h3><div class=\"number\">{stats.timeout}</div></div>\n",
+    s!"    <div class=\"stat-box stat-fail\"><h3>Backend Errors</h3><div class=\"number\">{stats.errors}</div></div>\n",
     s!"    <div class=\"stat-box stat-correct\"><h3>Correct</h3><div class=\"number\">{stats.correctCount}/{stats.applicable}</div><div class=\"pct\">({pctStr}%)</div></div>\n",
     "  </div>\n"
   ]
@@ -597,7 +618,8 @@ def generateStageBarSegments (stats : CoverageStats) : String :=
     ("fail",            "var(--color-fail)",             stats.failed),
     ("unexpected pass", "var(--color-unexpected-pass)",  stats.unexpectedPass),
     ("skip",            "var(--color-skip)",             stats.skipped),
-    ("timeout",         "var(--color-timeout)",          stats.timeout)
+    ("timeout",         "var(--color-timeout)",          stats.timeout),
+    ("backend error",   "var(--color-fail)",             stats.errors)
   ]
   let segments := categories.filter (fun (_, _, n) => n > 0)
   let html := segments.map fun (label, color, count) =>
@@ -617,7 +639,7 @@ def generateStageCardsHtml (results : Array ReportResult) : String :=
     let skipNote := if stats.skipped > 0 then s!" · {stats.skipped} YAML 1.3 skipped" else ""
     s!"    <div class=\"stage-card\">\n" ++
     s!"      <div class=\"stage-card-name\">{stage}</div>\n" ++
-    s!"      <div class=\"stage-card-stats\">{stats.correctCount}/{stats.applicable} correct ({pctStr}%) · {stats.passed} pass, {stats.failed} fail, {stats.expectedFail} exp-fail, {stats.unexpectedPass} unexp-pass{skipNote}, {stats.timeout} timeout</div>\n" ++
+    s!"      <div class=\"stage-card-stats\">{stats.correctCount}/{stats.applicable} correct ({pctStr}%) · {stats.passed} pass, {stats.failed} fail, {stats.expectedFail} exp-fail, {stats.unexpectedPass} unexp-pass{skipNote}, {stats.timeout} timeout, {stats.errors} backend error</div>\n" ++
     s!"      <div class=\"stage-bar\">{barSegments}</div>\n" ++
     s!"    </div>\n"
   String.join [
@@ -640,6 +662,7 @@ def generateFiltersHtml (totalCount : Nat) : String :=
     "      <button class=\"filter-btn\" onclick=\"filterByOutcome('unexpected-pass')\">Unexp Pass</button>\n",
     "      <button class=\"filter-btn\" onclick=\"filterByOutcome('skip')\">Skip</button>\n",
     "      <button class=\"filter-btn\" onclick=\"filterByOutcome('timeout')\">Timeout</button>\n",
+    "      <button class=\"filter-btn\" onclick=\"filterByOutcome('error')\">Backend Error</button>\n",
     "    </div>\n",
     "    <div class=\"filter-group\">\n",
     "      <label>Stage:</label>\n",
@@ -743,19 +766,13 @@ def generateStageReport (results : Array ReportResult) (stage : Stage) : String 
     (title := s!"{stage} Tests — lean4-yaml-verified")
     (navLink := some ("index.html", "Back to Coverage Index"))
 
-/-- Map ReportResult outcomes back to the console-mode pass/fail/skip categorization.
-    - pass = runTest returned .pass (output matched expected)
-    - fail = runTest returned .fail (mismatch, timeout, unexpected parse success)
-    - skip = test was not run -/
+/-- Console pass/fail/skip counts follow the typed outcome, independently of
+    whether a diagnostic message was recorded for an expected rejection. -/
 def consoleStats (results : Array ReportResult) : Nat × Nat × Nat :=
   results.foldl (fun (p, f, s) r =>
     match r.outcome with
-    | .pass => (p + 1, f, s)
-    | .expectedFail =>
-      -- expectedFail with no errorMsg came from runTest .pass path;
-      -- with errorMsg came from runTest .fail path
-      if r.errorMsg.isNone then (p + 1, f, s) else (p, f + 1, s)
-    | .fail | .unexpectedPass | .timeout => (p, f + 1, s)
+    | .pass | .expectedFail => (p + 1, f, s)
+    | .fail | .unexpectedPass | .timeout | .error => (p, f + 1, s)
     | .skip _ => (p, f, s + 1)
   ) (0, 0, 0)
 
@@ -839,6 +856,7 @@ def generateIndexHtml (results : Array ReportResult)
     s!"Expected fail:           {stats.expectedFail}\n",
     s!"Unexpected pass:         {stats.unexpectedPass}\n",
     s!"Timeout:                 {stats.timeout}\n",
+    s!"Backend errors:          {stats.errors}\n",
     s!"\nCorrect: {stats.correctCount}/{stats.applicable} ({pctStr}%)\n",
     "    </pre>\n",
     "  </div>\n\n",

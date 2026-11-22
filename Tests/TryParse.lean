@@ -1,6 +1,7 @@
 module
 
 public import L4YAML
+public import Tests.SuiteRunner.Protocol
 
 @[expose] public section Blanket
 
@@ -10,6 +11,8 @@ public import L4YAML
 Reads a YAML file from the path given as the first argument.
 Exits 0 on successful parse, 1 on parse error.
 Used by the suite runner with `timeout` for OS-level isolation.
+When `L4YAML_SUITE_PROTOCOL=1`, emits one exact ACCEPT/REJECT stdout line
+only after a deliberate parse result. Uncaught runtime errors have no marker.
 
 An optional second argument selects a limits preset:
   `unlimited` (default) | `default` | `strict` | `permissive` | `safe_tags`
@@ -43,11 +46,11 @@ def main (args : List String) : IO UInt32 := do
   match limits with
   | none =>
     match TokenParser.parseYaml content with
-    | .ok _ => return 0
-    | .error e => IO.eprintln (toString e); return 1
+    | .ok _ => Tests.SuiteRunner.Protocol.emit true; return 0
+    | .error e => IO.eprintln (toString e); Tests.SuiteRunner.Protocol.emit false; return 1
   | some lim =>
     match parseYamlSafe content lim with
-    | .ok _ => return 0
-    | .error e => IO.eprintln (toString e); return 1
+    | .ok _ => Tests.SuiteRunner.Protocol.emit true; return 0
+    | .error e => IO.eprintln (toString e); Tests.SuiteRunner.Protocol.emit false; return 1
 
 end Blanket

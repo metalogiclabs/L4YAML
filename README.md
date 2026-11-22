@@ -464,6 +464,9 @@ imports LeanCopilot additionally needs `-Kleancopilot=on` to link CTranslate2
 # Full yaml-test-suite coverage (HTML report)
 lake build suiterunner tryparse && lake exe suiterunner --html docs/
 
+# Suite-runner process, comparison, and report regression controls
+lake build suiterunner tryparse suiteoutcomeregression && lake exe suiteoutcomeregression
+
 # Per-stage runs
 lake exe suiterunner scalar      # scalar stage only
 lake exe suiterunner flow        # cumulative through flow
@@ -553,6 +556,24 @@ a reachable Docker daemon phase 6 is skipped with a warning — the same way the
 workflow's own matrix step skips itself.
 
 ### Querying test results
+
+`suiterunner --html DIR` and `--json DIR` write their reports before returning
+nonzero for unexpected acceptance/rejection, backend errors, timeouts, failed
+verified tests, or an empty applicable corpus. A negative case passes only
+when the backend explicitly reports a parser rejection. The runner opts into
+the tryparse protocol with `L4YAML_SUITE_PROTOCOL=1`: exactly
+`L4YAML_SUITE_ACCEPT` plus a newline and exit 0, or `L4YAML_SUITE_REJECT` plus a
+newline and exit 1. Other output/status combinations are backend errors;
+ordinary tryparse invocations retain their existing human output.
+
+`suiterunner --compare DIR` checks acceptance per `(test ID, variant)` across
+all four backends and five presets. It records version 2 input, expectation,
+applicability, and outcome evidence in `cross-lang-results.json` only after
+complete agreement. Restrictive presets may agree in rejecting valid input;
+agreement does not check parsed values, emitted output, or conformance.
+Counts-only legacy comparison files must be regenerated. `--reports DIR`
+renders stored evidence; its exit status reports rendering success, while
+`--html` and `--json` perform test runs and return their gate status.
 
 `suiterunner --html` also writes structured results to
 [docs/reports/coverage-summary.json](docs/reports/coverage-summary.json)

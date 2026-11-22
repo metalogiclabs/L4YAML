@@ -97,6 +97,9 @@ lean_lib «Tests.VerifiedResult» where
 lean_lib «Tests.SuiteRunner.Meta» where
   roots := #[`Tests.SuiteRunner.Meta]
 
+lean_lib «Tests.SuiteRunner.Protocol» where
+  roots := #[`Tests.SuiteRunner.Protocol]
+
 lean_lib «Tests.SuiteRunner.HtmlReport» where
   roots := #[`Tests.SuiteRunner.HtmlReport]
 
@@ -104,6 +107,10 @@ lean_lib «Tests.Main» where
   roots := #[`Tests.Main]
 lean_lib «Tests.SuiteRunner.Reports» where
   roots := #[`Tests.SuiteRunner.Reports]
+
+@[default_target]
+lean_exe suiteoutcomeregression where
+  root := `Tests.SuiteRunnerOutcomeRegression
 
 
 lean_lib Demo
@@ -704,7 +711,8 @@ script «run-all-tests» (args) do
     ("mutationtests", "mutationtests"), ("propertytests", "propertytests"),
     ("productioncoverage", "productioncoverage"), ("limittests", "limittests"),
     ("flowregressioncheck", "flowregressioncheck"), ("errorstagediag", "errorstagediag"),
-    ("scalarstagediag", "scalarstagediag"), ("aligntest", "aligntest")]
+    ("scalarstagediag", "scalarstagediag"), ("aligntest", "aligntest"),
+    ("suite-outcome-regression", "suiteoutcomeregression")]
   let mut failed : Array String := #[]
   for (name, exe) in suites do
     IO.println s!"=== Running: {name} ==="

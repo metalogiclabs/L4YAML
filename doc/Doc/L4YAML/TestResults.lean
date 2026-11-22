@@ -200,9 +200,17 @@ through all four backends (Lean, C, Python, Rust) across
 five limit presets (`unlimited`, `default`, `strict`,
 `permissive`, `safe_tags`).
 
-This verifies that the FFI layer preserves identical parsing
-behavior — every backend must produce the same pass/fail/skip
-results for every test case under every preset configuration.
+The comparison checks each `(test ID, variant)` against the same input,
+expectation, and applicability, requiring the same accept/reject observation
+from every backend under each preset. Backend errors, timeouts, missing or
+duplicate cases, and empty applicable rosters cannot establish agreement.
+The saved versioned JSON retains these observations for the HTML report;
+older counts-only results must be regenerated.
+
+This is acceptance agreement. Parsed values and emitted output are not
+compared, and agreement alone does not establish conformance to the suite's
+expected result. For example, all backends may deliberately reject a valid
+input under a restrictive preset.
 
 Results are available at
 [Cross-Language Comparison Report](reports/cross-lang-comparison.html).

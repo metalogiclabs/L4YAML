@@ -138,7 +138,7 @@ jobs:
         run: |
           set -o pipefail
           lake build L4YAML \
-            suiterunner tryparse tryroundtrip trydump \
+            suiterunner suiteoutcomeregression tryparse tryroundtrip trydump \
             tests demo explicitkeytests flowtests \
             validationtests dumproundtrip rawparsetests \
             specexamples schemadump derivingconsumer scannertests scannerspecexamples \

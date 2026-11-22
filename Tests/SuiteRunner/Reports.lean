@@ -4,26 +4,22 @@ public import Lean.Data.Json
 public import Tests.SuiteRunner.HtmlReport
 
 /-!
-# Test-result reports — the pure half of `suiterunner --compare` / `--reports`
+# Test-result reports
 
-Ported from `scripts/cross-lang-compare.py` and `scripts/generate-test-reports.py`
-(Rule 9 phase 4, row 1).  Everything here is a function of strings:
+The comparison consumes keyed per-case acceptance observations, not aggregate
+counts. Version 2 retains the input and expected outcome at each (id, variant),
+so saved evidence can be checked again before HTML claims agreement. Acceptance
+agreement says nothing about parsed values, event output, or conformance.
 
-* `parseTotal?` reads a backend's `TOTAL:` line; `presetLines` / `verdictLines`
-  are the comparison's stdout; `crossLangJson` its `cross-lang-results.json`;
-* `crossLangHtml` renders that JSON as `cross-lang-comparison.html`;
-* `junitCases` reads a JUnit XML file (a hand reader for `testsuite` /
-  `testcase` / `failure` / `skipped` and their attributes — no dependency) and
-  `pythonFfiHtml` renders the sections as `python-ffi-tests.html`.
-
-The HTML is the Python's byte for byte (`"\n".join(parts)`, Python's
-`html.escape` with `&#x27;`); `Tests/SuiteRunner/Main.lean` does the spawning
-and the files.
+`Tests/SuiteRunner/Main.lean` owns process execution and file I/O. The JUnit
+reader and renderer below are the separate `--reports` rendering path.
 -/
 
 namespace Tests.SuiteRunner.Reports
 
 @[expose] public section
+
+open Lean
 
 instance {ε α : Type} [BEq ε] [BEq α] : BEq (Except ε α) where
   beq
@@ -34,149 +30,168 @@ instance {ε α : Type} [BEq ε] [BEq α] : BEq (Except ε α) where
 def backends : List String := ["lean", "c", "python", "rust"]
 def presets : List String := ["unlimited", "default", "strict", "permissive", "safe_tags"]
 
-/-- `passed, failed, skipped, total`. -/
-structure Counts where
-  passed : Nat
-  failed : Nat
-  skipped : Nat
-  total : Nat
+inductive ObservationOutcome where
+  | accepted | rejected | skipped | error | timeout
   deriving Repr, BEq, Inhabited
 
-def Counts.pyTuple (c : Counts) : String := s!"({c.passed}, {c.failed}, {c.skipped}, {c.total})"
+instance : ToString ObservationOutcome where
+  toString
+    | .accepted => "accepted"
+    | .rejected => "rejected"
+    | .skipped => "skipped"
+    | .error => "error"
+    | .timeout => "timeout"
 
-/-- Python `str.split()`: on runs of whitespace, no empties. -/
-def pySplit (s : String) : List String :=
-  go s.toList [] []
-where
-  go : List Char → List Char → List String → List String
-    | [], cur, acc => (if cur.isEmpty then acc else String.ofList cur.reverse :: acc).reverse
-    | c :: t, cur, acc =>
-      if c.isWhitespace then go t [] (if cur.isEmpty then acc else String.ofList cur.reverse :: acc)
-      else go t (c :: cur) acc
+instance : ToJson ObservationOutcome where
+  toJson x := toJson (toString x)
 
-#guard pySplit "  a\tb  c " == ["a", "b", "c"]
+instance : FromJson ObservationOutcome where
+  fromJson? j := do
+    match ← j.getStr? with
+    | "accepted" => return .accepted
+    | "rejected" => return .rejected
+    | "skipped" => return .skipped
+    | "error" => return .error
+    | "timeout" => return .timeout
+    | s => throw s!"unknown observation outcome: {s}"
 
-/-- The `TOTAL:` line of a suiterunner run: `parts[1] parts[3] parts[5] parts[7].strip("()")`. -/
-def parseTotal? (out : String) : Option Counts := Id.run do
-  for line in out.splitOn "\n" do
-    if (line.splitOn "TOTAL:").length > 1 then
-      let parts := (pySplit line).toArray
-      if parts.size < 8 then return none
-      let strip (s : String) : String := String.ofList ((s.toList.dropWhile (· == '(')).reverse.dropWhile (· == ')') |>.reverse)
-      return (do
-        let p ← parts[1]!.toNat?; let f ← parts[3]!.toNat?; let s ← parts[5]!.toNat?
-        let t ← (strip parts[7]!).toNat?
-        some ⟨p, f, s, t⟩)
-  return none
+/-- `yaml` is exactly the unescaped input supplied to tryparse. Diagnostics are
+    retained for review but are not compared between language adapters. -/
+structure CaseObservation where
+  id : String
+  variant : Nat
+  yaml : String
+  expectFail : Bool
+  outcome : ObservationOutcome
+  detail : String := ""
+  deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-#guard parseTotal? "══\n  TOTAL: 869 passed, 0 failed, 151 skipped (1020 total)\n══" == some ⟨869, 0, 151, 1020⟩
-#guard parseTotal? "no total here" == none
+def CaseObservation.key (c : CaseObservation) : String := s!"{c.id}/{c.variant}"
 
-/-- Python `f"{preset:12s}"`: left-justified, padded to 12. -/
-def pad12 (s : String) : String := s ++ String.ofList (List.replicate (12 - s.length) ' ')
+def CaseObservation.sameInput (a b : CaseObservation) : Bool :=
+  a.id == b.id && a.variant == b.variant && a.yaml == b.yaml && a.expectFail == b.expectFail
 
-/-- The line printed for one preset: all four identical, or the MISMATCH dict. -/
-def presetLine (preset : String) (vals : List (String × Counts)) : String × Bool :=
-  let cs := vals.map (·.2)
-  let same := cs.all (· == cs.headD default)
-  if same then
-    let c := cs.headD default
-    (s!"{pad12 preset}: {c.passed} passed, {c.failed} failed, {c.skipped} skipped ({c.total} total) — all 4 backends identical", true)
-  else
-    let d := ", ".intercalate (vals.map fun (b, c) => s!"'{b}': {c.pyTuple}")
-    (s!"MISMATCH for preset '{preset}': \{{d}}", false)
+structure BackendEvidence where
+  backend : String
+  preset : String
+  cases : Array CaseObservation
+  deriving Repr, Inhabited, ToJson, FromJson
 
-#guard presetLine "strict" (backends.map fun b => (b, ⟨1, 2, 3, 6⟩)) ==
-  ("strict      : 1 passed, 2 failed, 3 skipped (6 total) — all 4 backends identical", true)
-#guard (presetLine "safe_tags" [("lean", ⟨1, 0, 0, 1⟩), ("c", ⟨0, 0, 0, 0⟩)]).1 ==
-  "MISMATCH for preset 'safe_tags': {'lean': (1, 0, 0, 1), 'c': (0, 0, 0, 0)}"
+structure CrossLangEvidence where
+  schemaVersion : Nat := 2
+  comparison : String := "per-case-acceptance"
+  runs : Array BackendEvidence
+  deriving Repr, Inhabited, ToJson, FromJson
+
+def sortedCases (cs : Array CaseObservation) : Array CaseObservation :=
+  cs.insertionSort fun a b => a.id < b.id || (a.id == b.id && a.variant < b.variant)
+
+/-- A complete observation requires at least one actual parse result. Empty,
+    skipped-only, duplicate, crashed, and timed-out rosters cannot certify. -/
+def validateRun (r : BackendEvidence) : Except String Unit := do
+  unless backends.contains r.backend do throw s!"unknown backend {r.backend}"
+  unless presets.contains r.preset do throw s!"unknown preset {r.preset}"
+  let cs := sortedCases r.cases
+  unless cs.any (fun c => c.outcome == .accepted || c.outcome == .rejected) do
+    throw s!"{r.backend}/{r.preset}: no applicable parse observations"
+  let mut previous : Option (String × Nat) := none
+  for c in cs do
+    if previous == some (c.id, c.variant) then throw s!"duplicate case {c.key}"
+    previous := some (c.id, c.variant)
+    if c.id.isEmpty then throw "empty case identifier"
+    if c.outcome == .error || c.outcome == .timeout then
+      throw s!"{r.backend}/{r.preset}/{c.key}: {c.outcome}: {c.detail}"
+
+/-- Compare keyed coverage and input identity independent of array order.
+    Across presets, acceptance can differ, but applicability must agree. -/
+def compareCases (a b : BackendEvidence) (compareAcceptance : Bool) : Except String Unit := do
+  let xs := sortedCases a.cases
+  let ys := sortedCases b.cases
+  unless xs.size == ys.size do
+    throw s!"{b.backend}/{b.preset}: missing or extra case IDs"
+  for (x, y) in xs.zip ys do
+    unless x.sameInput y do throw s!"{b.backend}/{b.preset}: case identity/input mismatch at {x.key} / {y.key}"
+    unless (x.outcome == .skipped) == (y.outcome == .skipped) do
+      throw s!"{b.backend}/{b.preset}/{x.key}: applicability mismatch"
+    if compareAcceptance && x.outcome != y.outcome then
+      throw s!"{b.backend}/{b.preset}/{x.key}: acceptance mismatch ({x.outcome} / {y.outcome})"
+
+def validatePreset (preset : String) (runs : Array BackendEvidence) : Except String Unit := do
+  unless presets.contains preset do throw s!"unknown preset {preset}"
+  unless runs.size == backends.length && backends.all (fun b =>
+      (runs.filter (fun r => r.backend == b)).size == 1) do
+    throw s!"{preset}: require exactly one run for each of lean, c, python, rust"
+  for r in runs do
+    unless r.preset == preset do throw s!"{r.backend}: preset mismatch ({r.preset} / {preset})"
+    validateRun r
+  let reference := runs[0]!
+  for r in runs do compareCases reference r true
+
+def validateCrossLang (data : CrossLangEvidence) : Except String Unit := do
+  unless data.schemaVersion == 2 && data.comparison == "per-case-acceptance" do
+    throw "requires version 2 per-case-acceptance evidence; aggregate counts are insufficient"
+  unless data.runs.size == backends.length * presets.length do
+    throw "require all four backends for all five presets"
+  for preset in presets do
+    validatePreset preset (data.runs.filter (fun r => r.preset == preset))
+  let reference := data.runs[0]!
+  for r in data.runs do compareCases reference r false
+
+/-- Counts are display summaries only; the verdict comes from the observations. -/
+def acceptanceCounts (cs : Array CaseObservation) : Nat × Nat × Nat :=
+  cs.foldl (fun (a, r, s) c => match c.outcome with
+    | .accepted => (a + 1, r, s)
+    | .rejected => (a, r + 1, s)
+    | .skipped => (a, r, s + 1)
+    | _ => (a, r, s)) (0, 0, 0)
+
+def presetLine (preset : String) (runs : Array BackendEvidence) : String × Bool :=
+  match validatePreset preset runs with
+  | .error e => (s!"INCOMPLETE OR MISMATCH: {e}", false)
+  | .ok _ =>
+    let (a, r, s) := acceptanceCounts runs[0]!.cases
+    (s!"{preset}: {a} accepted, {r} rejected, {s} skipped — per-case acceptance agrees across all 4 backends", true)
 
 def verdictLine (allMatch : Bool) : String :=
-  if allMatch then "✓ All backends produce identical results for every preset" else "✗ Backend mismatch detected!"
+  if allMatch then "✓ Per-case acceptance agrees for all four backends and five presets (values/output not compared)"
+  else "✗ Per-case acceptance comparison failed or has incomplete evidence"
 
-/-- `json.dumps(indent=2)` of `{preset: {backend: {passed, failed, skipped, total}}}`, insertion order. -/
-def crossLangJson (results : List (String × List (String × Counts))) : String :=
-  let obj (rows : List (String × String)) (ind : String) : String :=
-    if rows.isEmpty then "{}" else
-    "{\n" ++ ",\n".intercalate (rows.map fun (k, v) => s!"{ind}  \"{k}\": {v}") ++ s!"\n{ind}}"
-  obj (results.map fun (preset, bs) =>
-    (preset, obj (bs.map fun (b, c) =>
-      (b, obj [("passed", toString c.passed), ("failed", toString c.failed),
-               ("skipped", toString c.skipped), ("total", toString c.total)] "    ")) "  ")) ""
+def crossLangJson (data : CrossLangEvidence) : String := (toJson data).pretty
 
-#guard crossLangJson [("default", [("lean", ⟨1, 2, 3, 6⟩)])] ==
-  "{\n  \"default\": {\n    \"lean\": {\n      \"passed\": 1,\n      \"failed\": 2,\n      \"skipped\": 3,\n      \"total\": 6\n    }\n  }\n}"
+/-- Legacy counts-only files are deliberately rejected, not relabelled as a
+    stronger measurement. Re-run `--compare` to produce version 2 evidence. -/
+def readCrossLang (j : Json) : Except String CrossLangEvidence := do
+  let version ← j.getObjValAs? Nat "schemaVersion"
+  let comparison ← j.getObjValAs? String "comparison"
+  unless version == 2 && comparison == "per-case-acceptance" do
+    throw "requires version 2 per-case-acceptance evidence; aggregate counts are insufficient"
+  let data ← fromJson? j
+  validateCrossLang data
+  return data
 
-/-- Python `html.escape` (quote=True): `&`, `<`, `>`, `"`, `'` → `&#x27;`. -/
+/-- Python `html.escape` (quote=True), also used by the JUnit renderer. -/
 def pyEscape (s : String) : String :=
   s.replace "&" "&amp;" |>.replace "<" "&lt;" |>.replace ">" "&gt;" |>.replace "\"" "&quot;" |>.replace "'" "&#x27;"
 
 #guard pyEscape "a<b>&'\"" == "a&lt;b&gt;&amp;&#x27;&quot;"
 
-/-- `cross-lang-results.json` read back: presets in file order, each backend's counts. -/
-def readCrossLang (j : Lean.Json) : Except String (List (String × List (String × Counts))) := do
-  let .obj top := j | throw "cross-lang-results.json: not an object"
-  let mut out := []
-  for (preset, v) in top.toArray.toList do
-    let .obj bs := v | throw s!"{preset}: not an object"
-    let mut row := []
-    for (b, c) in bs.toArray.toList do
-      let get (k : String) : Except String Nat := match c.getObjValAs? Nat k with
-        | .ok n => .ok n | .error e => .error s!"{preset}/{b}/{k}: {e}"
-      row := row ++ [(b, ⟨← get "passed", ← get "failed", ← get "skipped", ← get "total"⟩)]
-    out := out ++ [(preset, row)]
-  return out
-
-/-- `generate_cross_lang_html`'s document. -/
-def crossLangHtml (data : List (String × List (String × Counts))) : String := Id.run do
-  let mut parts : Array String := #[
-    "<!DOCTYPE html>",
-    "<html lang=\"en\"><head><meta charset=\"utf-8\">",
-    "<title>Cross-Language yaml-test-suite Comparison</title>",
-    "<style>",
-    "body{font-family:system-ui,sans-serif;margin:2em;background:#f8f9fa}",
-    "h1{color:#1a1a2e} h2{color:#16213e;margin-top:1.5em}",
-    "table{border-collapse:collapse;margin:1em 0}",
-    "th,td{border:1px solid #dee2e6;padding:6px 14px;text-align:right}",
-    "th{background:#343a40;color:#fff;text-align:center}",
-    "td:first-child{text-align:left;font-weight:bold}",
-    ".match{background:#d4edda;color:#155724}",
-    ".mismatch{background:#f8d7da;color:#721c24}",
-    ".summary{font-size:1.1em;margin:1em 0}",
-    "</style></head><body>",
-    "<h1>Cross-Language yaml-test-suite Comparison</h1>",
-    "<p>All four backends (Lean, C, Python, Rust) run the same yaml-test-suite test cases through the verified parser via their respective FFI layers.</p>"]
-  let mut allMatch := true
-  parts := parts.push "<h2>Results by Limit Preset</h2>"
-  parts := parts.push "<table><tr><th>Preset</th><th>Passed</th><th>Failed</th><th>Skipped</th><th>Total</th><th>Backends Match?</th></tr>"
+/-- Validation is repeated here so even a directly constructed incomplete
+    value cannot cause the HTML renderer to claim agreement. -/
+def crossLangHtml (data : CrossLangEvidence) : String := Id.run do
+  let header := "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>Cross-language acceptance comparison</title>" ++
+    "<style>body{font-family:system-ui;margin:2em}table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:.5em}.match{color:#155724}.mismatch{color:#721c24}</style></head><body>" ++
+    "<h1>Cross-language acceptance comparison</h1>"
+  match validateCrossLang data with
+  | .error e => return header ++ s!"<p class=\"mismatch\">Insufficient or inconsistent evidence: {pyEscape e}</p></body></html>"
+  | .ok _ => pure ()
+  let mut html := header ++ "<p>Each (test ID, variant) has the same input, expectation, applicability, and accept/reject result across Lean, C, Python, and Rust for each preset. Parsed values and emitted output are not compared. Agreement does not establish conformance to the expected result.</p>"
+  html := html ++ "<table><tr><th>Preset</th><th>Backend</th><th>Accepted</th><th>Rejected</th><th>Skipped</th><th>Total</th></tr>"
   for preset in presets do
-    let some row := data.lookup preset | continue
-    let vals := backends.filterMap fun b => row.lookup b
-    let match_ := vals.all (· == vals.headD default)
-    if !match_ then allMatch := false
-    let css := if match_ then "match" else "mismatch"
-    let icon := if match_ then "✓" else "✗"
-    let c := vals.headD default
-    parts := parts.push s!"<tr><td>{pyEscape preset}</td><td>{c.passed}</td><td>{c.failed}</td><td>{c.skipped}</td><td>{c.total}</td><td class=\"{css}\">{icon} {if match_ then "All identical" else "MISMATCH"}</td></tr>"
-  parts := parts.push "</table>"
-  parts := parts.push "<h2>Full Matrix (Backend × Preset)</h2>"
-  parts := parts.push "<table><tr><th>Backend</th>"
-  for preset in presets do parts := parts.push s!"<th>{pyEscape preset}</th>"
-  parts := parts.push "</tr>"
-  for b in backends do
-    parts := parts.push s!"<tr><td>{pyEscape b}</td>"
-    for preset in presets do
-      match data.lookup preset >>= (·.lookup b) with
-      | some d => parts := parts.push s!"<td>{d.passed}/{d.failed}/{d.skipped}</td>"
-      | none => parts := parts.push "<td>—</td>"
-    parts := parts.push "</tr>"
-  parts := parts.push "</table>"
-  let color := if allMatch then "match" else "mismatch"
-  let icon := if allMatch then "✓" else "✗"
-  let msg := if allMatch then "All backends produce identical results for every preset" else "Backend mismatch detected!"
-  parts := parts.push s!"<p class=\"summary {color}\">{icon} {msg}</p>"
-  parts := parts.push "</body></html>"
-  return "\n".intercalate parts.toList
+    for backend in backends do
+      let some r := data.runs.find? (fun r => r.preset == preset && r.backend == backend) | continue
+      let (a, d, s) := acceptanceCounts r.cases
+      html := html ++ s!"<tr><td>{pyEscape preset}</td><td>{pyEscape backend}</td><td>{a}</td><td>{d}</td><td>{s}</td><td>{r.cases.size}</td></tr>"
+  return html ++ s!"</table><p class=\"match\">{pyEscape (verdictLine true)}</p></body></html>"
 
 /-! ## JUnit XML -/
 

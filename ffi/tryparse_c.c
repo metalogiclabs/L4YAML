@@ -7,6 +7,9 @@
  *
  * Usage: tryparse_c <file.yaml> [preset]
  *   preset: unlimited (default) | default | strict | permissive | safe_tags
+ * L4YAML_SUITE_PROTOCOL=1 adds one result marker on stdout after cleanup.
+ * The runner requires both this marker and the matching exit status, so an
+ * unrelated process failure cannot stand in for a parser rejection.
  */
 #include "l4yaml.h"
 #include <stdio.h>
@@ -70,5 +73,9 @@ int main(int argc, char *argv[]) {
     free(buf);
     l4yaml_finalize();
 
+    const char *protocol = getenv("L4YAML_SUITE_PROTOCOL");
+    if (protocol && strcmp(protocol, "1") == 0) {
+        fputs(ok ? "L4YAML_SUITE_ACCEPT\n" : "L4YAML_SUITE_REJECT\n", stdout);
+    }
     return ok ? 0 : 1;
 }

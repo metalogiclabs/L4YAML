@@ -6,6 +6,9 @@
 //!
 //! Usage: tryparse_rust <file.yaml> [preset]
 //!   preset: unlimited (default) | default | strict | permissive | safe_tags
+//!
+//! L4YAML_SUITE_PROTOCOL=1 adds a result marker after parsing and cleanup.
+//! A process failure without that marker is not a parser rejection.
 
 use l4yaml::LimitsPreset;
 
@@ -49,14 +52,26 @@ fn main() {
 
     l4yaml::initialize();
 
-    let code = match l4yaml::load_all(&content, preset) {
-        Ok(_) => 0,
+    let (code, marker) = match l4yaml::load_all(&content, preset) {
+        Ok(_) => (0, Some("L4YAML_SUITE_ACCEPT")),
         Err(e) => {
             eprintln!("{e}");
-            1
+            // Handle, encoding, and configuration faults are not deliberate
+            // parser rejections even though the human CLI exits 1 for both.
+            let marker = if matches!(e, l4yaml::Error::Parse(_) | l4yaml::Error::Limit(_)) {
+                Some("L4YAML_SUITE_REJECT")
+            } else {
+                None
+            };
+            (1, marker)
         }
     };
 
     l4yaml::finalize();
+    if std::env::var("L4YAML_SUITE_PROTOCOL").as_deref() == Ok("1") {
+        if let Some(marker) = marker {
+            println!("{marker}");
+        }
+    }
     std::process::exit(code);
 }

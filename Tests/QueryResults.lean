@@ -123,6 +123,7 @@ def cmdSummary (root : Json) : IO Unit := do
   IO.println s!"| Unexpected pass | {getNat overall "unexpectedPass"} |"
   IO.println s!"| Skipped | {getNat overall "skipped"} |"
   IO.println s!"| Timeout | {getNat overall "timeout"} |"
+  IO.println s!"| Backend errors | {getNat overall "errors"} |"
   IO.println s!"| **Correct** | **{getNat overall "correct"}/{getNat overall "applicable"}** |"
   -- Verified section
   let verified := getObj root "verified"

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 import os
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -21,6 +22,40 @@ needs_lib = pytest.mark.skipif(
     not _LIB_AVAILABLE,
     reason="libl4yaml.so not found",
 )
+
+
+@needs_lib
+class TestTryparseOutcomeProtocol:
+    @pytest.mark.parametrize(
+        ("error_name", "expected_stdout"),
+        [
+            ("ParseError", "L4YAML_SUITE_REJECT\n"),
+            ("LimitError", "L4YAML_SUITE_REJECT\n"),
+            ("ConfigError", ""),
+            ("L4YAMLError", ""),
+        ],
+    )
+    def test_only_parser_rejections_emit_rejection_evidence(
+        self, error_name, expected_stdout, tmp_path, monkeypatch, capsys
+    ) -> None:
+        # Inject a parser/API fault at the external call, while exercising
+        # the real CLI's file read, exception handling, status, and stdout.
+        cli_path = Path(__file__).resolve().parents[2] / "Tests" / "tryparse_python.py"
+        monkeypatch.setattr(sys, "path", sys.path.copy())
+        cli = runpy.run_path(str(cli_path))
+        source = tmp_path / "input.yaml"
+        source.write_text("ok: true\n", encoding="utf-8")
+
+        def fail_parse(*args, **kwargs):
+            raise getattr(l4yaml, error_name)("injected API outcome")
+
+        monkeypatch.setattr(l4yaml, "load_all", fail_parse)
+        monkeypatch.setenv("L4YAML_SUITE_PROTOCOL", "1")
+        monkeypatch.setattr(sys, "argv", [str(cli_path), str(source), "unlimited"])
+        assert cli["main"]() == 1
+        captured = capsys.readouterr()
+        assert captured.out == expected_stdout
+        assert captured.err == "injected API outcome\n"
 
 
 # ── Single-document parsing ──────────────────────────────────────────
