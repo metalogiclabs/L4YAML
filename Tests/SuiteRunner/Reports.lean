@@ -13,12 +13,13 @@ Ported from `scripts/cross-lang-compare.py` and `scripts/generate-test-reports.p
   are the comparison's stdout; `crossLangJson` its `cross-lang-results.json`;
 * `crossLangHtml` renders that JSON as `cross-lang-comparison.html`;
 * `junitCases` reads a JUnit XML file (a hand reader for `testsuite` /
-  `testcase` / `failure` / `skipped` and their attributes — no dependency) and
+  `testcase` / `failure` / `error` / `skipped` and their attributes — no dependency) and
   `pythonFfiHtml` renders the sections as `python-ffi-tests.html`.
 
-The HTML is the Python's byte for byte (`"\n".join(parts)`, Python's
-`html.escape` with `&#x27;`); `Tests/SuiteRunner/Main.lean` does the spawning
-and the files.
+The HTML keeps the Python layout (`"\n".join(parts)`, Python's `html.escape`
+with `&#x27;`). JUnit errors are displayed as `ERROR` and counted with failures;
+the former Python reader lost that distinction. `Tests/SuiteRunner/Main.lean`
+does the spawning and the files.
 -/
 
 namespace Tests.SuiteRunner.Reports
@@ -379,7 +380,9 @@ where
     loop cs none []
 
 /-- `generate_python_ffi_html`'s reading of one JUnit file: every `testcase`
-    (document order), with `failure` / `skipped` children.  The document must
+    (document order), with `failure` / `error` / `skipped` children. Errors
+    take precedence over failures and skips and use failure styling/counts.
+    The document must
     be well formed the way `xml.etree` demanded it: tags nest and match, one
     root element, closed, nothing after it — a truncated file is an error, not
     a shorter report. -/
@@ -388,6 +391,7 @@ def junitCases (xml : String) : Except String (List Case) := do
   let mut out : List Case := []
   let mut cur : Option (String × String) := none    -- (name, time) of the open testcase
   let mut failed := false
+  let mut errored := false
   let mut skipped := false
   let mut stack : List String := []
   let mut rootsClosed := 0
@@ -407,14 +411,16 @@ def junitCases (xml : String) : Except String (List Case) := do
     if name == "testcase" && isStart then
       let n := (attrs.lookup "classname").getD "" ++ "." ++ (attrs.lookup "name").getD ""
       cur := some (n, (attrs.lookup "time").getD "0")
-      failed := false; skipped := false
+      failed := false; errored := false; skipped := false
       if isEnd then
         out := out ++ [⟨n, "PASS", "pass", (attrs.lookup "time").getD "0"⟩]; cur := none
     else if name == "failure" && isStart && cur.isSome then failed := true
+    else if name == "error" && isStart && cur.isSome then errored := true
     else if name == "skipped" && isStart && cur.isSome then skipped := true
     else if name == "testcase" && isEnd then
       if let some (n, t) := cur then
-        let (st, css) := if failed then ("FAIL", "fail") else if skipped then ("SKIP", "skip") else ("PASS", "pass")
+        let (st, css) := if errored then ("ERROR", "fail") else if failed then ("FAIL", "fail")
+          else if skipped then ("SKIP", "skip") else ("PASS", "pass")
         out := out ++ [⟨n, st, css, t⟩]
       cur := none
   if let top :: _ := stack then throw s!"document ends inside <{top}>"
@@ -438,7 +444,10 @@ structure Section where
 
 def Section.count (s : Section) (css : String) : Nat := (s.rows.filter (·.css == css)).length
 
-/-- `generate_python_ffi_html`'s document, and the test count it prints. -/
+/-- `generate_python_ffi_html`'s document, and the test count it prints.
+    Both `FAIL` and `ERROR` rows carry `fail` CSS, contribute to `Failed`, and
+    make the overall summary a failure. Rendering an error-bearing report is
+    still a successful rendering operation; the test runner owns its exit status. -/
 def pythonFfiHtml (sections : List Section) : String × Nat := Id.run do
   let mut parts : Array String := #[
     "<!DOCTYPE html>",
@@ -545,6 +554,37 @@ def pythonFfiHtml (sections : List Section) : String × Nat := Id.run do
 def exampleCases : List Case := (junitCases exampleJunit).toOption.getD []
 #guard (pythonFfiHtml [⟨"T", exampleCases⟩]).2 == 3
 #guard ((pythonFfiHtml [⟨"T", exampleCases⟩]).1.splitOn "\n").length == 25
+
+-- A valid JUnit setup/teardown error must survive both the reader and the
+-- actual HTML consumer as a non-passing test, even without a <failure> child.
+#guard junitCases "<testsuites><testsuite errors=\"1\" tests=\"1\"><testcase classname=\"audit\" name=\"fixture_error\"><error message=\"fixture setup failed\"/></testcase></testsuite></testsuites>" ==
+  .ok [⟨"audit.fixture_error", "ERROR", "fail", "0"⟩]
+#guard (do
+  let cases ← junitCases "<testsuite><testcase name=\"fixture_error\"><error/></testcase></testsuite>"
+  let (html, count) := pythonFfiHtml [⟨"Errors", cases⟩]
+  pure (count == 1 &&
+    (html.splitOn "<td class=\"fail\">ERROR</td>").length == 2 &&
+    (html.splitOn "<p class=\"summary fail\">Grand Total: 1 &mdash; Passed: 0, Failed: 1, Skipped: 0</p>").length == 2)
+  : Except String Bool) == .ok true
+
+-- Paired error tags (including diagnostic text) and self-closing tags have
+-- the same status. A later passing test must not inherit the error flag.
+#guard junitCases "<testsuite><testcase name=\"setup\"><error>fixture setup failed</error></testcase><testcase name=\"healthy\"/></testsuite>" ==
+  .ok [⟨".setup", "ERROR", "fail", "0"⟩, ⟨".healthy", "PASS", "pass", "0"⟩]
+-- A teardown error cannot be hidden by an earlier failure or skipped marker,
+-- regardless of the order in which the producer emits those child elements.
+#guard junitCases "<testsuite><testcase name=\"teardown\"><failure/><error/></testcase><testcase name=\"reverse\"><error/><failure/></testcase></testsuite>" ==
+  .ok [⟨".teardown", "ERROR", "fail", "0"⟩, ⟨".reverse", "ERROR", "fail", "0"⟩]
+#guard junitCases "<testsuite><testcase name=\"teardown\"><skipped/><error/></testcase><testcase name=\"reverse\"><error/><skipped/></testcase></testsuite>" ==
+  .ok [⟨".teardown", "ERROR", "fail", "0"⟩, ⟨".reverse", "ERROR", "fail", "0"⟩]
+-- Count tests, not outcome elements: two errors on one testcase are one
+-- failed case. Existing pass/fail/skip rows remain distinct in the same report.
+#guard (do
+  let cases ← junitCases "<testsuite><testcase name=\"errors\"><error/><error/></testcase><testcase name=\"failed\"><failure/></testcase><testcase name=\"skipped\"><skipped/></testcase><testcase name=\"passed\"/></testsuite>"
+  let (html, count) := pythonFfiHtml [⟨"Mixed outcomes", cases⟩]
+  pure (count == 4 &&
+    (html.splitOn "<p class=\"summary fail\">Grand Total: 4 &mdash; Passed: 1, Failed: 2, Skipped: 1</p>").length == 2)
+  : Except String Bool) == .ok true
 
 end
 
