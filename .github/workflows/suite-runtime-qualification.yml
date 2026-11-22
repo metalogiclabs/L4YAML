@@ -16,14 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: c06ec22e49c139a47a1ef08c96eb6726bb2b32ee
+          ref: 3fa6414fecf998c4ca1ea10ddb43acd696401fe1
           submodules: recursive
       - name: Bind the tested source and install its pinned toolchain
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = c06ec22e49c139a47a1ef08c96eb6726bb2b32ee
-          test "$(git rev-parse 'HEAD^{tree}')" = a1d36507b49c60f6734f3450de1e6efe04e9185d
+          test "$(git rev-parse HEAD)" = 3fa6414fecf998c4ca1ea10ddb43acd696401fe1
+          test "$(git rev-parse 'HEAD^{tree}')" = 3f5c315bad63fb51f6f2f1d69c9a0b43d5be7372
           test "$(git rev-parse HEAD:L4YAML)" = 4197c0b6f2fb369e9806ca486d38aef87b077c81
           test "$(git -C yaml-test-suite rev-parse HEAD)" = 478062b90533880678b1c9243891957c0f2a1b2b
           git log -1 --format='%H %T %P' > qualification-source.txt
@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake build tests demo limittests suiteoutcomeregression tryparse suiterunner 2>&1 | tee qualification-runtime-build.log
+          lake build L4YAML tests demo explicitkeytests flowtests validationtests dumproundtrip rawparsetests specexamples schemadump derivingconsumer scannertests scannerspecexamples adversarialtests mutationtests propertytests productioncoverage limittests flowregressioncheck errorstagediag scalarstagediag aligntest suiteoutcomeregression queryresults tryparse suiterunner 2>&1 | tee qualification-runtime-build.log
       - name: Build the C and Rust backends from the same source
         shell: bash
         run: |
@@ -68,18 +68,19 @@ jobs:
         run: |
           set -euo pipefail
           PYTHONPATH="$GITHUB_WORKSPACE/python" python3 -m pytest python/tests/test_parse.py -q 2>&1 | tee qualification-python-protocol.log
+      - name: Compare individual corpus cases across all four backends
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/reports
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee qualification-comparison.log
+          lake run test-reports -- docs/reports 2>&1 | tee qualification-reports.log
       - name: Run the complete Lean suite and outcome regressions
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p docs/reports
           lake run run-all-tests -- docs/reports 2>&1 | tee qualification-tests.log
-      - name: Compare individual corpus cases across all four backends
-        shell: bash
-        run: |
-          set -euo pipefail
-          lake run cross-lang-compare -- docs/reports 2>&1 | tee qualification-comparison.log
-          lake run test-reports -- docs/reports 2>&1 | tee qualification-reports.log
       - name: Retain source identity and qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
