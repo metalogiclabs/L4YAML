@@ -407,6 +407,10 @@ lean_exe «scripts-dead-census» where
 lean_exe «scripts-docs-nav» where
   root := `Scripts.Main.DocsNav
 
+@[default_target]
+lean_exe «scripts-doc-info-targets» where
+  root := `Scripts.Main.DocInfoTargets
+
 -- Item 514: the census dashboard — every directed pin's reading, goal, distance and what moves it.
 @[default_target]
 lean_exe «scripts-census-dashboard» where

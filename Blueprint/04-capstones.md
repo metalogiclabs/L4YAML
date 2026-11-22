@@ -401,9 +401,10 @@ Top-level guarantees on `parseYaml`. These are the public promises.
 ## Group 5 — Value semantics (soundness at the runtime-value level)
 
 The AST-to-value proofs establish internal conversion properties and selected
-Core Schema examples. Correspondence with the **external** YAML 1.2.2 §10.3.2
-tag table is a separate, currently unproved obligation; so is correctness of
-numeric valuation and of C/Python consumer representations.
+Core Schema examples. The unconditional `coreTagCorrespondenceAll` additionally
+establishes correspondence with the **external** YAML 1.2.2 §10.3.2 tag table
+(row 5.8). Correct numeric valuation and faithful C/Python/Rust consumer
+representations remain separate obligations.
 
 | # | Theorem | Module | Status |
 | - | ------- | ------ | ------ |
@@ -990,6 +991,37 @@ face at a level they write
   catch the regression.
 
 ---
+
+### Group 7.7 current-contract obstruction
+
+The restated biconditional above is **refuted on the current trace grammar**
+while `TraceWellFormed` is kept fixed. The four-byte input `a\n*x` is accepted
+by `parseYaml`, but `implicitContinue` also admits a reading with an unbound
+alias. The kernel-checked
+[`no_biconditional` witness](../Tests/Integration/SourceContract/Tests/Guards/Proofs/UpstreamForwardCounterexample.lean)
+therefore rules out every choice of `ExactSurfaceLanguage` with that unchanged
+serialization conjunct. The
+[source-contract replays](../Tests/Integration/SourceContract/README.md) preserve
+this obstruction alongside the seven-byte colon's positive original-grammar
+trace. Their conditional consumer lemmas do not establish that the full forward
+premise package can be supplied globally. Closing Group 7.7 requires correcting
+the source/trace contract while preserving legitimate parser acceptance, then
+proving the corresponding producers and consumer composition.
+
+### Group 7.7 directive-validity allocation (§6.8.2)
+
+The token grammar's document constructor now requires `DirectiveHandlesUnique`
+on the complete directive-token span. This is an independent token projection
+that retains every explicit TAG handle, including `!` and `!!`, and requires
+`List.Nodup`. The existing `parseStream_accepts` consumer transfers it through
+the exact handle list produced by `parseDirectives` to pay the runtime guard
+in both-parser preparation (the completeness proof concerns the classic token
+parser). `TokenStateOk` and the serialization event representation are unchanged.
+
+The global source certificate must establish this directive-validity condition
+as part of the exact surface/token language. A serialization trace alone cannot
+establish it: builtin declarations are erased by `tokenEvents`. This does not
+close Group 7.7 or the independent Row 19 source-grammar obligations.
 
 ## Group 8 — Surface coupling (character ↔ implementation)
 
