@@ -1,0 +1,136 @@
+name: Exact #374 axiom-assurance #371 native qualification
+on:
+  push:
+    branches:
+      - experiment/refresh-371-374-20261124-1
+permissions:
+  contents: write
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 140
+    env:
+      LEAN_NUM_THREADS: 2
+      UP: ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
+      OLD: 2836db2fef546ec69873297f499c43ec9aadf3c7
+      PR: a5a88876193901ba49c0c982324a17c5d491dd53
+      TARGET: experiment/axiom-371-374-native-qualified-20261124
+    steps:
+      - name: Checkout full history and authentic YAML corpus
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Merge upstream #374 into axiom-assurance PR #371, fail closed on unexpected conflict
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qualification-evidence
+          exec > >(tee qualification-evidence/merge.log) 2>&1
+          git config user.name "MathGraph exact-source qualification"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          for sha in "$UP" "$PR" "$OLD"; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
+          done
+          test "$(git merge-base "$UP" "$PR")" = "$OLD"
+          git switch --detach "$UP"
+          if git merge --no-ff --no-commit "$PR"; then
+            echo "MERGED_WITHOUT_CONFLICT"
+          else
+            mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+            printf 'CONFLICTS: %s\n' "${conflicts[*]}" | tee qualification-evidence/conflicts.txt
+            test "${#conflicts[@]}" -eq 1
+            test "${conflicts[0]}" = "Tests/Guards/Proofs/DeadDeclarationCensus.lean"
+            python3 - <<'PY'
+          import re
+          from pathlib import Path
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          s=p.read_text()
+          assert s.count("<<<<<<< HEAD\n")==1 and s.count("=======\n")==1, "Unexpected conflict shape"
+          before,rest=s.split("<<<<<<< HEAD\n",1)
+          upstream,rest=rest.split("=======\n",1)
+          parts=re.split(r"(?m)^>>>>>>>[^\n]*\n",rest,maxsplit=1)
+          assert len(parts)==2, "Unexpected closing marker"
+          axiom,after=parts
+          needle="def expectedDeadCensus : String :=\n"
+          assert upstream.count(needle)==1 and axiom.count(needle)==1, "Conflict outside one generated pin"
+          upstream_history,_=upstream.split(needle)
+          axiom_history,provisional_pin=axiom.split(needle)
+          assert "item 532" in upstream_history, "Missing new upstream historical note"
+          assert "axiom admission" in axiom_history, "Missing #371 proof-policy history"
+          assert "B-roster=" in provisional_pin and "population=" in provisional_pin
+          resolved=before+axiom_history+upstream_history+needle+provisional_pin+after
+          assert all(mark not in resolved for mark in ("<<<<<<<","=======",">>>>>>>")), "Unresolved conflict"
+          p.write_text(resolved)
+          print("Reconciled only native census histories; numerical pin is PROVISIONAL until native recount")
+          PY
+            git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          fi
+          git diff --cached --check
+          git commit -m "Merge upstream #374 into #371 axiom assurance (census provisional)"
+          test "$(git rev-parse HEAD^1)" = "$UP"
+          test "$(git rev-parse HEAD^2)" = "$PR"
+          printf 'UP=%s\nPR=%s\nMERGED_SOURCE=%s\nMERGED_TREE=%s\n' "$UP" "$PR" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/source-before.txt
+          git log -n 8 --format='%H %P %s' > qualification-evidence/lineage.txt
+          git submodule status > qualification-evidence/submodules.txt
+          cat lean-toolchain | tee qualification-evidence/toolchain.txt
+      - name: Install exact Lean toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Build full native Lean library and non-default test executables
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee qualification-evidence/lean-version.txt
+          lake build 2>&1 | tee qualification-evidence/build.log
+          lake build tests demo limittests 2>&1 | tee qualification-evidence/extra-build.log
+      - name: Recompute native census and dashboard without guessing
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-evidence/census-write.log
+          lake build 2>&1 | tee qualification-evidence/post-census-build.log
+          lake run dead-census -- --check 2>&1 | tee qualification-evidence/census-check.log
+          lake run census-dashboard -- --check 2>&1 | tee qualification-evidence/dashboard.log
+      - name: Run true capstone-axiom admission negative controls and complete executable suite
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake env lean Tests/Guards/Proofs/CapstoneAxioms.lean 2>&1 | tee qualification-evidence/capstone-axioms-negative-controls.log
+          lake env lean Tests/Guards.lean 2>&1 | tee qualification-evidence/complete-guards-module.log
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/full-suite.log
+          lake exe eventscore --suite yaml-test-suite 2>&1 | tee qualification-evidence/eventscore.log
+      - name: Verify source and axiom policy and final hygiene
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+      - name: Publish exact-source candidate only after complete native success
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          if ! git diff --cached --quiet; then
+            git commit -m "test(integration): native remeasure #371 census over #374"
+          fi
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/final-source.txt
+          git push origin "HEAD:refs/heads/$TARGET"
+      - name: Preserve source-qualified evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: axiom-371-374-native-receipts
+          path: qualification-evidence/
+          if-no-files-found: warn
