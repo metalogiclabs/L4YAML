@@ -1,0 +1,60 @@
+name: Source-pinned #374 Core-TAG integration probe 2026-11-24
+on:
+  push:
+    branches:
+      - experiment/merge-374-core-tag-20261124
+permissions:
+  contents: read
+jobs:
+  merge-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Attempt real Git merge on exact published source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p merge-evidence
+          git config user.name "MathGraph qualification probe"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          exec > >(tee merge-evidence/merge.log) 2>&1
+          UP=ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
+          COMBINED=e9e852179bd7447dd6d3cb2ca4f3823bc123919d
+          OLD=2836db2fef546ec69873297f499c43ec9aadf3c7
+          for sha in "$UP" "$COMBINED" "$OLD"; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
+          done
+          test "$(git merge-base "$UP" "$COMBINED")" = "$OLD"
+          git switch --detach "$UP"
+          echo "EXACT_UPSTREAM=$UP EXACT_CORE_TAG=$COMBINED MERGE_BASE=$OLD"
+          if git merge --no-ff --no-commit "$COMBINED"; then
+            git diff --cached --check
+            git commit -m "Probe merge Core+TAG with upstream #374"
+            echo "CLEAN_MERGE_SHA=$(git rev-parse HEAD)"
+            echo "CLEAN_MERGE_TREE=$(git rev-parse HEAD^{tree})"
+            echo "MERGED_FILES:"
+            git diff --stat "$UP" HEAD
+          else
+            echo "REAL_GIT_MERGE_CONFLICT"
+            git diff --name-only --diff-filter=U | tee merge-evidence/conflicts.txt
+            git ls-files --unmerged > merge-evidence/stages.txt
+            cat merge-evidence/stages.txt
+            while IFS= read -r file; do
+              echo "::group::Conflict $file"
+              git diff --cc -- "$file" | head -n 95 || true
+              echo "::endgroup::"
+            done < merge-evidence/conflicts.txt
+            echo "No source-qualified merged tree exists yet."
+            exit 2
+          fi
+      - name: Preserve merge receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merge-374-core-tag-evidence
+          path: merge-evidence/
+          if-no-files-found: warn
