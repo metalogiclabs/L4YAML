@@ -49,15 +49,45 @@ jobs:
           echo "Upstream exact: $UPSTREAM_HEAD"
           echo "Merge base: $(git merge-base "$OUR_HEAD" "$UPSTREAM_HEAD")"
           if ! git merge --no-ff --no-commit "$UPSTREAM_HEAD"; then
-            echo "::error::PR #$PR requires manual conflict resolution; neither PR branch nor output branch was modified"
-            git status --short
-            git ls-files -u | cut -f2 | sort -u
-            while IFS= read -r file; do
-              echo "::group::Conflict $file"
-              git diff -- "$file" | tail -n 220 || true
-              echo "::endgroup::"
-            done < <(git diff --name-only --diff-filter=U)
-            exit 2
+            echo "::notice::Automatic merge requires a generated-census reconciliation"
+            mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+            if [[ "${#conflicts[@]}" -ne 1 || "${conflicts[0]}" != "Tests/Guards/Proofs/DeadDeclarationCensus.lean" ]]; then
+              echo "::error::Unexpected conflicts; refusing to publish any tree"
+              printf '%s\n' "${conflicts[@]}"
+              exit 2
+            fi
+            python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          s = path.read_text()
+          assert s.count("<<<<<<< HEAD\n") == 1
+          assert s.count("=======\n") == 1
+          assert s.count(">>>>>>> 2836db2fef546ec69873297f499c43ec9aadf3c7\n") == 1
+          before, rest = s.split("<<<<<<< HEAD\n", 1)
+          ours, rest = rest.split("=======\n", 1)
+          upstream, after = rest.split(">>>>>>> 2836db2fef546ec69873297f499c43ec9aadf3c7\n", 1)
+          marker = "def expectedDeadCensus : String :=\n"
+          assert ours.count(marker) == 1 and upstream.count(marker) == 1
+          ours_history, ours_pin = ours.split(marker)
+          upstream_history, upstream_pin = upstream.split(marker)
+          assert "2026-11-22 (item 531" in upstream_history
+          if os.environ["PR"] == "302":
+              assert "#302 over item 529" in ours_history
+              assert "population=14333" in ours_pin
+          else:
+              assert "TAG directive repair" in ours_history
+              assert "population=14264" in ours_pin
+          assert "population=14260" in upstream_pin
+          # Keep both histories; retain the original PR census pin provisionally.
+          # Actual merged source census MUST be re-measured by Lean before promotion.
+          merged = before + upstream_history + ours_history + marker + ours_pin + after
+          assert merged.count(marker) == 1
+          assert "<<<<<<<" not in merged and ">>>>>>>" not in merged
+          path.write_text(merged)
+          print("Reconciled both audit histories. Census pin provisional; native remeasurement required.")
+          PY
+            git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
           fi
           test -z "$(git diff --name-only --diff-filter=U)"
           test -f DOCS.md
