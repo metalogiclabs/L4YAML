@@ -110,7 +110,9 @@ jobs:
           for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
             lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
           done
-          lake env lean Tests/Guards/Proofs/CapstoneAxioms.lean 2>&1 | tee qualification-evidence/axioms.log
+          # #371's CapstoneAxioms.lean is not in the Core+TAG source set.
+          # The real serialization axiom profiles were checked above; do not
+          # infer #371 axiom-admission qualification from this experiment.
           lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
           lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
       - name: Record source-qualified tree without moving PR branches
