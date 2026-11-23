@@ -1,0 +1,80 @@
+name: Repaired source-pinned combined Core TAG docs Lean 4.36
+on:
+  push:
+    branches: [experiment/docs-repair-eadc-20261123]
+permissions:
+  contents: read
+env:
+  SOURCE_COMMIT: eadccf6bbb11ed9d9afc18492140f59f470497b6
+  LEAN_NUM_THREADS: 2
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact combined source
+        uses: actions/checkout@v4
+        with:
+          ref: eadccf6bbb11ed9d9afc18492140f59f470497b6
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Verify source and prepare dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          test "$(cat doc/lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree}
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json | tee docs-pins.log
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+      - name: Add memory allowance for documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          free -h | tee docs-resources.log
+          sudo fallocate -l 24G /mnt/combined-lean-docs.swap
+          sudo chmod 600 /mnt/combined-lean-docs.swap
+          sudo mkswap /mnt/combined-lean-docs.swap
+          sudo swapon /mnt/combined-lean-docs.swap
+          free -h | tee -a docs-resources.log
+      - name: Build Verso and render documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version
+          (cd doc && lake build l4yaml-doc) 2>&1 | tee docs-verso-build.log
+          lake build L4YAML.Scanner.Scanner L4YAML.Parser.Composition L4YAML.Surface.Document L4YAML.Output.Dump L4YAML.Output.Emitter L4YAML.FFI.FFI L4YAML.Schema.Api L4YAML.Config.Config 2>&1 | tee docs-source-module-build.log
+          lake build graph 2>&1 | tee docs-graph-build.log
+          mkdir -p doc/Doc/L4YAML/graphs
+          lake exe graph --to=L4YAML.Scanner.Scanner,L4YAML.Parser.Composition,L4YAML.Surface.Document,L4YAML.Output.Dump,L4YAML.Output.Emitter,L4YAML.FFI.FFI,L4YAML.Schema.Api,L4YAML.Config.Config doc/Doc/L4YAML/graphs/import-graph.dot
+          dot -Tsvg doc/Doc/L4YAML/graphs/import-graph.dot -o doc/Doc/L4YAML/graphs/import-graph.svg
+          lake run check-doc-graphs -- --strict 2>&1 | tee docs-graph-check.log
+          (cd doc && lake exe l4yaml-doc) 2>&1 | tee docs-verso-render.log
+          lake run svg-objects -- doc/_out/html-multi 2>&1 | tee docs-svg.log
+      - name: Build entire API documentation target
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build :docs 2>&1 | tee docs-api-build.log
+      - name: Verify unchanged exact-source pins
+        shell: bash
+        if: always()
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules yaml-test-suite
+          git status --short
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combined-e3e5-0fcf-docs
+          path: |
+            docs-*.log
+            docs-*.sha256
+          if-no-files-found: warn
