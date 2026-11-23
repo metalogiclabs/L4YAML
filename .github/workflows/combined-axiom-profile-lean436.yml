@@ -1,0 +1,102 @@
+name: Exact combined Core TAG Lean 4.36 axiom and hygiene
+on:
+  push:
+    branches: [experiment/axiom-profile-eadc-20261123]
+permissions:
+  contents: read
+env:
+  LEAN_NUM_THREADS: 2
+  SOURCE_COMMIT: eadccf6bbb11ed9d9afc18492140f59f470497b6
+jobs:
+  verify-axioms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: eadccf6bbb11ed9d9afc18492140f59f470497b6
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Source, ancestry and toolchain identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^1 HEAD^2 HEAD^{tree} HEAD:L4YAML
+          git submodule status --recursive
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json > axiom-pins.sha256
+      - name: Install repository-pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Build exact complete source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version
+          lake build 2>&1 | tee axiom-build.log
+      - name: Check all serialization proofs and selected Core TAG profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p axiom-evidence
+          for proof in TagDirectiveSoundness TagDirectiveSoundnessIx TagDirectiveConsumer; do
+            lake env lean "Tests/Guards/Proofs/$proof.lean"
+          done 2>&1 | tee axiom-tag.log
+          cat > axiom-evidence/CoreAxioms.lean <<'LEAN'
+          import L4YAML.Proofs.Schema.SchemaResolution
+          #print axioms L4YAML.Proofs.SchemaResolution.coreTagCorrespondenceAll
+          LEAN
+          lake env lean axiom-evidence/CoreAxioms.lean 2>&1 | tee axiom-core.log
+          lake run check-serialization-proofs -- --keep axiom-evidence/serialization 2>&1 | tee axiom-serialization.log
+          cat axiom-evidence/serialization/qualification.log axiom-tag.log axiom-core.log > axiom-combined.log
+          cp axiom-evidence/serialization/sites.txt axiom-combined-sites.txt
+          cat >> axiom-combined-sites.txt <<'SITES'
+          L4YAML.Tests.Guards.TagDirectiveSoundness.duplicate_directives_refused
+          L4YAML.Tests.Guards.TagDirectiveSoundness.duplicate_directives_refused_ix
+          L4YAML.Tests.Guards.TagDirectiveSoundness.parseStream_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundness.parseYamlRaw_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundness.parseYaml_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundnessIx.prepared_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundnessIx.document_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundnessIx.stream_loop_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundnessIx.parseStreamIx_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundnessIx.parseYamlRawIx_directives_unique
+          L4YAML.Tests.Guards.TagDirectiveSoundnessIx.parseYamlIx_directives_unique
+          L4YAML.Proofs.TokenGrammar.parseStream_accepts
+          L4YAML.Proofs.TokenGrammar.checkTokenGrammar_sound
+          L4YAML.Tests.Guards.TagDirectiveConsumer.single_scan
+          L4YAML.Tests.Guards.TagDirectiveConsumer.duplicate_scan
+          L4YAML.Tests.Guards.TagDirectiveConsumer.single_tokenGrammar
+          L4YAML.Tests.Guards.TagDirectiveConsumer.single_tokenStateOk
+          L4YAML.Tests.Guards.TagDirectiveConsumer.single_consumer
+          L4YAML.Tests.Guards.TagDirectiveConsumer.single_pipeline
+          L4YAML.Tests.Guards.TagDirectiveConsumer.duplicate_not_tokenGrammar
+          L4YAML.Proofs.SchemaResolution.coreTagCorrespondenceAll
+          SITES
+          lake run check-serialization-proofs -- --validate axiom-combined.log axiom-evidence/serialization/sorry.log axiom-combined-sites.txt 2>&1 | tee axiom-validation.log
+      - name: Native compiled environment hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake exe collect-stats --emit-lean 2>&1 | tee axiom-collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee axiom-hygiene.log
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          sha256sum -c axiom-pins.sha256
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules yaml-test-suite
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-eadccf6b-axiom-profiles
+          path: |
+            axiom-*.log
+            axiom-*.sha256
+            axiom-combined-sites.txt
+            axiom-evidence/serialization/
+            docs/reports/stats.json
+          if-no-files-found: warn
