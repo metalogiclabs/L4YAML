@@ -1,0 +1,150 @@
+name: Five current L4YAML PRs exact-source Lean 4.36 qualification
+on:
+  push:
+    branches: [experiment/five-pr-qualification-2836-20261123]
+permissions:
+  contents: write
+jobs:
+  qualify-five:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      LEAN_NUM_THREADS: "2"
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Compose actual five PR heads without force-push
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qualification-evidence
+          git config user.name "MathGraph five-PR qualification"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          BASE=2836db2fef546ec69873297f499c43ec9aadf3c7
+          git switch --detach "$BASE"
+          for target in 5df9d2a5970b32d658792b61862c9fd16a2981b7 2fd1418f0ba8f54bb5549bdbef8e8f320c73bd93 e48b9ebbc86e68044e3d29c2dba79789745249ae 2b58ff8e6d6f648d3203702ad39e121951bdba2c 75e36c79c66dccc1891e68494d021fb45c1717d9; do
+            git cat-file -e "$target^{commit}" || git fetch origin "$target"
+            if git merge --no-ff --no-edit "$target"; then
+              echo "MERGE_OK $target"
+            else
+              git diff --name-only --diff-filter=U > /tmp/fiveway-conflicts.txt
+              test -s /tmp/fiveway-conflicts.txt
+              while IFS= read -r f; do
+                echo "CONFLICT $target $f"
+                if [[ "$f" == Tests/Guards/Proofs/DeadDeclarationCensus.lean ]]; then
+                  git checkout --ours -- "$f"
+                  git add "$f"
+                else
+                  echo "STOP: unexpected semantic conflict"
+                  exit 2
+                fi
+              done < /tmp/fiveway-conflicts.txt
+              test -z "$(git diff --name-only --diff-filter=U)"
+              git commit --no-edit
+            fi
+          done
+          git submodule update --init --recursive
+          git diff --check
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          test "$(git merge-base "$BASE" HEAD)" = "$BASE"
+          git rev-parse "$BASE" HEAD HEAD^{tree} | tee qualification-evidence/initial-source.txt
+          git log -n 12 --format='%H %P %s' > qualification-evidence/lineage.txt
+          git submodule status --recursive > qualification-evidence/submodules.txt
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json > qualification-evidence/pins.sha256
+      - name: Install pinned Lean, C and Python prerequisites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+          python3 -m venv "$RUNNER_TEMP/qualification-venv"
+          mkdir -p "$RUNNER_TEMP/qualification-venv/empty-pythonpath"
+          export PYTHONPATH="$RUNNER_TEMP/qualification-venv/empty-pythonpath"
+          export PYTHONNOUSERSITE=1
+          "$RUNNER_TEMP/qualification-venv/bin/python3" -m pip install --quiet pytest
+          echo "$RUNNER_TEMP/qualification-venv/bin" >> "$GITHUB_PATH"
+          echo "PYTHONPATH=$PYTHONPATH" >> "$GITHUB_ENV"
+          echo "PYTHONNOUSERSITE=1" >> "$GITHUB_ENV"
+          echo "L4YAML_LIB=$GITHUB_WORKSPACE/ffi/out/libl4yaml.so" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/ffi/out:$("$HOME/.elan/bin/lean" --print-prefix)/lib/lean" >> "$GITHUB_ENV"
+      - name: Build complete source and test executables
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee qualification-evidence/compiler.log
+          lake build 2>&1 | tee qualification-evidence/build.log
+          lake build tests demo limittests 2>&1 | tee qualification-evidence/extra-build.log
+      - name: Native combined census measurement and guard
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-evidence/census-write.log
+          git diff -- Tests/Guards/Proofs/DeadDeclarationCensus.lean > qualification-evidence/census-diff.patch
+          git diff --exit-code -- Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean").read_text()
+          m=re.search(r"B-roster=(\d+)",s.split("def expectedDeadCensus : String :=")[-1])
+          assert m and m.group(1)=="3344",f"Unreviewed B-roster value: {m.group(1) if m else None}"
+          assert "<<<<<<<" not in s
+          print("B-roster",m.group(1))
+          PY
+          lake build Tests.Guards 2>&1 | tee qualification-evidence/census-rebuild.log
+          lake run dead-census -- --check 2>&1 | tee qualification-evidence/census-check.log
+      - name: Execute adversarial and ordinary suites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/standard-suites.log
+      - name: Proof, closure and hygiene qualification
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake run census-dashboard -- --check 2>&1 | tee qualification-evidence/dashboard.log
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+      - name: C Rust Python and cross-language checks
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cmake -B ffi/out -S ffi 2>&1 | tee qualification-evidence/cmake-configure.log
+          cmake --build ffi/out --parallel 2 2>&1 | tee qualification-evidence/cmake-build.log
+          test -f ffi/out/libl4yaml.so
+          test -x ffi/out/tryparse_c
+          (cd rust/l4yaml && cargo build --release --example tryparse --jobs 2) 2>&1 | tee qualification-evidence/rust-example.log
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 2>&1 | tee qualification-evidence/rust-tests.log
+          python3 -m pytest Tests/test_python_ffi.py -q --tb=short 2>&1 | tee qualification-evidence/python-ffi.log
+          python3 -m pytest python/tests/ -q --tb=short 2>&1 | tee qualification-evidence/python-package.log
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee qualification-evidence/cross-language.log
+      - name: Publish exact qualified source only after all checks pass
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules yaml-test-suite
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(census): measured five-PR Lean 4.36 integration"
+          fi
+          git rev-parse HEAD HEAD^{tree} | tee qualification-evidence/qualified-source.txt
+          git push origin HEAD:refs/heads/experiment/five-pr-qualified-source-2836-20261123
+          echo "WARRANTED_BOUNDED: all selected native and FFI checks passed on exact source"
+      - name: Upload source-bound evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: five-pr-lean436-qualification-evidence
+          path: qualification-evidence/
+          if-no-files-found: warn
