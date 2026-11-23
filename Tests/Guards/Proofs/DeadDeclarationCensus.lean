@@ -12,7 +12,8 @@ convention, (D) Rule 2 / instrument-only and (B) the roster, and compares two pi
 * `expectedDeadCensus` — the one-line summary (counts); `--write` rewrites it.
 * `expectedDeadRoster` (`DeadDeclarationRoster.lean`) — class (B) as a SET of fully-qualified
   names, shrink-only: a name entering it is a declaration reached by nothing — Rule 1's finding;
-  a name leaving it was deleted or reached by a capstone.
+  a name leaving it was deleted, reached by a library root, or reclassified
+  (including test-only reach).
 
 The guard below ties the two: the roster's line count is the `B-roster=` the summary names, so
 neither can be edited without the other.
@@ -80,8 +81,16 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
 -- Lean v4.36.0: native census population 14332 → 14333, def 2702 → 2703,
 -- unreached 6557 → 6558 and A-campaign 1333 → 1334. The new declaration is
 -- `SerializationWellFormed.decMemString`; the B roster is unchanged.
+-- 2026-11-21 (TAG directive repair): population +11 = three lemmas, seven defs/instances,
+-- and one error constructor. Four runtime declarations are reached; seven grammar/completeness
+-- helpers are test-only. The actual TagDirectiveConsumer reaches 189 existing B-roster names,
+-- moving B 3533 → 3344 and D 277 → 473 (189 existing + seven new), with no library deletion.
+-- This is test reach, not capstone closure; A/C and the capstone/export/Blueprint roots are unchanged.
+-- Cluster-roots 1459 → 1456 is recomputed on the remaining B set.
+-- Lean v4.36.0 adds the unreached `SerializationWellFormed.decMemString` decision instance.
+-- The standalone native census must recheck this expectation before the PR is updated.
 def expectedDeadCensus : String :=
-  "population=14333 thm=10262 def=2703 roots=capstone:27+export:37+blueprint:223(unresolved=5) unreached=6558 thm=4625 A-campaign=1334 C-api=1414 D-test-only=277 B-roster=3533 thm=3172 cluster-roots=1459"
+  "population=14264 thm=10218 def=2683 roots=capstone:26+export:37+blueprint:222(unresolved=5) unreached=6556 thm=4627 A-campaign=1334 C-api=1405 D-test-only=473 B-roster=3344 thm=3066 cluster-roots=1456"
 
 /-- `B-roster=N` out of the summary. -/
 def rosterCount (summary : String) : Option Nat := do
