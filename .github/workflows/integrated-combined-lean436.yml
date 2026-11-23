@@ -1,0 +1,118 @@
+name: Lean 4.36 combined Core TAG source qualification
+on:
+  push:
+    branches:
+      - experiment/qualify-combined-eadc-20261123
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      LEAN_NUM_THREADS: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pr: 'combined'
+            head: eadccf6bbb11ed9d9afc18492140f59f470497b6
+            output: experiment/combined-core-tag-2836-20261123
+            expected_roster: '3344'
+    steps:
+      - name: Checkout exact two-parent merge commit and submodules
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.head }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Install repository-pinned Lean 4.36
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD HEAD^1 HEAD^2 HEAD^{tree}
+          test "$(git rev-parse HEAD)" = "${{ matrix.head }}"
+          test "$(git rev-parse HEAD^2)" = 2836db2fef546ec69873297f499c43ec9aadf3c7
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git submodule status
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Build default and additional test executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version
+          lake build 2>&1 | tee qualification-build.log
+          lake build tests demo limittests 2>&1 | tee qualification-extra-build.log
+      - name: Measure and repin the native dead declaration census
+        shell: bash
+        env:
+          EXPECTED_ROSTER: ${{ matrix.expected_roster }}
+        run: |
+          set -euo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-census-write.log
+          git diff -- Tests/Guards/Proofs/DeadDeclarationCensus.lean | tee qualification-census-diff.log
+          if ! git diff --quiet -- Tests/Guards/Proofs/DeadDeclarationRoster.lean; then
+            echo "::error::B-roster changed, requires manual review before repinning"
+            git diff --stat -- Tests/Guards/Proofs/DeadDeclarationRoster.lean
+            exit 4
+          fi
+          python3 - <<'PY'
+          import os, pathlib, re
+          p = pathlib.Path('Tests/Guards/Proofs/DeadDeclarationCensus.lean')
+          text = p.read_text()
+          m = re.search(r'B-roster=(\d+)', text.split('def expectedDeadCensus : String :=')[-1])
+          assert m, 'missing census B-roster pin'
+          assert m.group(1) == os.environ['EXPECTED_ROSTER'], (m.group(1), os.environ['EXPECTED_ROSTER'])
+          assert '<<<<<<<' not in text and '>>>>>>>' not in text
+          print('Measured B-roster:',m.group(1))
+          PY
+          lake build Tests.Guards 2>&1 | tee qualification-rebuild-guard.log
+          lake run dead-census -- --check 2>&1 | tee qualification-census-check.log
+      - name: Execute actual adversarial and standard suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake exe adversarialinstantiation 2>&1 | tee qualification-adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-all-tests.log
+      - name: Check proof, closure, and documentation-facing gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births; do
+            lake run "$gate" 2>&1 | tee "qualification-$gate.log"
+          done
+          lake run census-dashboard -- --check 2>&1 | tee qualification-dashboard.log
+      - name: Publish measured exact-source integration candidate
+        shell: bash
+        env:
+          PR: ${{ matrix.pr }}
+          OUR_HEAD: ${{ matrix.head }}
+          OUTPUT_BRANCH: ${{ matrix.output }}
+        run: |
+          set -euo pipefail
+          git config user.name "MathGraph Lean 4.36 qualification"
+          git config user.email "mathgraph-integration@users.noreply.github.com"
+          git status --short
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(census): measure merged PR #$PR under Lean 4.36"
+          fi
+          test "$(git merge-base "$OUR_HEAD" HEAD)" = "$OUR_HEAD"
+          git push origin "HEAD:refs/heads/$OUTPUT_BRANCH"
+          echo "Verified source $(git rev-parse HEAD)"
+          echo "Verified tree $(git rev-parse HEAD^{tree})"
+      - name: Upload bounded qualification evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integrated-qualification-${{ matrix.pr }}
+          path: |
+            qualification-*.log
+            docs/reports/*.txt
+            docs/reports/*.json
+          if-no-files-found: warn
