@@ -1,0 +1,97 @@
+name: Five-PR exact-source merge probe (2026-11-23)
+on:
+  push:
+    branches:
+      - experiment/five-pr-merge-probe-2836-20261123
+permissions:
+  contents: read
+jobs:
+  source-merge:
+    strategy:
+      fail-fast: false
+      matrix:
+        route:
+          - direct-five-PRs
+          - prior-fiveway-plus-current-upstream
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full Git history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reconstruct merged source without force pushes
+        shell: bash
+        env:
+          ROUTE: ${{ matrix.route }}
+        run: |
+          set -Eeuo pipefail
+          git config user.name "MathGraph qualification probe"
+          git config user.email "qualification-probe@users.noreply.github.com"
+          mkdir -p merge-evidence
+          exec > >(tee merge-evidence/merge.log) 2>&1
+          BASE=2836db2fef546ec69873297f499c43ec9aadf3c7
+          CORE=5df9d2a5970b32d658792b61862c9fd16a2981b7
+          TAG=2fd1418f0ba8f54bb5549bdbef8e8f320c73bd93
+          PYTHON=e48b9ebbc86e68044e3d29c2dba79789745249ae
+          DUMP=2b58ff8e6d6f648d3203702ad39e121951bdba2c
+          AXIOM=75e36c79c66dccc1891e68494d021fb45c1717d9
+          FIVEWAY=cd6ce9d2ecf2badcfd352f930939f057750e2c44
+          echo "route=${ROUTE} base=${BASE}"
+          for sha in "$BASE" "$CORE" "$TAG" "$PYTHON" "$DUMP" "$AXIOM" "$FIVEWAY"; do
+            git cat-file -e "${sha}^{commit}" || git fetch --no-tags origin "$sha"
+            git cat-file -t "$sha"
+          done
+          if [[ "$ROUTE" == "prior-fiveway-plus-current-upstream" ]]; then
+            git switch --detach "$FIVEWAY"
+            targets=("$BASE")
+          else
+            git switch --detach "$BASE"
+            targets=("$CORE" "$TAG" "$PYTHON" "$DUMP" "$AXIOM")
+          fi
+          for target in "${targets[@]}"; do
+            echo "::group::Merging ${target}"
+            if git merge --no-ff --no-edit "$target"; then
+              echo "MERGED ${target} $(git rev-parse HEAD)"
+            else
+              echo "MERGE_CONFLICT ${target}"
+              git status --short || true
+              git ls-files --unmerged > merge-evidence/unmerged.txt
+              cat merge-evidence/unmerged.txt
+              mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+              unresolved=0
+              for f in "${conflicts[@]}"; do
+                echo "CONFLICT_FILE=${f}"
+                if [[ "$f" == "Tests/Guards/Proofs/DeadDeclarationCensus.lean" ]]; then
+                  echo "GENERATED_CENSUS_PIN: keeping current for later native remeasurement (not a verification)"
+                  git checkout --ours -- "$f"
+                  git add "$f"
+                else
+                  unresolved=1
+                  echo "UNRESOLVED_NONGENERATED_CONFLICT=${f}"
+                fi
+              done
+              if [[ "$unresolved" -ne 0 ]]; then
+                echo "STOP: non-generated conflicts require reviewed reconciliation"
+                git diff --stat || true
+                git diff --cc | head -n 300 || true
+                exit 2
+              fi
+              git commit --no-edit
+              echo "MERGED_WITH_CENSUS_TO_REMEASURE ${target} $(git rev-parse HEAD)"
+            fi
+            echo "::endgroup::"
+          done
+          git diff --check
+          git status --short
+          git rev-parse HEAD | tee merge-evidence/result-commit.txt
+          git rev-parse HEAD^{tree} | tee merge-evidence/result-tree.txt
+          git log -n 14 --format='%h %p %s' > merge-evidence/parents.txt
+          echo "SOURCE_MERGE_COMPLETE; native Lean/census/cross-language checks NOT RUN"
+      - name: Preserve source-merge evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merge-evidence-${{ matrix.route }}
+          path: merge-evidence/
+          if-no-files-found: warn
