@@ -1,27 +1,31 @@
-name: Source-pinned #374 Core-TAG integration probe 2026-11-24
+name: Source-pinned #374 Core-TAG native qualification 2026-11-24
 on:
   push:
     branches:
       - experiment/merge-374-core-tag-20261124
 permissions:
-  contents: read
+  contents: write
 jobs:
-  merge-source:
+  native:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 140
+    env:
+      LEAN_NUM_THREADS: 2
     steps:
-      - name: Checkout full history
+      - name: Checkout full history including test suite
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Attempt real Git merge on exact published source
+          submodules: recursive
+          persist-credentials: true
+      - name: Merge exact source and reconcile single generated census pin
         shell: bash
         run: |
           set -Eeuo pipefail
-          mkdir -p merge-evidence
-          git config user.name "MathGraph qualification probe"
+          mkdir -p qualification-evidence
+          exec > >(tee qualification-evidence/merge.log) 2>&1
+          git config user.name "MathGraph exact-source qualification"
           git config user.email "mathgraph-qualification@users.noreply.github.com"
-          exec > >(tee merge-evidence/merge.log) 2>&1
           UP=ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
           COMBINED=e9e852179bd7447dd6d3cb2ca4f3823bc123919d
           OLD=2836db2fef546ec69873297f499c43ec9aadf3c7
@@ -30,31 +34,102 @@ jobs:
           done
           test "$(git merge-base "$UP" "$COMBINED")" = "$OLD"
           git switch --detach "$UP"
-          echo "EXACT_UPSTREAM=$UP EXACT_CORE_TAG=$COMBINED MERGE_BASE=$OLD"
           if git merge --no-ff --no-commit "$COMBINED"; then
-            git diff --cached --check
-            git commit -m "Probe merge Core+TAG with upstream #374"
-            echo "CLEAN_MERGE_SHA=$(git rev-parse HEAD)"
-            echo "CLEAN_MERGE_TREE=$(git rev-parse HEAD^{tree})"
-            echo "MERGED_FILES:"
-            git diff --stat "$UP" HEAD
+            echo "NO_CONFLICTS"
           else
-            echo "REAL_GIT_MERGE_CONFLICT"
-            git diff --name-only --diff-filter=U | tee merge-evidence/conflicts.txt
-            git ls-files --unmerged > merge-evidence/stages.txt
-            cat merge-evidence/stages.txt
-            while IFS= read -r file; do
-              echo "::group::Conflict $file"
-              git diff --cc -- "$file" | head -n 95 || true
-              echo "::endgroup::"
-            done < merge-evidence/conflicts.txt
-            echo "No source-qualified merged tree exists yet."
-            exit 2
+            mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+            printf 'CONFLICTS: %s\n' "${conflicts[*]}" | tee qualification-evidence/conflicts.txt
+            test "${#conflicts[@]}" -eq 1
+            test "${conflicts[0]}" = "Tests/Guards/Proofs/DeadDeclarationCensus.lean"
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          s=p.read_text()
+          assert s.count("<<<<<<< HEAD\n")==1, "Unexpected conflict blocks"
+          before,rest=s.split("<<<<<<< HEAD\n",1)
+          upstream,rest=rest.split("=======\n",1)
+          combined,after=rest.split(">>>>>>> e9e852179bd7447dd6d3cb2ca4f3823bc123919d\n",1)
+          needle="def expectedDeadCensus : String :=\n"
+          assert upstream.count(needle)==1 and combined.count(needle)==1
+          upstream_history,_=upstream.split(needle)
+          combined_history,provisional_pin=combined.split(needle)
+          assert "item 532" in upstream_history
+          assert "#302" in combined_history and "TAG directive repair" in combined_history
+          assert "B-roster=3344" in provisional_pin
+          # Preserve both independent historical explanations; keep the combined
+          # pin provisionally. Native Lean recount below is the only authority.
+          merged=before+combined_history+upstream_history+needle+provisional_pin+after
+          assert "<<<<<<<" not in merged and ">>>>>>>" not in merged
+          p.write_text(merged)
+          print("Resolved census-only overlap; histories preserved, numerical pin UNVERIFIED.")
+          PY
+            git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
           fi
-      - name: Preserve merge receipt
+          git diff --cached --check
+          git commit -m "Merge qualified Core/TAG and upstream #374 (census pin provisional)"
+          test "$(git rev-parse HEAD^1)" = "$UP"
+          test "$(git rev-parse HEAD^2)" = "$COMBINED"
+          echo "MERGED_SOURCE=$(git rev-parse HEAD)"
+          echo "MERGED_TREE=$(git rev-parse HEAD^{tree})"
+          git log -n 8 --format='%H %P %s' > qualification-evidence/lineage.txt
+          cat lean-toolchain | tee qualification-evidence/toolchain.txt
+          git submodule status | tee qualification-evidence/submodules.txt
+      - name: Install exact toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Full native build
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee qualification-evidence/lean-version.txt
+          lake build 2>&1 | tee qualification-evidence/build.log
+          lake build tests demo limittests 2>&1 | tee qualification-evidence/extra-build.log
+      - name: Recompute native declaration census without guesses
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-evidence/census-write.log
+          lake build 2>&1 | tee qualification-evidence/post-census-build.log
+          lake run dead-census -- --check 2>&1 | tee qualification-evidence/census-check.log
+          lake run census-dashboard -- --check 2>&1 | tee qualification-evidence/dashboard.log
+      - name: Adversarial and complete ordinary suites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/full-suite.log
+          lake exe eventscore --suite yaml-test-suite 2>&1 | tee qualification-evidence/eventscore.log
+      - name: Source and axiom policy guards
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake env lean Tests/Guards/Proofs/CapstoneAxioms.lean 2>&1 | tee qualification-evidence/axioms.log
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+      - name: Record source-qualified tree without moving PR branches
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          if ! git diff --cached --quiet; then
+            git commit -m "test(integration): native remeasure #374 Core TAG census"
+          fi
+          echo "FINAL_SOURCE=$(git rev-parse HEAD)" | tee qualification-evidence/final-source.txt
+          echo "FINAL_TREE=$(git rev-parse HEAD^{tree})" | tee -a qualification-evidence/final-source.txt
+          git push origin HEAD:refs/heads/experiment/core-tag-374-native-qualified-20261124
+      - name: Preserve all experiment evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: merge-374-core-tag-evidence
-          path: merge-evidence/
+          name: core-tag-374-native-receipts
+          path: qualification-evidence/
           if-no-files-found: warn
