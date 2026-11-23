@@ -4,6 +4,9 @@ on:
     branches:
       - experiment/semantic-composition-300-370-20261123
   workflow_dispatch:
+  pull_request:
+    branches:
+      - fix/dump-expanded-tags
 
 permissions:
   contents: read
