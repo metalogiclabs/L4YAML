@@ -1,0 +1,122 @@
+name: Exact source Core TAG composed Lean 4.36 qualification
+on:
+  push:
+    branches:
+      - experiment/compose-302-361-2836-qualified-gpt6-20261123
+permissions:
+  contents: write
+jobs:
+  compose-qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Real three-way composition and source pin checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p composed-evidence
+          A=e3e5b0364d769b4e0a751fb0f15fa75f02351ab5
+          B=0fcff4d2d1b4e0a5e290c08503279a8d1e0c00d1
+          UP=2836db2fef546ec69873297f499c43ec9aadf3c7
+          git config user.name "MathGraph qualification"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --no-tags origin "$A" "$B"
+          test "$(git merge-base "$A" "$B")" = "$UP"
+          git switch --detach "$A"
+          if git merge --no-commit --no-ff "$B"; then
+            echo "Merge completed without conflict"
+          else
+            mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+            printf '%s\n' "${conflicts[@]}" | tee composed-evidence/conflict-paths.txt
+            test "${#conflicts[@]}" -eq 1
+            test "${conflicts[0]}" = "Tests/Guards/Proofs/DeadDeclarationCensus.lean"
+            python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          s=p.read_text()
+          m=re.search(r'(?ms)^<<<<<<< HEAD\n(.*?)^=======\n(.*?)^>>>>>>> 0fcff4d2d1b4e0a5e290c08503279a8d1e0c00d1\n',s)
+          assert m is not None and s.count("<<<<<<<") == 1
+          ours,theirs=m.group(1),m.group(2)
+          marker="def expectedDeadCensus : String :=\n"
+          assert ours.count(marker)==1 and theirs.count(marker)==1
+          a_hist,a_pin=ours.split(marker)
+          b_hist,b_pin=theirs.split(marker)
+          assert "#302 over item 529" in a_hist
+          assert "TAG directive repair" in b_hist
+          assert "B-roster=3344" in b_pin
+          assert "B-roster=3533" in a_pin
+          new=a_hist+b_hist+marker+b_pin
+          new_s=s[:m.start()]+new+s[m.end():]
+          assert new_s.count(marker)==1 and "<<<<<<<" not in new_s
+          p.write_text(new_s)
+          print("Preserved Core and TAG histories; retained provisional TAG B-roster 3344 pin pending native census.")
+          PY
+            git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          fi
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git diff --cached --check
+          git diff --cached --stat | tee composed-evidence/prequal-merge-stat.txt
+          git rev-parse HEAD HEAD^{tree} HEAD:DOCS.md | tee composed-evidence/source-heads.txt
+          cat lean-toolchain | tee composed-evidence/lean-toolchain.txt
+      - name: Install pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Native build and non-predicted census
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version | tee composed-evidence/lean-version.txt
+          lake build 2>&1 | tee composed-evidence/build.log
+          lake run dead-census -- --write 2>&1 | tee composed-evidence/census-write.log
+          sed -n '/def expectedDeadCensus : String :=/,+1p' Tests/Guards/Proofs/DeadDeclarationCensus.lean | tee composed-evidence/measured-census.txt
+          git diff -- Tests/Guards/Proofs/DeadDeclarationCensus.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean > composed-evidence/census-measurement.diff
+          lake build 2>&1 | tee composed-evidence/build-post-census.log
+          lake run dead-census -- --check 2>&1 | tee composed-evidence/census-check.log
+          lake run census-dashboard -- --check 2>&1 | tee composed-evidence/census-dashboard.log
+      - name: Proof and test qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-gate-vocab check-closure-log check-scripts-lean check-pack-births; do
+            lake run "$gate" 2>&1 | tee "composed-evidence/$gate.log"
+          done
+          lake run check-serialization-proofs -- --keep composed-evidence/serialization 2>&1 | tee composed-evidence/serialization.log
+          lake exe adversarialinstantiation 2>&1 | tee composed-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee composed-evidence/all-tests.log
+      - name: Create exact source-preserving composed merge commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          git diff --cached --check
+          git commit -m "Qualify integrated Core #302 and TAG #361 against upstream 2836db2f"
+          test "$(git rev-parse HEAD^1)" = "e3e5b0364d769b4e0a751fb0f15fa75f02351ab5"
+          test "$(git rev-parse HEAD^2)" = "0fcff4d2d1b4e0a5e290c08503279a8d1e0c00d1"
+          git rev-parse HEAD HEAD^{tree} HEAD:DOCS.md | tee composed-evidence/composed-head.txt
+          git push origin HEAD:refs/heads/experiment/combined-qualified-302-361-2836-20261123
+      - name: Save exact logs and residuals
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p composed-evidence
+          git rev-parse HEAD HEAD^{tree} > composed-evidence/head-at-end.txt
+          git status --short > composed-evidence/worktree-status.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combined-302-361-2836-native-qualification
+          path: composed-evidence/
+          if-no-files-found: warn
