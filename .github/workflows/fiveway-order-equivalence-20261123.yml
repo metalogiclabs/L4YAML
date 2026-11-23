@@ -1,0 +1,70 @@
+name: Five-way source-order equivalence 2026-11-23
+on:
+  push:
+    branches:
+      - experiment/fiveway-order-compare-2836-20261123
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare both historical and current merge orders beyond the generated census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p order-evidence
+          git config user.name "MathGraph equivalence probe"
+          git config user.email "qualification-probe@users.noreply.github.com"
+          BASE=2836db2fef546ec69873297f499c43ec9aadf3c7
+          FIVEWAY=cd6ce9d2ecf2badcfd352f930939f057750e2c44
+          CENSUS=Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          targets=(5df9d2a5970b32d658792b61862c9fd16a2981b7 2fd1418f0ba8e8f54bb5549bdbef8e8f320c73bd93)
+          targets=(5df9d2a5970b32d658792b61862c9fd16a2981b7 2fd1418f0ba8f54bb5549bdbef8e8f320c73bd93 e48b9ebbc86e68044e3d29c2dba79789745249ae 2b58ff8e6d6f648d3203702ad39e121951bdba2c 75e36c79c66dccc1891e68494d021fb45c1717d9)
+          git switch --detach "$BASE"
+          for target in "${targets[@]}"; do
+            git cat-file -e "$target^{commit}" || git fetch origin "$target"
+            if ! git merge --no-ff --no-edit "$target"; then
+              mapfile -t files < <(git diff --name-only --diff-filter=U)
+              [ "${#files[@]}" -eq 1 ] && [ "${files[0]}" = "$CENSUS" ] || exit 2
+              git checkout --ours -- "$CENSUS"
+              git add "$CENSUS"
+              git commit --no-edit
+            fi
+          done
+          DIRECT=$(git rev-parse HEAD)
+          echo "direct_commit=$DIRECT"
+          echo "direct_tree=$(git rev-parse HEAD^{tree})"
+          git ls-tree -r HEAD | grep -v -F "$CENSUS" | sort > order-evidence/direct-manifest.txt
+          git switch --detach "$FIVEWAY"
+          if ! git merge --no-ff --no-edit "$BASE"; then
+            mapfile -t files < <(git diff --name-only --diff-filter=U)
+            [ "${#files[@]}" -eq 1 ] && [ "${files[0]}" = "$CENSUS" ] || exit 2
+            git checkout --ours -- "$CENSUS"
+            git add "$CENSUS"
+            git commit --no-edit
+          fi
+          PRIOR=$(git rev-parse HEAD)
+          echo "prior_commit=$PRIOR"
+          echo "prior_tree=$(git rev-parse HEAD^{tree})"
+          git ls-tree -r HEAD | grep -v -F "$CENSUS" | sort > order-evidence/prior-manifest.txt
+          if diff -u order-evidence/direct-manifest.txt order-evidence/prior-manifest.txt > order-evidence/manifest-diff.txt; then
+            echo "WARRANTED: all tracked source tree entries byte-identical except the generated census pin"
+          else
+            echo "DIVERGENCE: genuine tracked source differences beyond census. Inspect line-by-line."
+            cat order-evidence/manifest-diff.txt
+            git diff --stat "$DIRECT" "$PRIOR" -- . ":(exclude)$CENSUS" | tee order-evidence/diff-stat.txt
+            git diff "$DIRECT" "$PRIOR" -- . ":(exclude)$CENSUS" > order-evidence/source-diff.patch
+            exit 3
+          fi
+      - name: Preserve manifest, difference, and negative result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiveway-order-equivalence-2836
+          path: order-evidence/
+          if-no-files-found: warn
