@@ -12,7 +12,8 @@ convention, (D) Rule 2 / instrument-only and (B) the roster, and compares two pi
 * `expectedDeadCensus` — the one-line summary (counts); `--write` rewrites it.
 * `expectedDeadRoster` (`DeadDeclarationRoster.lean`) — class (B) as a SET of fully-qualified
   names, shrink-only: a name entering it is a declaration reached by nothing — Rule 1's finding;
-  a name leaving it was deleted or reached by a capstone.
+  a name leaving it was deleted, reached by a library root, or reclassified
+  (including test-only reach).
 
 The guard below ties the two: the roster's line count is the `B-roster=` the summary names, so
 neither can be edited without the other.
@@ -59,6 +60,13 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
 -- 2026-11-19 (item 528, β PR 2): population 14,242 → 14,249 (thm +2), unreached 6,538 → 6,545, A-campaign 1,323 → 1,330 —
 -- the five content-park constructors, `SSLComments_to_GStar_prefix` and the steps split by source park (five lemmas, were
 -- three), reached by no root until the fold spends them (class (A)); B-roster unmoved.
+-- 2026-11-19 (#302 integrated over item 526 and #349, base 4f31fef): full Lean 4.35.0
+-- build 1,573/1,573; native `dead-census -- --check` measured population
+-- 14,304 → 14,309, thm 10,247 → 10,249, def 2,701 → 2,702, unreached
+-- 6,505 → 6,534 and A-campaign 1,281 → 1,310. The owner S3 development
+-- changed the cluster-root count 1,460 → 1,459; capstone:27, blueprint:223,
+-- C-api:1,414, D-test-only:277 and B-roster:3,533 are unchanged. The pin is
+-- read on the merged tree, not summed from the two parents.
 -- 2026-11-19 (item 529, β PR 3): population 14249 → 14252, thm 10212 → 10215, unreached 6545 → 6548, A-campaign
 -- 1330 → 1333 — `TPendingNode.content_step_noPending` / `TLYamlStream.bareRoute` (StreamBridge) and
 -- `PushesTrace.goOut_at` (ContentBridge), all three unreached until the depth-0 fold `scan_trace` consumes the step
@@ -69,11 +77,23 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
 -- 2026-11-22 (item 531, β PR 4): population 14253 → 14260, thm 10215 → 10222, unreached 6549 → 6556 (thm 4624 → 4631),
 -- A-campaign 1334 → 1341 — StreamBridge's `content_step_routed` / `_docStart` / `_docEnd` / `_props`, `quoted_flowOut`,
 -- `TLYamlStream.suffixRoute` and `TCNsProperties.blockIn_of_flowOut`, unreached until the depth-0 fold spends the steps.
+-- #302 over item 529: the three additional unreached theorems enter class (A).
+-- Lean v4.36.0: native census population 14332 → 14333, def 2702 → 2703,
+-- unreached 6557 → 6558 and A-campaign 1333 → 1334. The new declaration is
+-- `SerializationWellFormed.decMemString`; the B roster is unchanged.
+-- 2026-11-21 (TAG directive repair): population +11 = three lemmas, seven defs/instances,
+-- and one error constructor. Four runtime declarations are reached; seven grammar/completeness
+-- helpers are test-only. The actual TagDirectiveConsumer reaches 189 existing B-roster names,
+-- moving B 3533 → 3344 and D 277 → 473 (189 existing + seven new), with no library deletion.
+-- This is test reach, not capstone closure; A/C and the capstone/export/Blueprint roots are unchanged.
+-- Cluster-roots 1459 → 1456 is recomputed on the remaining B set.
+-- Lean v4.36.0 adds the unreached `SerializationWellFormed.decMemString` decision instance.
+-- The standalone native census must recheck this expectation before the PR is updated.
 -- 2026-11-23 (item 532, β PR 5): population 14260 → 14262, thm 10222 → 10224, unreached 6556 → 6558 (thm 4631 → 4633),
 -- A-campaign 1341 → 1343 — ContentBridge's `TFlowContent.of_scalar` and `content_leaf_at`, spent by the unreached
 -- `TPendingNode.content_step_props` (now at every indentation).
 def expectedDeadCensus : String :=
-  "population=14262 thm=10224 def=2676 roots=capstone:26+export:37+blueprint:222(unresolved=5) unreached=6558 thm=4633 A-campaign=1343 C-api=1405 D-test-only=277 B-roster=3533 thm=3172 cluster-roots=1459"
+  "population=14351 thm=10272 def=2710 roots=capstone:27+export:37+blueprint:223(unresolved=5) unreached=6572 thm=4635 A-campaign=1341 C-api=1414 D-test-only=473 B-roster=3344 thm=3066 cluster-roots=1456"
 
 /-- `B-roster=N` out of the summary. -/
 def rosterCount (summary : String) : Option Nat := do
