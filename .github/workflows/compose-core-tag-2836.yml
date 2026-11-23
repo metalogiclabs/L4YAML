@@ -26,22 +26,51 @@ jobs:
           git fetch --no-tags origin "$A" "$B"
           test "$(git merge-base "$A" "$B")" = "$UP"
           git switch --detach "$A"
-          if git merge --no-ff --no-commit "$B"; then
-            git diff --cached --check
-            git commit -m "Merge Core #302 and TAG #361 integration candidates at upstream 2836db2f"
-            test "$(git rev-parse HEAD^1)" = "$A"
-            test "$(git rev-parse HEAD^2)" = "$B"
-            echo "Combined SHA=$(git rev-parse HEAD)"
-            echo "Combined tree=$(git rev-parse HEAD^{tree})"
-            git push origin HEAD:refs/heads/experiment/combined-core-tag-2836-20261123
-          else
-            echo "::notice::Combined source requires conflict resolution"
-            git status --short
-            git ls-files -u | cut -f2 | sort -u
-            while IFS= read -r path; do
-              echo "::group::Conflict $path"
-              git diff -- "$path" | tail -n 250 || true
-              echo "::endgroup::"
-            done < <(git diff --name-only --diff-filter=U)
-            exit 2
+          if ! git merge --no-ff --no-commit "$B"; then
+            mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+            if [[ "${#conflicts[@]}" -ne 1 || "${conflicts[0]}" != "Tests/Guards/Proofs/DeadDeclarationCensus.lean" ]]; then
+              echo "::error::Unexpected Core/TAG overlap: manual review required"
+              printf '%s\n' "${conflicts[@]}"
+              exit 2
+            fi
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          s=p.read_text()
+          assert s.count("<<<<<<< HEAD\n")==1
+          assert s.count("=======\n")==1
+          marker=">>>>>>> 0fcff4d2d1b4e0a5e290c08503279a8d1e0c00d1\n"
+          assert s.count(marker)==1
+          prefix,rest=s.split("<<<<<<< HEAD\n",1)
+          core,rest=rest.split("=======\n",1)
+          tag,suffix=rest.split(marker,1)
+          needle="def expectedDeadCensus : String :=\n"
+          assert core.count(needle)==1 and tag.count(needle)==1
+          core_history,core_pin=core.split(needle)
+          tag_history,tag_pin=tag.split(needle)
+          assert "#302 over item 529" in core_history
+          assert "TAG directive repair" in tag_history
+          assert "B-roster=3533" in core_pin
+          assert "B-roster=3344" in tag_pin
+          # The TAG tree retains a 3344-member B-roster, so take its pin
+          # as provisional; do NOT sum or guess the combined population.
+          merged=prefix+core_history+tag_history+needle+tag_pin+suffix
+          assert merged.count(needle)==1
+          assert "<<<<<<<" not in merged and ">>>>>>>" not in merged
+          p.write_text(merged)
+          print("Kept both histories and TAG B-roster pin; combined census unmeasured.")
+          PY
+            git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
           fi
+          test -f L4YAML/Spec/CoreSchema.lean
+          test -f Tests/Guards/Proofs/TagDirectiveRepair.lean
+          grep -q "testCoreTagCorrespondence" Tests/AdversarialInstantiation.lean
+          grep -q "testTagDirectiveUniqueness" Tests/AdversarialInstantiation.lean
+          grep -q "TAG directive amendment" DOCS.md
+          git diff --cached --check
+          git commit -m "Merge Core #302 and TAG #361 integration candidates at upstream 2836db2f"
+          test "$(git rev-parse HEAD^1)" = "$A"
+          test "$(git rev-parse HEAD^2)" = "$B"
+          echo "Combined SHA=$(git rev-parse HEAD)"
+          echo "Combined tree=$(git rev-parse HEAD^{tree})"
+          git push origin HEAD:refs/heads/experiment/combined-core-tag-2836-20261123
