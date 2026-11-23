@@ -33,7 +33,10 @@ jobs:
           set -euo pipefail
           git rev-parse HEAD HEAD^1 HEAD^2 HEAD^{tree}
           test "$(git rev-parse HEAD)" = "${{ matrix.head }}"
-          test "$(git rev-parse HEAD^2)" = 2836db2fef546ec69873297f499c43ec9aadf3c7
+          test "$(git rev-parse HEAD^1)" = e3e5b0364d769b4e0a751fb0f15fa75f02351ab5
+          test "$(git rev-parse HEAD^2)" = 0fcff4d2d1b4e0a5e290c08503279a8d1e0c00d1
+          test "$(git rev-parse HEAD^1^2)" = 2836db2fef546ec69873297f499c43ec9aadf3c7
+          test "$(git rev-parse HEAD^2^2)" = 2836db2fef546ec69873297f499c43ec9aadf3c7
           test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
           git submodule status
           curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
