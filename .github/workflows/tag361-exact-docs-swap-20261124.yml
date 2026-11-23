@@ -46,7 +46,7 @@ jobs:
           sudo mkswap /mnt/tag361-exact-docs.swap
           sudo swapon /mnt/tag361-exact-docs.swap
           free -h | tee docs-evidence/resources-after.txt
-          test "$(swapon --noheadings --output NAME | grep -Fc /mnt/tag361-exact-docs.swap)" -eq 1
+          test "$(grep -Fc /mnt/tag361-exact-docs.swap /proc/swaps)" -eq 1
       - name: Build Verso and all required graph inputs on exact source
         shell: bash
         run: |
