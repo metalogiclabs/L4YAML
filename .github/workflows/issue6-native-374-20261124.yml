@@ -1,0 +1,83 @@
+name: L4YAML issue 6 exact-source native replay
+on:
+  push:
+    branches: [experiment/issue6-native-374-20261124]
+permissions:
+  contents: read
+jobs:
+  issue6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Checkout exact upstream source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Assert exact source tree and toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p issue6-evidence
+          git switch --detach ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
+          test "$(git rev-parse HEAD)" = "ca977c71fd3f7ce2f4dad1697cbb434b83fb2124"
+          git rev-parse HEAD HEAD^{tree} | tee issue6-evidence/source-pins.txt
+          cat lean-toolchain | tee issue6-evidence/toolchain.txt
+      - name: Install pinned Lean
+        run: |
+          set -Eeuo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Build current published L4YAML
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee issue6-evidence/lean-version.txt
+          lake build L4YAML 2>&1 | tee issue6-evidence/build.log
+      - name: Native regression for previously reported issue 6
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cat > /tmp/Issue6NativeProbe.lean <<'LEAN'
+          import L4YAML
+          open L4YAML
+          structure Q where
+            x : Option String
+          deriving Repr, Schema.FromYaml, Schema.ToYaml
+
+          def main : IO Unit := do
+            let qNone : Q := {x := none}
+            let qStr : Q := {x := some "null"}
+            let checks : List (String × Bool) := [
+              ("quoted_42_stays_string", (parseAs String "\"42\"\n").toOption == some "42"),
+              ("quoted_true_stays_string", (parseAs String "\"true\"\n").toOption == some "true"),
+              ("quoted_true_not_bool", (parseAs Bool "\"true\"\n").toOption.isNone),
+              ("quoted_null_option_string", (parseAs (Option String) "\"null\"\n").toOption == some (some "null")),
+              ("struct_quoted_null_string", (parseAs Q "x: \"null\"\n").toOption.map (·.x) == some (some "null")),
+              ("bool_to_yaml_roundtrip", (parseAs Bool (Dump.dump (toYaml true))).toOption == some true),
+              ("unit_to_yaml_roundtrip", (parseAs Unit (Dump.dump (toYaml ()))).toOption.isSome),
+              ("null_option_roundtrip", (parseAs (Option String) (Dump.dump (toYaml (none : Option String)))).toOption == some none),
+              ("string_null_roundtrip", (parseAs String (Dump.dump (toYaml ("null" : String)))).toOption == some "null"),
+              ("struct_none_roundtrip", (parseAs Q (Dump.dump (toYaml qNone))).toOption.map (·.x) == some none),
+              ("struct_text_roundtrip", (parseAs Q (Dump.dump (toYaml qStr))).toOption.map (·.x) == some (some "null")),
+              ("null_and_string_distinct", Dump.dump (toYaml qNone) != Dump.dump (toYaml qStr))
+            ]
+            for (n, ok) in checks do
+              if !ok then
+                IO.eprintln s!"FAIL: {n}"
+                throw (IO.userError s!"issue6 regression failed: {n}")
+              IO.println s!"PASS: {n}"
+          LEAN
+          lake env lean --run /tmp/Issue6NativeProbe.lean 2>&1 | tee issue6-evidence/native-regression.log
+          echo "EXACT_SOURCE_ISSUE6_REPLAY_PASS" | tee issue6-evidence/summary.txt
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+      - name: Preserve full issue6 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue6-native-replay-374
+          path: issue6-evidence/
+          if-no-files-found: warn
