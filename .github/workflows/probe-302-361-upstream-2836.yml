@@ -1,0 +1,76 @@
+name: Probe exact-source Core TAG upstream three-way merges
+on:
+  push:
+    branches: [experiment/merge-302-361-2836-20261123]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-three-way:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+      - name: Fetch exact pinned PR and upstream objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin fix/core-schema-spec-correspondence fix/tag-directive-uniqueness
+          git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git 2836db2fef546ec69873297f499c43ec9aadf3c7
+          git cat-file -t bcc2a828addf4f3d8513aca681ae28fdeb2709a5
+          git cat-file -t a4cb16d488f6c6cf325a1b03d3646e7b79227283
+          git cat-file -t 2836db2fef546ec69873297f499c43ec9aadf3c7
+          git rev-parse '2836db2fef546ec69873297f499c43ec9aadf3c7:DOCS.md'
+          git rev-parse 'bcc2a828addf4f3d8513aca681ae28fdeb2709a5:DOCS.md'
+          git rev-parse 'a4cb16d488f6c6cf325a1b03d3646e7b79227283:DOCS.md'
+      - name: Probe each real three-way merge and record exact conflict locations
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p merge-evidence
+          for pr in 302 361; do
+            case "$pr" in
+              302) head=bcc2a828addf4f3d8513aca681ae28fdeb2709a5 ;;
+              361) head=a4cb16d488f6c6cf325a1b03d3646e7b79227283 ;;
+            esac
+            git reset --hard "$head"
+            git clean -fd
+            git config user.name "GitHub Actions merge probe"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            echo "--- PR #$pr merge $head + upstream 2836db2f ---" | tee "merge-evidence/$pr-summary.txt"
+            if git merge --no-commit --no-ff 2836db2fef546ec69873297f499c43ec9aadf3c7; then
+              echo "AUTO_MERGE_CLEAN" | tee -a "merge-evidence/$pr-summary.txt"
+            else
+              echo "MERGE_HAS_CONFLICTS" | tee -a "merge-evidence/$pr-summary.txt"
+            fi
+            git ls-files -u | tee "merge-evidence/$pr-unmerged-index.txt"
+            git diff --name-only --diff-filter=U | tee "merge-evidence/$pr-conflict-paths.txt"
+            git status --short | tee -a "merge-evidence/$pr-summary.txt"
+            python3 - "$pr" <<'PY'
+          import pathlib, subprocess, sys
+          pr = sys.argv[1]
+          files = subprocess.check_output(['git','diff','--name-only','--diff-filter=U'], text=True).splitlines()
+          for file in files:
+              b = pathlib.Path(file).read_bytes()
+              lines = b.decode('utf-8', errors='replace').splitlines()
+              marks = [i for i,l in enumerate(lines) if l.startswith(('<<<<<<<','=======','>>>>>>>','|||||||'))]
+              print(f'{pr} {file}: bytes={len(b)} markers={len(marks)} marker_lines={[i+1 for i in marks[:30]]}')
+              out = []
+              for i in marks[:20]:
+                  if file == 'DOCS.md':
+                      out.append(f'line {i+1}: {lines[i][:180]}')
+                  else:
+                      out.append(f'line {i+1}: ' + '\n'.join(lines[max(0,i-4):min(len(lines),i+5)]))
+              pathlib.Path(f'merge-evidence/{pr}-{pathlib.Path(file).name}.conflict-context.txt').write_text('\n\n'.join(out)[:90000])
+          PY
+            git merge --abort || git reset --hard "$head"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-three-way-conflict-report
+          path: merge-evidence/
+          if-no-files-found: warn
