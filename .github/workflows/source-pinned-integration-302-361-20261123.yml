@@ -1,0 +1,77 @@
+name: Source-pinned L4YAML 302 and 361 integration probe
+on:
+  push:
+    branches:
+      - experiment/merge-302-361-2836-20261123
+permissions:
+  contents: write
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pr: '302'
+            head: bcc2a828addf4f3d8513aca681ae28fdeb2709a5
+            output: experiment/refresh-302-2836-20261123
+          - pr: '361'
+            head: a4cb16d488f6c6cf325a1b03d3646e7b79227283
+            output: experiment/refresh-361-2836-20261123
+    steps:
+      - name: Checkout tool branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Real Git three-way merge, exact source identities
+        shell: bash
+        env:
+          OUR_HEAD: ${{ matrix.head }}
+          PR: ${{ matrix.pr }}
+          OUTPUT_BRANCH: ${{ matrix.output }}
+          UPSTREAM_HEAD: 2836db2fef546ec69873297f499c43ec9aadf3c7
+          COMMON_ANCESTOR: 9307af97a0bb330472b3a4be7026bfc4d04329b1
+        run: |
+          set -euo pipefail
+          git config user.name "MathGraph integration qualification"
+          git config user.email "mathgraph-integration@users.noreply.github.com"
+          git remote add upstream https://github.com/nasa-jpl/L4YAML.git
+          git fetch --no-tags origin "$OUR_HEAD"
+          git fetch --no-tags upstream refs/heads/fix-a-grammar-completeness
+          git cat-file -e "$UPSTREAM_HEAD^{commit}"
+          test "$(git rev-parse "$OUR_HEAD")" = "$OUR_HEAD"
+          git merge-base --is-ancestor "$COMMON_ANCESTOR" "$OUR_HEAD"
+          git merge-base --is-ancestor "$COMMON_ANCESTOR" "$UPSTREAM_HEAD"
+          git switch --detach "$OUR_HEAD"
+          echo "Source: PR #$PR $OUR_HEAD"
+          echo "Upstream exact: $UPSTREAM_HEAD"
+          echo "Merge base: $(git merge-base "$OUR_HEAD" "$UPSTREAM_HEAD")"
+          if ! git merge --no-ff --no-commit "$UPSTREAM_HEAD"; then
+            echo "::error::PR #$PR requires manual conflict resolution; neither PR branch nor output branch was modified"
+            git status --short
+            git ls-files -u | cut -f2 | sort -u
+            while IFS= read -r file; do
+              echo "::group::Conflict $file"
+              git diff -- "$file" | tail -n 220 || true
+              echo "::endgroup::"
+            done < <(git diff --name-only --diff-filter=U)
+            exit 2
+          fi
+          test -z "$(git diff --name-only --diff-filter=U)"
+          test -f DOCS.md
+          test -f Tests/AdversarialInstantiation.lean
+          test -f Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          git diff --cached --check
+          git commit -m "Merge upstream 2836db2f into PR #$PR for qualification"
+          test "$(git rev-parse HEAD^1)" = "$OUR_HEAD"
+          test "$(git rev-parse HEAD^2)" = "$UPSTREAM_HEAD"
+          git diff "$OUR_HEAD" HEAD --stat
+          git diff "$UPSTREAM_HEAD" HEAD --stat
+          echo "Merged SHA=$(git rev-parse HEAD)"
+          echo "Merged tree SHA=$(git rev-parse HEAD^{tree})"
+          echo "Merged DOCS SHA=$(git rev-parse HEAD:DOCS.md)"
+          git status --short
+          git push origin "HEAD:refs/heads/$OUTPUT_BRANCH"
+          echo "Candidate integration branch: $OUTPUT_BRANCH"
