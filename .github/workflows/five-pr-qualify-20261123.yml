@@ -1,0 +1,217 @@
+name: Five-PR exact-source qualification 2026-11-23
+on:
+  push:
+    branches:
+      - experiment/five-pr-merge-probe-2836-20261123
+permissions:
+  contents: write
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      LEAN_NUM_THREADS: 2
+    outputs:
+      source_sha: ${{ steps.publish.outputs.sha }}
+    steps:
+      - name: Checkout history and test-suite submodule
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Merge the five exact PR heads into current upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification-evidence
+          git config user.name "MathGraph exact-source CI"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          BASE=2836db2fef546ec69873297f499c43ec9aadf3c7
+          git switch --detach "$BASE"
+          for target in 5df9d2a5970b32d658792b61862c9fd16a2981b7 2fd1418f0ba8f54bb5549bdbef8e8f320c73bd93 e48b9ebbc86e68044e3d29c2dba79789745249ae 2b58ff8e6d6f648d3203702ad39e121951bdba2c 75e36c79c66dccc1891e68494d021fb45c1717d9; do
+            git cat-file -e "$target^{commit}" || git fetch --no-tags origin "$target"
+            if git merge --no-ff --no-edit "$target"; then
+              echo "CLEAN MERGE $target"
+            else
+              mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+              if [ "${#conflicts[@]}" -ne 1 ] || [ "${conflicts[0]}" != "Tests/Guards/Proofs/DeadDeclarationCensus.lean" ]; then
+                git status --short
+                printf '%s\n' "${conflicts[@]}"
+                echo "Unresolved source conflict: stopping, no source publish" >&2
+                exit 2
+              fi
+              git checkout --ours -- Tests/Guards/Proofs/DeadDeclarationCensus.lean
+              git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+              git commit --no-edit
+              echo "CENSUS PLACEHOLDER MERGE $target -- pending native remeasurement"
+            fi
+          done
+          git diff --check
+          git log --format='%H %P %s' -n 12 | tee qualification-evidence/lineage.txt
+          git rev-parse HEAD HEAD^{tree} | tee qualification-evidence/pre-census-pins.txt
+          cat lean-toolchain | tee qualification-evidence/toolchain.txt
+          git submodule status | tee qualification-evidence/submodules.txt
+      - name: Install repository-pinned Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Full Lean build and extra suite executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version | tee qualification-evidence/lean-version.txt
+          lake build 2>&1 | tee qualification-evidence/build.log
+          lake build tests demo limittests 2>&1 | tee qualification-evidence/extra-build.log
+      - name: Native census remeasurement and pin check
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-evidence/census-write.log
+          lake build 2>&1 | tee qualification-evidence/post-pin-build.log
+          lake run dead-census -- --check 2>&1 | tee qualification-evidence/census-check.log
+      - name: Adversarial and full executable suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/full-suite.log
+          lake exe eventscore --suite yaml-test-suite 2>&1 | tee qualification-evidence/eventscore.log
+      - name: Proof and source-closure checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake run census-dashboard -- --check 2>&1 | tee qualification-evidence/dashboard.log
+          lake env lean Tests/Guards/Proofs/CapstoneAxioms.lean 2>&1 | tee qualification-evidence/capstone-axioms.log
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+      - name: Publish the verified native source to an experiment-only branch
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          if ! git diff --cached --quiet; then
+            git commit -m "test(integration): remeasure census for five PRs on 2836db2f"
+          fi
+          git rev-parse HEAD HEAD^{tree} | tee qualification-evidence/final-pins.txt
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git push origin HEAD:refs/heads/experiment/five-pr-native-qualified-2836-20261123
+          echo "Published experiment branch, no upstream PR branches moved"
+      - name: Preserve all native qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-pr-native-qualification-2836
+          path: |
+            qualification-evidence/
+            docs/reports/
+          if-no-files-found: warn
+  bindings:
+    needs: native
+    if: needs.native.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Checkout immutable native-qualified source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.native.outputs.source_sha }}
+          submodules: recursive
+      - name: Setup Lean and binding prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p bindings-evidence
+          git rev-parse HEAD HEAD^{tree} | tee bindings-evidence/source-pins.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev python3-venv
+          python3 -m venv "$RUNNER_TEMP/qualification-venv"
+          "$RUNNER_TEMP/qualification-venv/bin/python3" -m pip install --quiet pytest
+          echo "$RUNNER_TEMP/qualification-venv/bin" >> "$GITHUB_PATH"
+          echo "L4YAML_LIB=$GITHUB_WORKSPACE/ffi/out/libl4yaml.so" >> "$GITHUB_ENV"
+      - name: Build native C and Rust entrypoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML 2>&1 | tee bindings-evidence/lean-library.log
+          cmake -B ffi/out -S ffi 2>&1 | tee bindings-evidence/cmake-configure.log
+          cmake --build ffi/out --parallel 2 2>&1 | tee bindings-evidence/cmake-build.log
+          test -f ffi/out/libl4yaml.so
+          (cd rust/l4yaml && cargo build --release --example tryparse --jobs 2) 2>&1 | tee bindings-evidence/rust-example.log
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 2>&1 | tee bindings-evidence/rust-tests.log
+          sha256sum ffi/out/libl4yaml.so rust/target/release/examples/tryparse | tee bindings-evidence/library-sha256.txt
+      - name: Python FFI and cross-language checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LD_LIBRARY_PATH="$PWD/ffi/out:$(lean --print-prefix)/lib/lean"
+          python3 -m pytest Tests/test_python_ffi.py python/tests -q --tb=short 2>&1 | tee bindings-evidence/python-tests.log
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee bindings-evidence/cross-lang.log
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+      - name: Preserve binding receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-pr-bindings-2836
+          path: bindings-evidence/
+          if-no-files-found: warn
+  docs:
+    needs: native
+    if: needs.native.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Checkout immutable native-qualified source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.native.outputs.source_sha }}
+          submodules: recursive
+      - name: Install pinned Lean and Graphviz
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs-evidence
+          git rev-parse HEAD HEAD^{tree} | tee docs-evidence/source-pins.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y graphviz
+      - name: Compile and render Verso docs and API graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build 2>&1 | tee docs-evidence/lean-build.log
+          (cd doc && lake build l4yaml-doc) 2>&1 | tee docs-evidence/verso-build.log
+          lake build graph 2>&1 | tee docs-evidence/graph-build.log
+          mkdir -p doc/Doc/L4YAML/graphs
+          lake exe graph --to=L4YAML.Scanner.Scanner,L4YAML.Parser.Composition,L4YAML.Surface.Document,L4YAML.Output.Dump,L4YAML.Output.Emitter,L4YAML.FFI.FFI,L4YAML.Schema.Api,L4YAML.Config.Config doc/Doc/L4YAML/graphs/import-graph.dot
+          dot -Tsvg doc/Doc/L4YAML/graphs/import-graph.dot -o doc/Doc/L4YAML/graphs/import-graph.svg
+          lake run check-doc-graphs -- --strict 2>&1 | tee docs-evidence/graph-check.log
+          (cd doc && lake exe l4yaml-doc) 2>&1 | tee docs-evidence/render.log
+          lake run svg-objects -- doc/_out/html-multi 2>&1 | tee docs-evidence/svg-check.log
+          lake build :docs 2>&1 | tee docs-evidence/api-docs.log
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json
+      - name: Preserve documentation receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: five-pr-docs-2836
+          path: docs-evidence/
+          if-no-files-found: warn
