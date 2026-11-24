@@ -1,0 +1,312 @@
+name: Group 7.7 retain initial grammar prefix and filtered execution boundary
+on:
+  push:
+    branches: [research/group77-initial-filtered-boundary-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 92c622bc1015febac29897be08192eb73c6aa744
+          path: upstream
+      - name: Verify exact source and toolchain
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 92c622bc1015febac29897be08192eb73c6aa744
+          test "$(git rev-parse HEAD:L4YAML)" = 19f54b7a36b0b170aa24375889ff86196e7fa475
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/ScanStrictCoupling.lean)" = 01e90531afc2066917416909d660aa04d3d5495a
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML HEAD:L4YAML/Proofs/Scanner/ScanStrictCoupling.lean > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Compile source-connected EOF theorem and vacuity control
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/ReachableEOF.lean <<'LEAN'
+          module
+          public import L4YAML.Proofs.Scanner.ScanStrictCoupling
+          public section
+          set_option autoImplicit false
+          namespace L4YAML.Proofs.ReachableEOF
+          open L4YAML L4YAML.Surface L4YAML.Scanner
+          open L4YAML.Proofs.CloseStaleExplicitKey
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScannerCoupling
+          open L4YAML.Proofs.ScalarCoupling L4YAML.Proofs.StructureCoupling
+          open L4YAML.Proofs.ScanStrictCoupling
+          open L4YAML.Proofs.BlockScalarFlowGuard L4YAML.Proofs.FlowAdjacency
+          
+          /-- Negative adequacy control: the registered conclusion requires no scanner
+              premises at all. Not a claim that the implementation drops characters. -/
+          theorem old_conclusion_without_execution : ∃ p : SurfPos, p.chars = [] :=
+            ⟨⟨[], 0⟩, rfl⟩
+          
+          /-- Preserve the actual EOF state and the correspondence used by the original
+              proof, instead of discarding both at existential introduction. -/
+          lemma preprocess_none_reachable_eof (sc : ScannerState) (sp : SurfPos)
+              (hcorr : ScannerSurfCorr sc sp)
+              (hok : scanNextToken_preprocess sc = .ok none) :
+              ∃ (e : ScannerState) (p : SurfPos), skipToContent sc = .ok e ∧
+                ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] := by
+            unfold scanNextToken_preprocess at hok
+            simp only [bind, Except.bind, pure, Except.pure] at hok
+            split at hok
+            · cases hok
+            · rename_i s_content h_skip
+              split at hok
+              · rename_i h_hasMore
+                obtain ⟨sp_c, hcorr_c⟩ := skipToContentLoop_ok_corr sc sp _ s_content hcorr
+                  (Nat.le_refl _) h_skip
+                have h_not_lt : ¬ s_content.offset < s_content.inputEnd := by
+                  simp [ScannerState.hasMore] at h_hasMore; omega
+                refine ⟨s_content, sp_c, h_skip, hcorr_c, ?_, eof_corr s_content sp_c hcorr_c h_not_lt⟩
+                simpa [ScannerState.hasMore] using h_not_lt
+              · rename_i h_hasMore
+                split at hok
+                · split at hok
+                  · cases hok
+                  · split at hok
+                    · rename_i h_indent h_no_trailing h_peek_none
+                      exfalso; rw [closeStaleExplicitKey_peek, saveSimpleKey_peek] at h_peek_none
+                      unfold ScannerState.peek? at h_peek_none; dsimp only [] at h_peek_none
+                      unfold unwindIndents at h_peek_none
+                      simp only [unwindIndentsLoop_offset, unwindIndentsLoop_inputEnd,
+                        unwindIndentsLoop_input] at h_peek_none
+                      split at h_peek_none
+                      · cases h_peek_none
+                      · rename_i h_not_lt; simp [ScannerState.hasMore] at h_hasMore
+                        exact h_not_lt h_hasMore
+                    · cases hok
+                · split at hok
+                  · cases hok
+                  · split at hok
+                    · rename_i h_no_indent h_no_trailing h_peek_none
+                      exfalso; rw [closeStaleExplicitKey_peek, saveSimpleKey_peek] at h_peek_none
+                      unfold ScannerState.peek? at h_peek_none
+                      split at h_peek_none
+                      · cases h_peek_none
+                      · rename_i h_not_lt; simp [ScannerState.hasMore] at h_hasMore
+                        exact h_not_lt h_hasMore
+                    · cases hok
+          
+          lemma next_none_reachable_eof (sc : ScannerState) (sp : SurfPos)
+              (hcorr : ScannerSurfCorr sc sp)
+              (hok : scanNextToken sc = .ok none) :
+              ∃ (e : ScannerState) (p : SurfPos), skipToContent sc = .ok e ∧
+                ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] := by
+            unfold scanNextToken at hok
+            simp only [bind, Except.bind, pure, Except.pure] at hok
+            split at hok
+            · simp at hok
+            · split at hok
+              · rename_i h_pre
+                exact preprocess_none_reachable_eof sc sp hcorr h_pre
+              · -- §9.2 dangling-node check (item 133)
+                split at hok
+                · simp at hok
+                -- §8.1 flow-value floor (item 172)
+                split at hok
+                · simp at hok
+                split at hok
+                · simp at hok
+                · split at hok
+                  · exact absurd (Except.ok.inj hok) nofun
+                  · -- pending-directives check (Fix B)
+                    split at hok
+                    · simp at hok
+                    -- §9.2 bare-document check (item 132)
+                    split at hok
+                    · simp at hok
+                    · split at hok
+                      · simp at hok
+                      · split at hok
+                        · exact absurd (Except.ok.inj hok) nofun
+                        · split at hok
+                          · simp at hok
+                          · split at hok
+                            · exact absurd (Except.ok.inj hok) nofun
+                            · -- adjacent-value check (item 47)
+                              split at hok
+                              · simp at hok
+                              · split at hok
+                                · simp at hok
+                                · exact absurd (Except.ok.inj hok) nofun
+          
+          /-- The exact finite prefix of native successful scanner transitions.
+              The count is the number of consumed scanner-loop fuel units. -/
+          inductive ScanPrefix : Nat → ScannerState → ScannerState → Prop where
+            | zero (s : ScannerState) : ScanPrefix 0 s s
+            | step {n : Nat} {s t u : ScannerState} :
+                scanNextToken s = .ok (some t) → ScanPrefix n t u →
+                ScanPrefix (n + 1) s u
+          
+          /-- A successful run supplies its own reachable terminal cursor, the actual
+              EOF preprocessing result, a related empty surface, and the very same
+              returned token array, with the exact fuel accounting. -/
+          theorem loop_reachable_eof (sc : ScannerState) (sp : SurfPos) (fuel : Nat)
+              (tokens : Array (Positioned YamlToken))
+              (hcorr : ScannerSurfCorr sc sp)
+              (hok : scanLoop sc fuel = .ok tokens) :
+              ∃ (n rest : Nat) (t e : ScannerState) (p : SurfPos),
+                fuel = n + (rest + 1) ∧ ScanPrefix n sc t ∧
+                scanNextToken t = .ok none ∧ skipToContent t = .ok e ∧
+                ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] ∧
+                scanLoop t (rest + 1) = .ok tokens := by
+            induction fuel generalizing sc sp tokens with
+            | zero => simp [scanLoop] at hok
+            | succ fuel' ih =>
+              cases hn : scanNextToken sc with
+              | error err => simp [scanLoop, hn] at hok
+              | ok v =>
+                cases v with
+                | none =>
+                  obtain ⟨e, p, hs, hc, he, hp⟩ := next_none_reachable_eof sc sp hcorr hn
+                  exact ⟨0, fuel', sc, e, p, by omega, .zero _, hn, hs, hc, he, hp, hok⟩
+                | some t =>
+                  obtain ⟨sp', hc⟩ := scanNextToken_corr sc sp hcorr t hn
+                  have ht : scanLoop t fuel' = .ok tokens := by
+                    simpa only [scanLoop, hn] using hok
+                  obtain ⟨n, rest, u, e, p, hfuel, hpath, hnone, hs, hcorr', he, hp, hl⟩ :=
+                    ih t sp' tokens hc ht
+                  exact ⟨n + 1, rest, u, e, p, by omega, .step hn hpath, hnone, hs, hcorr', he, hp, hl⟩
+          
+          /-- Use the actual production initialization including BOM. -/
+          def scanInitial (input : String) : ScannerState :=
+            let s := (ScannerState.mk' input).emit .streamStart
+            match s.peek? with
+            | some '\uFEFF' => s.consumeBOM
+            | _ => s
+          
+          theorem full_consumption_reachable (input : String)
+              (tokens : Array (Positioned YamlToken)) (h : scan input = .ok tokens) :
+              ∃ (n rest : Nat) (t e : ScannerState) (p : SurfPos),
+                (input.utf8ByteSize + 1) * 4 = n + (rest + 1) ∧
+                ScanPrefix n (scanInitial input) t ∧
+                scanNextToken t = .ok none ∧ skipToContent t = .ok e ∧
+                ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] ∧
+                scanLoop t (rest + 1) = .ok tokens := by
+            have hloop : scanLoop (scanInitial input) ((input.utf8ByteSize + 1) * 4) = .ok tokens := h
+            have h_chars := L4YAML.Proofs.ScanStrictCoupling.chars_from_zero_toList input
+            have h_init := initial_corr input input.toList h_chars
+            have h_emit : ScannerSurfCorr ((ScannerState.mk' input).emit .streamStart)
+                ⟨input.toList, 0⟩ :=
+              ⟨h_init.chars_from, h_init.col_eq, h_init.end_eq, h_init.input_prefix, h_init.indent_cols_nonneg⟩
+            have h_bom : ∃ sp, ScannerSurfCorr (scanInitial input) sp := by
+              unfold scanInitial
+              dsimp only []
+              split
+              · exact (consumeBOM_corr _ _ h_emit).imp fun _ h => h.1
+              · exact ⟨_, h_emit⟩
+            obtain ⟨sp, hc⟩ := h_bom
+            exact loop_reachable_eof _ sp _ tokens hc hloop
+          
+          #print axioms old_conclusion_without_execution
+          #print axioms preprocess_none_reachable_eof
+          #print axioms next_none_reachable_eof
+          #print axioms loop_reachable_eof
+          #print axioms full_consumption_reachable
+          /-- Retain the actual initial grammar prefix, not just an arbitrary
+              correlated surface. BOM consumes one character and no column. -/
+          theorem initial_prefix_corr (input : String) :
+              ∃ sp, GStar SLDocumentPrefix ⟨input.toList, 0⟩ sp ∧ sp.col = 0 ∧
+                ScannerSurfCorr (scanInitial input) sp := by
+            let s := (ScannerState.mk' input).emit .streamStart
+            have hi := initial_corr input input.toList
+              (L4YAML.Proofs.ScanStrictCoupling.chars_from_zero_toList input)
+            have hc : ScannerSurfCorr s ⟨input.toList, 0⟩ :=
+              ⟨hi.chars_from, hi.col_eq, hi.end_eq, hi.input_prefix, hi.indent_cols_nonneg⟩
+            unfold scanInitial
+            change ∃ sp, GStar SLDocumentPrefix ⟨input.toList, 0⟩ sp ∧ sp.col = 0 ∧
+              ScannerSurfCorr (match s.peek? with
+                | some '\uFEFF' => s.consumeBOM
+                | _ => s) sp
+            split
+            · have hb : s.peek? = some '\uFEFF' := by assumption
+              have hm : s.offset < s.inputEnd := by
+                by_contra hn
+                simp [ScannerState.peek?, hn] at hb
+              obtain ⟨c, rest, hchars, hpeek⟩ := peek_corr s ⟨input.toList, 0⟩ hc hm
+              have he : c = '\uFEFF' := Option.some.inj (hpeek.symm.trans hb)
+              subst c
+              have hcs : input.toList = '\uFEFF' :: rest := hchars
+              have hcol : s.col = 0 := hc.col_eq.symm
+              have hstep : ScannerSurfCorr s ⟨'\uFEFF' :: rest, s.col⟩ := by
+                rw [hcol, ← hcs]
+                exact hc
+              have ha := advance_non_newline_corr s '\uFEFF' rest hstep hm (by decide) (by decide)
+              refine ⟨⟨rest, 0⟩, ?_, rfl, ?_⟩
+              · rw [hcs]
+                exact .cons _ _ _ (SLDocumentPrefix.bom rest 0 _ (.nil _)) (.nil _)
+              · exact ⟨ha.chars_from, rfl, ha.end_eq, ha.input_prefix, ha.indent_cols_nonneg⟩
+            · exact ⟨_, .nil _, rfl, hc⟩
+          
+          /-- Transport source correspondence through the exact native execution prefix. -/
+          theorem prefix_corr {n : Nat} {s t : ScannerState}
+              (path : ScanPrefix n s t) (sp : SurfPos)
+              (hcorr : ScannerSurfCorr s sp) : ∃ p, ScannerSurfCorr t p := by
+            induction path generalizing sp with
+            | zero s => exact ⟨sp, hcorr⟩
+            | step hn path ih =>
+              obtain ⟨p, hp⟩ := scanNextToken_corr _ sp hcorr _ hn
+              exact ih p hp
+          
+          /-- Public filtered entry point: preserve the actual initial source prefix,
+              native transition path, correlated pre-terminal cursor and actual EOF,
+              and the exact raw token array and its placeholder-filtered projection.
+              No grammar trace, acceptance completeness, or step invariant is assumed
+              or claimed by this theorem. -/
+          theorem filtered_execution_boundary (input : String)
+              (filtered : Array (Positioned YamlToken)) (h : scanFiltered input = .ok filtered) :
+              ∃ (p_init p_terminal p_eof : SurfPos) (n rest : Nat)
+                (t e : ScannerState) (raw : Array (Positioned YamlToken)),
+                GStar SLDocumentPrefix ⟨input.toList, 0⟩ p_init ∧ p_init.col = 0 ∧
+                ScannerSurfCorr (scanInitial input) p_init ∧
+                (input.utf8ByteSize + 1) * 4 = n + (rest + 1) ∧
+                ScanPrefix n (scanInitial input) t ∧ ScannerSurfCorr t p_terminal ∧
+                scanNextToken t = .ok none ∧ skipToContent t = .ok e ∧
+                ScannerSurfCorr e p_eof ∧ ¬ e.hasMore ∧ p_eof.chars = [] ∧
+                scanLoop t (rest + 1) = .ok raw ∧ scan input = .ok raw ∧
+                filtered = raw.filter (fun tok => tok.val != .placeholder) := by
+            cases hs : scan input with
+            | error err => simp [scanFiltered, hs] at h
+            | ok raw =>
+              have hf : raw.filter (fun tok => tok.val != .placeholder) = filtered := by
+                simpa [scanFiltered, hs] using h
+              obtain ⟨p_init, hp, hz, hi⟩ := initial_prefix_corr input
+              obtain ⟨n, rest, t, e, p_eof, hfuel, hpath, hnone, hskip, hec, heof, hempty, hloop⟩ :=
+                full_consumption_reachable input raw hs
+              obtain ⟨p_terminal, htc⟩ := prefix_corr hpath p_init hi
+              exact ⟨p_init, p_terminal, p_eof, n, rest, t, e, raw,
+                hp, hz, hi, hfuel, hpath, htc, hnone, hskip, hec, heof, hempty, hloop,
+                by first | exact hs | rfl, hf.symm⟩
+          
+          #print axioms initial_prefix_corr
+          #print axioms prefix_corr
+          #print axioms filtered_execution_boundary
+          end L4YAML.Proofs.ReachableEOF
+          LEAN
+          cp Tests/Guards/Proofs/ReachableEOF.lean ../results/
+          lake build Tests.Guards.Proofs.ReachableEOF 2>&1 | tee ../results/proof.log
+          for name in old_conclusion_without_execution preprocess_none_reachable_eof next_none_reachable_eof loop_reachable_eof full_consumption_reachable initial_prefix_corr prefix_corr filtered_execution_boundary; do
+            grep -F "$name" ../results/proof.log
+          done
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/proof.log; then exit 1; fi
+          git diff --check
+          printf 'filtered_execution_boundary\t0\n' > ../results/outcomes.tsv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: filtered-execution-boundary-evidence
+          path: results/
+          if-no-files-found: error
