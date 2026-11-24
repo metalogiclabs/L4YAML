@@ -1,0 +1,186 @@
+name: Group 7.7 recover native terminal EOF witness
+on:
+  push:
+    branches: [research/group77-native-none-eof-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+          fetch-depth: 2
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 92c622bc1015febac29897be08192eb73c6aa744
+          path: upstream
+      - name: Verify exact native scanner and existing proof lineage
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 92c622bc1015febac29897be08192eb73c6aa744
+          test "$(git rev-parse HEAD:L4YAML/Scanner/Scanner.lean)" = 7c19020cc2c6d0c4a7ceb2c580253962cf9cbbaf
+          test "$(git rev-parse HEAD:L4YAML/Scanner/State.lean)" = 827db8b1218f32ff964c4340a92d3d78b12188e9
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/ScannerCorrectness.lean)" = e8684305e69bd25d1b12dad313b1d987fbbe3169
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/ScannerProgress.lean)" = 2471a1f48c29e572ae59dc3cb33950b67f43df76
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/CloseStaleExplicitKey.lean)" = 1b6bc155c3492f1d3e7c1bfa7b8c9b59b1115f4d
+          test "$(git -C ../evidence rev-parse HEAD^)" = 7d609ff26f912b8ada06e1c89010dd435ba49f7f
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
+          git -C ../evidence rev-parse HEAD HEAD^ > ../results/workflow.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Discriminate source EOF from native acceptance before proof
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/NativeNoneEOFControls.lean <<'LEAN'
+          module
+          public import L4YAML.Scanner.Scanner
+          public meta import L4YAML.Scanner.Scanner
+          @[expose] public section Blanket
+          open L4YAML L4YAML.Scanner
+          def first (input : String) : ScannerState :=
+            (ScannerState.mk' input).emit .streamStart
+          def checkTerminal (s : ScannerState) (expectSuccess : Bool) : IO Unit := do
+            match scanNextToken s, skipToContent s, scanLoop s 1 with
+            | .ok none, .ok v, res =>
+              IO.println (s.offset, v.offset, v.inputEnd, res.isOk)
+              unless !v.hasMore && res.isOk == expectSuccess do
+                throw (IO.userError "terminal cursor/success prediction refuted")
+            | _, _, _ => throw (IO.userError "expected terminal signal and recovered cursor")
+          def walk (s : ScannerState) (fuel : Nat) : IO ScannerState := do
+            match fuel with
+            | 0 => throw (IO.userError "control fuel exhausted")
+            | n + 1 =>
+              match scanNextToken s with
+              | .ok none => pure s
+              | .ok (some t) => walk t n
+              | .error _ => throw (IO.userError "unexpected scanner error")
+          #eval do
+            for input in ["", "  \n", "# note\n", "? a\n: b", "? a\n: b # tail",
+              "? \"a\"\n: 'β' # tail\n# last\n"] do
+              let s ← walk (first input) (4 * (input.utf8ByteSize + 1))
+              checkTerminal s true
+            -- A real EOF signal is not permission to accept an unterminated flow.
+            let s ← walk (first "[") 8
+            checkTerminal s false
+            -- Remaining content is not EOF; the native step must be some.
+            match scanNextToken (first "? a\n: b") with
+            | .ok (some _) => pure ()
+            | _ => throw (IO.userError "nonterminal control refuted")
+            IO.println "SIX_ACCEPTED_ONE_REJECTED_TERMINAL_AND_ONE_NONTERMINAL_CONTROLS_PASS"
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/NativeNoneEOFControls.lean ../results/
+          lake build Tests.Guards.Proofs.NativeNoneEOFControls 2>&1 | tee ../results/terminal-controls.log
+          grep -F SIX_ACCEPTED_ONE_REJECTED_TERMINAL_AND_ONE_NONTERMINAL_CONTROLS_PASS ../results/terminal-controls.log
+      - name: Derive discarded EOF witness from actual native terminal signal
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/NativeNoneEOF.lean <<'LEAN'
+          module
+          public import L4YAML.Proofs.Scanner.ScannerCorrectness
+          public import L4YAML.Proofs.Scanner.ScannerProgress
+          public import L4YAML.Proofs.Scanner.CloseStaleExplicitKey
+          public section
+          namespace L4YAML.Tests.Guards.NativeNoneEOF
+          open L4YAML L4YAML.Scanner
+          open L4YAML.Proofs.ScannerCorrectness L4YAML.Proofs.ScannerProgress
+          open L4YAML.Proofs.CloseStaleExplicitKey
+          
+          /-- The preprocessor's bookkeeping cannot erase a remaining source character. -/
+          lemma peek_save_stale (s : ScannerState) :
+              (closeStaleExplicitKey (saveSimpleKey s)).peek? = s.peek? := by
+            rw [closeStaleExplicitKey_peek]
+            simp only [ScannerState.peek?, saveSimpleKey_offset, saveSimpleKey_inputEnd,
+              saveSimpleKey_input]
+          
+          lemma peek_unwind_check (s : ScannerState) :
+              ({ unwindIndents s s.col with needIndentCheck := false } : ScannerState).peek? = s.peek? := by
+            change (unwindIndents s s.col).peek? = s.peek?
+            simp only [ScannerState.peek?, unwindIndents_offset_eq, unwindIndents_inputEnd_eq,
+              unwindIndents_input_eq]
+          
+          lemma preprocess_none_eof {s : ScannerState}
+              (h : scanNextToken_preprocess s = .ok none) :
+              ∃ v, skipToContent s = .ok v ∧ ¬v.hasMore := by
+            cases hskip : skipToContent s with
+            | error e =>
+              simp [scanNextToken_preprocess, hskip, bind, Except.bind] at h
+            | ok v =>
+              refine ⟨v, hskip, ?_⟩
+              by_cases hm : v.hasMore = true
+              · have hlt : v.offset < v.inputEnd := by
+                  simpa [ScannerState.hasMore] using hm
+                have hpk : v.peek? = some (String.Pos.Raw.get v.input ⟨v.offset⟩) := by
+                  simp [ScannerState.peek?, hlt]
+                unfold scanNextToken_preprocess at h
+                simp only [bind, Except.bind, pure, Pure.pure, Except.pure, hskip, hm,
+                  Bool.not_true, Bool.false_eq_true, ite_false] at h
+                split at h
+                · split at h
+                  · contradiction
+                  · rw [peek_save_stale, peek_unwind_check, hpk] at h
+                    contradiction
+                · split at h
+                  · contradiction
+                  · rw [peek_save_stale, hpk] at h
+                    contradiction
+              · exact fun ht => hm ht
+          
+          /-- In native dispatch, returning none can only have originated in preprocessing.
+              All later successful dispatch branches return some state. -/
+          lemma scanNextToken_none_preprocess {s : ScannerState}
+              (h : scanNextToken s = .ok none) :
+              scanNextToken_preprocess s = .ok none := by
+            cases hp : scanNextToken_preprocess s with
+            | error e =>
+              simp [scanNextToken, hp, bind, Except.bind] at h
+            | ok o =>
+              cases o with
+              | none => rfl
+              | some pair =>
+                obtain ⟨v, c⟩ := pair
+                unfold scanNextToken at h
+                simp only [hp, bind, Except.bind, pure, Pure.pure, Except.pure] at h
+                repeat' (first | contradiction | split at h)
+                all_goals contradiction
+          
+          /-- A real terminal signal supplies the exact discarded source EOF witness,
+              not scanner success, grammar acceptance, or a terminal token array. -/
+          lemma native_none_eof {s : ScannerState}
+              (h : scanNextToken s = .ok none) :
+              ∃ v, skipToContent s = .ok v ∧ ¬v.hasMore :=
+            preprocess_none_eof (scanNextToken_none_preprocess h)
+          
+          #print axioms peek_save_stale
+          #print axioms peek_unwind_check
+          #print axioms preprocess_none_eof
+          #print axioms native_none_eof
+          end L4YAML.Tests.Guards.NativeNoneEOF
+          LEAN
+          cp Tests/Guards/Proofs/NativeNoneEOF.lean ../results/
+          lake build Tests.Guards.Proofs.NativeNoneEOF 2>&1 | tee ../results/terminal-proof.log
+          grep -F 'native_none_eof' ../results/terminal-proof.log
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/terminal-proof.log; then exit 1; fi
+          git diff --exit-code -- L4YAML
+          git diff --check
+          printf 'native_none_eof\t0\n' > ../results/outcomes.tsv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-none-eof-evidence
+          path: results/
+          if-no-files-found: error
