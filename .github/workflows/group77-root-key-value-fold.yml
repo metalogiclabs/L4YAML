@@ -707,10 +707,12 @@ jobs:
                   h_preprocess arm h_depth h_dispatch h_not_doc h_amp h_star h_bang h_pipe h_gt
                   h_src h_deeper hcc h_colon_flow hpre_colon hcorr_colon hcolon route
               rcases h with ⟨sp_afterColon, hcorr_after, _, hpark⟩ | hded
-              · obtain rfl : sp_afterColon = sp_vstart := ScannerSurfCorr_unique hcorr_after hcorr_vstart
+              · have h_after_eq : sp_afterColon = sp_vstart := ScannerSurfCorr_unique hcorr_after hcorr_vstart
+                rw [h_after_eq] at hpark
                 obtain ⟨sp_tmp, hgl, hcorr_tmp⟩ :=
                   scanValue_prod sc_colon sp_colon hcorr_colon hp sc_afterColon hcolon
-                obtain rfl : sp_tmp = sp_vstart := ScannerSurfCorr_unique hcorr_tmp hcorr_vstart
+                have h_tmp_eq : sp_tmp = sp_vstart := ScannerSurfCorr_unique hcorr_tmp hcorr_vstart
+                rw [h_tmp_eq] at hgl
                 have h_vcol : s_q.col + 1 ≤ sp_vstart.col := by
                   cases hgl
                   simp_all
