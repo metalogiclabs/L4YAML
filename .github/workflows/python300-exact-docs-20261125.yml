@@ -1,0 +1,98 @@
+name: "Exact cb899c0 Python Core Schema documentation qualification"
+on:
+  push:
+    branches:
+      - experiment/cb899c0-python300-docs-20261125
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 165
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: python300
+            source: cac815e9df74e3469e840489ff6992e03848e812
+            tree: e4cd51d460bf7cf0331ee9ef6bc0ab069f601c2e
+    env:
+      LEAN_NUM_THREADS: 2
+      SOURCE_COMMIT: ${{ matrix.source }}
+      EXPECTED_TREE: ${{ matrix.tree }}
+    steps:
+      - name: Checkout exact original PR source with full submodules
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.source }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Pin source and install exact toolchain and docs dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs-evidence
+          git switch --detach "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git merge-base --is-ancestor cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          test "$(cat doc/lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/source.txt
+          cat lean-toolchain | tee docs-evidence/toolchain.txt
+          git submodule status | tee docs-evidence/submodules.txt
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json | tee docs-evidence/pins.sha256
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+      - name: Install proven docs memory allowance (24 GiB swap)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          free -h | tee docs-evidence/resources-before.txt
+          sudo fallocate -l 24G /mnt/tag361-exact-docs.swap
+          sudo chmod 600 /mnt/tag361-exact-docs.swap
+          sudo mkswap /mnt/tag361-exact-docs.swap
+          sudo swapon /mnt/tag361-exact-docs.swap
+          free -h | tee docs-evidence/resources-after.txt
+          test "$(grep -Fc /mnt/tag361-exact-docs.swap /proc/swaps)" -eq 1
+      - name: Build Verso and all required graph inputs on exact source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee docs-evidence/lean-version.txt
+          (cd doc && lake build l4yaml-doc) 2>&1 | tee docs-evidence/verso-build.log
+          lake build L4YAML.Scanner.Scanner L4YAML.Parser.Composition L4YAML.Surface.Document L4YAML.Output.Dump L4YAML.Output.Emitter L4YAML.FFI.FFI L4YAML.Schema.Api L4YAML.Config.Config 2>&1 | tee docs-evidence/graph-inputs.log
+          lake build graph 2>&1 | tee docs-evidence/graph-build.log
+          mkdir -p doc/Doc/L4YAML/graphs
+          lake exe graph --to=L4YAML.Scanner.Scanner,L4YAML.Parser.Composition,L4YAML.Surface.Document,L4YAML.Output.Dump,L4YAML.Output.Emitter,L4YAML.FFI.FFI,L4YAML.Schema.Api,L4YAML.Config.Config doc/Doc/L4YAML/graphs/import-graph.dot
+          dot -Tsvg doc/Doc/L4YAML/graphs/import-graph.dot -o doc/Doc/L4YAML/graphs/import-graph.svg
+          lake run check-doc-graphs -- --strict 2>&1 | tee docs-evidence/graph-check.log
+          (cd doc && lake exe l4yaml-doc) 2>&1 | tee docs-evidence/verso-render.log
+          lake run svg-objects -- doc/_out/html-multi 2>&1 | tee docs-evidence/svg.log
+      - name: Build full API documentation with proven memory provision
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake build :docs 2>&1 | tee docs-evidence/api-docs.log
+          echo "DOCS_NATIVE_BUILD_SUCCESS" | tee docs-evidence/result.txt
+      - name: Validate immutable source and toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          sha256sum -c docs-evidence/pins.sha256
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/final-source.txt
+          free -h | tee docs-evidence/resources-final.txt
+      - name: Retain receipts on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-cb899c0-docs-receipts
+          path: docs-evidence/
+          if-no-files-found: warn
