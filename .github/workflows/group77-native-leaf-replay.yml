@@ -195,6 +195,9 @@ jobs:
           module
           public import Tests.Guards.Proofs.ExplicitKeyRouteCut
           public import L4YAML.CapstoneAttr
+          import all L4YAML.Proofs.Production.ScalarProduction
+          import all L4YAML.Proofs.Production.StructureProduction
+          import all L4YAML.Proofs.Scanner.BlockScalarIndentFloor
           public meta import Lean
           public meta import L4YAML.CapstoneAttr
           public meta import Tests.Guards.Proofs.ExplicitKeyRouteCut
