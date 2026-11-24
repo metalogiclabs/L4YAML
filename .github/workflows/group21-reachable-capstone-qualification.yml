@@ -1,0 +1,111 @@
+name: Group 2.1 native reachable capstone qualification
+on:
+  push:
+    branches: [research/group21-reachable-capstone-candidate-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: candidate
+      - name: Pin the current upstream source and proof-only diff
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          git merge-base --is-ancestor cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD
+          test "$(git rev-parse cb899c0fa4529d4b40d701f04f5c494047a6b695:L4YAML/Proofs/Scanner/ScanStrictCoupling.lean)" = 01e90531afc2066917416909d660aa04d3d5495a
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/ScanStrictCoupling.lean)" = 16cb5d1405660672c039c641d9fd4033a55eddb8
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git diff --name-only cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD | tee ../results/changed-files.txt
+          test "$(git diff --name-only cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD -- L4YAML/Scanner L4YAML/Parser L4YAML/Capstones.lean scripts/capstones.txt scripts/blueprint-capstones.txt)" = ""
+          git diff cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD > ../results/candidate.patch
+          git rev-parse HEAD HEAD:L4YAML cb899c0fa4529d4b40d701f04f5c494047a6b695 cb899c0fa4529d4b40d701f04f5c494047a6b695:L4YAML > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Build native capstone and check exact strengthened type
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Scanner.ScanStrictCoupling 2>&1 | tee ../results/native-capstone-build.log
+          cat > Tests/Guards/Proofs/ReachableCapstoneExactType.lean <<'LEAN'
+          module
+          public import L4YAML.Proofs.Scanner.ScanStrictCoupling
+          public meta import L4YAML.Scanner.Scanner
+          @[expose] public section Blanket
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScanStrictCoupling
+          
+          -- Independent exact-type consumer: a weaker conclusion cannot satisfy this.
+          example (input : String) (tokens : Array (Positioned YamlToken))
+              (h : scan input = .ok tokens) :
+              ∃ (n rest : Nat) (t e : ScannerState) (p : SurfPos),
+                (input.utf8ByteSize + 1) * 4 = n + (rest + 1) ∧
+                ScanPrefix n (scanInitial input) t ∧
+                scanNextToken t = .ok none ∧ skipToContent t = .ok e ∧
+                ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] ∧
+                scanLoop t (rest + 1) = .ok tokens :=
+            scan_full_consumption input tokens h
+          
+          -- Legacy statement is strictly weaker and needs no scanner at all.
+          example : ∃ p : SurfPos, p.chars = [] := ⟨⟨[], 0⟩, rfl⟩
+          
+          #guard (scan "").isOk
+          #guard (scan "a: b").isOk
+          #guard (scan "? a\n: b # tail\n").isOk
+          #guard (scan "\uFEFF# start\n? a\n: b\n").isOk
+          #guard (scan "é: 漢\n# tail").isOk
+          #guard !(scan "[").isOk
+          #guard !(scan "{a]").isOk
+          
+          #print axioms scan_full_consumption
+          #print axioms preprocess_none_reachable_eof
+          #print axioms next_none_reachable_eof
+          #print axioms loop_reachable_eof
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/ReachableCapstoneExactType.lean ../results/
+          lake build Tests.Guards.Proofs.ReachableCapstoneExactType 2>&1 | tee ../results/exact-type.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          s = Path('../results/exact-type.log').read_text()
+          for name in ('scan_full_consumption','preprocess_none_reachable_eof','next_none_reachable_eof','loop_reachable_eof'):
+              matches = re.findall(r"'" + re.escape('L4YAML.Proofs.ScanStrictCoupling.' + name) + r"' depends on axioms: \[([^\]]*)\]", s)
+              assert matches, name
+              for m in matches:
+                  assert set(x.strip() for x in m.split(',')) <= {'propext','Classical.choice','Quot.sound'}, (name,m)
+          assert 'sorryAx' not in s
+          print('EXACT_CAPSTONE_TYPE_AND_STANDARD_AXIOMS_PASS')
+          PY
+          printf 'native_capstone\t0\n' > ../results/outcomes.tsv
+          lake build L4YAML.Capstones 2>&1 | tee ../results/registered-capstones.log
+          lake run check-theorem-keyword 2>&1 | tee ../results/theorem-keyword.log
+          printf 'registered_capstone\t0\n' >> ../results/outcomes.tsv
+      - name: Full native library and regression qualification
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build 2>&1 | tee ../results/full-build.log
+          lake run run-all-tests 2>&1 | tee ../results/full-tests.log
+          lake run check-hygiene 2>&1 | tee ../results/hygiene.log
+          lake run dead-census --check 2>&1 | tee ../results/dead-census.log
+          lake run census-dashboard --check 2>&1 | tee ../results/census-dashboard.log
+          git diff --check
+          printf 'full_native\t0\n' >> ../results/outcomes.tsv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-reachable-capstone-evidence
+          path: results/
+          if-no-files-found: error
