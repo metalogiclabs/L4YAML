@@ -97,7 +97,7 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
 -- (ScannerShape) is a `@[capstone]`, so its proof's closure (S5(→): ParseCheckFrom, ScannerShape and the scanner lemmas
 -- they spend) is reached; population unmoved (no declaration added or removed).
 def expectedDeadCensus : String :=
-  "population=14262 thm=10224 def=2676 roots=capstone:27+export:37+blueprint:223(unresolved=5) unreached=6156 thm=4298 A-campaign=1171 C-api=1405 D-test-only=272 B-roster=3308 thm=2961 cluster-roots=1459"
+  "population=14353 thm=10274 def=2710 roots=capstone:28+export:37+blueprint:224(unresolved=5) unreached=6172 thm=4302 A-campaign=1171 C-api=1414 D-test-only=468 B-roster=3119 thm=2855 cluster-roots=1456"
 
 /-- `B-roster=N` out of the summary. -/
 def rosterCount (summary : String) : Option Nat := do
