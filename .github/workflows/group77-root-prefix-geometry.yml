@@ -181,9 +181,10 @@ jobs:
             have hq : ScannerSurfCorr q sp_q := by
               rw [had]
               exact L4YAML.Proofs.StreamAccum.corr_of_allowDirectives_update hprep
+            have hin : prep.input = sc.input := preprocess_input hpre
             have hqin : q.input = sc.input := by
               rw [had]
-              split <;> exact preprocess_input hpre
+              split <;> exact hin
             rcases L4YAML.Proofs.StreamAccum.gstar_white_sIndent_or_tab hws with ⟨k, hk⟩ | htab
             · have hcol := L4YAML.Proofs.StreamAccum.SIndent_col hk
               have hqc := hq.col_eq
