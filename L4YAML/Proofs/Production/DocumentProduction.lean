@@ -23,8 +23,8 @@ public meta import L4YAML.CapstoneAttr
 
     ## Architecture
 
-    Phase A proved `scan_full_consumption`: scan success → all input
-    characters consumed (∃ sp_final, sp_final.chars = []).
+    `scan_full_consumption` ties successful scanner execution to an actual
+    reachable terminal state and correlated empty source remainder.
 
     Phase D bridges this to `InYamlLanguage` by constructing an
     `SLYamlStream` derivation tree from the consumed characters.
