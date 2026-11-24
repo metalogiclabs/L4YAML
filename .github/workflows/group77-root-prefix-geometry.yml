@@ -92,9 +92,9 @@ jobs:
               Retain the *same* surface rather than weakening to an existential. -/
           lemma unwindLoop_same_surface (sc : ScannerState) (sp : SurfPos)
               (hcorr : ScannerSurfCorr sc sp) (col : Int) (fuel : Nat) :
-              ScannerSurfCorr (unwindIndentsLoop sc col fuel) sp' := by
+              ScannerSurfCorr (unwindIndentsLoop sc col fuel) sp := by
             induction fuel generalizing sc with
-            | zero => simp [unwindIndentsLoop]; exact hcorr
+            | zero => simpa only [unwindIndentsLoop] using hcorr
             | succ fuel' ih =>
               unfold unwindIndentsLoop; split
               · have hcorr_emit := corr_of_emit .blockEnd hcorr
@@ -108,7 +108,7 @@ jobs:
           
           lemma unwind_same_surface (sc : ScannerState) (sp : SurfPos)
               (hcorr : ScannerSurfCorr sc sp) (col : Int) :
-              ScannerSurfCorr (unwindIndents sc col) sp' := by
+              ScannerSurfCorr (unwindIndents sc col) sp := by
             unfold unwindIndents
             exact unwindLoop_same_surface sc sp hcorr col _
           
