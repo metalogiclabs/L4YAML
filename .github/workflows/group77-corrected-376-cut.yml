@@ -1,4 +1,4 @@
-name: Group 7.7 corrected grammar and explicit-key consumer cut
+name: Group 7.7 corrected grammar and latest fold consumer cut
 on:
   push:
     branches: [research/group77-corrected-376-consumer-cut]
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: nasa-jpl/L4YAML
-          ref: 10d0ffa9a712c2a2c9e93ae5725ad54adf53089f
+          ref: 92c622bc1015febac29897be08192eb73c6aa744
           path: upstream
       - uses: actions/checkout@v4
         with:
@@ -29,10 +29,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ../results
-          test "$(git rev-parse HEAD)" = 10d0ffa9a712c2a2c9e93ae5725ad54adf53089f
+          test "$(git rev-parse HEAD)" = 92c622bc1015febac29897be08192eb73c6aa744
           test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 29f20ab3947dacef278808153130ff7fcd1861b4
           test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/DocBridge.lean)" = 570e6330fd3d6f27df37fcd8a344b01552c2c7b3
-          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean)" = 8903b2489b51becad731a4e13a7e6c61bff7dc3b
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean)" = 213a3576c024e3cc4b56d109942ec9085715f9d3
           test "$(git -C ../solution rev-parse HEAD)" = 26baf55ec8c3023d4903a9444505e1c88a3b5da9
           test "$(git -C ../solution rev-parse HEAD:Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean)" = 4741497a77d31446a94c3ebfbfa512d50f2fce0b
           test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
@@ -44,6 +44,7 @@ jobs:
         working-directory: upstream
         shell: bash
         run: |
+          set +e
           set -uo pipefail
           cat > Tests/Guards/Proofs/ExplicitKeyRuntimeDiagnostic.lean <<'LEAN'
           module
@@ -92,6 +93,7 @@ jobs:
         working-directory: upstream
         shell: bash
         run: |
+          set +e
           set -uo pipefail
           lake build L4YAML.Proofs.Serialization.TraceOf.DocBridge 2>&1 | tee ../results/uncut-route.log
           rc=${PIPESTATUS[0]}
@@ -132,6 +134,7 @@ jobs:
         working-directory: upstream
         shell: bash
         run: |
+          set +e
           set -uo pipefail
           lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge 2>&1 | tee ../results/cut-streambridge.log
           rc=${PIPESTATUS[0]}
@@ -140,6 +143,7 @@ jobs:
         working-directory: upstream
         shell: bash
         run: |
+          set +e
           set -uo pipefail
           cat > Tests/Guards/Proofs/ExplicitKeyRouteCut.lean <<'LEAN'
           /- Conditional local consumer, not a scanner reachability invariant.
@@ -172,24 +176,31 @@ jobs:
           do not erase the key by prematurely closing the stream. -/
           lemma key_value_content_step {n : Nat}
               {sp_start sp_block sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_prep sp_a sp_end : SurfPos}
-              {s_prep s' : ScannerState} {c : Char} {ev_c ev_o ev_k : List Event}
+              {sc s_prep s_ad s' : ScannerState} {c : Char} {ev_c ev_o ev_k : List Event}
               (hq : GLit '?' sp_q sp_afterQ)
               (hk : TBlockIndented n .blockOut sp_afterQ sp_key ev_k)
               (hi : SIndent n sp_key sp_colon)
               (hc : GLit ':' sp_colon sp_afterColon)
               (route : ∀ sp ev, TBlockMapEntry n sp_q sp ev →
                 TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev))
-              (hS : TSLYamlStream sp_start s_prep sp_block ev_c (ev_o ++ ev_k) [])
-              (h_sep : SSeparate (n + 1) .flowOut sp_afterColon sp_prep)
-              (arm : ContentArm s_prep s' c sp_prep sp_a)
-              (hcorr : ScannerSurfCorr s_prep sp_prep) (hcorr' : ScannerSurfCorr s' sp_a)
-              (hpeek : s_prep.peek? = some c) (h_depth : s_prep.flowLevel = 0)
-              (h_dispatch : scanNextToken_dispatchContent s_prep c = .ok s')
-              (h_not_doc : s_prep.col = 0 → atDocumentBoundary s_prep = false)
-              (h_floor : n + 1 ≤ minContentIndentOf s_prep)
+              (hS : TSLYamlStream sp_start s_ad sp_block ev_c (ev_o ++ ev_k) [])
+              (h_ad : s_ad = if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
+              (h_floor : L4YAML.Proofs.PreprocessIndentStable.IndentFloor sc (n + 1))
+              (h_col : n + 1 ≤ sp_afterColon.col) (h_col0 : 0 < sp_afterColon.col)
+              (h_next : L4YAML.Proofs.StreamAccum.NextIsSep sc)
+              (h_corr : ScannerSurfCorr sc sp_afterColon)
+              (hcorr_prep : ScannerSurfCorr s_prep sp_prep) (hcorr' : ScannerSurfCorr s' sp_a)
+              (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+              (arm : ContentArm s_ad s' c sp_prep sp_a)
+              (h_depth : s_ad.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
+              (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
+              (h_src : L4YAML.Proofs.StreamAccum.SlotGateAt s_prep)
               (h_ssl : SSLComments sp_a sp_end) :
-              ∃ ev_v, (goOut s'.tokens.toList []).1 = ev_c ++ ((ev_o ++ ev_k) ++ ev_v) ∧
-                TLYamlStream sp_start sp_end (ev_c ++ ((ev_o ++ ev_k) ++ ev_v)) := by
+              (∃ ev_v, (goOut s'.tokens.toList []).1 = ev_c ++ ((ev_o ++ ev_k) ++ ev_v) ∧
+                TLYamlStream sp_start sp_end (ev_c ++ ((ev_o ++ ev_k) ++ ev_v))) ∨
+              L4YAML.Proofs.FlowIndexLift.DedentLanding (n + 1) sp_afterColon sp_prep := by
             have h_close : ∀ sp_mid ev_v, TBlockNode (n + 1) .blockOut sp_afterColon sp_mid ev_v →
                 TLYamlStream sp_start sp_mid (ev_c ++ (ev_o ++ ev_k) ++ ev_v) := by
               intro sp_mid ev_v hv
@@ -197,9 +208,13 @@ jobs:
                 .explicit n sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_mid ev_k ev_v hq hk hi hc
                   (.node n .blockOut _ _ _ hv)
               simpa only [List.append_assoc] using route sp_mid (ev_k ++ ev_v) he
-            obtain ⟨ev_v, hS', h_park⟩ :=
-              TPendingNode.content_step_mapValue hS h_close h_sep arm hcorr hcorr' hpeek h_depth h_dispatch h_not_doc h_floor
-            exact ⟨ev_v, congrArg Prod.fst hS'.events, TPendingNode.close_with_ssl hS' h_park h_ssl⟩
+            have park : TPendingNode.ContentPark sp_start sp_afterColon c ev_c (n + 1) (ev_o ++ ev_k) :=
+              .mapValue n (ev_o ++ ev_k) h_close
+            rcases TPendingNode.content_step_park hS park h_ad h_floor h_col h_col0 h_next h_corr
+              hcorr_prep hcorr' h_preprocess arm h_depth h_dispatch h_not_doc h_src with
+              ⟨ev_v, hS', h_park⟩ | h_ded
+            · exact Or.inl ⟨ev_v, congrArg Prod.fst hS'.events, TPendingNode.close_with_ssl hS' h_park h_ssl⟩
+            · exact Or.inr h_ded
           #print axioms key_can_close_empty
           #print axioms key_value_content_step
           end L4YAML.Tests.Guards.ExplicitKeyRouteCut
@@ -220,6 +235,8 @@ jobs:
             grep -Fx "$(printf '%s\t0' "$target")" ../results/outcomes.tsv
           done
           grep -Fx "$(printf 'uncut_docbridge\t1')" ../results/outcomes.tsv
+          grep -F 'DocBridge.lean:877:' ../results/uncut-route.log
+          grep -F 'DocBridge.lean:887:' ../results/uncut-route.log
           if grep -E 'sorryAx|declaration uses .sorry|_native\.native_decide\.ax' ../results/corrected-witness.log ../results/explicit-key-consumer.log; then exit 1; fi
           git diff --check
       - uses: actions/upload-artifact@v4
