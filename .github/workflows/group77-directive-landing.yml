@@ -1,7 +1,7 @@
-name: Group 7.7 lawful directive landing without diagnostic cut
+name: Group 7.7 directive landing producer and retained park
 on:
   push:
-    branches: [research/group77-directive-landing-20261125]
+    branches: [research/group77-landing-producer-20261125]
   workflow_dispatch:
 permissions:
   contents: read
@@ -288,9 +288,170 @@ jobs:
           git diff --check
           # Raw nonstandard dependencies retained; no claim of replay admission here.
           echo 'Conditional route and local explicit-key consumer only; landing producer and inherited native admission remain separate obligations.' | tee ../results/boundary.txt
+      - name: Derive landing at real suffix and retain it in actual directive park
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean")
+          s=p.read_text()
+          def once(a,b):
+              global s
+              assert s.count(a)==1, (a,s.count(a))
+              s=s.replace(a,b)
+          # New producers are attached to scanner operations and exact trace indices.
+          marker="/-- The twin of \u0060PendingNode\u0060 at the four stream-level parks."
+          assert s.count(marker)==1
+          s=s.replace(marker,'''/-- Prefix-only movement cannot erase or invent a directive landing. -/
+          lemma directiveLanding_extend {start a b : SurfPos} {ev : List Event}
+              (h : DirectiveLanding start a ev) (hp : GStar SLDocumentPrefix a b) :
+              DirectiveLanding start b ev := by
+            cases h with
+            | initial sp hpre =>
+              exact .initial _ (L4YAML.Proofs.SurfaceSpan.gstar_append hpre hp)
+            | afterSuffix sp₀ sp₁ sp₂ e₀ e₁ hstream hs hpre =>
+              exact .afterSuffix _ _ _ _ _ hstream hs
+                (L4YAML.Proofs.SurfaceSpan.gstar_append hpre hp)
+
+          /-- Initial trace at the actual scanner's pre-BOM seed. The event witness is
+          constructed, not inferred from the emptiness of the event list. -/
+          lemma directiveLanding_seed (input : String) :
+              DirectiveLanding ⟨input.toList, 0⟩ ⟨input.toList, 0⟩ [] :=
+            .initial _ (.nil _)
+
+          /-- A successful actual document-end scan produces the marker witness. Closing
+          its comment tail yields a legal directive slot, with the exact prior stream and
+          endDocument event retained. The comment-tail witness is still a premise. -/
+          lemma directiveLanding_from_scanDocumentEnd
+              {start atMarker : SurfPos} {ev : List Event} {sc s' : ScannerState}
+              (hstream : TLYamlStream start atMarker ev)
+              (hcorr : ScannerSurfCorr sc atMarker)
+              (rest : List Char) (hchars : atMarker.chars = '.' :: '.' :: '.' :: rest)
+              (hcol : atMarker.col = 0) (hok : scanDocumentEnd sc = .ok s') :
+              ∃ sp', ScannerSurfCorr s' sp' ∧
+                ∀ sp_mid, SSLComments sp' sp_mid →
+                  DirectiveLanding start sp_mid (ev ++ [.endDocument]) := by
+            obtain ⟨sp', ends, de, hm, hcorr', htoks, hends, hde, hgo⟩ :=
+              scanDocumentEnd_trace sc atMarker hcorr rest hchars hcol s' hok
+            refine ⟨sp', hcorr', fun sp_mid hssl => ?_⟩
+            have hs : TPlus TLDocumentSuffix atMarker sp_mid [.endDocument] := by
+              simpa using TPlus.mk _ _ _ _ []
+                (TLDocumentSuffix.mk atMarker sp' sp_mid hm hssl) (TStar.nil _)
+            exact .afterSuffix _ _ _ _ _ hstream hs (.nil _)
+
+          /-- Admission is an actual scanner check, not a guessed grammar predicate.
+          It does NOT by itself establish the indexed landing certificate. -/
+          lemma directive_requires_allowDirectives {sc s' : ScannerState}
+              (hok : scanDirective sc = .ok s') : sc.allowDirectives = true := by
+            cases h : sc.allowDirectives with
+            | false => simp [scanDirective, h] at hok
+            | true => rfl
+
+          '''+marker)
+          once("  | pendingDirective (sp_block sp_scan : SurfPos) (ev_c : List Event) (p : List String)\n      (h_dir_acc",
+               "  | pendingDirective (sp_block sp_scan : SurfPos) (ev_c : List Event) (p : List String)\n      (h_landing : DirectiveLanding sp_start sp_block ev_c)\n      (h_dir_acc")
+          def edit(name,nextmarker,fn):
+              global s
+              a=s.index("lemma "+name)
+              b=s.index(nextmarker,a)
+              s=s[:a]+fn(s[a:b])+s[b:]
+          def opening(b):
+              old="    (hS : TSLYamlStream sp_start s_prep sp ev_c [] []) (h_col : sp.col = 0)\n"
+              assert b.count(old)==1
+              b=b.replace(old,old+"    (h_landing : DirectiveLanding sp_start sp ev_c)\n")
+              old="  refine TPendingNode.pendingDirective _ _ _ _ fun sp_mid hssl => ?_"
+              assert b.count(old)==1
+              return b.replace(old,'''  have h_prefix : GStar SLDocumentPrefix sp sp_prep :=
+              GStar.cons sp sp_prep sp_prep
+                (SLDocumentPrefix.comments sp sp_prep (SSLComments_to_GStar sp sp_prep h_pre h_col))
+                (GStar.nil _)
+            refine TPendingNode.pendingDirective _ _ _ _
+              (directiveLanding_extend h_landing h_prefix) fun sp_mid hssl => ?_''')
+          edit("directive_step_noPending","/-- **\u0060%\u0060** inside a run",opening)
+          def run(b):
+              old="    (h_acc : ∀ sp_mid, SSLComments sp_scan sp_mid →\n      TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag))"
+              assert b.count(old)==1
+              b=b.replace(old,"    (hP : TPendingNode sp_start true sp_block sp_scan ev_c [] p)")
+              b=b.replace("    (h_landing : DirectiveLanding sp_start sp_block ev_c)\n","")
+              old=" := by\n  obtain "
+              assert b.count(old)==1
+              b=b.replace(old,''' := by
+            have h_landing : DirectiveLanding sp_start sp_block ev_c := by
+              cases hP
+              assumption
+            have h_acc : ∀ sp_mid, SSLComments sp_scan sp_mid →
+                TPlus TLDirective sp_block sp_mid (p.reverse.map .declareTag) := by
+              cases hP
+              assumption
+            obtain ''')
+              return b.replace("TPendingNode.pendingDirective _ _ _ _ fun","TPendingNode.pendingDirective _ _ _ _ h_landing fun")
+          edit("directive_step_run","/-- The park's",run)
+          edit("docStart_step_run","/-- **\u0060...\u0060**",run)
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- L4YAML > ../results/producer-and-park.diff
+          lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge 2>&1 | tee ../results/producer-and-park.log
+          printf 'producer_and_park\t0\n' >> ../results/outcomes.tsv
+      - name: Check exact proof profiles and actual reachable scanner controls
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/DirectiveLandingProducer.lean <<'LEAN'
+          module
+          public import L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          public import L4YAML.Scanner.Scanner
+          public meta import L4YAML.Scanner.Scanner
+          @[expose] public section Blanket
+          open L4YAML L4YAML.Scanner
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          #print axioms directiveLanding_seed
+          #print axioms directiveLanding_from_scanDocumentEnd
+          #print axioms directive_requires_allowDirectives
+          #print axioms directiveLanding_extend
+          #print axioms TPendingNode.directive_step_noPending
+          #print axioms TPendingNode.directive_step_run
+          #print axioms TPendingNode.docStart_step_run
+          -- Track the actual successful scanner steps, not just the final acceptance bit.
+          -- An independent expected origin is stated for each fixture.
+          def walkLanding (s : ScannerState) (fuel : Nat) (origin : String) : List String :=
+            match fuel with
+            | 0 => ["fuel"]
+            | n + 1 =>
+              match scanNextToken_preprocess s, scanNextToken s with
+              | .ok (some (p, c)), .ok (some s') =>
+                if c == '%' && p.col == 0 then
+                  (if p.allowDirectives then origin else "flag-false") :: walkLanding s' n origin
+                else
+                  walkLanding s' n (if p.col == 0 && atDocumentEnd p then "suffix" else "closed")
+              | _, .ok none => []
+              | _, _ => ["reject"]
+          def observeLanding (input : String) : Bool × List String :=
+            ((Scanner.scanFiltered input).isOk,
+              walkLanding ((ScannerState.mk' input).emit .streamStart) (4 * (input.utf8ByteSize + 1)) "initial")
+          def landingCases : List (String × (Bool × List String)) :=
+            [("%YAML 1.2\n---\n\"b\"\n", (true, ["initial"])),
+             ("# c\n%YAML 1.2\n---\n\"b\"\n", (true, ["initial"])),
+             ("\"a\"\n...\n%YAML 1.2\n---\n\"b\"\n", (true, ["suffix"])),
+             ("\"a\"\n%YAML 1.2\n---\n\"b\"\n", (false, ["reject"])),
+             ("\"a\"\n---\n\"b\"\n", (true, [])),
+             ("%YAML 1.2\n%TAG !e! tag:example.org,2026:\n---\n\"b\"\n", (true, ["initial", "initial"])),
+             ("%YAML 1.2\n", (false, ["initial"]))]
+          #eval landingCases.map (fun (s, expected) => (s, observeLanding s, expected))
+          #guard landingCases.all (fun (s, expected) => observeLanding s == expected)
+          end Blanket
+          LEAN
+          lake build Tests.Guards.Proofs.DirectiveLandingProducer Tests.Guards.Proofs.ExplicitKeyRouteCut 2>&1 | tee ../results/producer-controls.log
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/producer-controls.log; then exit 1; fi
+          cp Tests/Guards/Proofs/DirectiveLandingProducer.lean ../results/
+          printf 'producer_controls\t0\n' >> ../results/outcomes.tsv
+          echo 'Local initial/suffix producers and park-to-consumer transfer only. Global fold, preprocessing comment-tail witness, non-scalar key composition, exact inherited admission and full 7.7 remain separate.' > ../results/producer-boundary.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lawful-directive-landing-evidence
+          name: directive-landing-producer-evidence
           path: results/
           if-no-files-found: error
