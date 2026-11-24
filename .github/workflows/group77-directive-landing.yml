@@ -142,7 +142,7 @@ jobs:
               simpa using TLYamlStream.single _ _ _ _ (.beginDocument :: ed ++ eb) [] hp
                 (TOpt.some _ _ _ doc) (TStar.nil _)
             | afterSuffix sp₀ sp₁ sp₂ e₀ e₁ hstream hs hp =>
-              simpa [List.append_assoc] using TLYamlStream.suffixContinue _ _ _ _ _ e₀ e₁
+              simpa [List.append_assoc] using TLYamlStream.suffixContinue _ _ _ _ _ _ e₀ e₁
                 (.beginDocument :: ed ++ eb) [] hstream hs hp (TOpt.some _ _ _ doc) (TStar.nil _)
 
           '''+s[b:]
