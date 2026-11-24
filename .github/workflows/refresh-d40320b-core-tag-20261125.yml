@@ -1,0 +1,188 @@
+name: "Exact d40320b Core TAG individual and separate combined native qualification"
+on:
+  push:
+    branches:
+      - experiment/refresh-d40320b-core-tag-20261125
+permissions:
+  contents: write
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 140
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: core302
+            pr: dc9c881577286e1f27b1c4151f599716fe4c6152
+            expected_comment: "#302"
+            target: experiment/core-302-d40320b-native-qualified-20261125
+          - id: tag361
+            pr: e851e63003872d57509ed06e84346bd4ff893000
+            expected_comment: "TAG directive repair"
+            target: experiment/tag-361-d40320b-native-qualified-20261125
+          - id: combined
+            pr: cf0b9698065afd35f356a43b6f7d26d26d17f6cb
+            expected_comment: "#302"
+            target: experiment/core-tag-d40320b-native-qualified-20261125
+    env:
+      LEAN_NUM_THREADS: 2
+      UP: d40320b96552d6caef881a420876987b28c141dc
+      OLD: ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
+      PR: ${{ matrix.pr }}
+      TARGET: ${{ matrix.target }}
+      EXP_COMMENT: ${{ matrix.expected_comment }}
+      ID: ${{ matrix.id }}
+    steps:
+      - name: Checkout complete fork history and YAML corpus
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Merge exact upstream source into individual PR without touching its branch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qualification-evidence
+          exec > >(tee qualification-evidence/merge.log) 2>&1
+          git config user.name "MathGraph exact-source qualification"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          for sha in "$UP" "$PR" "$OLD"; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$sha" || git fetch --no-tags origin "$sha"
+          done
+          test "$(git merge-base "$UP" "$PR")" = "$OLD"
+          git switch --detach "$UP"
+          CENSUS=Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          ROSTER=Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          for pair in "upstream:$UP" "pr:$PR" "base:$OLD"; do
+            label=${pair%%:*}; sha=${pair#*:}
+            git show "$sha:$CENSUS" > "qualification-evidence/$label-census.lean"
+            git show "$sha:$ROSTER" > "qualification-evidence/$label-roster.lean"
+          done
+          if git merge --no-ff --no-commit "$PR"; then
+            echo "MERGED_WITHOUT_CONFLICT"
+          else
+            git diff --name-only --diff-filter=U | tee qualification-evidence/conflicts.txt
+            git ls-files -u > qualification-evidence/unmerged-index.txt
+            mapfile -t conflicts < qualification-evidence/conflicts.txt
+            test "${#conflicts[@]}" -gt 0
+            for file in "${conflicts[@]}"; do
+              case "$file" in
+                "$CENSUS"|"$ROSTER") ;;
+                *) echo "Unexpected non-generated conflict: $file"; exit 1 ;;
+              esac
+            done
+          fi
+          cp "$CENSUS" qualification-evidence/merged-census-before.lean
+          cp "$ROSTER" qualification-evidence/merged-roster-before.lean
+          python3 - <<'PY'
+          import os,re
+          from pathlib import Path
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          ev=Path("qualification-evidence")
+          s=p.read_text()
+          needle="def expectedDeadCensus : String :=\n"
+          pin=r'^  "population=[^"\n]+"$'
+          up=(ev/"upstream-census.lean").read_text()
+          pr=(ev/"pr-census.lean").read_text()
+          assert len(re.findall(pin,up,re.M))==1
+          upstream_pin=re.search(pin,up,re.M).group(0)
+          if "<<<<<<<" in s:
+              assert s.count("<<<<<<< HEAD\n")==1 and s.count("=======\n")==1
+              before,rest=s.split("<<<<<<< HEAD\n",1)
+              upstream,rest=rest.split("=======\n",1)
+              theirs,after=re.split(r"(?m)^>>>>>>>[^\n]*\n",rest,maxsplit=1)
+              assert upstream.count(needle)==1 and theirs.count(needle)==1
+              uh,up_tail=upstream.split(needle)
+              ph,pr_tail=theirs.split(needle)
+              assert re.fullmatch(pin+r'\n?',up_tail) and re.fullmatch(pin+r'\n?',pr_tail)
+              # Histories are comments, not source or proof obligations.
+              assert all(not x.strip() or x.startswith("--") for x in (uh+ph).splitlines())
+              s=before+ph+uh+needle+up_tail+after
+          assert len(re.findall(pin,s,re.M))==1
+          s=re.sub(pin,lambda _:upstream_pin,s,flags=re.M)
+          assert "item 533" in s and os.environ["EXP_COMMENT"] in s
+          if os.environ["ID"]=="combined":
+              assert "TAG directive repair" in s
+          assert not any(x in s for x in ("<<<<<<<","=======",">>>>>>>"))
+          p.write_text(s)
+          # Bootstrap with the exact upstream summary AND roster as a consistent
+          # provisional pair. The native writer must replace BOTH before qualification.
+          Path("Tests/Guards/Proofs/DeadDeclarationRoster.lean").write_bytes((ev/"upstream-roster.lean").read_bytes())
+          print("Preserved both histories; upstream measured pair is provisional ONLY. No guessed counts.")
+          PY
+          git add "$CENSUS" "$ROSTER"
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git diff --cached --check
+          git commit -m "Merge d40320b into $ID for isolated qualification (upstream census pair provisional)"
+          test "$(git rev-parse HEAD^1)" = "$UP"
+          test "$(git rev-parse HEAD^2)" = "$PR"
+          printf 'UP=%s\nPR=%s\nMERGED_SOURCE=%s\nMERGED_TREE=%s\n' "$UP" "$PR" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/source-before.txt
+          git log -n 8 --format='%H %P %s' > qualification-evidence/lineage.txt
+          git submodule status > qualification-evidence/submodules.txt
+          cat lean-toolchain | tee qualification-evidence/toolchain.txt
+      - name: Install pinned Lean toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Compile full library and non-default suites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee qualification-evidence/lean-version.txt
+          lake build 2>&1 | tee qualification-evidence/build.log
+          lake build tests demo limittests 2>&1 | tee qualification-evidence/extra-build.log
+      - name: Recompute and check native source census
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-evidence/census-write.log
+          lake build 2>&1 | tee qualification-evidence/post-census-build.log
+          lake run dead-census -- --check 2>&1 | tee qualification-evidence/census-check.log
+          lake run census-dashboard -- --check 2>&1 | tee qualification-evidence/dashboard.log
+      - name: Execute targeted regression and complete native test battery
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if test "$ID" != tag361; then
+            lake env lean Tests/Guards/Proofs/SchemaResolution.lean 2>&1 | tee qualification-evidence/targeted.log
+          fi
+          if test "$ID" != core302; then
+            lake env lean Tests/Guards/Proofs/TagDirectiveRepair.lean 2>&1 | tee qualification-evidence/targeted-tag.log
+          fi
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/full-suite.log
+          lake exe eventscore --suite yaml-test-suite 2>&1 | tee qualification-evidence/eventscore.log
+      - name: Verify proof profiles source guards and final hygiene
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+      - name: Publish qualified candidate branch only on successful native verification
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          git diff --cached --name-only | tee qualification-evidence/repin-files.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test(integration): remeasure $ID census and roster on exact d40320b"
+          fi
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/final-source.txt
+          git push origin "HEAD:refs/heads/$TARGET"
+      - name: Save independent source and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-d40320b-native-receipts
+          path: qualification-evidence/
+          if-no-files-found: warn
