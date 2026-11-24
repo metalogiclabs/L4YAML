@@ -1080,6 +1080,10 @@ jobs:
             | some '\uFEFF' => s.consumeBOM
             | _ => s
           
+          /-- Native scanner initialization equation exported at its defining module. -/
+          lemma scan_eq_initial_loop (input : String) :
+              scan input = scanLoop (initial input) ((input.utf8ByteSize + 1) * 4) := rfl
+          
           lemma initial_silent (input : String) :
               goOut (initial input).tokens.toList [] = ([], []) := by
             unfold initial
@@ -1277,7 +1281,7 @@ jobs:
               (hf : scanFiltered input = .ok filtered) :
               ∃ fuel ts, scanLoop sv' (fuel + 1) = .ok ts ∧
                 filtered = ts.filter (fun t => t.val != .placeholder) := by
-            have hs : scan input = scanLoop (initial input) ((input.utf8ByteSize + 1) * 4) := rfl
+            have hs : scan input = scanLoop (initial input) ((input.utf8ByteSize + 1) * 4) := scan_eq_initial_loop input
             have hsize : (input.utf8ByteSize + 1) * 4 = input.utf8ByteSize * 4 + 4 := by omega
             have hprefix (n : Nat) : scanLoop (initial input) (n + 4) = scanLoop sv' n := by
               calc
