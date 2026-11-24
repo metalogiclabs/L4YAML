@@ -1,0 +1,241 @@
+name: Group 7.7 derive actual root prefix and indentation
+on:
+  push:
+    branches: [research/group77-root-prefix-geometry-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 92c622bc1015febac29897be08192eb73c6aa744
+          path: upstream
+      - name: Verify pinned inputs
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 92c622bc1015febac29897be08192eb73c6aa744
+          test "$(git rev-parse HEAD:L4YAML)" = 19f54b7a36b0b170aa24375889ff86196e7fa475
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/ScanStrictCoupling.lean)" = 01e90531afc2066917416909d660aa04d3d5495a
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Coupling/StructureCoupling.lean)" = e32bfed74262344e0d2647612c73bbbbc6cfff80
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Native prefix and indentation controls before proof
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/RootPrefixControls.lean <<'LEAN'
+          module
+          public import L4YAML.Scanner.Scanner
+          public meta import L4YAML.Scanner.Scanner
+          @[expose] public section Blanket
+          open L4YAML L4YAML.Scanner
+          def checkLanding (input : String) (col : Nat) : IO Unit := do
+            let init := (ScannerState.mk' input).emit .streamStart
+            match scanNextToken_preprocess init with
+            | .ok (some (prep, '?')) =>
+              let q := if prep.allowDirectives then
+                  { prep with allowDirectives := false, documentEverStarted := true } else prep
+              match scanKey q, scanNextToken init with
+              | .ok out, .ok (some native) =>
+                unless q.col == col && out.tokens == native.tokens do
+                  throw (IO.userError "initial geometry control refuted")
+                IO.println (input, col, q.offset, q.col, q.inFlow)
+              | _, _ => throw (IO.userError "expected initial explicit key")
+            | _ => throw (IO.userError "expected preprocessing explicit key")
+          #eval do
+            checkLanding "? a\n: b" 0
+            checkLanding "  ? a\n  : b" 2
+            checkLanding "# comment\n? a\n: b" 0
+            checkLanding "\n# comment\n  ? a\n  : b" 2
+            checkLanding "# comment\r\n   ? a\r\n   : b" 3
+            unless !(scanNextToken ((ScannerState.mk' "\t? a\n: b").emit .streamStart)).isOk do
+              throw (IO.userError "tab-indented explicit key unexpectedly accepted")
+            IO.println "FIVE_ROOT_GEOMETRY_POSITIVES_AND_ONE_TAB_NEGATIVE_PASS"
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/RootPrefixControls.lean ../results/
+          lake build Tests.Guards.Proofs.RootPrefixControls 2>&1 | tee ../results/controls.log
+          grep -F FIVE_ROOT_GEOMETRY_POSITIVES_AND_ONE_TAB_NEGATIVE_PASS ../results/controls.log
+      - name: Prove retained cursor and source-derived key landing
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/RootPrefixGeometry.lean <<'LEAN'
+          module
+          public import L4YAML.Proofs.Production.StreamAccum
+          public import L4YAML.Proofs.Foundation.SurfaceSpanSupply
+          public import L4YAML.Proofs.Scanner.ScanStrictCoupling
+          public section
+          set_option autoImplicit false
+          namespace L4YAML.Proofs.RootPrefixGeometry
+          open L4YAML L4YAML.Surface L4YAML.Scanner
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScannerCoupling
+          open L4YAML.Proofs.StructureCoupling L4YAML.Proofs.ScalarCoupling
+          open L4YAML.Proofs.ScanStrictCoupling L4YAML.Proofs.CloseStaleExplicitKey
+          open L4YAML.Proofs.PreprocessProduction L4YAML.Proofs.PreprocessIndentStable
+          open L4YAML.Proofs.TabIndentBridge L4YAML.Proofs.SurfaceSpan
+          
+          /-- Unwind bookkeeping changes the stack and tokens, not the source position.
+              Retain the *same* surface rather than weakening to an existential. -/
+          lemma unwindLoop_same_surface (sc : ScannerState) (sp : SurfPos)
+              (hcorr : ScannerSurfCorr sc sp) (col : Int) (fuel : Nat) :
+              ScannerSurfCorr (unwindIndentsLoop sc col fuel) sp' := by
+            induction fuel generalizing sc with
+            | zero => simp [unwindIndentsLoop]; exact hcorr
+            | succ fuel' ih =>
+              unfold unwindIndentsLoop; split
+              · have hcorr_emit := corr_of_emit .blockEnd hcorr
+                exact ih { (sc.emit .blockEnd) with indents := _, pendingKeys := _ }
+                  ⟨hcorr_emit.chars_from, hcorr_emit.col_eq, hcorr_emit.end_eq, hcorr_emit.input_prefix,
+                   fun i hi h0 => by
+                     simp only [ScannerState.emit] at hi ⊢
+                     rw [Array.getElem_pop]
+                     exact hcorr.indent_cols_nonneg i (by simp [Array.size_pop] at hi; omega) h0⟩
+              · exact hcorr
+          
+          lemma unwind_same_surface (sc : ScannerState) (sp : SurfPos)
+              (hcorr : ScannerSurfCorr sc sp) (col : Int) :
+              ScannerSurfCorr (unwindIndents sc col) sp' := by
+            unfold unwindIndents
+            exact unwindLoop_same_surface sc sp hcorr col _
+          
+          /-- Actual nonterminal preprocessing retains the skip-to-content cursor's
+              surface correspondence and establishes that the skip did not reach EOF. -/
+          lemma preprocess_retains_skip (sc s' : ScannerState) (c : Char)
+              (hok : scanNextToken_preprocess sc = .ok (some (s', c))) :
+              ∃ s_content : ScannerState, skipToContent sc = .ok s_content ∧
+                s_content.offset < s_content.inputEnd ∧
+                (∀ sp, ScannerSurfCorr s_content sp → ScannerSurfCorr s' sp) := by
+            unfold scanNextToken_preprocess at hok
+            simp only [bind, Except.bind, pure, Except.pure] at hok
+            split at hok
+            · simp at hok
+            · rename_i s_content h_skip
+              split at hok
+              · simp at hok
+              · rename_i h_more
+                have hm : s_content.offset < s_content.inputEnd := by
+                  simp [ScannerState.hasMore] at h_more
+                  omega
+                refine ⟨s_content, h_skip, hm, ?_⟩
+                intro sp1 hcorr1
+                split at hok
+                · split at hok
+                  · simp at hok
+                  · split at hok
+                    · simp at hok
+                    · have h := Except.ok.inj hok; injection h with h
+                      obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+                      have hcorr2 := unwind_same_surface s_content sp1 hcorr1 (↑s_content.col)
+                      have hcorr3 : ScannerSurfCorr
+                          { (unwindIndents s_content ↑s_content.col) with
+                            needIndentCheck := false } sp1 :=
+                        ⟨hcorr2.chars_from, hcorr2.col_eq, hcorr2.end_eq, hcorr2.input_prefix, hcorr2.indent_cols_nonneg⟩
+                      exact closeStaleExplicitKey_corr _ sp1 (saveSimpleKey_corr _ sp1 hcorr3)
+                · split at hok
+                  · simp at hok
+                  · split at hok
+                    · simp at hok
+                    · have h := Except.ok.inj hok; injection h with h
+                      obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
+                      exact closeStaleExplicitKey_corr _ sp1 (saveSimpleKey_corr _ sp1 hcorr1)
+          
+          /-- Produce the grammar prefix and exact indentation at a successful explicit
+              key landing. The tab alternative is excluded by the actual scanKey result,
+              not by a supplied grammar assumption. The start is a correlated column-0
+              surface (e.g. the initial no-BOM cursor). -/
+          theorem explicit_key_prefix_geometry
+              {sc prep q out : ScannerState} {sp : SurfPos}
+              (hcorr : ScannerSurfCorr sc sp) (hzero : sp.col = 0)
+              (hpre : scanNextToken_preprocess sc = .ok (some (prep, '?')))
+              (had : q = if prep.allowDirectives then
+                  { prep with allowDirectives := false, documentEverStarted := true } else prep)
+              (hflow : q.inFlow = false) (hkey : scanKey q = .ok out) :
+              ∃ sp_root sp_q, GStar SLDocumentPrefix sp sp_root ∧
+                SSLComments sp_root sp_root ∧ SIndent q.col sp_root sp_q ∧
+                ScannerSurfCorr q sp_q := by
+            obtain ⟨s_content, hskip, hm, htransport⟩ := preprocess_retains_skip sc prep '?' hpre
+            obtain ⟨sp_root, sp_ws, sp_q, hp, hz, hws, _, hc, hpk⟩ :=
+              skipToContent_documentPrefix_prod sc sp s_content hcorr hzero hskip
+            have heq : sp_q = sp_ws := by
+              rcases hpk with h | h
+              · exact h
+              · obtain ⟨c, rest, hchars, hpeek⟩ := peek_corr s_content sp_q hc hm
+                rw [hpeek] at h
+                cases h
+            rw [← heq] at hws
+            have hprep : ScannerSurfCorr prep sp_q := htransport _ hc
+            have hq : ScannerSurfCorr q sp_q := by
+              rw [had]
+              exact L4YAML.Proofs.StreamAccum.corr_of_allowDirectives_update hprep
+            have hqin : q.input = sc.input := by
+              rw [had]
+              split <;> exact preprocess_input hpre
+            rcases L4YAML.Proofs.StreamAccum.gstar_white_sIndent_or_tab hws with ⟨k, hk⟩ | htab
+            · have hcol := L4YAML.Proofs.StreamAccum.SIndent_col hk
+              have hqc := hq.col_eq
+              have hkq : k = q.col := by omega
+              rw [hkq] at hk
+              refine ⟨sp_root, sp_q, .cons _ _ _ hp (.nil _), ?_, hk, hq⟩
+              cases sp_root with
+              | mk cs col =>
+                simp only [] at hz
+                subst col
+                exact start_of_line_gives_SSLComments cs
+            · have hsuf : sp_root.chars <:+ q.input.toList := by
+                rw [hqin]
+                exact (slDocumentPrefix_suffix hp).trans (corr_chars_suffix hcorr)
+              have ht := tabIndent_scans_of_located hq hsuf hz hws htab
+              exact False.elim (scanKey_tab_ne hflow ht.1 hkey)
+          
+          /-- No-BOM initialization specialization: consumes the actual first preprocessing
+              equation and key dispatch, without free source geometry witnesses. -/
+          theorem initial_no_bom_key_geometry
+              {input : String} {prep q out : ScannerState}
+              (hpre : scanNextToken_preprocess ((ScannerState.mk' input).emit .streamStart) =
+                .ok (some (prep, '?')))
+              (had : q = if prep.allowDirectives then
+                  { prep with allowDirectives := false, documentEverStarted := true } else prep)
+              (hflow : q.inFlow = false) (hkey : scanKey q = .ok out) :
+              ∃ sp_root sp_q, GStar SLDocumentPrefix ⟨input.toList, 0⟩ sp_root ∧
+                SSLComments sp_root sp_root ∧ SIndent q.col sp_root sp_q ∧
+                ScannerSurfCorr q sp_q := by
+            have hinit := initial_corr input input.toList
+              (L4YAML.Proofs.ScanStrictCoupling.chars_from_zero_toList input)
+            have hc : ScannerSurfCorr ((ScannerState.mk' input).emit .streamStart) ⟨input.toList, 0⟩ :=
+              ⟨hinit.chars_from, hinit.col_eq, hinit.end_eq, hinit.input_prefix, hinit.indent_cols_nonneg⟩
+            exact explicit_key_prefix_geometry hc rfl hpre had hflow hkey
+          
+          #print axioms unwind_same_surface
+          #print axioms preprocess_retains_skip
+          #print axioms explicit_key_prefix_geometry
+          #print axioms initial_no_bom_key_geometry
+          end L4YAML.Proofs.RootPrefixGeometry
+          LEAN
+          cp Tests/Guards/Proofs/RootPrefixGeometry.lean ../results/
+          lake build Tests.Guards.Proofs.RootPrefixGeometry 2>&1 | tee ../results/proof.log
+          for name in unwind_same_surface preprocess_retains_skip explicit_key_prefix_geometry initial_no_bom_key_geometry; do
+            grep -F "$name" ../results/proof.log
+          done
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/proof.log; then exit 1; fi
+          git diff --check
+          printf 'root_prefix_geometry\t0\n' > ../results/outcomes.tsv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: root-prefix-geometry-evidence
+          path: results/
+          if-no-files-found: error
