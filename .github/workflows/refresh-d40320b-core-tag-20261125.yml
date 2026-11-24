@@ -1,8 +1,8 @@
-name: "Exact d40320b Core TAG individual and separate combined native qualification"
+name: "Exact cb899c0 Core TAG individual and separate combined native qualification"
 on:
   push:
     branches:
-      - experiment/refresh-d40320b-core-tag-20261125
+      - experiment/refresh-cb899c0-core-tag-20261125
 permissions:
   contents: write
 jobs:
@@ -16,18 +16,18 @@ jobs:
           - id: core302
             pr: dc9c881577286e1f27b1c4151f599716fe4c6152
             expected_comment: "#302"
-            target: experiment/core-302-d40320b-native-qualified-20261125
+            target: experiment/core-302-cb899c0-native-qualified-20261125
           - id: tag361
             pr: e851e63003872d57509ed06e84346bd4ff893000
             expected_comment: "TAG directive repair"
-            target: experiment/tag-361-d40320b-native-qualified-20261125
+            target: experiment/tag-361-cb899c0-native-qualified-20261125
           - id: combined
             pr: cf0b9698065afd35f356a43b6f7d26d26d17f6cb
             expected_comment: "#302"
-            target: experiment/core-tag-d40320b-native-qualified-20261125
+            target: experiment/core-tag-cb899c0-native-qualified-20261125
     env:
       LEAN_NUM_THREADS: 2
-      UP: d40320b96552d6caef881a420876987b28c141dc
+      UP: cb899c0fa4529d4b40d701f04f5c494047a6b695
       OLD: ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
       PR: ${{ matrix.pr }}
       TARGET: ${{ matrix.target }}
@@ -103,7 +103,7 @@ jobs:
           assert bt==ut==pt, "Unexpected executable census code change"
           assert uh.startswith(bh), "Unexpected owner history rewrite"
           added=uh[len(bh):]
-          assert "item 533" in added and all(not x.strip() or x.startswith("--") for x in added.splitlines())
+          assert "item 533" in added and "item 530" in added and "A-orphan" in added and all(not x.strip() or x.startswith("--") for x in added.splitlines())
           assert os.environ["EXP_COMMENT"] in ph
           if os.environ["ID"]=="combined":
               assert "TAG directive repair" in ph
@@ -144,7 +144,7 @@ jobs:
           git add "$CENSUS" "$ROSTER"
           test -z "$(git diff --name-only --diff-filter=U)"
           git diff --cached --check
-          git commit -m "Merge d40320b into $ID for isolated qualification (upstream census pair provisional)"
+          git commit -m "Merge cb899c0 into $ID for isolated qualification (upstream census pair provisional)"
           test "$(git rev-parse HEAD^1)" = "$UP"
           test "$(git rev-parse HEAD^2)" = "$PR"
           printf 'UP=%s\nPR=%s\nMERGED_SOURCE=%s\nMERGED_TREE=%s\n' "$UP" "$PR" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/source-before.txt
@@ -204,7 +204,7 @@ jobs:
           git add Tests/Guards/Proofs/DeadDeclarationCensus.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
           git diff --cached --name-only | tee qualification-evidence/repin-files.txt
           if ! git diff --cached --quiet; then
-            git commit -m "test(integration): remeasure $ID census and roster on exact d40320b"
+            git commit -m "test(integration): remeasure $ID census and roster on exact cb899c0"
           fi
           printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/final-source.txt
           git push origin "HEAD:refs/heads/$TARGET"
@@ -212,6 +212,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.id }}-d40320b-native-receipts
+          name: ${{ matrix.id }}-cb899c0-native-receipts
           path: qualification-evidence/
           if-no-files-found: warn
