@@ -1,0 +1,173 @@
+name: Group 7.7 actual scalar colon role partition
+on:
+  push:
+    branches: [research/group77-colon-role-partition-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 92c622bc1015febac29897be08192eb73c6aa744
+          path: upstream
+      - name: Verify frozen source and successful retained-gate parent
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 92c622bc1015febac29897be08192eb73c6aa744
+          test "$(git rev-parse HEAD:L4YAML/Scanner/SimpleKey.lean)" = df7bf19a8f3e7fd8b6a0766a1ecf0381dc0e3bff
+          test "$(git rev-parse HEAD:L4YAML/Scanner/State.lean)" = 827db8b1218f32ff964c4340a92d3d78b12188e9
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/ExplicitKeyCoupling.lean)" = 2c037d78704716265a9cf26043b615121ac746f2
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/ContentBridge.lean)" = 818ebca6feb6e357d2a5456cb4072968aff310c6
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
+          git -C ../evidence rev-parse HEAD HEAD^ > ../results/workflow.txt
+          test "$(git -C ../evidence rev-parse HEAD^)" = 120b6e0148908a7f9c22a3ec3b50765f15ce9826
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Kernel-check partition and run discriminating native controls
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/ColonRolePartition.lean <<'LEAN'
+          module
+          public import L4YAML.Proofs.Scanner.ExplicitKeyCoupling
+          public import L4YAML.Parser.Composition
+          public meta import L4YAML.Scanner.Scanner
+          public meta import L4YAML.Parser.Composition
+          @[expose] public section Blanket
+          namespace L4YAML.Tests.Guards.ColonRolePartition
+          open L4YAML L4YAML.Scanner
+          open L4YAML.Proofs.ExplicitKeyCoupling
+          
+          /-- Explicitly preserve the alternative in the existing preprocessing theorem.
+              It is not licensed to silently identify a re-read register with the old one. -/
+          def StaleAt (s s1 : ScannerState) : Prop :=
+            s.explicitKeyLine ≠ none ∧
+              ∃ (t : ScannerState) (c' : Char), t.peek? = some c' ∧
+                s1 = (t.closeStaleAt c').readPendingKey
+          
+          /-- The matching coordinate follows on the un-stamped, retained-register route.
+              The actual scanner chain yields a partition, not unconditional equality.
+              The stamp or either stale-register path must remain visible to a consumer. -/
+          lemma scalar_colon_role_partition
+              {q sc prep ad k v out : ScannerState} {c : Char}
+              (hq : scanKey q = .ok sc)
+              (hpre : scanNextToken_preprocess sc = .ok (some (prep, c)))
+              (had : ad = if prep.allowDirectives then
+                { prep with allowDirectives := false, documentEverStarted := true } else prep)
+              (hdispatch : scanNextToken_dispatchContent ad c = .ok k)
+              (hvpre : scanNextToken_preprocess k = .ok (some (v, ':')))
+              (hv : scanValue v = .ok out)
+              (hf : v.inFlow = false)
+              (hp : v.peek? = some ':') :
+              v.col = q.col ∨ out.implicitValueLine = some out.line ∨
+                StaleAt sc prep ∨ StaleAt k v := by
+            rcases preprocess_explicitKey_cases sc prep c hpre with h1 | h1
+            · rcases preprocess_explicitKey_cases k v ':' hvpre with h2 | h2
+              · have ha : ad.explicitKeyCol = prep.explicitKeyCol := by
+                  rw [had]
+                  split <;> rfl
+                have hk := dispatchContent_preserves_explicitKeyCol ad c k hdispatch
+                have hr : v.explicitKeyCol = (q.col : Int) :=
+                  h2.2.trans (hk.trans (ha.trans (h1.2.trans (scanKey_ok_explicitKey hq).2)))
+                by_cases hm : v.col = q.col
+                · exact Or.inl hm
+                · right
+                  left
+                  apply scanValue_stamp_of_col_ne hv hf hp
+                  rw [hr]
+                  omega
+              · exact Or.inr (Or.inr (Or.inr h2))
+            · exact Or.inr (Or.inr (Or.inl h1))
+          
+          /-- Recover the old coordinate premise only after the actual alternative
+              branches have been excluded, never merely from scanner success. -/
+          lemma matching_column_of_no_stamp_or_stale
+              {q sc prep ad k v out : ScannerState} {c : Char}
+              (hq : scanKey q = .ok sc)
+              (hpre : scanNextToken_preprocess sc = .ok (some (prep, c)))
+              (had : ad = if prep.allowDirectives then
+                { prep with allowDirectives := false, documentEverStarted := true } else prep)
+              (hdispatch : scanNextToken_dispatchContent ad c = .ok k)
+              (hvpre : scanNextToken_preprocess k = .ok (some (v, ':')))
+              (hv : scanValue v = .ok out)
+              (hf : v.inFlow = false)
+              (hp : v.peek? = some ':')
+              (hn : out.implicitValueLine ≠ some out.line)
+              (hs1 : ¬ StaleAt sc prep) (hs2 : ¬ StaleAt k v) :
+              v.col = q.col := by
+            rcases scalar_colon_role_partition hq hpre had hdispatch hvpre hv hf hp with
+              h | h | h | h
+            · exact h
+            · exact False.elim (hn h)
+            · exact False.elim (hs1 h)
+            · exact False.elim (hs2 h)
+          
+          #print axioms scalar_colon_role_partition
+          #print axioms matching_column_of_no_stamp_or_stale
+          
+          def nextState (s : ScannerState) : IO ScannerState :=
+            match scanNextToken s with
+            | .ok (some s') => pure s'
+            | _ => throw (IO.userError "expected scanner step")
+          
+          /-- Both sides are actual scanner continuations; no parser success premise.
+              The compact nested mapping cases must succeed at a *different* column
+              and stamp the implicit value line. -/
+          def checkRole (input : String) (matching : Bool) : IO Unit := do
+            let q ← nextState ((ScannerState.mk' input).emit .streamStart)
+            let k ← nextState q
+            match scanNextToken_preprocess k with
+            | .ok (some (v, ':')) =>
+              match scanValue v with
+              | .ok out =>
+                let equalCol := (v.col : Int) == q.explicitKeyCol
+                let stamp := out.implicitValueLine == some out.line
+                IO.println (input, q.explicitKeyCol, k.col, v.col, v.explicitKeyCol, stamp,
+                  (TokenParser.parseYaml input).isOk)
+                unless !v.inFlow && q.explicitKeyLine.isSome &&
+                  v.explicitKeyCol == q.explicitKeyCol &&
+                  equalCol == matching && stamp == !matching do
+                  throw (IO.userError "colon-role prediction refuted")
+              | .error _ => throw (IO.userError "expected successful value scan")
+            | _ => throw (IO.userError "expected colon preprocessing")
+          
+          #eval do
+            for s in ["? a\n: b", "? a # note\n: b", "? \"a\" # note\n: b",
+                "? 'a'\n# middle\n: b"] do
+              checkRole s true
+            for s in ["? a: b\n: c", "? \"a\": b\n: c"] do
+              checkRole s false
+            IO.println "FOUR_MATCHED_TWO_IMPLICIT_COLON_CONTROLS_PASS"
+          
+          end L4YAML.Tests.Guards.ColonRolePartition
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/ColonRolePartition.lean ../results/
+          lake build Tests.Guards.Proofs.ColonRolePartition 2>&1 | tee ../results/colon-role.log
+          grep -F FOUR_MATCHED_TWO_IMPLICIT_COLON_CONTROLS_PASS ../results/colon-role.log
+          grep -F 'scalar_colon_role_partition' ../results/colon-role.log
+          grep -F 'matching_column_of_no_stamp_or_stale' ../results/colon-role.log
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/colon-role.log; then exit 1; fi
+          git diff --exit-code -- L4YAML
+          git diff --check
+          printf 'colon_role_partition_and_controls\t0\n' > ../results/outcomes.tsv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: colon-role-partition-evidence
+          path: results/
+          if-no-files-found: error
