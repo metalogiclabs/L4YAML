@@ -69,49 +69,78 @@ jobs:
             test "${#conflicts[@]}" -gt 0
             for file in "${conflicts[@]}"; do
               case "$file" in
-                "$CENSUS"|"$ROSTER") ;;
+                "$CENSUS"|"$ROSTER"|L4YAML/Capstones.lean) ;;
                 *) echo "Unexpected non-generated conflict: $file"; exit 1 ;;
               esac
             done
           fi
           cp "$CENSUS" qualification-evidence/merged-census-before.lean
           cp "$ROSTER" qualification-evidence/merged-roster-before.lean
+          if git diff --name-only --diff-filter=U | grep -qx 'L4YAML/Capstones.lean'; then
+            for pair in "upstream:$UP" "pr:$PR" "base:$OLD"; do
+              label=${pair%%:*}; sha=${pair#*:}
+              git show "$sha:L4YAML/Capstones.lean" > "qualification-evidence/$label-capstones.lean"
+            done
+            cp L4YAML/Capstones.lean qualification-evidence/merged-capstones-before.lean
+          fi
           python3 - <<'PY'
           import os,re
           from pathlib import Path
-          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
           ev=Path("qualification-evidence")
-          s=p.read_text()
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
           needle="def expectedDeadCensus : String :=\n"
           pin=r'^  "population=[^"\n]+"$'
-          up=(ev/"upstream-census.lean").read_text()
-          pr=(ev/"pr-census.lean").read_text()
-          assert len(re.findall(pin,up,re.M))==1
-          upstream_pin=re.search(pin,up,re.M).group(0)
-          if "<<<<<<<" in s:
-              assert s.count("<<<<<<< HEAD\n")==1 and s.count("=======\n")==1
-              before,rest=s.split("<<<<<<< HEAD\n",1)
-              upstream,rest=rest.split("=======\n",1)
-              theirs,after=re.split(r"(?m)^>>>>>>>[^\n]*\n",rest,maxsplit=1)
-              assert upstream.count(needle)==1 and theirs.count(needle)==1
-              uh,up_tail=upstream.split(needle)
-              ph,pr_tail=theirs.split(needle)
-              assert re.fullmatch(pin+r'\n?',up_tail) and re.fullmatch(pin+r'\n?',pr_tail)
-              # Histories are comments, not source or proof obligations.
-              assert all(not x.strip() or x.startswith("--") for x in (uh+ph).splitlines())
-              s=before+ph+uh+needle+up_tail+after
-          assert len(re.findall(pin,s,re.M))==1
-          s=re.sub(pin,lambda _:upstream_pin,s,flags=re.M)
-          assert "item 533" in s and os.environ["EXP_COMMENT"] in s
+          def parts(label):
+              t=(ev/f"{label}-census.lean").read_text()
+              assert t.count(needle)==1
+              history,tail=t.split(needle)
+              lines=tail.splitlines(keepends=True)
+              assert re.fullmatch(pin,lines[0].rstrip("\n"))
+              return history,lines[0],"".join(lines[1:])
+          bh,bpin,bt=parts("base")
+          uh,upin,ut=parts("upstream")
+          ph,ppin,pt=parts("pr")
+          assert bt==ut==pt, "Unexpected executable census code change"
+          assert uh.startswith(bh), "Unexpected owner history rewrite"
+          added=uh[len(bh):]
+          assert "item 533" in added and all(not x.strip() or x.startswith("--") for x in added.splitlines())
+          assert os.environ["EXP_COMMENT"] in ph
           if os.environ["ID"]=="combined":
-              assert "TAG directive repair" in s
-          assert not any(x in s for x in ("<<<<<<<","=======",">>>>>>>"))
-          p.write_text(s)
-          # Bootstrap with the exact upstream summary AND roster as a consistent
-          # provisional pair. The native writer must replace BOTH before qualification.
+              assert "TAG directive repair" in ph
+          assert added not in ph
+          # Exact parent histories, owner pin and its matching roster only for bootstrap.
+          p.write_text(ph+added+needle+upin+pt)
           Path("Tests/Guards/Proofs/DeadDeclarationRoster.lean").write_bytes((ev/"upstream-roster.lean").read_bytes())
-          print("Preserved both histories; upstream measured pair is provisional ONLY. No guessed counts.")
+          cap=Path("L4YAML/Capstones.lean")
+          if (ev/"base-capstones.lean").exists():
+              assert os.environ["ID"]!="tag361"
+              base=(ev/"base-capstones.lean").read_text()
+              owner=(ev/"upstream-capstones.lean").read_text()
+              pr=(ev/"pr-capstones.lean").read_text()
+              def once(t,a,b):
+                  assert t.count(a)==1, a
+                  return t.replace(a,b,1)
+              scanner="L4YAML.Proofs.Serialization.ScannerShape.scanFiltered_parseStream_ok_checkFrom_full"
+              core="L4YAML.Proofs.SchemaResolution.coreTagCorrespondenceAll"
+              def owner_delta(t,anchor):
+                  t=once(t,"public import L4YAML.Proofs.RoundTrip.RoundTrip\n","public import L4YAML.Proofs.RoundTrip.RoundTrip\npublic import L4YAML.Proofs.Serialization.ScannerShape\n")
+                  t=once(t,"| 7 strictness | `parse_strict_proof`, `scan_strict_proof` |","| 7 strictness | `parse_strict_proof`, `scan_strict_proof`, `scanFiltered_parseStream_ok_checkFrom_full` (an accepted input's token events are a well-formed serialization) |")
+                  t=once(t,anchor+"\n",anchor+"\n"+scanner+"\n")
+                  t=once(t,anchor+": pure\n",anchor+": pure\n"+scanner+": pure\n")
+                  return t
+              assert owner_delta(base,"L4YAML.Proofs.SurfaceCoupling.SIndent_chars")==owner
+              pcheck=once(pr,"public import L4YAML.Proofs.Schema.SchemaResolution\n","")
+              pcheck=once(pcheck,", unconditional `coreTagCorrespondenceAll`","")
+              pcheck=once(pcheck,core+"\n","")
+              pcheck=once(pcheck,core+": pure\n","")
+              assert pcheck==base, "Unexpected Core capstones delta"
+              # Both independent pure profiles are retained; native #guard_msgs checks order.
+              cap.write_text(owner_delta(pr,"L4YAML.Proofs.SurfaceCoupling.SIndent_chars"))
+          print("Exact parent audit histories and both capstone profiles preserved; bootstrap pair remains provisional.")
           PY
+          if test -f qualification-evidence/merged-capstones-before.lean; then
+            git add L4YAML/Capstones.lean
+          fi
           git add "$CENSUS" "$ROSTER"
           test -z "$(git diff --name-only --diff-filter=U)"
           git diff --cached --check
