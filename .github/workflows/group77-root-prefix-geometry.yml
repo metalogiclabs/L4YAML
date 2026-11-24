@@ -130,7 +130,7 @@ jobs:
                 have hm : s_content.offset < s_content.inputEnd := by
                   simp [ScannerState.hasMore] at h_more
                   omega
-                refine ⟨s_content, h_skip, hm, ?_⟩
+                refine ⟨s_content, by first | exact h_skip | rfl, hm, ?_⟩
                 intro sp1 hcorr1
                 split at hok
                 · split at hok
