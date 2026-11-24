@@ -13,6 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: evidence
+          fetch-depth: 3
       - uses: actions/checkout@v4
         with:
           repository: nasa-jpl/L4YAML
@@ -31,8 +32,9 @@ jobs:
           test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/ContentBridge.lean)" = 818ebca6feb6e357d2a5456cb4072968aff310c6
           test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
           git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
-          git -C ../evidence rev-parse HEAD HEAD^ > ../results/workflow.txt
-          test "$(git -C ../evidence rev-parse HEAD^)" = 120b6e0148908a7f9c22a3ec3b50765f15ce9826
+          git -C ../evidence rev-parse HEAD HEAD^ HEAD^^ > ../results/workflow.txt
+          test "$(git -C ../evidence rev-parse HEAD^)" = d095b81d37d6da6ddbee033b2bb171ffe7aaf738
+          test "$(git -C ../evidence rev-parse HEAD^^)" = 120b6e0148908a7f9c22a3ec3b50765f15ce9826
           curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
           "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
