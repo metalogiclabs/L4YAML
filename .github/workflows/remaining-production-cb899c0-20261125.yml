@@ -1,0 +1,461 @@
+name: "Exact cb899c0 remaining production refresh and Core TAG interface qualification"
+on:
+  push:
+    branches:
+      - experiment/cb899c0-remaining-production-qualification-20261125
+permissions:
+  contents: write
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: python300
+            pr: dcf6ad15503dd3be569fd983e94d8991a3379e00
+            old: 2836db2fef546ec69873297f499c43ec9aadf3c7
+            expected_comment: ""
+            target: experiment/python-300-cb899c0-qualified-20261125
+          - id: dump370
+            pr: e8db9cf2dff3eb4a857c4cfae852749326c021f6
+            old: ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
+            expected_comment: "dump tag rendering"
+            target: experiment/dump-370-cb899c0-qualified-20261125
+          - id: axiom371
+            pr: c5e0f0c6b449261d23fef5ddd588c360d5e5d630
+            old: ca977c71fd3f7ce2f4dad1697cbb434b83fb2124
+            expected_comment: "axiom admission"
+            target: experiment/axiom-371-cb899c0-qualified-20261125
+    env:
+      LEAN_NUM_THREADS: 2
+      UP: cb899c0fa4529d4b40d701f04f5c494047a6b695
+      OLD: ${{ matrix.old }}
+      PR: ${{ matrix.pr }}
+      TARGET: ${{ matrix.target }}
+      EXP_COMMENT: ${{ matrix.expected_comment }}
+      ID: ${{ matrix.id }}
+    steps:
+      - name: Checkout complete fork history and YAML corpus
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Merge exact upstream source into individual PR without touching its branch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qualification-evidence
+          exec > >(tee qualification-evidence/merge.log) 2>&1
+          git config user.name "MathGraph exact-source qualification"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          for sha in "$UP" "$PR" "$OLD"; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$sha" || git fetch --no-tags origin "$sha"
+          done
+          test "$(git merge-base "$UP" "$PR")" = "$OLD"
+          git switch --detach "$UP"
+          CENSUS=Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          ROSTER=Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          for pair in "upstream:$UP" "pr:$PR" "base:$OLD"; do
+            label=${pair%%:*}; sha=${pair#*:}
+            git show "$sha:$CENSUS" > "qualification-evidence/$label-census.lean"
+            git show "$sha:$ROSTER" > "qualification-evidence/$label-roster.lean"
+          done
+          if git merge --no-ff --no-commit "$PR"; then
+            echo "MERGED_WITHOUT_CONFLICT"
+          else
+            git diff --name-only --diff-filter=U | tee qualification-evidence/conflicts.txt
+            git ls-files -u > qualification-evidence/unmerged-index.txt
+            mapfile -t conflicts < qualification-evidence/conflicts.txt
+            test "${#conflicts[@]}" -gt 0
+            for file in "${conflicts[@]}"; do
+              case "$file" in
+                "$CENSUS"|"$ROSTER"|L4YAML/Capstones.lean) ;;
+                *) echo "Unexpected non-generated conflict: $file"; exit 1 ;;
+              esac
+            done
+          fi
+          cp "$CENSUS" qualification-evidence/merged-census-before.lean
+          cp "$ROSTER" qualification-evidence/merged-roster-before.lean
+          if test "$ID" = axiom371 || git diff --name-only --diff-filter=U | grep -qx 'L4YAML/Capstones.lean'; then
+            for pair in "upstream:$UP" "pr:$PR" "base:$OLD"; do
+              label=${pair%%:*}; sha=${pair#*:}
+              git show "$sha:L4YAML/Capstones.lean" > "qualification-evidence/$label-capstones.lean"
+            done
+            cp L4YAML/Capstones.lean qualification-evidence/merged-capstones-before.lean
+          fi
+          python3 - <<'PY'
+          import os,re
+          from pathlib import Path
+          ev=Path("qualification-evidence")
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          needle="def expectedDeadCensus : String :=\n"
+          pin=r'^  "population=[^"\n]+"$'
+          def parts(label):
+              t=(ev/f"{label}-census.lean").read_text()
+              assert t.count(needle)==1
+              history,tail=t.split(needle)
+              lines=tail.splitlines(keepends=True)
+              assert re.fullmatch(pin,lines[0].rstrip("\n"))
+              return history,lines[0],"".join(lines[1:])
+          bh,bpin,bt=parts("base")
+          uh,upin,ut=parts("upstream")
+          ph,ppin,pt=parts("pr")
+          assert bt==ut==pt, "Unexpected executable census code change"
+          assert uh.startswith(bh), "Unexpected owner history rewrite"
+          added=uh[len(bh):]
+          assert "item 533" in added and "item 530" in added and "A-orphan" in added and all(not x.strip() or x.startswith("--") for x in added.splitlines())
+          assert os.environ["EXP_COMMENT"] in ph
+          if os.environ["ID"]=="python300":
+              assert ph==bh and ppin==bpin, "Unexpected Python-only census change"
+          assert added not in ph
+          # Exact parent histories, owner pin and its matching roster only for bootstrap.
+          p.write_text(ph+added+needle+upin+pt)
+          Path("Tests/Guards/Proofs/DeadDeclarationRoster.lean").write_bytes((ev/"upstream-roster.lean").read_bytes())
+          cap=Path("L4YAML/Capstones.lean")
+          if (ev/"base-capstones.lean").exists():
+              assert os.environ["ID"]=="axiom371", "Unexpected Capstones conflict"
+              base=(ev/"base-capstones.lean").read_text()
+              owner=(ev/"upstream-capstones.lean").read_text()
+              pr=(ev/"pr-capstones.lean").read_text()
+              def once(t,a,b):
+                  assert t.count(a)==1, a
+                  return t.replace(a,b,1)
+              scanner="L4YAML.Proofs.Serialization.ScannerShape.scanFiltered_parseStream_ok_checkFrom_full"
+              core="L4YAML.Proofs.SchemaResolution.coreTagCorrespondenceAll"
+              def owner_delta(t,anchor):
+                  t=once(t,"public import L4YAML.Proofs.RoundTrip.RoundTrip\n","public import L4YAML.Proofs.RoundTrip.RoundTrip\npublic import L4YAML.Proofs.Serialization.ScannerShape\n")
+                  t=once(t,"| 7 strictness | `parse_strict_proof`, `scan_strict_proof` |","| 7 strictness | `parse_strict_proof`, `scan_strict_proof`, `scanFiltered_parseStream_ok_checkFrom_full` (an accepted input's token events are a well-formed serialization) |")
+                  t=once(t,anchor+"\n",anchor+"\n"+scanner+"\n")
+                  t=once(t,anchor+": pure\n",anchor+": pure\n"+scanner+": pure\n")
+                  return t
+              assert owner_delta(base,"L4YAML.Proofs.SurfaceCoupling.SIndent_chars")==owner
+              assert "Replay needs the actual axiom types" in pr and "closed Boolean axioms validated by independent" in pr
+              assert scanner not in pr, "Unexpected existing new profile in #371"
+              resolved=owner_delta(pr,"L4YAML.Proofs.SurfaceCoupling.SIndent_chars")
+              # Preserve the #371 replay-policy code and imports; add only the verified owner capstone delta.
+              if "<<<<<<<" not in cap.read_text():
+                  assert cap.read_text()==resolved, "Automatic capstone merge differs from exact expected composition"
+              cap.write_text(resolved)
+          print("Exact parent audit histories and both capstone profiles preserved; bootstrap pair remains provisional.")
+          PY
+          if test -f qualification-evidence/merged-capstones-before.lean; then
+            git add L4YAML/Capstones.lean
+          fi
+          git add "$CENSUS" "$ROSTER"
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git diff --cached --check
+          git commit -m "Merge cb899c0 into $ID for isolated qualification (upstream census pair provisional)"
+          test "$(git rev-parse HEAD^1)" = "$UP"
+          test "$(git rev-parse HEAD^2)" = "$PR"
+          printf 'UP=%s\nPR=%s\nMERGED_SOURCE=%s\nMERGED_TREE=%s\n' "$UP" "$PR" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/source-before.txt
+          git log -n 8 --format='%H %P %s' > qualification-evidence/lineage.txt
+          git submodule status > qualification-evidence/submodules.txt
+          cat lean-toolchain | tee qualification-evidence/toolchain.txt
+      - name: Install pinned Lean toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Compile full library and non-default suites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee qualification-evidence/lean-version.txt
+          lake build 2>&1 | tee qualification-evidence/build.log
+          lake build tests demo limittests 2>&1 | tee qualification-evidence/extra-build.log
+      - name: Recompute and check native source census
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-evidence/census-write.log
+          lake build 2>&1 | tee qualification-evidence/post-census-build.log
+          lake run dead-census -- --check 2>&1 | tee qualification-evidence/census-check.log
+          lake run census-dashboard -- --check 2>&1 | tee qualification-evidence/dashboard.log
+      - name: Execute targeted regression and complete native test battery
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          case "$ID" in
+            axiom371)
+              lake env lean Tests/Guards/Proofs/CapstoneAxioms.lean 2>&1 | tee qualification-evidence/capstone-axioms-controls.log
+              lake env lean Tests/Guards.lean 2>&1 | tee qualification-evidence/complete-guards.log ;;
+            dump370)
+              lake env lean Tests/Guards/Dump.lean 2>&1 | tee qualification-evidence/targeted-dump.log ;;
+            python300)
+              test -f python/tests/test_compat_core_numeric_fidelity.py ;;
+            *) exit 1 ;;
+          esac
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/full-suite.log
+          lake exe eventscore --suite yaml-test-suite 2>&1 | tee qualification-evidence/eventscore.log
+      - name: Verify proof profiles source guards and final hygiene
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+      - name: Install C and Python prerequisites for exact refreshed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+          python3 -m venv "$RUNNER_TEMP/bindings-venv"
+          mkdir -p "$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONPATH="$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONNOUSERSITE=1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pip install --quiet pytest
+          echo "$RUNNER_TEMP/bindings-venv/bin" >> "$GITHUB_PATH"
+          echo "PYTHONPATH=$PYTHONPATH" >> "$GITHUB_ENV"
+          echo "PYTHONNOUSERSITE=1" >> "$GITHUB_ENV"
+          echo "L4YAML_LIB=$GITHUB_WORKSPACE/ffi/out/libl4yaml.so" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/ffi/out:$("$HOME/.elan/bin/lean" --print-prefix)/lib/lean" >> "$GITHUB_ENV"
+      - name: Build and test C Rust FFI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -B ffi/out -S ffi 2>&1 | tee qualification-evidence/bindings-cmake-configure.log
+          cmake --build ffi/out --parallel 2 2>&1 | tee qualification-evidence/bindings-cmake-build.log
+          test -f ffi/out/libl4yaml.so
+          test -x ffi/out/tryparse_c
+          (cd rust/l4yaml && cargo build --release --example tryparse --jobs 2) 2>&1 | tee qualification-evidence/bindings-rust-example.log
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 2>&1 | tee qualification-evidence/bindings-rust-tests.log
+          sha256sum ffi/out/libl4yaml.so ffi/out/tryparse_c rust/target/release/examples/tryparse > qualification-evidence/bindings-binaries.sha256
+      - name: Run Python FFI package and cross-language checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pytest Tests/test_python_ffi.py -v --tb=short --no-header --junitxml=docs/reports/python-ffi-junit.xml 2>&1 | tee qualification-evidence/bindings-python-ffi.log
+          python3 -m pytest python/tests/ -v --tb=short --no-header --junitxml=docs/reports/python-package-junit.xml 2>&1 | tee qualification-evidence/bindings-python-package.log
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee qualification-evidence/bindings-cross-lang.log
+          if test "$ID" = python300; then
+            python3 -m pytest python/tests/test_compat_core_numeric_fidelity.py -v --tb=short 2>&1 | tee qualification-evidence/python-core-controls.log
+          fi
+      - name: Publish qualified candidate branch only on successful native verification
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          git diff --cached --name-only | tee qualification-evidence/repin-files.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test(integration): remeasure $ID census and roster on exact cb899c0"
+          fi
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/final-source.txt
+          git push origin "HEAD:refs/heads/$TARGET"
+      - name: Save independent source and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-cb899c0-native-receipts
+          path: qualification-evidence/
+          if-no-files-found: warn
+  bindings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: core302
+            source: 99e83850e3bd15b7175405922652e9ba6a4ed5d2
+            tree: ba50c5654856c4494b3594924b928514d224c5f2
+          - id: tag361
+            source: 449e903cfd120dee0d569bf07cced89e7227b21c
+            tree: 16416bee17155c115bdf91339651e8e8dca9b29f
+          - id: combined
+            source: 3e6c42eb31f7fca6654f331231f29e5dcd99f150
+            tree: fa6c0d47c165cda5928068e2f52770fd5305a00c
+    env:
+      LEAN_NUM_THREADS: 2
+      SOURCE_COMMIT: ${{ matrix.source }}
+      EXPECTED_TREE: ${{ matrix.tree }}
+    steps:
+      - name: Checkout exact combined source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.source }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Source and package identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git merge-base --is-ancestor cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD
+          printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee bindings-source.log
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git submodule status --recursive | tee bindings-submodules.log
+          git rev-parse HEAD HEAD^{tree} HEAD:L4YAML
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json | tee bindings-pins.log
+          git status --short
+      - name: Install toolchain, C and Python prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+          python3 -m venv "$RUNNER_TEMP/bindings-venv"
+          mkdir -p "$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONPATH="$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONNOUSERSITE=1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pip install --quiet pytest
+          echo "$RUNNER_TEMP/bindings-venv/bin" >> "$GITHUB_PATH"
+          echo "PYTHONPATH=$PYTHONPATH" >> "$GITHUB_ENV"
+          echo "PYTHONNOUSERSITE=1" >> "$GITHUB_ENV"
+          echo "L4YAML_LIB=$GITHUB_WORKSPACE/ffi/out/libl4yaml.so" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/ffi/out:$("$HOME/.elan/bin/lean" --print-prefix)/lib/lean" >> "$GITHUB_ENV"
+      - name: Complete pinned Lean build
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version
+          lake build 2>&1 | tee bindings-lean-build.log
+          lake build tests demo limittests 2>&1 | tee bindings-lean-extras.log
+      - name: Build and test C Rust FFI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -B ffi/out -S ffi 2>&1 | tee bindings-cmake-configure.log
+          cmake --build ffi/out --parallel 2 2>&1 | tee bindings-cmake-build.log
+          test -f ffi/out/libl4yaml.so
+          test -x ffi/out/tryparse_c
+          (cd rust/l4yaml && cargo build --release --example tryparse --jobs 2) 2>&1 | tee bindings-rust-example.log
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 2>&1 | tee bindings-rust-tests.log
+          sha256sum ffi/out/libl4yaml.so ffi/out/tryparse_c rust/target/release/examples/tryparse > bindings-binaries.sha256
+      - name: Run Python FFI package and cross-language checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pytest Tests/test_python_ffi.py -v --tb=short --no-header --junitxml=docs/reports/python-ffi-junit.xml 2>&1 | tee bindings-python-ffi.log
+          python3 -m pytest python/tests/ -v --tb=short --no-header --junitxml=docs/reports/python-package-junit.xml 2>&1 | tee bindings-python-package.log
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee bindings-cross-lang.log
+      - name: Inspect outputs and source diff
+        shell: bash
+        if: always()
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules yaml-test-suite
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git status --short
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.id }}-cb899c0-bindings-receipts
+          path: |
+            bindings-*.log
+            bindings-*.sha256
+            docs/reports/*junit.xml
+            docs/reports/*comparison*.txt
+          if-no-files-found: warn
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 165
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: core302
+            source: 99e83850e3bd15b7175405922652e9ba6a4ed5d2
+            tree: ba50c5654856c4494b3594924b928514d224c5f2
+          - id: tag361
+            source: 449e903cfd120dee0d569bf07cced89e7227b21c
+            tree: 16416bee17155c115bdf91339651e8e8dca9b29f
+          - id: combined
+            source: 3e6c42eb31f7fca6654f331231f29e5dcd99f150
+            tree: fa6c0d47c165cda5928068e2f52770fd5305a00c
+    env:
+      LEAN_NUM_THREADS: 2
+      SOURCE_COMMIT: ${{ matrix.source }}
+      EXPECTED_TREE: ${{ matrix.tree }}
+    steps:
+      - name: Checkout exact original PR source with full submodules
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.source }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Pin source and install exact toolchain and docs dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs-evidence
+          git switch --detach "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git merge-base --is-ancestor cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          test "$(cat doc/lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/source.txt
+          cat lean-toolchain | tee docs-evidence/toolchain.txt
+          git submodule status | tee docs-evidence/submodules.txt
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json | tee docs-evidence/pins.sha256
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+      - name: Install proven docs memory allowance (24 GiB swap)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          free -h | tee docs-evidence/resources-before.txt
+          sudo fallocate -l 24G /mnt/tag361-exact-docs.swap
+          sudo chmod 600 /mnt/tag361-exact-docs.swap
+          sudo mkswap /mnt/tag361-exact-docs.swap
+          sudo swapon /mnt/tag361-exact-docs.swap
+          free -h | tee docs-evidence/resources-after.txt
+          test "$(grep -Fc /mnt/tag361-exact-docs.swap /proc/swaps)" -eq 1
+      - name: Build Verso and all required graph inputs on exact source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee docs-evidence/lean-version.txt
+          (cd doc && lake build l4yaml-doc) 2>&1 | tee docs-evidence/verso-build.log
+          lake build L4YAML.Scanner.Scanner L4YAML.Parser.Composition L4YAML.Surface.Document L4YAML.Output.Dump L4YAML.Output.Emitter L4YAML.FFI.FFI L4YAML.Schema.Api L4YAML.Config.Config 2>&1 | tee docs-evidence/graph-inputs.log
+          lake build graph 2>&1 | tee docs-evidence/graph-build.log
+          mkdir -p doc/Doc/L4YAML/graphs
+          lake exe graph --to=L4YAML.Scanner.Scanner,L4YAML.Parser.Composition,L4YAML.Surface.Document,L4YAML.Output.Dump,L4YAML.Output.Emitter,L4YAML.FFI.FFI,L4YAML.Schema.Api,L4YAML.Config.Config doc/Doc/L4YAML/graphs/import-graph.dot
+          dot -Tsvg doc/Doc/L4YAML/graphs/import-graph.dot -o doc/Doc/L4YAML/graphs/import-graph.svg
+          lake run check-doc-graphs -- --strict 2>&1 | tee docs-evidence/graph-check.log
+          (cd doc && lake exe l4yaml-doc) 2>&1 | tee docs-evidence/verso-render.log
+          lake run svg-objects -- doc/_out/html-multi 2>&1 | tee docs-evidence/svg.log
+      - name: Build full API documentation with proven memory provision
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake build :docs 2>&1 | tee docs-evidence/api-docs.log
+          echo "DOCS_NATIVE_BUILD_SUCCESS" | tee docs-evidence/result.txt
+      - name: Validate immutable source and toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          sha256sum -c docs-evidence/pins.sha256
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/final-source.txt
+          free -h | tee docs-evidence/resources-final.txt
+      - name: Retain receipts on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-cb899c0-docs-receipts
+          path: docs-evidence/
+          if-no-files-found: warn
