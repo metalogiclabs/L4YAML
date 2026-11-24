@@ -1,7 +1,7 @@
-name: Group 7.7 directive landing producer and retained park
+name: Group 7.7 uncut scalar-key composition
 on:
   push:
-    branches: [research/group77-landing-producer-20261125]
+    branches: [research/group77-uncut-scalar-key-composition-20261125]
   workflow_dispatch:
 permissions:
   contents: read
@@ -66,6 +66,51 @@ jobs:
           lake build Tests.Guards.Proofs.ExplicitKeyRuntimeDiagnostic 2>&1 | tee ../results/runtime.log
           rc=${PIPESTATUS[0]}
           printf 'runtime_observations\t%s\n' "$rc" >> ../results/outcomes.tsv
+          git diff --exit-code -- L4YAML
+      - name: Rule 2 bounded actual-state controls before proof
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/ScalarKeyStateControls.lean <<'LEAN'
+          module
+          public import L4YAML.Scanner.Scanner
+          public import L4YAML.Parser.Composition
+          public meta import L4YAML.Scanner.Scanner
+          public meta import L4YAML.Parser.Composition
+          @[expose] public section Blanket
+          open L4YAML L4YAML.Scanner
+          def initial (input : String) : ScannerState := (ScannerState.mk' input).emit .streamStart
+          def nextState (s : ScannerState) : IO ScannerState :=
+            match scanNextToken s with
+            | .ok (some s') => pure s'
+            | _ => throw (IO.userError "expected an actual next scanner step")
+          def snapshot (s : ScannerState) :=
+            (s.offset, s.line, s.col, s.explicitKeyLine, s.explicitKeyCol, s.needIndentCheck)
+          def checkPair (input : String) : IO Unit := do
+            let q ← nextState (initial input)
+            let k ← nextState q
+            let v ← nextState k
+            IO.println (input, snapshot q, snapshot k, snapshot v)
+            unless q.explicitKeyLine == some 0 && q.explicitKeyCol == 0 &&
+                k.explicitKeyLine == some 0 && k.explicitKeyCol == 0 &&
+                v.explicitKeyLine.isNone &&
+                (TokenParser.parseYaml input).isOk do
+              throw (IO.userError "root scalar-key continuation prediction refuted")
+          #eval do
+            for s in ["? a\n: b", "? 'a'\n: b", "? \"a\"\n: b"] do
+              checkPair s
+            unless (TokenParser.parseYaml "? a").isOk &&
+                (TokenParser.parseYaml "? &k a\n: *k").isOk &&
+                (scanFiltered "? -\n  :").isOk &&
+                !(TokenParser.parseYaml "? -\n  :").isOk do
+              throw (IO.userError "independent positive/negative scope control refuted")
+            IO.println "THREE_SCALAR_KEY_PAIRS_AND_THREE_SCOPE_CONTROLS_PASS"
+          end Blanket
+          LEAN
+          lake build Tests.Guards.Proofs.ScalarKeyStateControls 2>&1 | tee ../results/controls.log
+          grep -F THREE_SCALAR_KEY_PAIRS_AND_THREE_SCOPE_CONTROLS_PASS ../results/controls.log
+          cp Tests/Guards/Proofs/ScalarKeyStateControls.lean ../results/
           git diff --exit-code -- L4YAML
       - name: Narrow only the annotated [211] grammar; replay frozen after-case
         working-directory: upstream
@@ -449,9 +494,182 @@ jobs:
           cp Tests/Guards/Proofs/DirectiveLandingProducer.lean ../results/
           printf 'producer_controls\t0\n' >> ../results/outcomes.tsv
           echo 'Local initial/suffix producers and park-to-consumer transfer only. Global fold, preprocessing comment-tail witness, non-scalar key composition, exact inherited admission and full 7.7 remain separate.' > ../results/producer-boundary.txt
+      - name: Produce a scalar key certificate from actual scanKey and content dispatch
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/ScalarKeyProducer.lean <<'LEAN'
+          /- Bounded conditional producer: scalar (plain/quoted) explicit keys only.
+          No whole-stream route is assumed for the first lemma.  The second lemma
+          consumes the retained key with the actual colon scanner production.
+          Actual reachability of SlotGateAt, NextIsSep and the enclosing mapping
+          route, and property/alias/block/flow keys, are separate obligations. -/
+          module
+          public import L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          public section
+          namespace L4YAML.Tests.Guards.ScalarKeyProducer
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.Serialization.TraceOf.ContentBridge
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.StructureProduction
+          open L4YAML.Proofs.PreprocessIndentStable
+          open L4YAML.Proofs.StreamAccum (ContentArm NextIsSep SlotGateAt white_prepend_SSLComments)
+          lemma scalar_key_prefix_from_scan
+              {s_q sc s_prep s_ad s' : ScannerState} {c : Char}
+              {sp_q sp_prep sp_a : SurfPos}
+              (hq_corr : ScannerSurfCorr s_q sp_q) (hq_peek : s_q.peek? = some '?')
+              (hq_scan : scanKey s_q = .ok sc) (hq_flow : s_q.inFlow = false)
+              (hq_nic : s_q.needIndentCheck = false)
+              (h_next : NextIsSep sc)
+              (h_ad : s_ad = if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
+              (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+              (hcorr' : ScannerSurfCorr s' sp_a)
+              (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+              (arm : ContentArm s_ad s' c sp_prep sp_a)
+              (h_depth : s_ad.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
+              (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
+              (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+              (h_pipe : c ≠ '|') (h_gt : c ≠ '>')
+              (h_src : SlotGateAt s_prep) :
+              ∃ sp_afterQ, GLit '?' sp_q sp_afterQ ∧ ScannerSurfCorr sc sp_afterQ ∧
+                (((∀ sp_key, SSLComments sp_a sp_key →
+                    TBlockIndented s_q.col .blockOut sp_afterQ sp_key []) ∧
+                  PushesTrace s_ad.tokens s'.tokens []) ∨
+                  L4YAML.Proofs.FlowIndexLift.DedentLanding (s_q.col + 1) sp_afterQ sp_prep) := by
+            obtain ⟨sp_afterQ, hq, h_corr⟩ := scanKey_prod s_q sp_q hq_corr hq_peek sc hq_scan
+            refine ⟨sp_afterQ, hq, h_corr, ?_⟩
+            have h_floor : IndentFloor sc (s_q.col + 1) :=
+              IndentFloor.succ_of_int_le ((scanKey_needIndentCheck hq_flow hq_scan).trans hq_nic)
+                (scanKey_col_le_currentIndent hq_flow hq_scan)
+            have h_col : s_q.col + 1 ≤ sp_afterQ.col := by
+              have hqc := hq_corr.col_eq
+              cases hq
+              simp_all
+            have h_col0 : 0 < sp_afterQ.col := by omega
+            have hflow : s_ad.inFlow = false := by unfold ScannerState.inFlow; rw [h_depth]; rfl
+            have hcorr_ad : ScannerSurfCorr s_ad sp_prep := by
+              rw [h_ad]
+              exact L4YAML.Proofs.StreamAccum.corr_of_allowDirectives_update hcorr_prep
+            have hpeek : s_ad.peek? = some c := by
+              rw [h_ad]
+              have := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
+              split <;> exact this
+            rcases TPendingNode.content_sep_of_preprocess h_ad h_floor h_col h_col0 h_next h_corr
+                hcorr_prep hcorr' h_preprocess h_not_doc hflow h_dispatch h_src with
+              ⟨h_sep, h_fl⟩ | h_ded
+            · obtain ⟨sp_gram, sp_res, hT, hws, hcorr_res⟩ :=
+                content_leaf_at (s_q.col + 1) hcorr_ad hpeek hflow h_not_doc
+                  h_amp h_star h_bang h_pipe h_gt h_dispatch h_fl
+              obtain rfl : sp_res = sp_a := ScannerSurfCorr_unique hcorr_res hcorr'
+              obtain ⟨ev_n, hpt, hdisj⟩ := accum_step_content_trace_out arm hcorr_ad hpeek h_depth h_dispatch
+              have hev : ev_n = [] := by
+                rcases hdisj with ⟨hev, -⟩ | ⟨hev, -⟩ | ⟨hev, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩
+                · exact hev
+                · exact hev
+                · exact hev
+                · exact absurd hc h_amp
+                · exact absurd hc h_bang
+                · exact absurd hc h_star
+              subst ev_n
+              refine Or.inl ⟨?_, hpt⟩
+              intro sp_key hssl
+              exact .node _ .blockOut _ _ []
+                (.flowInBlock _ .blockOut _ _ _ _ [] h_sep (.content _ _ _ _ _ hT)
+                  (white_prepend_SSLComments hws hssl))
+            · exact Or.inr h_ded
+
+          /-- Consume the same retained key at the actual colon scan, supplying
+          precisely the mapValue park that content_step_park already consumes.
+          The map indentation and enclosing route remain explicit premises. -/
+          lemma scalar_key_to_value_park
+              {n : Nat} {sp_start sp_q sp_afterQ sp_key sp_colon : SurfPos}
+              {sc sc' : ScannerState} {c : Char} {ev_c ev_o : List Event}
+              (hq : GLit '?' sp_q sp_afterQ)
+              (hk : TBlockIndented n .blockOut sp_afterQ sp_key [])
+              (hi : SIndent n sp_key sp_colon)
+              (hcorr : ScannerSurfCorr sc sp_colon)
+              (hpeek : sc.peek? = some ':') (hok : scanValue sc = .ok sc')
+              (route : ∀ sp ev, TBlockMapEntry n sp_q sp ev →
+                TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev)) :
+              ∃ sp_afterColon, ScannerSurfCorr sc' sp_afterColon ∧
+                TPendingNode.ContentPark sp_start sp_afterColon c ev_c (n + 1) ev_o := by
+            obtain ⟨sp_afterColon, hc, hcorr'⟩ := scanValue_prod sc sp_colon hcorr hpeek sc' hok
+            refine ⟨sp_afterColon, hcorr', .mapValue n ev_o ?_⟩
+            intro sp_mid ev_v hv
+            have he : TBlockMapEntry n sp_q sp_mid ([] ++ ev_v) :=
+              .explicit n sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_mid [] ev_v hq hk hi hc
+                (.node n .blockOut _ _ _ hv)
+            simpa using route sp_mid ([] ++ ev_v) he
+          /-- Compose the previously checked producer and colon consumer at the same
+          actual scanner continuation. No independent key certificate may be assumed.
+          The closing comment and indentation witnesses and enclosing route remain explicit. -/
+          lemma scalar_key_prefix_to_value_park
+              {s_q sc s_prep s_ad s' sc_colon sc_afterColon : ScannerState} {c vc : Char}
+              {sp_start sp_q sp_prep sp_a sp_key sp_colon : SurfPos} {ev_c ev_o : List Event}
+              (hq_corr : ScannerSurfCorr s_q sp_q) (hq_peek : s_q.peek? = some '?')
+              (hq_scan : scanKey s_q = .ok sc) (hq_flow : s_q.inFlow = false)
+              (hq_nic : s_q.needIndentCheck = false)
+              (h_next : NextIsSep sc)
+              (h_ad : s_ad = if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
+              (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+              (hcorr' : ScannerSurfCorr s' sp_a)
+              (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+              (arm : ContentArm s_ad s' c sp_prep sp_a)
+              (h_depth : s_ad.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
+              (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
+              (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+              (h_pipe : c ≠ '|') (h_gt : c ≠ '>')
+              (h_src : SlotGateAt s_prep)
+              (hssl : SSLComments sp_a sp_key)
+              (hi : SIndent s_q.col sp_key sp_colon)
+              (hpre_colon : scanNextToken_preprocess s' = .ok (some (sc_colon, ':')))
+              (hcorr_colon : ScannerSurfCorr sc_colon sp_colon)
+              (hcolon : scanValue sc_colon = .ok sc_afterColon)
+              (route : ∀ sp ev, TBlockMapEntry s_q.col sp_q sp ev →
+                TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev)) :
+              ∃ sp_afterQ, GLit '?' sp_q sp_afterQ ∧ ScannerSurfCorr sc sp_afterQ ∧
+                ((∃ sp_afterColon, ScannerSurfCorr sc_afterColon sp_afterColon ∧
+                  PushesTrace s_ad.tokens s'.tokens [] ∧
+                  TPendingNode.ContentPark sp_start sp_afterColon vc ev_c (s_q.col + 1) ev_o) ∨
+                  L4YAML.Proofs.FlowIndexLift.DedentLanding (s_q.col + 1) sp_afterQ sp_prep) := by
+            obtain ⟨sp_afterQ, hq, hcorrQ, h⟩ :=
+              scalar_key_prefix_from_scan hq_corr hq_peek hq_scan hq_flow hq_nic
+                h_next h_ad hcorr_prep hcorr' h_preprocess arm h_depth h_dispatch
+                h_not_doc h_amp h_star h_bang h_pipe h_gt h_src
+            refine ⟨sp_afterQ, hq, hcorrQ, ?_⟩
+            rcases h with ⟨hkey, hpush⟩ | hd
+            · have hp := L4YAML.Proofs.StreamAccum.preprocess_some_peek hpre_colon
+              obtain ⟨sp_afterColon, hc, hpark⟩ :=
+                scalar_key_to_value_park (c := vc) hq (hkey sp_key hssl) hi
+                  hcorr_colon hp hcolon route
+              exact Or.inl ⟨sp_afterColon, hc, hpush, hpark⟩
+            · exact Or.inr hd
+          #print axioms scalar_key_prefix_to_value_park
+          #print axioms scalar_key_prefix_from_scan
+          #print axioms scalar_key_to_value_park
+          end L4YAML.Tests.Guards.ScalarKeyProducer
+          end
+          LEAN
+          cp Tests/Guards/Proofs/ScalarKeyProducer.lean ../results/
+          lake build Tests.Guards.Proofs.ScalarKeyProducer 2>&1 | tee ../results/scalar-key-producer.log
+          grep -F 'scalar_key_prefix_from_scan' ../results/scalar-key-producer.log
+          grep -F 'scalar_key_to_value_park' ../results/scalar-key-producer.log
+          grep -F 'scalar_key_prefix_to_value_park' ../results/scalar-key-producer.log
+          printf 'uncut_scalar_key_composition\t0\n' >> ../results/outcomes.tsv
+          echo 'Conditional actual key-to-colon composition on lawful directive route; no global reachability, no complete mapping route, no new axiom admission claim.' > ../results/composition-boundary.txt
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/scalar-key-producer.log; then exit 1; fi
+          git diff --check
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: directive-landing-producer-evidence
+          name: uncut-scalar-key-composition-evidence
           path: results/
           if-no-files-found: error
