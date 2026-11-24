@@ -1,0 +1,230 @@
+name: Group 7.7 corrected grammar and explicit-key consumer cut
+on:
+  push:
+    branches: [research/group77-corrected-376-consumer-cut]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 10d0ffa9a712c2a2c9e93ae5725ad54adf53089f
+          path: upstream
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 26baf55ec8c3023d4903a9444505e1c88a3b5da9
+          path: solution
+      - name: Verify all pinned inputs
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 10d0ffa9a712c2a2c9e93ae5725ad54adf53089f
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 29f20ab3947dacef278808153130ff7fcd1861b4
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/DocBridge.lean)" = 570e6330fd3d6f27df37fcd8a344b01552c2c7b3
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean)" = 8903b2489b51becad731a4e13a7e6c61bff7dc3b
+          test "$(git -C ../solution rev-parse HEAD)" = 26baf55ec8c3023d4903a9444505e1c88a3b5da9
+          test "$(git -C ../solution rev-parse HEAD:Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean)" = 4741497a77d31446a94c3ebfbfa512d50f2fce0b
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Replay positive and negative explicit-key runtime observations
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -uo pipefail
+          cat > Tests/Guards/Proofs/ExplicitKeyRuntimeDiagnostic.lean <<'LEAN'
+          module
+          public import L4YAML.Proofs.Serialization.TokenEvents
+          public import L4YAML.Scanner.Scanner
+          public import L4YAML.Parser.Composition
+          public meta import L4YAML.Proofs.Serialization.TokenEvents
+          public meta import L4YAML.Scanner.Scanner
+          public meta import L4YAML.Parser.Composition
+          @[expose] public section Blanket
+          open L4YAML L4YAML.Proofs.Serialization.TokenEvents
+          #eval (["", "? a\n: b", "? a", "? -\n  :", "? &k a\n: *k"].map fun s =>
+            (s, (Scanner.scanFiltered s).isOk,
+              (match Scanner.scanFiltered s with | .ok ts => (tokenEvents ts).length | .error _ => 999),
+              (TokenParser.parseYaml s).isOk))
+          end Blanket
+          LEAN
+          lake build Tests.Guards.Proofs.ExplicitKeyRuntimeDiagnostic 2>&1 | tee ../results/runtime.log
+          rc=${PIPESTATUS[0]}
+          printf 'runtime_observations\t%s\n' "$rc" >> ../results/outcomes.tsv
+          git diff --exit-code -- L4YAML
+      - name: Narrow only the annotated [211] grammar; replay frozen after-case
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("L4YAML/Proofs/Serialization/TraceOf/Document.lean")
+          s=p.read_text()
+          old="      TOpt TLAnyDocument s₂ s₃ e₁ →"
+          new="      TOpt TLExplicitDocument s₂ s₃ e₁ →"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new))
+          after=Path("../solution/L4YAML/Proofs/Serialization/TraceOf/Document.lean").read_text()
+          assert after.count(new)==1
+          PY
+          cp ../solution/Tests/Guards/Proofs/TraceOfBlockAmbiguity.lean Tests/Guards/Proofs/Group77CorrectedGuard.lean
+          git diff -- L4YAML > ../results/grammar-only.diff
+          set +e
+          set -o pipefail
+          lake build Tests.Guards.Proofs.Group77CorrectedGuard 2>&1 | tee ../results/corrected-witness.log
+          rc=${PIPESTATUS[0]}
+          printf 'corrected_witness\t%s\n' "$rc" >> ../results/outcomes.tsv
+      - name: Expose earliest genuine transfer obstruction
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -uo pipefail
+          lake build L4YAML.Proofs.Serialization.TraceOf.DocBridge 2>&1 | tee ../results/uncut-route.log
+          rc=${PIPESTATUS[0]}
+          printf 'uncut_docbridge\t%s\n' "$rc" >> ../results/outcomes.tsv
+      - name: Bounded diagnostic cut of known incompatible directive route
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("L4YAML/Proofs/Serialization/TraceOf/DocBridge.lean")
+          s=p.read_text()
+          old="(TOpt.some _ _ _ (TLAnyDocument.explicit _ _ _\n      (TLExplicitDocument.withContent s₂ s₃ s' eb hde hb))) (TStar.nil _)"
+          new="(TOpt.some _ _ _ (TLExplicitDocument.withContent s₂ s₃ s' eb hde hb)) (TStar.nil _)"
+          assert s.count(old)==1
+          s=s.replace(old,new)
+          start=s.index("lemma TLYamlStream.directiveRoute")
+          a=s.rfind("/--",0,start)
+          b=s.index("/-- A star grows",start)
+          assert a>=0 and "lemma TLYamlStream.directiveRoute" in s[a:b]
+          s=s[:a]+"/-! Diagnostic cut: unqualified directive continuation removed, NOT repaid. -/\n\n"+s[b:]
+          p.write_text(s)
+          p=Path("L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean")
+          s=p.read_text()
+          start=s.index("lemma docStart_step_run")
+          a=s.rfind("/--",0,start)
+          b=s.index("/--",start)
+          assert "TLYamlStream.directiveRoute" in s[a:b] and "lemma docEnd_step" not in s[a:b]
+          s=s[:a]+"/-! Diagnostic cut: original directive consumer removed, NOT repaid. -/\n\n"+s[b:]
+          assert "TLYamlStream.directiveRoute" not in s
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- L4YAML > ../results/diagnostic-cut.diff
+          test "$(git diff --name-only -- L4YAML | wc -l)" = 3
+      - name: Check #376 content producer reuse under corrected grammar
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -uo pipefail
+          lake build L4YAML.Proofs.Serialization.TraceOf.StreamBridge 2>&1 | tee ../results/cut-streambridge.log
+          rc=${PIPESTATUS[0]}
+          printf 'cut_streambridge\t%s\n' "$rc" >> ../results/outcomes.tsv
+      - name: Consume the actual value-content producer through an explicit key
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -uo pipefail
+          cat > Tests/Guards/Proofs/ExplicitKeyRouteCut.lean <<'LEAN'
+          /- Conditional local consumer, not a scanner reachability invariant.
+          The actual #376 value producer is used after a certified explicit key.
+          The two alternatives share the same '?' and key derivation.
+          The missing producer is required to construct the prefix and same-map route. -/
+          module
+          public import L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          public section
+          namespace L4YAML.Tests.Guards.ExplicitKeyRouteCut
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TokenEvents
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.CouplingBridge
+          open L4YAML.Proofs.StreamAccum (ContentArm)
+          open L4YAML.Proofs.PreprocessIndentStable (minContentIndentOf)
+          /-- Key-only closure is lawful at a certified terminal entry. -/
+          lemma key_can_close_empty {n : Nat} {sp_start sp_q sp_afterQ sp_key : SurfPos}
+              {ev_c ev_o ev_k : List Event}
+              (hq : GLit '?' sp_q sp_afterQ)
+              (hk : TBlockIndented n .blockOut sp_afterQ sp_key ev_k)
+              (route : ∀ sp ev, TBlockMapEntry n sp_q sp ev →
+                TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev)) :
+              TLYamlStream sp_start sp_key (ev_c ++ ev_o ++ ev_k) :=
+            route sp_key ev_k (.explicitEmpty n sp_q sp_afterQ sp_key ev_k hq hk)
+          /-- A subsequent colon at the mapping indent uses the SAME key derivation;
+          do not erase the key by prematurely closing the stream. -/
+          lemma key_value_content_step {n : Nat}
+              {sp_start sp_block sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_prep sp_a sp_end : SurfPos}
+              {s_prep s' : ScannerState} {c : Char} {ev_c ev_o ev_k : List Event}
+              (hq : GLit '?' sp_q sp_afterQ)
+              (hk : TBlockIndented n .blockOut sp_afterQ sp_key ev_k)
+              (hi : SIndent n sp_key sp_colon)
+              (hc : GLit ':' sp_colon sp_afterColon)
+              (route : ∀ sp ev, TBlockMapEntry n sp_q sp ev →
+                TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev))
+              (hS : TSLYamlStream sp_start s_prep sp_block ev_c (ev_o ++ ev_k) [])
+              (h_sep : SSeparate (n + 1) .flowOut sp_afterColon sp_prep)
+              (arm : ContentArm s_prep s' c sp_prep sp_a)
+              (hcorr : ScannerSurfCorr s_prep sp_prep) (hcorr' : ScannerSurfCorr s' sp_a)
+              (hpeek : s_prep.peek? = some c) (h_depth : s_prep.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_prep c = .ok s')
+              (h_not_doc : s_prep.col = 0 → atDocumentBoundary s_prep = false)
+              (h_floor : n + 1 ≤ minContentIndentOf s_prep)
+              (h_ssl : SSLComments sp_a sp_end) :
+              ∃ ev_v, (goOut s'.tokens.toList []).1 = ev_c ++ ((ev_o ++ ev_k) ++ ev_v) ∧
+                TLYamlStream sp_start sp_end (ev_c ++ ((ev_o ++ ev_k) ++ ev_v)) := by
+            have h_close : ∀ sp_mid ev_v, TBlockNode (n + 1) .blockOut sp_afterColon sp_mid ev_v →
+                TLYamlStream sp_start sp_mid (ev_c ++ (ev_o ++ ev_k) ++ ev_v) := by
+              intro sp_mid ev_v hv
+              have he : TBlockMapEntry n sp_q sp_mid (ev_k ++ ev_v) :=
+                .explicit n sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_mid ev_k ev_v hq hk hi hc
+                  (.node n .blockOut _ _ _ hv)
+              simpa only [List.append_assoc] using route sp_mid (ev_k ++ ev_v) he
+            obtain ⟨ev_v, hS', h_park⟩ :=
+              TPendingNode.content_step_mapValue hS h_close h_sep arm hcorr hcorr' hpeek h_depth h_dispatch h_not_doc h_floor
+            exact ⟨ev_v, congrArg Prod.fst hS'.events, TPendingNode.close_with_ssl hS' h_park h_ssl⟩
+          #print axioms key_can_close_empty
+          #print axioms key_value_content_step
+          end L4YAML.Tests.Guards.ExplicitKeyRouteCut
+          end
+          LEAN
+          lake build Tests.Guards.Proofs.ExplicitKeyRouteCut 2>&1 | tee ../results/explicit-key-consumer.log
+          rc=${PIPESTATUS[0]}
+          printf 'explicit_key_consumer\t%s\n' "$rc" >> ../results/outcomes.tsv
+          cp Tests/Guards/Proofs/ExplicitKeyRouteCut.lean ../results/
+      - name: Score diagnostic targets without promoting conditional claims
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat ../results/outcomes.tsv
+          test "$(wc -l < ../results/outcomes.tsv)" = 5
+          for target in runtime_observations corrected_witness cut_streambridge explicit_key_consumer; do
+            grep -Fx "$(printf '%s\t0' "$target")" ../results/outcomes.tsv
+          done
+          grep -Fx "$(printf 'uncut_docbridge\t1')" ../results/outcomes.tsv
+          if grep -E 'sorryAx|declaration uses .sorry|_native\.native_decide\.ax' ../results/corrected-witness.log ../results/explicit-key-consumer.log; then exit 1; fi
+          git diff --check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: corrected-grammar-explicit-key-consumer-evidence
+          path: results/
+          if-no-files-found: error
