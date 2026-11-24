@@ -234,8 +234,9 @@ jobs:
             split
             · have hb : s.peek? = some '\uFEFF' := by assumption
               have hm : s.offset < s.inputEnd := by
-                by_contra hn
-                simp [ScannerState.peek?, hn] at hb
+                by_cases hn : s.offset < s.inputEnd
+                · exact hn
+                · simp [ScannerState.peek?, hn] at hb
               obtain ⟨c, rest, hchars, hpeek⟩ := peek_corr s ⟨input.toList, 0⟩ hc hm
               have he : c = '\uFEFF' := Option.some.inj (hpeek.symm.trans hb)
               subst c
