@@ -69,6 +69,10 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
 -- 2026-11-22 (item 531, β PR 4): population 14253 → 14260, thm 10215 → 10222, unreached 6549 → 6556 (thm 4624 → 4631),
 -- A-campaign 1334 → 1341 — StreamBridge's `content_step_routed` / `_docStart` / `_docEnd` / `_props`, `quoted_flowOut`,
 -- `TLYamlStream.suffixRoute` and `TCNsProperties.blockIn_of_flowOut`, unreached until the depth-0 fold spends the steps.
+-- 2026-11-23 (axiom admission): population/defs +4 for `replayBooleanAxiom`, `AxiomReplayM`,
+-- `axiomAdmitted`, and `unvalidatedAxioms` in `L4YAML.CapstoneAttr`. The proof-policy helpers
+-- are classified as API by convention (C-api +4); capstone proof terms do not reference their
+-- checking instrument. No theorem, directed census, B-roster name or cluster root changes.
 -- 2026-11-23 (item 532, β PR 5): population 14260 → 14262, thm 10222 → 10224, unreached 6556 → 6558 (thm 4631 → 4633),
 -- A-campaign 1341 → 1343 — ContentBridge's `TFlowContent.of_scalar` and `content_leaf_at`, spent by the unreached
 -- `TPendingNode.content_step_props` (now at every indentation).
