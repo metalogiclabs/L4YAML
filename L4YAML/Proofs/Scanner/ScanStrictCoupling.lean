@@ -26,7 +26,7 @@ into top-level theorems showing that `scan` consumes all input characters.
 - `scanNextToken_corr`: each scanNextToken step preserves ScannerSurfCorr
 - `scanNextToken_none_consumed`: when scanNextToken returns none, input is consumed
 - `scanLoop_full_consumption`: after scanLoop succeeds, all characters consumed
-- `scan_full_consumption`: scan success implies full character consumption
+- `scan_full_consumption`: successful scan provides its reachable EOF state, exact fuel and returned tokens
 
 ## Architecture
 
@@ -323,11 +323,13 @@ lemma scanNextToken_preprocess_corr (sc : ScannerState) (sp : SurfPos)
             obtain ⟨h1, h2⟩ := Prod.mk.inj h; subst h1; subst h2
             exact ⟨sp1, closeStaleExplicitKey_corr _ sp1 (saveSimpleKey_corr _ sp1 hcorr1)⟩
 
--- When scanNextToken_preprocess returns .ok none, all input is consumed.
-lemma scanNextToken_preprocess_none_consumed (sc : ScannerState) (sp : SurfPos)
+/-- Preserve the actual EOF state and the correspondence used by the original
+    proof, instead of discarding both at existential introduction. -/
+lemma preprocess_none_reachable_eof (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken_preprocess sc = .ok none) :
-    ∃ sp_final : SurfPos, sp_final.chars = [] := by
+    ∃ (e : ScannerState) (p : SurfPos), skipToContent sc = .ok e ∧
+      ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] := by
   unfold scanNextToken_preprocess at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
@@ -339,7 +341,8 @@ lemma scanNextToken_preprocess_none_consumed (sc : ScannerState) (sp : SurfPos)
         (Nat.le_refl _) h_skip
       have h_not_lt : ¬ s_content.offset < s_content.inputEnd := by
         simp [ScannerState.hasMore] at h_hasMore; omega
-      exact ⟨sp_c, eof_corr s_content sp_c hcorr_c h_not_lt⟩
+      refine ⟨s_content, sp_c, h_skip, hcorr_c, ?_, eof_corr s_content sp_c hcorr_c h_not_lt⟩
+      simpa [ScannerState.hasMore] using h_not_lt
     · rename_i h_hasMore
       split at hok
       · split at hok
@@ -367,6 +370,14 @@ lemma scanNextToken_preprocess_none_consumed (sc : ScannerState) (sp : SurfPos)
             · rename_i h_not_lt; simp [ScannerState.hasMore] at h_hasMore
               exact h_not_lt h_hasMore
           · cases hok
+
+-- Compatibility projection; the meaningful witness is retained above.
+lemma scanNextToken_preprocess_none_consumed (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hok : scanNextToken_preprocess sc = .ok none) :
+    ∃ sp_final : SurfPos, sp_final.chars = [] := by
+  obtain ⟨_, p, _, _, _, hp⟩ := preprocess_none_reachable_eof sc sp hcorr hok
+  exact ⟨p, hp⟩
 
 /-! ## §4 scanNextToken Coupling -/
 
@@ -429,18 +440,18 @@ lemma scanNextToken_corr (sc : ScannerState) (sp : SurfPos)
                         have h := Except.ok.inj hok; injection h with h; subst h
                         exact scanNextToken_dispatchContent_corr _ sp_pre c_pre hcorr_ad s_cnt h_cnt
 
--- When scanNextToken returns .ok none, all input characters are consumed.
-lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
+lemma next_none_reachable_eof (sc : ScannerState) (sp : SurfPos)
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanNextToken sc = .ok none) :
-    ∃ sp_final : SurfPos, sp_final.chars = [] := by
+    ∃ (e : ScannerState) (p : SurfPos), skipToContent sc = .ok e ∧
+      ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] := by
   unfold scanNextToken at hok
   simp only [bind, Except.bind, pure, Except.pure] at hok
   split at hok
   · simp at hok
   · split at hok
     · rename_i h_pre
-      exact scanNextToken_preprocess_none_consumed sc sp hcorr h_pre
+      exact preprocess_none_reachable_eof sc sp hcorr h_pre
     · -- §9.2 dangling-node check (item 133)
       split at hok
       · simp at hok
@@ -472,64 +483,98 @@ lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
                       · simp at hok
                       · exact absurd (Except.ok.inj hok) nofun
 
+-- Compatibility projection.
+lemma scanNextToken_none_consumed (sc : ScannerState) (sp : SurfPos)
+    (hcorr : ScannerSurfCorr sc sp)
+    (hok : scanNextToken sc = .ok none) :
+    ∃ sp_final : SurfPos, sp_final.chars = [] := by
+  obtain ⟨_, p, _, _, _, hp⟩ := next_none_reachable_eof sc sp hcorr hok
+  exact ⟨p, hp⟩
+
 /-! ## §5 scanLoop Full Consumption -/
 
--- After scanLoop succeeds, all input characters have been consumed.
--- Proof by induction on fuel, threading ScannerSurfCorr through each
--- scanNextToken step via scanNextToken_corr, and using
--- scanNextToken_none_consumed when the loop terminates.
+/-- The exact finite prefix of native successful scanner transitions.
+    The count is the number of consumed scanner-loop fuel units. -/
+inductive ScanPrefix : Nat → ScannerState → ScannerState → Prop where
+  | zero (s : ScannerState) : ScanPrefix 0 s s
+  | step {n : Nat} {s t u : ScannerState} :
+      scanNextToken s = .ok (some t) → ScanPrefix n t u →
+      ScanPrefix (n + 1) s u
+
+/-- A successful run supplies its own reachable terminal cursor, the actual
+    EOF preprocessing result, a related empty surface, and the very same
+    returned token array, with the exact fuel accounting. -/
+lemma loop_reachable_eof (sc : ScannerState) (sp : SurfPos) (fuel : Nat)
+    (tokens : Array (Positioned YamlToken))
+    (hcorr : ScannerSurfCorr sc sp)
+    (hok : scanLoop sc fuel = .ok tokens) :
+    ∃ (n rest : Nat) (t e : ScannerState) (p : SurfPos),
+      fuel = n + (rest + 1) ∧ ScanPrefix n sc t ∧
+      scanNextToken t = .ok none ∧ skipToContent t = .ok e ∧
+      ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] ∧
+      scanLoop t (rest + 1) = .ok tokens := by
+  induction fuel generalizing sc sp tokens with
+  | zero => simp [scanLoop] at hok
+  | succ fuel' ih =>
+    cases hn : scanNextToken sc with
+    | error err => simp [scanLoop, hn] at hok
+    | ok v =>
+      cases v with
+      | none =>
+        obtain ⟨e, p, hs, hc, he, hp⟩ := next_none_reachable_eof sc sp hcorr hn
+        exact ⟨0, fuel', sc, e, p, by omega, .zero _, hn, hs, hc, he, hp, hok⟩
+      | some t =>
+        obtain ⟨sp', hc⟩ := scanNextToken_corr sc sp hcorr t hn
+        have ht : scanLoop t fuel' = .ok tokens := by
+          simpa only [scanLoop, hn] using hok
+        obtain ⟨n, rest, u, e, p, hfuel, hpath, hnone, hs, hcorr', he, hp, hl⟩ :=
+          ih t sp' tokens hc ht
+        exact ⟨n + 1, rest, u, e, p, by omega, .step hn hpath, hnone, hs, hcorr', he, hp, hl⟩
+
+-- Compatibility projection.
 lemma scanLoop_full_consumption (sc : ScannerState) (sp : SurfPos) (fuel : Nat)
     (tokens : Array (Positioned YamlToken))
     (hcorr : ScannerSurfCorr sc sp)
     (hok : scanLoop sc fuel = .ok tokens) :
     ∃ sp_final : SurfPos, sp_final.chars = [] := by
-  induction fuel generalizing sc sp tokens with
-  | zero => simp [scanLoop] at hok
-  | succ fuel' ih =>
-    simp only [scanLoop] at hok
-    split at hok
-    · -- scanNextToken = .error → contradicts .ok
-      simp at hok
-    · -- scanNextToken = .ok none → EOF
-      rename_i h_none
-      -- Final validation: flowLevel, directives checks
-      split at hok <;> try (simp at hok; done)
-      split at hok <;> try (simp at hok; done)
-      -- Past validation, scanner reached EOF
-      exact scanNextToken_none_consumed sc sp hcorr h_none
-    · -- scanNextToken = .ok (some s') → recurse
-      rename_i s_next h_next
-      obtain ⟨sp', hcorr'⟩ := scanNextToken_corr sc sp hcorr s_next h_next
-      exact ih s_next sp' tokens hcorr' hok
+  obtain ⟨_, _, _, _, p, _, _, _, _, _, _, hp, _⟩ :=
+    loop_reachable_eof sc sp fuel tokens hcorr hok
+  exact ⟨p, hp⟩
 
 /-! ## §6 scan Full Consumption -/
 
--- Full consumption: when `scan` succeeds, all input characters are consumed.
--- Proof: establish ScannerSurfCorr for the initial state (mk' + emit + BOM),
--- then apply scanLoop_full_consumption.
+/-- Use the actual production initialization including BOM. -/
+def scanInitial (input : String) : ScannerState :=
+  let s := (ScannerState.mk' input).emit .streamStart
+  match s.peek? with
+  | some '\uFEFF' => s.consumeBOM
+  | _ => s
+
+/-- Successful production scan reaches a source-correlated EOF via its own native
+    steps, with the same returned tokens and exact fuel accounting. -/
 @[capstone]
 theorem scan_full_consumption (input : String)
-    (tokens : Array (Positioned YamlToken))
-    (h : scan input = .ok tokens) :
-    ∃ sp_final : SurfPos, sp_final.chars = [] := by
-  unfold scan at h
-  simp only [] at h
-  -- Establish ScannerSurfCorr for initial state
-  have h_chars := chars_from_zero_toList input
+    (tokens : Array (Positioned YamlToken)) (h : scan input = .ok tokens) :
+    ∃ (n rest : Nat) (t e : ScannerState) (p : SurfPos),
+      (input.utf8ByteSize + 1) * 4 = n + (rest + 1) ∧
+      ScanPrefix n (scanInitial input) t ∧
+      scanNextToken t = .ok none ∧ skipToContent t = .ok e ∧
+      ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] ∧
+      scanLoop t (rest + 1) = .ok tokens := by
+  have hloop : scanLoop (scanInitial input) ((input.utf8ByteSize + 1) * 4) = .ok tokens := h
+  have h_chars := L4YAML.Proofs.ScanStrictCoupling.chars_from_zero_toList input
   have h_init := initial_corr input input.toList h_chars
   have h_emit : ScannerSurfCorr ((ScannerState.mk' input).emit .streamStart)
       ⟨input.toList, 0⟩ :=
     ⟨h_init.chars_from, h_init.col_eq, h_init.end_eq, h_init.input_prefix, h_init.indent_cols_nonneg⟩
-  -- BOM handling preserves ScannerSurfCorr
-  have h_bom : ∃ sp, ScannerSurfCorr
-      (match (ScannerState.mk' input |>.emit .streamStart).peek? with
-       | some '\uFEFF' => (ScannerState.mk' input |>.emit .streamStart).consumeBOM
-       | _ => ScannerState.mk' input |>.emit .streamStart) sp := by
+  have h_bom : ∃ sp, ScannerSurfCorr (scanInitial input) sp := by
+    unfold scanInitial
+    dsimp only []
     split
     · exact (consumeBOM_corr _ _ h_emit).imp fun _ h => h.1
     · exact ⟨_, h_emit⟩
-  obtain ⟨sp_bom, h_bom⟩ := h_bom
-  exact scanLoop_full_consumption _ sp_bom _ tokens h_bom h
+  obtain ⟨sp, hc⟩ := h_bom
+  exact loop_reachable_eof _ sp _ tokens hc hloop
 
 /-! ## §6 Fix-B helpers: `directivesPresent` tracking (grammar-completeness Phase 1)
 
