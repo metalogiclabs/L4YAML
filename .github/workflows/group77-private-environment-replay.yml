@@ -1,0 +1,514 @@
+name: Group 7.7 private environment replay for shared proof dependencies
+on:
+  push:
+    branches: [research/group77-private-environment-replay-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 92c622bc1015febac29897be08192eb73c6aa744
+          path: upstream
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: c5e0f0c6b449261d23fef5ddd588c360d5e5d630
+          path: policy
+      - name: Verify exact source and independently approved policy
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 92c622bc1015febac29897be08192eb73c6aa744
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 29f20ab3947dacef278808153130ff7fcd1861b4
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/DocBridge.lean)" = 570e6330fd3d6f27df37fcd8a344b01552c2c7b3
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean)" = 213a3576c024e3cc4b56d109942ec9085715f9d3
+          test "$(git rev-parse HEAD:L4YAML/CapstoneAttr.lean)" = 423abad239f2e5c93e47b6e1e3d103f1a50a5d41
+          test "$(git -C ../policy rev-parse HEAD)" = c5e0f0c6b449261d23fef5ddd588c360d5e5d630
+          test "$(git -C ../policy rev-parse HEAD:L4YAML/CapstoneAttr.lean)" = 7f7d9e3079018c8486ed85d1640247c758971e72
+          test "$(git -C ../policy rev-parse HEAD:Tests/Guards/Proofs/CapstoneAxioms.lean)" = 20316a96cfc09473fab40d2d63fb29939c431058
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
+          git -C ../policy rev-parse HEAD HEAD:L4YAML/CapstoneAttr.lean >> ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Restore the identical previously qualified diagnostic grammar cut
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("L4YAML/Proofs/Serialization/TraceOf/Document.lean")
+          s=p.read_text()
+          old="      TOpt TLAnyDocument s₂ s₃ e₁ →"
+          new="      TOpt TLExplicitDocument s₂ s₃ e₁ →"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new))
+          PY
+      - name: Bounded diagnostic cut of known incompatible directive route
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("L4YAML/Proofs/Serialization/TraceOf/DocBridge.lean")
+          s=p.read_text()
+          old="(TOpt.some _ _ _ (TLAnyDocument.explicit _ _ _\n      (TLExplicitDocument.withContent s₂ s₃ s' eb hde hb))) (TStar.nil _)"
+          new="(TOpt.some _ _ _ (TLExplicitDocument.withContent s₂ s₃ s' eb hde hb)) (TStar.nil _)"
+          assert s.count(old)==1
+          s=s.replace(old,new)
+          start=s.index("lemma TLYamlStream.directiveRoute")
+          a=s.rfind("/--",0,start)
+          b=s.index("/-- A star grows",start)
+          assert a>=0 and "lemma TLYamlStream.directiveRoute" in s[a:b]
+          s=s[:a]+"/-! Diagnostic cut: unqualified directive continuation removed, NOT repaid. -/\n\n"+s[b:]
+          p.write_text(s)
+          p=Path("L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean")
+          s=p.read_text()
+          start=s.index("lemma docStart_step_run")
+          a=s.rfind("/--",0,start)
+          b=s.index("/--",start)
+          assert "TLYamlStream.directiveRoute" in s[a:b] and "lemma docEnd_step" not in s[a:b]
+          s=s[:a]+"/-! Diagnostic cut: original directive consumer removed, NOT repaid. -/\n\n"+s[b:]
+          assert "TLYamlStream.directiveRoute" not in s
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- L4YAML > ../results/diagnostic-cut.diff
+          test "$(git diff --name-only -- L4YAML | wc -l)" = 3
+      - name: Install exact replay policy and original independent controls
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../policy/L4YAML/CapstoneAttr.lean L4YAML/CapstoneAttr.lean
+          cp ../policy/Tests/Guards/Proofs/CapstoneAxioms.lean Tests/Guards/Proofs/CapstoneAxioms.lean
+          cmp ../policy/L4YAML/CapstoneAttr.lean L4YAML/CapstoneAttr.lean
+          cmp ../policy/Tests/Guards/Proofs/CapstoneAxioms.lean Tests/Guards/Proofs/CapstoneAxioms.lean
+          git diff --check
+          git diff -- L4YAML > ../results/policy-and-grammar.diff
+          test "$(git diff --name-only -- L4YAML | wc -l)" = 4
+          lake build Tests.Guards.Proofs.CapstoneAxioms 2>&1 | tee ../results/policy-controls.log
+          printf 'policy_controls\t0\n' > ../results/outcomes.tsv
+      - name: Consume the actual value-content producer through an explicit key
+        working-directory: upstream
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          cat > Tests/Guards/Proofs/ExplicitKeyRouteCut.lean <<'LEAN'
+          /- Conditional local consumer, not a scanner reachability invariant.
+          The actual #376 value producer is used after a certified explicit key.
+          The two alternatives share the same '?' and key derivation.
+          The missing producer is required to construct the prefix and same-map route. -/
+          module
+          public import L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          public section
+          namespace L4YAML.Tests.Guards.ExplicitKeyRouteCut
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TokenEvents
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.CouplingBridge
+          open L4YAML.Proofs.StreamAccum (ContentArm)
+          open L4YAML.Proofs.PreprocessIndentStable (minContentIndentOf)
+          /-- Key-only closure is lawful at a certified terminal entry. -/
+          lemma key_can_close_empty {n : Nat} {sp_start sp_q sp_afterQ sp_key : SurfPos}
+              {ev_c ev_o ev_k : List Event}
+              (hq : GLit '?' sp_q sp_afterQ)
+              (hk : TBlockIndented n .blockOut sp_afterQ sp_key ev_k)
+              (route : ∀ sp ev, TBlockMapEntry n sp_q sp ev →
+                TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev)) :
+              TLYamlStream sp_start sp_key (ev_c ++ ev_o ++ ev_k) :=
+            route sp_key ev_k (.explicitEmpty n sp_q sp_afterQ sp_key ev_k hq hk)
+          /-- A subsequent colon at the mapping indent uses the SAME key derivation;
+          do not erase the key by prematurely closing the stream. -/
+          lemma key_value_content_step {n : Nat}
+              {sp_start sp_block sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_prep sp_a sp_end : SurfPos}
+              {sc s_prep s_ad s' : ScannerState} {c : Char} {ev_c ev_o ev_k : List Event}
+              (hq : GLit '?' sp_q sp_afterQ)
+              (hk : TBlockIndented n .blockOut sp_afterQ sp_key ev_k)
+              (hi : SIndent n sp_key sp_colon)
+              (hc : GLit ':' sp_colon sp_afterColon)
+              (route : ∀ sp ev, TBlockMapEntry n sp_q sp ev →
+                TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev))
+              (hS : TSLYamlStream sp_start s_ad sp_block ev_c (ev_o ++ ev_k) [])
+              (h_ad : s_ad = if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
+              (h_floor : L4YAML.Proofs.PreprocessIndentStable.IndentFloor sc (n + 1))
+              (h_col : n + 1 ≤ sp_afterColon.col) (h_col0 : 0 < sp_afterColon.col)
+              (h_next : L4YAML.Proofs.StreamAccum.NextIsSep sc)
+              (h_corr : ScannerSurfCorr sc sp_afterColon)
+              (hcorr_prep : ScannerSurfCorr s_prep sp_prep) (hcorr' : ScannerSurfCorr s' sp_a)
+              (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+              (arm : ContentArm s_ad s' c sp_prep sp_a)
+              (h_depth : s_ad.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
+              (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
+              (h_src : L4YAML.Proofs.StreamAccum.SlotGateAt s_prep)
+              (h_ssl : SSLComments sp_a sp_end) :
+              (∃ ev_v, (goOut s'.tokens.toList []).1 = ev_c ++ ((ev_o ++ ev_k) ++ ev_v) ∧
+                TLYamlStream sp_start sp_end (ev_c ++ ((ev_o ++ ev_k) ++ ev_v))) ∨
+              L4YAML.Proofs.FlowIndexLift.DedentLanding (n + 1) sp_afterColon sp_prep := by
+            have h_close : ∀ sp_mid ev_v, TBlockNode (n + 1) .blockOut sp_afterColon sp_mid ev_v →
+                TLYamlStream sp_start sp_mid (ev_c ++ (ev_o ++ ev_k) ++ ev_v) := by
+              intro sp_mid ev_v hv
+              have he : TBlockMapEntry n sp_q sp_mid (ev_k ++ ev_v) :=
+                .explicit n sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_mid ev_k ev_v hq hk hi hc
+                  (.node n .blockOut _ _ _ hv)
+              simpa only [List.append_assoc] using route sp_mid (ev_k ++ ev_v) he
+            have park : TPendingNode.ContentPark sp_start sp_afterColon c ev_c (n + 1) (ev_o ++ ev_k) :=
+              .mapValue n (ev_o ++ ev_k) h_close
+            rcases TPendingNode.content_step_park hS park h_ad h_floor h_col h_col0 h_next h_corr
+              hcorr_prep hcorr' h_preprocess arm h_depth h_dispatch h_not_doc h_src with
+              ⟨ev_v, hS', h_park⟩ | h_ded
+            · exact Or.inl ⟨ev_v, congrArg Prod.fst hS'.events, TPendingNode.close_with_ssl hS' h_park h_ssl⟩
+            · exact Or.inr h_ded
+          #print axioms key_can_close_empty
+          #print axioms key_value_content_step
+          end L4YAML.Tests.Guards.ExplicitKeyRouteCut
+          end
+          LEAN
+          lake build Tests.Guards.Proofs.ExplicitKeyRouteCut 2>&1 | tee ../results/explicit-key-consumer.log
+          rc=${PIPESTATUS[0]}
+          printf 'explicit_key_consumer\t%s\n' "$rc" >> ../results/outcomes.tsv
+          cp Tests/Guards/Proofs/ExplicitKeyRouteCut.lean ../results/
+      - name: Produce a scalar key certificate from actual scanKey and content dispatch
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/ScalarKeyProducer.lean <<'LEAN'
+          /- Bounded conditional producer: scalar (plain/quoted) explicit keys only.
+          No whole-stream route is assumed for the first lemma.  The second lemma
+          consumes the retained key with the actual colon scanner production.
+          Actual reachability of SlotGateAt, NextIsSep and the enclosing mapping
+          route, and property/alias/block/flow keys, are separate obligations. -/
+          module
+          public import L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          public section
+          namespace L4YAML.Tests.Guards.ScalarKeyProducer
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.Serialization.TraceOf.ContentBridge
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.StructureProduction
+          open L4YAML.Proofs.PreprocessIndentStable
+          open L4YAML.Proofs.StreamAccum (ContentArm NextIsSep SlotGateAt white_prepend_SSLComments)
+          lemma scalar_key_prefix_from_scan
+              {s_q sc s_prep s_ad s' : ScannerState} {c : Char}
+              {sp_q sp_prep sp_a : SurfPos}
+              (hq_corr : ScannerSurfCorr s_q sp_q) (hq_peek : s_q.peek? = some '?')
+              (hq_scan : scanKey s_q = .ok sc) (hq_flow : s_q.inFlow = false)
+              (hq_nic : s_q.needIndentCheck = false)
+              (h_next : NextIsSep sc)
+              (h_ad : s_ad = if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
+              (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+              (hcorr' : ScannerSurfCorr s' sp_a)
+              (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+              (arm : ContentArm s_ad s' c sp_prep sp_a)
+              (h_depth : s_ad.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
+              (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
+              (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+              (h_pipe : c ≠ '|') (h_gt : c ≠ '>')
+              (h_src : SlotGateAt s_prep) :
+              ∃ sp_afterQ, GLit '?' sp_q sp_afterQ ∧ ScannerSurfCorr sc sp_afterQ ∧
+                (((∀ sp_key, SSLComments sp_a sp_key →
+                    TBlockIndented s_q.col .blockOut sp_afterQ sp_key []) ∧
+                  PushesTrace s_ad.tokens s'.tokens []) ∨
+                  L4YAML.Proofs.FlowIndexLift.DedentLanding (s_q.col + 1) sp_afterQ sp_prep) := by
+            obtain ⟨sp_afterQ, hq, h_corr⟩ := scanKey_prod s_q sp_q hq_corr hq_peek sc hq_scan
+            refine ⟨sp_afterQ, hq, h_corr, ?_⟩
+            have h_floor : IndentFloor sc (s_q.col + 1) :=
+              IndentFloor.succ_of_int_le ((scanKey_needIndentCheck hq_flow hq_scan).trans hq_nic)
+                (scanKey_col_le_currentIndent hq_flow hq_scan)
+            have h_col : s_q.col + 1 ≤ sp_afterQ.col := by
+              have hqc := hq_corr.col_eq
+              cases hq
+              simp_all
+            have h_col0 : 0 < sp_afterQ.col := by omega
+            have hflow : s_ad.inFlow = false := by unfold ScannerState.inFlow; rw [h_depth]; rfl
+            have hcorr_ad : ScannerSurfCorr s_ad sp_prep := by
+              rw [h_ad]
+              exact L4YAML.Proofs.StreamAccum.corr_of_allowDirectives_update hcorr_prep
+            have hpeek : s_ad.peek? = some c := by
+              rw [h_ad]
+              have := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
+              split <;> exact this
+            rcases TPendingNode.content_sep_of_preprocess h_ad h_floor h_col h_col0 h_next h_corr
+                hcorr_prep hcorr' h_preprocess h_not_doc hflow h_dispatch h_src with
+              ⟨h_sep, h_fl⟩ | h_ded
+            · obtain ⟨sp_gram, sp_res, hT, hws, hcorr_res⟩ :=
+                content_leaf_at (s_q.col + 1) hcorr_ad hpeek hflow h_not_doc
+                  h_amp h_star h_bang h_pipe h_gt h_dispatch h_fl
+              obtain rfl : sp_res = sp_a := ScannerSurfCorr_unique hcorr_res hcorr'
+              obtain ⟨ev_n, hpt, hdisj⟩ := accum_step_content_trace_out arm hcorr_ad hpeek h_depth h_dispatch
+              have hev : ev_n = [] := by
+                rcases hdisj with ⟨hev, -⟩ | ⟨hev, -⟩ | ⟨hev, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩
+                · exact hev
+                · exact hev
+                · exact hev
+                · exact absurd hc h_amp
+                · exact absurd hc h_bang
+                · exact absurd hc h_star
+              subst ev_n
+              refine Or.inl ⟨?_, hpt⟩
+              intro sp_key hssl
+              exact .node _ .blockOut _ _ []
+                (.flowInBlock _ .blockOut _ _ _ _ [] h_sep (.content _ _ _ _ _ hT)
+                  (white_prepend_SSLComments hws hssl))
+            · exact Or.inr h_ded
+
+          /-- Consume the same retained key at the actual colon scan, supplying
+          precisely the mapValue park that content_step_park already consumes.
+          The map indentation and enclosing route remain explicit premises. -/
+          lemma scalar_key_to_value_park
+              {n : Nat} {sp_start sp_q sp_afterQ sp_key sp_colon : SurfPos}
+              {sc sc' : ScannerState} {c : Char} {ev_c ev_o : List Event}
+              (hq : GLit '?' sp_q sp_afterQ)
+              (hk : TBlockIndented n .blockOut sp_afterQ sp_key [])
+              (hi : SIndent n sp_key sp_colon)
+              (hcorr : ScannerSurfCorr sc sp_colon)
+              (hpeek : sc.peek? = some ':') (hok : scanValue sc = .ok sc')
+              (route : ∀ sp ev, TBlockMapEntry n sp_q sp ev →
+                TLYamlStream sp_start sp (ev_c ++ ev_o ++ ev)) :
+              ∃ sp_afterColon, ScannerSurfCorr sc' sp_afterColon ∧
+                TPendingNode.ContentPark sp_start sp_afterColon c ev_c (n + 1) ev_o := by
+            obtain ⟨sp_afterColon, hc, hcorr'⟩ := scanValue_prod sc sp_colon hcorr hpeek sc' hok
+            refine ⟨sp_afterColon, hcorr', .mapValue n ev_o ?_⟩
+            intro sp_mid ev_v hv
+            have he : TBlockMapEntry n sp_q sp_mid ([] ++ ev_v) :=
+              .explicit n sp_q sp_afterQ sp_key sp_colon sp_afterColon sp_mid [] ev_v hq hk hi hc
+                (.node n .blockOut _ _ _ hv)
+            simpa using route sp_mid ([] ++ ev_v) he
+          #print axioms scalar_key_prefix_from_scan
+          #print axioms scalar_key_to_value_park
+          end L4YAML.Tests.Guards.ScalarKeyProducer
+          end
+          LEAN
+          cp Tests/Guards/Proofs/ScalarKeyProducer.lean ../results/
+          lake build Tests.Guards.Proofs.ScalarKeyProducer 2>&1 | tee ../results/scalar-key-producer.log
+          grep -F 'scalar_key_prefix_from_scan' ../results/scalar-key-producer.log
+          grep -F 'scalar_key_to_value_park' ../results/scalar-key-producer.log
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/scalar-key-producer.log; then exit 1; fi
+          git diff --check
+      - name: Build standalone private-import replay driver with unchanged policy
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fx "$(printf 'explicit_key_consumer\t0')" ../results/outcomes.tsv
+          cat > Tests/Guards/Proofs/ImportedAxiomControls.lean <<'LEAN'
+          module
+          public import L4YAML.CapstoneAttr
+          public section
+          namespace L4YAML.Tests.Guards.ImportedAxiomControls
+          private axiom unsupportedFalse : False
+          theorem badFalse : False := unsupportedFalse
+          private axiom forged._native.native_decide.ax_1 : (false : Bool) = true
+          theorem badBoolean : (false : Bool) = true := forged._native.native_decide.ax_1
+          theorem genuineNative : (List.range 40).length = 40 := by native_decide
+          theorem pureControl : True := True.intro
+          end L4YAML.Tests.Guards.ImportedAxiomControls
+          end
+          LEAN
+          cat > Tests/Guards/Proofs/StandaloneAxiomReplay.lean <<'LEAN'
+          module
+          public import L4YAML.CapstoneAttr
+          public section
+          open Lean
+          def expectedChild : Array String := #[
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_1",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_1",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_4",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_5",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_4",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_5",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_5",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_8",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.parseBlockHeaderLoop_offset_preserves._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_4",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_5",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_8",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_9",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_4",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_10",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_11",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_8",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_9"
+          ]
+          def expectedPrefix : Array String := #[
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_1",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_1",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_4",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_5",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_4",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_5",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_5",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_8",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.parseBlockHeaderLoop_offset_preserves._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_2",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_3",
+            "_private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_4",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_10",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_11",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_6",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_7",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_8",
+            "_private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_9"
+          ]
+          def nonstandard (axs : Array Name) : Array Name :=
+            axs.filter fun n => !L4YAML.allowedCapstoneAxioms.contains n
+          def exactProfile (xs : Array Name) (expected : Array String) : Bool :=
+            xs.size == expected.size && xs.all (fun n => expected.contains n.toString)
+          def targetCheck : L4YAML.AxiomReplayM Bool := do
+            let parent := `L4YAML.Proofs.Serialization.TraceOf.StreamBridge.TPendingNode.content_step_park
+            let child := `L4YAML.Tests.Guards.ExplicitKeyRouteCut.key_value_content_step
+            let prefix := `L4YAML.Tests.Guards.ScalarKeyProducer.scalar_key_prefix_from_scan
+            let purePark := `L4YAML.Tests.Guards.ScalarKeyProducer.scalar_key_to_value_park
+            let empty := `L4YAML.Tests.Guards.ExplicitKeyRouteCut.key_can_close_empty
+            let pa := nonstandard (← collectAxioms parent)
+            let ca := nonstandard (← collectAxioms child)
+            let ka := nonstandard (← collectAxioms prefix)
+            let env := (← getEnv).setExporting false
+            let readable := ca.filter (fun n => match env.toKernelEnv.find? n with
+              | some (.axiomInfo _) => true
+              | _ => false)
+            IO.println s!"RAW_PARENT {pa.size}; RAW_CHILD {ca.size}; RAW_PREFIX {ka.size}"
+            IO.println s!"READABLE {readable.size}/{ca.size}"
+            IO.println s!"CHILD_ONLY {(ca.filter (fun n => !pa.contains n)).size}"
+            IO.println s!"PREFIX_ONLY {(ka.filter (fun n => !ca.contains n)).size}"
+            unless exactProfile pa expectedChild && exactProfile ca expectedChild &&
+                exactProfile ka expectedPrefix && (nonstandard (← collectAxioms purePark)).isEmpty &&
+                (nonstandard (← collectAxioms empty)).isEmpty do
+              throwError "exact prior profile or pure-control mismatch"
+            let mut accepted : Nat := 0
+            for n in ca do
+              let ok ← L4YAML.axiomAdmitted n
+              IO.println s!"LEAF {n}: {ok}"
+              if ok then accepted := accepted + 1
+            -- Same invocation cache: the prefix cannot acquire a new warrant by name alone.
+            let badPrefix ← L4YAML.unvalidatedAxioms prefix
+            let badFalse ← L4YAML.unvalidatedAxioms
+              `L4YAML.Tests.Guards.ImportedAxiomControls.badFalse
+            let badBool ← L4YAML.unvalidatedAxioms
+              `L4YAML.Tests.Guards.ImportedAxiomControls.badBoolean
+            let good ← L4YAML.unvalidatedAxioms
+              `L4YAML.Tests.Guards.ImportedAxiomControls.genuineNative
+            let pureBad ← L4YAML.unvalidatedAxioms
+              `L4YAML.Tests.Guards.ImportedAxiomControls.pureControl
+            IO.println s!"VALIDATED {accepted}/45; PREFIX_UNVALIDATED {badPrefix.size}/39"
+            IO.println s!"IMPORTED_CONTROLS false={badFalse.size} forged={badBool.size} real={good.size} pure={pureBad.size}"
+            IO.println "PURE_REJECTED: child has raw nonstandard dependencies"
+            return readable.size == 45 && accepted == 45 && badPrefix.isEmpty &&
+              badFalse.size == 1 && badBool.size == 1 && good.isEmpty && pureBad.isEmpty
+          unsafe def main : IO UInt32 := do
+            Lean.initSearchPath (← Lean.findSysroot)
+            Lean.enableInitializersExecution
+            let env ← Lean.importModules #[
+              { module := `Tests.Guards.Proofs.ExplicitKeyRouteCut },
+              { module := `Tests.Guards.Proofs.ScalarKeyProducer },
+              { module := `Tests.Guards.Proofs.ImportedAxiomControls }
+            ] {} 0 (loadExts := true) (level := OLeanLevel.private)
+            let coreCtx : Lean.Core.Context :=
+              { fileName := "<group77-standalone-replay>", fileMap := default }
+            let coreState : Lean.Core.State := { env }
+            let (ok, _) ← (targetCheck.run' {}).toIO coreCtx coreState
+            return if ok then 0 else 1
+          end
+          LEAN
+          cp Tests/Guards/Proofs/StandaloneAxiomReplay.lean ../results/
+          cp Tests/Guards/Proofs/ImportedAxiomControls.lean ../results/
+          cat >> lakefile.lean <<'LEAN'
+
+          lean_exe «group77-private-replay» where
+            root := `Tests.Guards.Proofs.StandaloneAxiomReplay
+            supportInterpreter := true
+          LEAN
+          lake build Tests.Guards.Proofs.ImportedAxiomControls group77-private-replay 2>&1 | tee ../results/standalone-build.log
+          git diff --check
+      - name: Replay 45 unique leaves once in initialized private environment
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env .lake/build/bin/group77-private-replay 2>&1 | tee ../results/standalone-replay.log
+          grep -Fx 'RAW_PARENT 45; RAW_CHILD 45; RAW_PREFIX 39' ../results/standalone-replay.log
+          grep -Fx 'READABLE 45/45' ../results/standalone-replay.log
+          grep -Fx 'CHILD_ONLY 0' ../results/standalone-replay.log
+          grep -Fx 'PREFIX_ONLY 0' ../results/standalone-replay.log
+          grep -Fx 'VALIDATED 45/45; PREFIX_UNVALIDATED 0/39' ../results/standalone-replay.log
+          grep -Fx 'IMPORTED_CONTROLS false=1 forged=1 real=0 pure=0' ../results/standalone-replay.log
+          grep -Fx 'PURE_REJECTED: child has raw nonstandard dependencies' ../results/standalone-replay.log
+          test "$(grep -c '^LEAF ' ../results/standalone-replay.log)" = 45
+          git diff --check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: initialized-private-environment-replay
+          path: results/
+          if-no-files-found: error
