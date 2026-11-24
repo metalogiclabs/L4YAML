@@ -223,8 +223,10 @@ are monotonic, termination is certified.
 **Significance & risk**
 
 - **2.1 `scan_full_consumption`** — *Significance:* the scanner
-  consumes the entire input; a successful scan leaves no trailing
-  bytes silently discarded. *Risk if absent:* truncated reads
+  consumes the entire input: successful `scan` supplies a finite path of
+  actual `scanNextToken` transitions from the BOM-aware initial state,
+  exact fuel accounting, a terminal preprocessing result correlated with
+  an empty surface remainder, and the identical returned token array. *Risk if absent:* truncated reads
   accepted as success — a classic parser-differential / request-smuggling
   vector where two implementations disagree on where the document ends.
 - **2.2 `scan_produces_valid_tokens`** — *Significance:* every token
