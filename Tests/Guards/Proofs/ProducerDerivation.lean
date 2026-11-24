@@ -303,7 +303,9 @@ def expectedCensus : String :=
 -- 2026-11-23 (item 532, β PR 5): corrHyp 637 → 638 — `content_leaf_at` (ContentBridge) reads the surface through `hcorr`:
 -- the value's leaf at the park's indentation, spent by `TPendingNode.content_step_props`.
 -- hold `ScannerSurfCorr`, were three); they conclude the T pair, not `SLYamlStream`.
-  "corrHyp=638 streamConcl=92 both=45 free=0 pairConcl=1 held=3 pairAny=8"
+  -- 2026-11-25: three native reachable-EOF lemmas retain the correspondence premise;
+  -- run 45508188028 measures corrHyp 638 → 641. All stream/held/free counts unchanged.
+  "corrHyp=641 streamConcl=92 both=45 free=0 pairConcl=1 held=3 pairAny=8"
 
 /-- The one conclusion that pairs them, and it is the stream's origin. -/
 def expectedSeedConcl : List Name :=
