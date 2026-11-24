@@ -117,35 +117,35 @@ jobs:
           b=s.index("/-- A star grows",start)
           assert a>=0 and "lemma TLYamlStream.directiveRoute" in s[a:b]
           s=s[:a]+'''/-- YAML [211] permits a directive document only in the initial document slot
-or a slot following one or more document suffixes. A closed arbitrary stream
-alone is not a certificate of either landing. -/
-inductive DirectiveLanding (s : SurfPos) : SurfPos → List Event → Prop where
-  | initial (s' : SurfPos) (hp : GStar SLDocumentPrefix s s') :
-      DirectiveLanding s s' []
-  | afterSuffix (s₀ s₁ s' : SurfPos) (e₀ e₁ : List Event)
-      (h : TLYamlStream s s₀ e₀) (hs : TPlus TLDocumentSuffix s₀ s₁ e₁)
-      (hp : GStar SLDocumentPrefix s₁ s') :
-      DirectiveLanding s s' (e₀ ++ e₁)
+          or a slot following one or more document suffixes. A closed arbitrary stream
+          alone is not a certificate of either landing. -/
+          inductive DirectiveLanding (s : SurfPos) : SurfPos → List Event → Prop where
+            | initial (s' : SurfPos) (hp : GStar SLDocumentPrefix s s') :
+                DirectiveLanding s s' []
+            | afterSuffix (s₀ s₁ s' : SurfPos) (e₀ e₁ : List Event)
+                (h : TLYamlStream s s₀ e₀) (hs : TPlus TLDocumentSuffix s₀ s₁ e₁)
+                (hp : GStar SLDocumentPrefix s₁ s') :
+                DirectiveLanding s s' (e₀ ++ e₁)
 
-/-- Directives then explicit body, retaining their proper event order and the
-actual [211] initial or post-suffix slot. This consumes landing evidence; it
-does not establish scanner reachability of such a landing. -/
-lemma TLYamlStream.directiveRoute {s s₂ s₃ s₄ s' : SurfPos} {e ed eb : List Event}
-    (h : DirectiveLanding s s₂ e)
-    (hd : TPlus TLDirective s₂ s₃ ed) (hde : SCDirectivesEnd s₃ s₄)
-    (hb : TLExplicitBody s₄ s' eb) :
-    TLYamlStream s s' (e ++ .beginDocument :: ed ++ eb) := by
-  have doc : TLAnyDocument s₂ s' (.beginDocument :: ed ++ eb) :=
-    .directive _ _ _ (.mk _ _ _ _ ed eb hd hde hb)
-  cases h with
-  | initial sp hp =>
-    simpa using TLYamlStream.single _ _ _ _ (.beginDocument :: ed ++ eb) [] hp
-      (TOpt.some _ _ _ doc) (TStar.nil _)
-  | afterSuffix sp₀ sp₁ sp₂ e₀ e₁ hstream hs hp =>
-    simpa [List.append_assoc] using TLYamlStream.suffixContinue _ _ _ _ _ e₀ e₁
-      (.beginDocument :: ed ++ eb) [] hstream hs hp (TOpt.some _ _ _ doc) (TStar.nil _)
+          /-- Directives then explicit body, retaining their proper event order and the
+          actual [211] initial or post-suffix slot. This consumes landing evidence; it
+          does not establish scanner reachability of such a landing. -/
+          lemma TLYamlStream.directiveRoute {s s₂ s₃ s₄ s' : SurfPos} {e ed eb : List Event}
+              (h : DirectiveLanding s s₂ e)
+              (hd : TPlus TLDirective s₂ s₃ ed) (hde : SCDirectivesEnd s₃ s₄)
+              (hb : TLExplicitBody s₄ s' eb) :
+              TLYamlStream s s' (e ++ .beginDocument :: ed ++ eb) := by
+            have doc : TLAnyDocument s₂ s' (.beginDocument :: ed ++ eb) :=
+              .directive _ _ _ (.mk _ _ _ _ ed eb hd hde hb)
+            cases h with
+            | initial sp hp =>
+              simpa using TLYamlStream.single _ _ _ _ (.beginDocument :: ed ++ eb) [] hp
+                (TOpt.some _ _ _ doc) (TStar.nil _)
+            | afterSuffix sp₀ sp₁ sp₂ e₀ e₁ hstream hs hp =>
+              simpa [List.append_assoc] using TLYamlStream.suffixContinue _ _ _ _ _ e₀ e₁
+                (.beginDocument :: ed ++ eb) [] hstream hs hp (TOpt.some _ _ _ doc) (TStar.nil _)
 
-'''+s[b:]
+          '''+s[b:]
           p.write_text(s)
           p=Path("L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean")
           s=p.read_text()
