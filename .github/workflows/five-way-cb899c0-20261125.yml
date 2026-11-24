@@ -1,0 +1,283 @@
+name: Five-way exact cb899c0 composition qualification
+on:
+  push:
+    branches:
+      - experiment/five-way-cb899c0-20261125
+permissions:
+  contents: write
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    outputs:
+      source: ${{ steps.publish.outputs.source }}
+      tree: ${{ steps.publish.outputs.tree }}
+    env:
+      LEAN_NUM_THREADS: 2
+      UP: cb899c0fa4529d4b40d701f04f5c494047a6b695
+      CORETAG: 3e6c42eb31f7fca6654f331231f29e5dcd99f150
+      PYTHON: cac815e9df74e3469e840489ff6992e03848e812
+      DUMP: 7270c74e52b90360c96af6ac23bd2fadacccbe06
+      AXIOM: d617e36c8d5706c6df0de0c05c200c2c77c0ff18
+      TARGET: experiment/five-way-cb899c0-native-qualified-20261125
+      ID: fiveway
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+      - name: Compose qualified candidates with real Git merges
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p qualification-evidence
+          exec > >(tee qualification-evidence/merge.log) 2>&1
+          git config user.name "MathGraph exact-source qualification"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          CENSUS=Tests/Guards/Proofs/DeadDeclarationCensus.lean
+          ROSTER=Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          for sha in "$UP" "$CORETAG" "$PYTHON" "$DUMP" "$AXIOM"; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
+            git merge-base --is-ancestor "$UP" "$sha"
+          done
+          git switch --detach "$CORETAG"
+          for sha in "$PYTHON" "$DUMP" "$AXIOM"; do
+            before=$(git rev-parse HEAD)
+            if ! git merge --no-ff --no-commit "$sha"; then
+              git diff --name-only --diff-filter=U | tee "qualification-evidence/conflicts-$sha.txt"
+              git ls-files -u > "qualification-evidence/index-$sha.txt"
+              test -s "qualification-evidence/conflicts-$sha.txt"
+              while IFS= read -r file; do
+                case "$file" in
+                  "$CENSUS"|"$ROSTER") ;;
+                  *) echo "Unresolved semantic conflict: $file"; exit 1 ;;
+                esac
+              done < "qualification-evidence/conflicts-$sha.txt"
+              if git diff --name-only --diff-filter=U | grep -Fxq "$CENSUS"; then
+                for stage in 1 2 3; do git show ":$stage:$CENSUS" > "qualification-evidence/census-$sha-$stage.lean"; done
+                python3 - "$sha" <<'PY'
+          import re,sys,subprocess
+          from pathlib import Path
+          ev=Path("qualification-evidence")
+          sha=sys.argv[1]
+          files=[ev/f"census-{sha}-{i}.lean" for i in (1,2,3)]
+          texts=[p.read_text() for p in files]
+          pin=re.compile(r'^  "population=[^"\n]+"$',re.M)
+          assert all(len(pin.findall(t))==1 for t in texts)
+          for i,t in enumerate(texts):
+              (ev/f"normalized-{i}").write_text(pin.sub('  "population=PROVISIONAL"',t))
+          result=subprocess.run(["git","merge-file","-p",str(ev/"normalized-1"),str(ev/"normalized-0"),str(ev/"normalized-2")],capture_output=True,text=True)
+          assert result.returncode==0, "Non-numeric census history conflict; manual reconciliation required"
+          p=Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean")
+          p.write_text(result.stdout.replace('  "population=PROVISIONAL"',pin.findall(texts[1])[0]))
+          PY
+                git add "$CENSUS"
+              fi
+              if git diff --name-only --diff-filter=U | grep -Fxq "$ROSTER"; then
+                for stage in 1 2 3; do git show ":$stage:$ROSTER" > "qualification-evidence/roster-$sha-$stage.lean"; done
+                git checkout --ours -- "$ROSTER"
+                git add "$ROSTER"
+              fi
+            fi
+            test -z "$(git diff --name-only --diff-filter=U)"
+            git diff --cached --check
+            git commit -m "Isolated composition of $sha (census provisional)"
+            test "$(git rev-parse HEAD^1)" = "$before"
+            test "$(git rev-parse HEAD^2)" = "$sha"
+          done
+          for sha in "$UP" "$CORETAG" "$PYTHON" "$DUMP" "$AXIOM" dcf6ad15503dd3be569fd983e94d8991a3379e00 dc9c881577286e1f27b1c4151f599716fe4c6152 e851e63003872d57509ed06e84346bd4ff893000 e8db9cf2dff3eb4a857c4cfae852749326c021f6 c5e0f0c6b449261d23fef5ddd588c360d5e5d630; do
+            git merge-base --is-ancestor "$sha" HEAD
+          done
+          git log -n 20 --format='%H %P %s' > qualification-evidence/lineage.txt
+          git submodule update --init --recursive
+          git submodule status --recursive > qualification-evidence/submodules.txt
+          git rev-parse HEAD HEAD^{tree} | tee qualification-evidence/source-before.txt
+      - name: Install pinned Lean toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Compile full library and non-default suites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee qualification-evidence/lean-version.txt
+          lake build 2>&1 | tee qualification-evidence/build.log
+          lake build tests demo limittests 2>&1 | tee qualification-evidence/extra-build.log
+      - name: Recompute and check native source census
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake run dead-census -- --write 2>&1 | tee qualification-evidence/census-write.log
+          lake build 2>&1 | tee qualification-evidence/post-census-build.log
+          lake run dead-census -- --check 2>&1 | tee qualification-evidence/census-check.log
+          lake run census-dashboard -- --check 2>&1 | tee qualification-evidence/dashboard.log
+      - name: Execute targeted regression and complete native test battery
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake env lean Tests/Guards/Proofs/SchemaResolution.lean 2>&1 | tee qualification-evidence/targeted-core.log
+          lake env lean Tests/Guards/Proofs/TagDirectiveRepair.lean 2>&1 | tee qualification-evidence/targeted-tag.log
+          lake env lean Tests/Guards/Proofs/CapstoneAxioms.lean 2>&1 | tee qualification-evidence/capstone-axioms-controls.log
+          lake env lean Tests/Guards.lean 2>&1 | tee qualification-evidence/complete-guards.log
+          lake env lean Tests/Guards/Dump.lean 2>&1 | tee qualification-evidence/targeted-dump.log
+          test -f python/tests/test_compat_core_numeric_fidelity.py
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/full-suite.log
+          lake exe eventscore --suite yaml-test-suite 2>&1 | tee qualification-evidence/eventscore.log
+      - name: Verify proof profiles source guards and final hygiene
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+      - name: Install C and Python prerequisites for exact refreshed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+          python3 -m venv "$RUNNER_TEMP/bindings-venv"
+          mkdir -p "$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONPATH="$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONNOUSERSITE=1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pip install --quiet pytest
+          echo "$RUNNER_TEMP/bindings-venv/bin" >> "$GITHUB_PATH"
+          echo "PYTHONPATH=$PYTHONPATH" >> "$GITHUB_ENV"
+          echo "PYTHONNOUSERSITE=1" >> "$GITHUB_ENV"
+          echo "L4YAML_LIB=$GITHUB_WORKSPACE/ffi/out/libl4yaml.so" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/ffi/out:$("$HOME/.elan/bin/lean" --print-prefix)/lib/lean" >> "$GITHUB_ENV"
+      - name: Build and test C Rust FFI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -B ffi/out -S ffi 2>&1 | tee qualification-evidence/bindings-cmake-configure.log
+          cmake --build ffi/out --parallel 2 2>&1 | tee qualification-evidence/bindings-cmake-build.log
+          test -f ffi/out/libl4yaml.so
+          test -x ffi/out/tryparse_c
+          (cd rust/l4yaml && cargo build --release --example tryparse --jobs 2) 2>&1 | tee qualification-evidence/bindings-rust-example.log
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 2>&1 | tee qualification-evidence/bindings-rust-tests.log
+          sha256sum ffi/out/libl4yaml.so ffi/out/tryparse_c rust/target/release/examples/tryparse > qualification-evidence/bindings-binaries.sha256
+      - name: Run Python FFI package and cross-language checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pytest Tests/test_python_ffi.py -v --tb=short --no-header --junitxml=docs/reports/python-ffi-junit.xml 2>&1 | tee qualification-evidence/bindings-python-ffi.log
+          python3 -m pytest python/tests/ -v --tb=short --no-header --junitxml=docs/reports/python-package-junit.xml 2>&1 | tee qualification-evidence/bindings-python-package.log
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee qualification-evidence/bindings-cross-lang.log
+          if test "$ID" = fiveway; then
+            python3 -m pytest python/tests/test_compat_core_numeric_fidelity.py -v --tb=short 2>&1 | tee qualification-evidence/python-core-controls.log
+          fi
+      - name: Publish native qualified candidate branch only on successful native verification
+        id: publish
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          git diff --cached --name-only | tee qualification-evidence/repin-files.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "test(integration): remeasure $ID census and roster on exact cb899c0"
+          fi
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee qualification-evidence/final-source.txt
+          git push origin "HEAD:refs/heads/$TARGET"
+          echo "source=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tree=$(git rev-parse HEAD^{tree})" >> "$GITHUB_OUTPUT"
+      - name: Save independent source and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiveway-cb899c0-native-receipts
+          path: qualification-evidence/
+          if-no-files-found: warn
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 165
+    needs: native
+    env:
+      LEAN_NUM_THREADS: 2
+      SOURCE_COMMIT: ${{ needs.native.outputs.source }}
+      EXPECTED_TREE: ${{ needs.native.outputs.tree }}
+    steps:
+      - name: Checkout exact original PR source with full submodules
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.native.outputs.source }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Pin source and install exact toolchain and docs dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs-evidence
+          git switch --detach "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git merge-base --is-ancestor cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          test "$(cat doc/lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/source.txt
+          cat lean-toolchain | tee docs-evidence/toolchain.txt
+          git submodule status | tee docs-evidence/submodules.txt
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json | tee docs-evidence/pins.sha256
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+      - name: Install proven docs memory allowance (24 GiB swap)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          free -h | tee docs-evidence/resources-before.txt
+          sudo fallocate -l 24G /mnt/tag361-exact-docs.swap
+          sudo chmod 600 /mnt/tag361-exact-docs.swap
+          sudo mkswap /mnt/tag361-exact-docs.swap
+          sudo swapon /mnt/tag361-exact-docs.swap
+          free -h | tee docs-evidence/resources-after.txt
+          test "$(grep -Fc /mnt/tag361-exact-docs.swap /proc/swaps)" -eq 1
+      - name: Build Verso and all required graph inputs on exact source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee docs-evidence/lean-version.txt
+          (cd doc && lake build l4yaml-doc) 2>&1 | tee docs-evidence/verso-build.log
+          lake build L4YAML.Scanner.Scanner L4YAML.Parser.Composition L4YAML.Surface.Document L4YAML.Output.Dump L4YAML.Output.Emitter L4YAML.FFI.FFI L4YAML.Schema.Api L4YAML.Config.Config 2>&1 | tee docs-evidence/graph-inputs.log
+          lake build graph 2>&1 | tee docs-evidence/graph-build.log
+          mkdir -p doc/Doc/L4YAML/graphs
+          lake exe graph --to=L4YAML.Scanner.Scanner,L4YAML.Parser.Composition,L4YAML.Surface.Document,L4YAML.Output.Dump,L4YAML.Output.Emitter,L4YAML.FFI.FFI,L4YAML.Schema.Api,L4YAML.Config.Config doc/Doc/L4YAML/graphs/import-graph.dot
+          dot -Tsvg doc/Doc/L4YAML/graphs/import-graph.dot -o doc/Doc/L4YAML/graphs/import-graph.svg
+          lake run check-doc-graphs -- --strict 2>&1 | tee docs-evidence/graph-check.log
+          (cd doc && lake exe l4yaml-doc) 2>&1 | tee docs-evidence/verso-render.log
+          lake run svg-objects -- doc/_out/html-multi 2>&1 | tee docs-evidence/svg.log
+      - name: Build full API documentation with proven memory provision
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake build :docs 2>&1 | tee docs-evidence/api-docs.log
+          echo "DOCS_NATIVE_BUILD_SUCCESS" | tee docs-evidence/result.txt
+      - name: Validate immutable source and toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          sha256sum -c docs-evidence/pins.sha256
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/final-source.txt
+          free -h | tee docs-evidence/resources-final.txt
+      - name: Retain receipts on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiveway-cb899c0-docs-receipts
+          path: docs-evidence/
+          if-no-files-found: warn
