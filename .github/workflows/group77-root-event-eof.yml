@@ -851,8 +851,8 @@ jobs:
             · rfl
             · split
               · dsimp only []
-                rw [goOut_push_silent _ _ p (by rfl) (by decide) (by intro h px; simp)]
-                exact goOut_push_silent _ _ p (by rfl) (by decide) (by intro h px; simp)
+                rw [goOut_push_silent _ _ p (by rfl) (by simp) (by intro h px; simp)]
+                exact goOut_push_silent _ _ p (by rfl) (by simp) (by intro h px; simp)
               · rfl
           
           lemma mapping_indent_silent (s : ScannerState) (col : Int) (p : List String) :
@@ -973,6 +973,7 @@ jobs:
           lemma initial_silent (input : String) :
               goOut (initial input).tokens.toList [] = ([], []) := by
             unfold initial
+            dsimp only []
             split
             · change goOut ((ScannerState.mk' input).emit .streamStart).advance.tokens.toList [] = _
               rw [advance_preserves_tokens]
@@ -1016,6 +1017,7 @@ jobs:
               scalar_dispatch_silent arm hcorr hpeek hdepth hdisp ha ht hl,
               hatok, preprocess_silent _ _ _ hpre, key_silent hq,
               preprocess_silent _ _ _ hinit, initial_silent]
+            rfl
           
           /-- The filtered-away token is silent at every pending-handle state. -/
           lemma goOut_filter_placeholders (l : List (Positioned YamlToken)) (p : List String) :
@@ -1023,10 +1025,17 @@ jobs:
             induction l generalizing p with
             | nil => rfl
             | cons t ts ih =>
-              obtain ⟨pos, v, endPos⟩ := t
-              cases v <;> simp [List.filter, goOut, tokenEvent, ih]
-              all_goals (try (split <;> simp [ih]))
-              all_goals (try (rename_i handle _; by_cases hh : handle = "" <;> simp [hh, ih]))
+              by_cases hv : t.val = .placeholder
+              · have hb : (t.val != .placeholder) = false := by simp [hv]
+                simp only [List.filter, hb]
+                rw [goOut_silent t (by rw [hv]; rfl) (by rw [hv]; simp)
+                  (by intro h px; rw [hv]; simp)]
+                exact ih p
+              · have hb : (t.val != .placeholder) = true := bne_iff_ne.mpr hv
+                simp only [List.filter, hb]
+                change goOut ([t] ++ ts.filter (fun u => u.val != .placeholder)) p =
+                  goOut ([t] ++ ts) p
+                rw [goOut_append, goOut_append, ih]
           
           lemma filter_events (ts : Array (Positioned YamlToken)) :
               tokenEvents (ts.filter fun t => t.val != .placeholder) = tokenEvents ts := by
@@ -1038,7 +1047,7 @@ jobs:
               (hnext : scanNextToken s = .ok none) (hloop : scanLoop s (fuel + 1) = .ok ts) :
               tokenEvents (ts.filter fun t => t.val != .placeholder) = tokenEvents s.tokens := by
             rw [filter_events]
-            rw [scanLoop, hnext] at hloop
+            simp only [scanLoop, hnext] at hloop
             split at hloop
             · contradiction
             · split at hloop
