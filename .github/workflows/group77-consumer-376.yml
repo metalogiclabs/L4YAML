@@ -1,0 +1,121 @@
+name: Group 7.7 exact-source consumer and explicit-key replay
+on:
+  push:
+    branches: [research/group77-consumer-376-20261125]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 10d0ffa9a712c2a2c9e93ae5725ad54adf53089f
+          path: upstream
+      - name: Verify pinned source and install pinned toolchain
+        shell: bash
+        working-directory: upstream
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 10d0ffa9a712c2a2c9e93ae5725ad54adf53089f
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/Document.lean)" = 29f20ab3947dacef278808153130ff7fcd1861b4
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean)" = 8903b2489b51becad731a4e13a7e6c61bff7dc3b
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} HEAD:L4YAML > ../source-identities.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Stage unchanged historical proofs and new independent consumer control
+        shell: bash
+        working-directory: upstream
+        run: |
+          set -euo pipefail
+          for f in UpstreamForwardCounterexample UpstreamColonTrace UpstreamScannerTrace AcceptedTraceContract; do
+            test ! -e "Tests/Guards/Proofs/$f.lean"
+            cp "../evidence/Tests/Guards/Proofs/$f.lean" "Tests/Guards/Proofs/$f.lean"
+          done
+          test ! -e Tests/Guards/Proofs/ExplicitKeyConsumer.lean
+          cat > Tests/Guards/Proofs/ExplicitKeyConsumer.lean <<'LEAN'
+          /-
+          Exact-source diagnostic, NOT a proof of the explicit-key scanner step.
+          The input-level acceptance consumer cannot in general be reconstructed
+          from serialization events alone, even among successful scans.
+          Test a historically known seven-byte scanner-only input against a
+          normative explicit block mapping positive control. Preserve failures.
+          -/
+          module
+          public import L4YAML.Proofs.Serialization.TokenEvents
+          public import L4YAML.Proofs.Serialization.SerializationWellFormed
+          public import L4YAML.Scanner.Scanner
+          public import L4YAML.Parser.Composition
+          import all Init.Data.Range.Basic
+          import all L4YAML.Proofs.Serialization.TokenEvents
+          @[expose] public section Blanket
+          namespace L4YAML.Tests.Guards.ExplicitKeyConsumer
+          open L4YAML
+          open L4YAML.Proofs.Serialization.TokenEvents
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          set_option maxRecDepth 4000
+          set_option maxHeartbeats 2000000
+          def good : String := "? a\n: b"
+          def bad : String := "? -\n  :"
+          #guard good.toList = ['?', ' ', 'a', '\n', ':', ' ', 'b']
+          #guard bad.toList = ['?', ' ', '-', '\n', ' ', ' ', ':']
+          lemma good_events : (Scanner.scanFiltered good).map tokenEvents = .ok [] := by cbv
+          lemma bad_events : (Scanner.scanFiltered bad).map tokenEvents = .ok [] := by cbv
+          lemma good_accepts : (TokenParser.parseYaml good).isOk = true := by cbv
+          lemma bad_rejects : (TokenParser.parseYaml bad).isOk = false := by cbv
+          lemma no_event_only_acceptance_classifier (d : List Event → Bool) :
+              ¬ (∀ s ev, (Scanner.scanFiltered s).map tokenEvents = .ok ev →
+                d ev = (TokenParser.parseYaml s).isOk) := by
+            intro h
+            have hg := h good [] good_events
+            have hb := h bad [] bad_events
+            rw [good_accepts] at hg
+            rw [bad_rejects] at hb
+            rw [hg] at hb
+            cases hb
+          #print axioms good_events
+          #print axioms bad_events
+          #print axioms good_accepts
+          #print axioms bad_rejects
+          #print axioms no_event_only_acceptance_classifier
+          end L4YAML.Tests.Guards.ExplicitKeyConsumer
+          end Blanket
+          LEAN
+          git diff --exit-code -- L4YAML
+          sha256sum Tests/Guards/Proofs/{UpstreamForwardCounterexample,UpstreamColonTrace,UpstreamScannerTrace,AcceptedTraceContract,ExplicitKeyConsumer}.lean > ../proof-identities.txt
+      - name: Run separately scored native proof targets
+        shell: bash
+        working-directory: upstream
+        run: |
+          set -uo pipefail
+          mkdir -p ../proof-results
+          failed=0
+          for f in UpstreamForwardCounterexample UpstreamScannerTrace AcceptedTraceContract ExplicitKeyConsumer; do
+            lake build "Tests.Guards.Proofs.$f" 2>&1 | tee "../proof-results/$f.log"
+            rc=${PIPESTATUS[0]}
+            if grep -E 'sorryAx|declaration uses .sorry|_native\.native_decide\.ax' "../proof-results/$f.log"; then
+              rc=1
+            fi
+            printf '%s\t%s\n' "$f" "$rc" | tee -a ../proof-results/outcomes.tsv
+            if [ "$rc" != 0 ]; then failed=1; fi
+          done
+          git diff --exit-code -- L4YAML || failed=1
+          exit "$failed"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: group77-exact-source-evidence
+          path: |
+            source-identities.txt
+            proof-identities.txt
+            proof-results/
+            upstream/Tests/Guards/Proofs/ExplicitKeyConsumer.lean
+          if-no-files-found: warn
