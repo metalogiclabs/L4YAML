@@ -456,8 +456,8 @@ jobs:
             rcases park with ⟨gram, hq, hcorr, hrun, hgate, hkey, route⟩
             obtain ⟨e, p, hskip, _, heof, _⟩ := next_none_reachable_eof s scan hcorr hstop
             obtain ⟨sp_end, hfrom, hchars, h_ok⟩ :=
-              L4YAML.Proofs.StreamAccum.skipToContent_eof_ssl_comments s scan e hcorr hskip heof
-            have hssl := L4YAML.Proofs.StreamAccum.SSLCommentsFrom_at_park hcorr hrun hgate hfrom h_ok
+              L4YAML.Proofs.PreprocessProduction.skipToContent_eof_ssl_comments s scan e hcorr hskip heof
+            have hssl := L4YAML.Proofs.PreprocessProduction.SSLCommentsFrom_at_park hcorr hrun hgate hfrom h_ok
             refine ⟨e, sp_end, hskip, heof, hchars, ?_⟩
             rw [hS.total]
             simpa [List.append_assoc] using route sp_end ek
@@ -488,7 +488,7 @@ jobs:
               rcases hpk with h | h
               · exact h
               · rw [hp] at h
-                exact False.elim (h_not_tab (Option.some.inj h))
+                cases h
             have h_pe : sp_next = sp_ws :=
               (ScannerSurfCorr_unique hcorr_next hcorr2).trans h_eq
             rw [← h_pe] at hws
@@ -497,7 +497,7 @@ jobs:
               rw [hS.total]
               simpa [List.append_assoc] using route sp_mid ek
                 (TBlockMapEntry.explicitEmpty n q after sp_mid ek hq (hkey sp_mid hland.1))
-            · obtain ⟨ws, _, _, hcolrun⟩ := L4YAML.Proofs.StreamAccum.gstar_sswhite_run hws
+            · have hcolrun := L4YAML.Proofs.PreprocessProduction.gstar_sswhite_col_ge sp_mid sp_next hws
               have hmid := hflat.1
               rw [hmid] at hcolrun
               exfalso
