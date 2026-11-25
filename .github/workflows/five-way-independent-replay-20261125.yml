@@ -82,6 +82,41 @@ jobs:
               ours=git("show",f":2:{P}")
               theirs=git("show",f":3:{P}")
               b=source(base,P)
+              if pr==302:
+                  # Core and upstream add different entries at the same position
+                  # in the two capstone SET pins. Resolve from the source deltas,
+                  # retaining both exact entries in lexical order within that slot.
+                  aa=b.splitlines(True); bb=theirs.splitlines(True)
+                  ops=[x for x in difflib.SequenceMatcher(None,aa,bb,autojunk=False).get_opcodes() if x[0]!="equal"]
+                  assert len(ops)==4
+                  t=ours
+                  for tag,i,j,k,l in ops:
+                      old="".join(aa[i:j]); new="".join(bb[k:l])
+                      if tag=="replace":
+                          assert old.startswith("| 5 values |") and new.startswith("| 5 values |") and "coreTagCorrespondenceAll" in new
+                          assert t.count(old)==1
+                          t=t.replace(old,new,1)
+                      elif tag=="insert":
+                          assert l-k==1 and i>0 and i<len(aa)
+                          left,right=aa[i-1],aa[i]
+                          assert t.count(left)==1 and t.count(right)==1
+                          start=t.index(left)+len(left)
+                          end=t.index(right,start)
+                          gap=t[start:end]
+                          if new.startswith("public import "):
+                              assert new=="public import L4YAML.Proofs.Schema.SchemaResolution\n" and gap==""
+                              insert=new
+                          else:
+                              assert new.startswith("L4YAML.Proofs.SchemaResolution.coreTagCorrespondenceAll")
+                              assert gap.startswith("L4YAML.Proofs.Serialization.ScannerShape.scanFiltered_parseStream_ok_checkFrom_full") and len(gap.splitlines())==1
+                              assert new.endswith(": pure\n")==gap.endswith(": pure\n")
+                              insert="".join(sorted([new,gap]))
+                          t=t[:start]+insert+t[end:]
+                      else:
+                          raise AssertionError(("Unexpected Core capstone delta",tag))
+                  save("capstones-302-source-derived.delta",delta(ours,t))
+                  write(P,t); call("add",P)
+                  return
               block=""
               if pr==371:
                   m=re.search(r'(?m)^-- Replay needs the actual axiom types.*?\n(?=public meta import L4YAML.CapstoneAttr$)',theirs,re.S|re.M)
