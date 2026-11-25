@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: nasa-jpl/L4YAML
-          ref: 78797230d504e45a8b92e9b74f9e92e9da16b630
+          ref: 0dbf0c120601fccc1d837025f3bef405cc4f2062
           path: upstream
       - name: Verify exact owner source and prepare Lean
         working-directory: upstream
@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ../results
-          test "$(git rev-parse HEAD)" = 78797230d504e45a8b92e9b74f9e92e9da16b630
+          test "$(git rev-parse HEAD)" = 0dbf0c120601fccc1d837025f3bef405cc4f2062
           git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
           git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean HEAD:L4YAML/Proofs/Serialization/TraceOf/ContentBridge.lean HEAD:Tests/AdversarialInstantiation.lean >> ../results/source.txt
           test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
@@ -500,64 +500,19 @@ jobs:
           open L4YAML.Proofs.StreamAccum (ContentArm NextIsSep SlotGateAt)
           open L4YAML.Tests.Guards.OwnerExplicitKeyPark
           
-          /-- Each property lexeme consists of column-increasing grammar leaves. -/
-          private lemma key_gchar_star_col {p : Char → Prop} {a b : SurfPos}
-              (h : GStar (GChar p) a b) : a.col ≤ b.col := by
-            induction h with
-            | nil s => exact Nat.le_refl _
-            | cons s₁ s₂ s₃ hc _ ih =>
-              have hm : s₁.col ≤ s₂.col := by cases hc; simp
-              exact Nat.le_trans hm ih
-
-          private lemma key_gchar_plus_col {p : Char → Prop} {a b : SurfPos}
-              (h : GPlus (GChar p) a b) : a.col ≤ b.col := by
-            cases h with
-            | mk s₁ s₂ s₃ hc hs =>
-              have hm : s₁.col ≤ s₂.col := by cases hc; simp
-              exact Nat.le_trans hm (key_gchar_star_col hs)
-
-          private lemma key_glit_col {c : Char} {a b : SurfPos} (h : GLit c a b) :
-              a.col ≤ b.col := by cases h; simp
-
+          -- Blueprint 7.7 chain: property bounds → explicit_key_content_step
+          -- → actual owner content fold → scan_trace (still open).
+          -- Reuse the owner's column monotonicity proof instead of rebuilding it.
           private lemma key_anchor_col {a b : SurfPos} (h : SCNsAnchorProperty a b) :
               a.col ≤ b.col := by
             cases h with
-            | mk rest col s' hp _ =>
-              have hm := key_gchar_plus_col hp
-              change col + 1 ≤ s'.col at hm
-              change col ≤ s'.col
+            | mk =>
+              have := gchar_run_col (gplus_star ‹GPlus (GChar isNsAnchorChar) _ _›)
+              simp at this ⊢
               omega
 
           private lemma key_tag_col {a b : SurfPos} (h : SCNsTagProperty a b) :
-              a.col ≤ b.col := by
-            cases h with
-            | verbatim rest col s₁ s₂ s' hl hp hg =>
-              have h₁ := key_glit_col hl
-              have h₂ := key_gchar_plus_col hp
-              have h₃ := key_glit_col hg
-              change col + 1 ≤ s₁.col at h₁
-              change col ≤ s'.col
-              omega
-            | secondary rest col s' hs _ =>
-              have hm := key_gchar_star_col hs
-              change col + 2 ≤ s'.col at hm
-              change col ≤ s'.col
-              omega
-            | named rest col s₁ s₂ s' hp hl hs _ =>
-              have h₁ := key_gchar_plus_col hp
-              have h₂ := key_glit_col hl
-              have h₃ := key_gchar_star_col hs
-              change col + 1 ≤ s₁.col at h₁
-              change col ≤ s'.col
-              omega
-            | nonSpecific rest col _ =>
-              change col ≤ col + 1
-              omega
-            | primary rest col s' hp _ =>
-              have hm := key_gchar_plus_col hp
-              change col + 1 ≤ s'.col at hm
-              change col ≤ s'.col
-              omega
+              a.col ≤ b.col := Nat.le_trans (Nat.le_succ _) (tag_col h)
 
           /-- Property dispatch preserves the actual scanner's cleared indent flag
               and stack, so its park inherits the reading floor. -/
