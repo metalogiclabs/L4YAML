@@ -537,7 +537,7 @@ index b6379bb4ec2d3a46b1c80edf72413a18fb98e77a..eb780a8abc1fa1dbfd82360fc727294c
                               h_flow_disp h_not_doc h_dispatch hcorr_result)
                           -- Item 114: the mapping frames ride the fixed-index
 diff --git a/Tests/Guards/Proofs/CapstonePathAudit.lean b/Tests/Guards/Proofs/CapstonePathAudit.lean
-index f159e178a9f09566cbba71b936c8ecfb894318d3..051db1afb092efd632eaa0e96a58f23b9f48b75a 100644
+index f159e178a9f09566cbba71b936c8ecfb894318d3..4536ea5fa177cd5285bbb1220caaf00bce1a3a3d 100644
 --- a/Tests/Guards/Proofs/CapstonePathAudit.lean
 +++ b/Tests/Guards/Proofs/CapstonePathAudit.lean
 @@ -45,13 +45,13 @@ def expectedSummary : String :=
@@ -545,7 +545,7 @@ index f159e178a9f09566cbba71b936c8ecfb894318d3..051db1afb092efd632eaa0e96a58f23b
  -- the four flow-close `Classical.em` splits are gone (PAID from `vslot`), the open's three ladders with them; shrink-only.
  -- Item 519 (review round): arms 237 → 239 (the two fallback `match`es at the `vslot` writers), off-honest 91 → 92 / off-unread 56 → 55 (`pendingBlock.h_kslotUp` read again at the open).
 -  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=6 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=235 relays=138 drop-set=8/8"
-+  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=5 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=235 relays=138 drop-set=8/8"
++  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=5 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1264 unrooted-arms=94 arms=237 relays=138 drop-set=8/8"
  
  def expectedOn : List String :=
    -- Item 519: the four flow-close splits are PAID from `vslot` (shrink: `pendingContent.h_vpack` on-relay DECLINE 4 → 2).
@@ -587,7 +587,7 @@ index 90ccacb952097a3b6fe98a37e7895a9d7f41214a..58268e926ae5d2d23a86862ea8e4c1ea
     "PendingNode.pendingContent[12].h_framesV ks : List IndentStackCover.FrameLevel",
     "PendingNode.pendingContent[16].h_seqF ks : List IndentStackCover.FrameLevel",
 diff --git a/Tests/Guards/Proofs/OrTrueAudit.lean b/Tests/Guards/Proofs/OrTrueAudit.lean
-index fae4ebc7cd741492dabda186bdac6400a67a09d9..26ad95becd78f973b2046564f2f6c79b87bf4aec 100644
+index fae4ebc7cd741492dabda186bdac6400a67a09d9..ed889ef0b4dc1b7775c72b8a306725142053e9e4 100644
 --- a/Tests/Guards/Proofs/OrTrueAudit.lean
 +++ b/Tests/Guards/Proofs/OrTrueAudit.lean
 @@ -261,7 +261,7 @@ def expectedSummary : String :=
@@ -599,6 +599,15 @@ index fae4ebc7cd741492dabda186bdac6400a67a09d9..26ad95becd78f973b2046564f2f6c79b
  
  -- Item 508 (2026-11-14): `entryKeyPack_of_dispatch` took the `h_dead` premise after `h_preprocess`,
  -- so its `h_nodeS` / `h_nodeSF` positions read [31] / [32] (were [30] / [31]) — an index shift, not a
+@@ -531,7 +531,7 @@ def expectedPositions : List String :=
+ def expectedSupply : List String :=
+   ["L4YAML.Proofs.StreamAccum.FlowBaseRoutes.mk[8].key relayed [DECLINE=1 SPLIT=1 VIA=6]",
+   "L4YAML.Proofs.StreamAccum.FlowBaseRoutes.mk[9].vslot relayed [DECLINE=5 SPLIT=3]",
+-  "L4YAML.Proofs.StreamAccum.PendingNode.pendingContent[9].h_vpack relayed [DECLINE=2 SPLIT=7 VIA=3]",
++  "L4YAML.Proofs.StreamAccum.PendingNode.pendingContent[9].h_vpack relayed [DECLINE=2 VIA=10]",
+   "L4YAML.Proofs.StreamAccum.PendingNode.pendingContent[11].h_framesS relayed [DECLINE=2 SPLIT=8 VIA=2]",
+   "L4YAML.Proofs.StreamAccum.PendingNode.pendingContent[12].h_framesV relayed [DECLINE=2 SPLIT=10]",
+   "L4YAML.Proofs.StreamAccum.PendingNode.pendingContent[16].h_seqF relayed [DECLINE=9 SPLIT=3]",
 @@ -548,7 +548,7 @@ def expectedSupply : List String :=
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent[16].h_seqF relayed [DECLINE=3 SPLIT=3]",
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent[17].h_kslotUp relayed [SPLIT=6]",
@@ -608,6 +617,15 @@ index fae4ebc7cd741492dabda186bdac6400a67a09d9..26ad95becd78f973b2046564f2f6c79b
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[11].h_closeF paid [PAY=5 SPLIT=2]",
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[13].h_seqF paid [DECLINE=5 PAY=2]",
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[14].h_kslotUp relayed [DECLINE=1 SPLIT=6]",
+@@ -560,7 +560,7 @@ def expectedSupply : List String :=
+   "L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue[19].h_closeFV relayed [DECLINE=2 SPLIT=4]",
+   "L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue[20].h_framesV relayed [DECLINE=2 SPLIT=4]",
+   "L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue[22].h_seqF relayed [DECLINE=5 SPLIT=1]",
+-  "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack relayed [DECLINE=3 RELAY=1 SPLIT=6 VIA=1]",
++  "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack relayed [DECLINE=3 RELAY=1 SPLIT=7]",
+   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[19].h_sfx paid [DECLINE=10 PAY=1]",
+   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[20].h_mk paid [DECLINE=10 PAY=1]",
+   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[26].h_tail139 paid [DECLINE=8 PAY=3]",
 diff --git a/Tests/Guards/Proofs/RelaySupplyCensus.lean b/Tests/Guards/Proofs/RelaySupplyCensus.lean
 index 2af1f549e0c14feb977f23e24d8a0feb85aead7d..2fef9e7ffcefeda5f88fb80ffee99ca710fdcc92 100644
 --- a/Tests/Guards/Proofs/RelaySupplyCensus.lean

@@ -54,6 +54,13 @@ accumulation proof.
 | Off-column wrapper on final proof path | yes | no |
 | Six audited axiom profiles | baseline | unchanged |
 
+Direct relay declines remain 236, critical-path direct declines remain five,
+and the seven critical optional positions remain. The final relay reading exposes
+one additional declined split leaf (213 to 214; free leaves 117 to 118). It also
+records two more paid split leaves. These readings follow the restored domain and
+are disclosed with the favorable ghost-index change. The OrTrue summary,
+consumer classes and trivial-writer roster remain unchanged; two supply rows move.
+
 The owner censuses, their complete raw readings and the hosted receipt determine
 the final numbers. Direct declines are not claimed paid by these edits. A first
 restored-cover candidate exposed larger split-leaf counts; its raw reading is

@@ -57,18 +57,25 @@ jobs:
         run: |
           set -euo pipefail
           git apply --unidiff-zero ../evidence/Research/NestedAnchorObligation/root-keyslot-payment.patch
+          test "$(grep -Ec '^[[:space:]]*exact block_dispatch_deferred_stamp_offcol ' L4YAML/Proofs/Production/StreamAccum.lean)" = 3
           lake build L4YAML.Proofs.Production.DocumentProduction Tests.Guards.Proofs.CapstonePathAudit Tests.Guards.Proofs.GhostIndexCensus 2>&1 | tee ../results/baseline-build.txt
           lake env lean Research/StateLinkedValuePack/DependencyAudit.lean 2>&1 | tee ../results/dependencies-before.txt
           grep -F 'block_dispatch_deferred_stamp_offcol exists=true reached=true' ../results/dependencies-before.txt
           git diff -- L4YAML Tests > ../results/baseline.patch
+          git add -- L4YAML Tests
+          baseline_tree=$(git write-tree)
+          baseline_commit=$(git -c user.name='Research qualification' -c user.email='research@metalogiclabs.org' commit-tree "$baseline_tree" -p HEAD -m 'Qualified root-payment baseline for census comparison')
+          git update-ref refs/heads/research-root-baseline "$baseline_commit"
+          printf '%s\n' "$baseline_commit" "$baseline_tree" > ../results/baseline-source-identity.txt
       - name: Check strengthened invariant and final proof consumers
         working-directory: upstream
         shell: bash
         run: |
           set -euo pipefail
-          git restore -- L4YAML Tests
+          git restore --source=HEAD --staged --worktree -- L4YAML Tests
           git apply --check ../evidence/Research/StateLinkedValuePack/state-linked-value-pack.patch
           git apply ../evidence/Research/StateLinkedValuePack/state-linked-value-pack.patch
+          if grep -nE '^[[:space:]]*exact block_dispatch_deferred_stamp_offcol ' L4YAML/Proofs/Production/StreamAccum.lean; then exit 1; fi
           lake build L4YAML.Proofs.Production.DocumentProduction Tests.Guards.Proofs.CapstonePathAudit Tests.Guards.Proofs.GhostIndexCensus 2>&1 | tee ../results/candidate-build.txt
           lake env lean Research/StateLinkedValuePack/DependencyAudit.lean 2>&1 | tee ../results/dependencies-after.txt
           grep -F 'block_dispatch_deferred_stamp_offcol exists=true reached=false' ../results/dependencies-after.txt
@@ -84,7 +91,8 @@ jobs:
           printf '%s\n' L4YAML/Proofs/Production/StreamAccum.lean Tests/Guards/Proofs/CapstonePathAudit.lean Tests/Guards/Proofs/GhostIndexCensus.lean Tests/Guards/Proofs/OrTrueAudit.lean Tests/Guards/Proofs/RelaySupplyCensus.lean > ../results/expected-paths.txt
           diff -u ../results/expected-paths.txt ../results/changed-paths.txt
           xargs sha256sum < ../results/changed-paths.txt > ../results/candidate-source-sha256.txt
-          lake run census-dashboard -- --diff HEAD > ../results/dashboard-diff.md
+          lake run census-dashboard -- --diff research-root-baseline > ../results/dashboard-diff.md
+          lake run census-dashboard -- --diff HEAD > ../results/dashboard-owner-cumulative-diff.md
           cp ../evidence/Research/StateLinkedValuePack/state-linked-value-pack.patch ../results/qualified-candidate.patch
           cp Research/StateLinkedValuePack/*.lean ../results/
           sha256sum Research/StateLinkedValuePack/*.lean > ../results/compiled-source-sha256.txt

@@ -1,0 +1,6 @@
+L4YAML/Proofs/Production/StreamAccum.lean:19655:5: warning: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`

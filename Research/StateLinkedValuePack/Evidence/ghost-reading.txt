@@ -1,0 +1,155 @@
+the ghost-index SUMMARY moved.
+expected: carriers=64 snapshot=9 ghost=74 or=139
+got:      carriers=64 snapshot=9 ghost=73 or=139
+
+the per-carrier TALLY moved.
+got:
+BareLandingFacts: surface=0 state=2 prop=0 scalar=1 snapshot=0 ghost=0 or=0
+BlockStack: surface=2 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0
+CommentStop: surface=0 state=0 prop=0 scalar=1 snapshot=0 ghost=0 or=2
+CompletedTail: surface=0 state=1 prop=0 scalar=1 snapshot=0 ghost=0 or=0
+ContentArm: surface=12 state=2 prop=36 scalar=2 snapshot=0 ghost=0 or=2
+ContentRouteGate: surface=0 state=1 prop=0 scalar=1 snapshot=0 ghost=0 or=0
+DanglingPred: surface=0 state=0 prop=0 scalar=6 snapshot=0 ghost=0 or=0
+ExplValueLine: surface=5 state=0 prop=3 scalar=1 snapshot=0 ghost=0 or=0
+ExplicitValueRefused: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=0
+FlowArm: surface=21 state=2 prop=46 scalar=15 snapshot=0 ghost=0 or=9
+FlowBaseAnchor: surface=0 state=5 prop=0 scalar=4 snapshot=2 ghost=0 or=0
+FlowBaseRoutes: surface=23 state=1 prop=30 scalar=9 snapshot=1 ghost=3 or=7
+FlowOpenHeld: surface=0 state=0 prop=0 scalar=3 snapshot=0 ghost=2 or=0
+FlowOpenStack: surface=31 state=1 prop=28 scalar=9 snapshot=1 ghost=11 or=2
+FlowStack: surface=2 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0
+FlowStackB: surface=6 state=1 prop=1 scalar=4 snapshot=1 ghost=7 or=0
+FlowStackK: surface=5 state=2 prop=6 scalar=5 snapshot=1 ghost=3 or=2
+GapRead: surface=4 state=1 prop=7 scalar=5 snapshot=0 ghost=0 or=4
+GateOf: surface=0 state=1 prop=0 scalar=1 snapshot=2 ghost=0 or=0
+ImplicitKeyHead: surface=2 state=0 prop=2 scalar=0 snapshot=0 ghost=0 or=0
+ImplicitKeyPack: surface=16 state=1 prop=17 scalar=9 snapshot=0 ghost=4 or=7
+InlineResidue: surface=2 state=0 prop=0 scalar=1 snapshot=0 ghost=0 or=0
+InteriorGap: surface=3 state=1 prop=30 scalar=11 snapshot=0 ghost=1 or=4
+KeyArm: surface=19 state=2 prop=53 scalar=16 snapshot=0 ghost=0 or=17
+KeyFloor: surface=0 state=0 prop=1 scalar=7 snapshot=0 ghost=0 or=0
+KeyFrames: surface=4 state=0 prop=5 scalar=3 snapshot=0 ghost=2 or=0
+KeyPackPunt: surface=0 state=1 prop=9 scalar=0 snapshot=0 ghost=0 or=0
+KeyResv: surface=0 state=1 prop=1 scalar=1 snapshot=0 ghost=0 or=0
+KeyResvLe: surface=0 state=1 prop=1 scalar=1 snapshot=0 ghost=0 or=0
+KmSound: surface=0 state=1 prop=9 scalar=21 snapshot=0 ghost=3 or=0
+MapFrame: surface=40 state=0 prop=38 scalar=7 snapshot=0 ghost=1 or=0
+MarkerNodeRoute: surface=4 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0
+NextIsSep: surface=0 state=1 prop=0 scalar=3 snapshot=0 ghost=0 or=0
+NotQuestionPark: surface=0 state=1 prop=1 scalar=3 snapshot=0 ghost=0 or=0
+OfferPred: surface=0 state=0 prop=0 scalar=4 snapshot=0 ghost=0 or=0
+OpenSeqEntry: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=1
+PackAlt: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=0
+PackAltG: surface=0 state=0 prop=0 scalar=0 snapshot=1 ghost=0 or=0
+ParkAnchor: surface=0 state=2 prop=3 scalar=4 snapshot=0 ghost=0 or=0
+ParkChoice: surface=0 state=2 prop=0 scalar=1 snapshot=0 ghost=0 or=1
+ParkCore: surface=0 state=2 prop=5 scalar=6 snapshot=0 ghost=1 or=0
+ParkFloor: surface=0 state=2 prop=4 scalar=4 snapshot=0 ghost=0 or=0
+ParkSlot: surface=0 state=2 prop=3 scalar=7 snapshot=0 ghost=0 or=1
+PendingNode: surface=141 state=1 prop=298 scalar=66 snapshot=0 ghost=23 or=66
+PropsKeyPack: surface=13 state=1 prop=14 scalar=7 snapshot=0 ghost=3 or=5
+PropsNodeRoute: surface=6 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0
+PropsRideRoute: surface=7 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0
+PropsRun: surface=14 state=0 prop=8 scalar=4 snapshot=0 ghost=0 or=0
+RestoreLayout: surface=0 state=1 prop=0 scalar=4 snapshot=0 ghost=0 or=0
+ResumeFrames: surface=4 state=0 prop=5 scalar=3 snapshot=0 ghost=2 or=0
+ResumeKeyCtx: surface=7 state=1 prop=7 scalar=9 snapshot=0 ghost=3 or=6
+ResumeWidths: surface=0 state=0 prop=2 scalar=4 snapshot=0 ghost=3 or=0
+ResvOk: surface=0 state=1 prop=2 scalar=5 snapshot=0 ghost=0 or=0
+ResvOkLe: surface=0 state=1 prop=2 scalar=5 snapshot=0 ghost=0 or=0
+SeqEntryTail: surface=3 state=0 prop=1 scalar=1 snapshot=0 ghost=0 or=0
+SeqFrame: surface=40 state=0 prop=38 scalar=7 snapshot=0 ghost=1 or=0
+SeqTopKey: surface=0 state=1 prop=0 scalar=1 snapshot=0 ghost=0 or=0
+SlotFace: surface=0 state=0 prop=0 scalar=4 snapshot=0 ghost=0 or=1
+SlotGateAt: surface=0 state=2 prop=7 scalar=1 snapshot=0 ghost=0 or=1
+SlotResv: surface=0 state=0 prop=1 scalar=5 snapshot=0 ghost=0 or=1
+StaleNodeTail: surface=0 state=1 prop=0 scalar=1 snapshot=0 ghost=0 or=0
+StalePark: surface=0 state=1 prop=0 scalar=0 snapshot=0 ghost=0 or=0
+SuffixRun: surface=4 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0
+ScannerSurfCorr: surface=1 state=1 prop=7 scalar=4 snapshot=0 ghost=0 or=0
+
+Rule 8's GHOST LIST moved.
+expected (83), got (82):
+FlowBaseAnchor.type[0].a a : Option ScannerState
+FlowBaseAnchor.body x : Option ScannerState
+FlowBaseRoutes.type[4].g g : Option ScannerState
+FlowBaseRoutes.mk[6].valueF ks : List IndentStackCover.FrameLevel
+FlowBaseRoutes.mk[8].key ks : List IndentStackCover.FrameLevel
+FlowBaseRoutes.mk[8].key ks : List IndentStackCover.FrameLevel
+FlowOpenHeld.type[3].S S : List Nat
+FlowOpenHeld.body T : List Nat
+FlowOpenStack.type[3].g g : Option ScannerState
+FlowOpenStack.type[6].a a : Array Bool
+FlowOpenStack.type[7].a a : Array Bool
+FlowOpenStack.type[8].a a : FrameTail
+FlowOpenStack.seqBase[11].tl tl : FrameTail
+FlowOpenStack.mapBase[11].tl tl : FrameTail
+FlowOpenStack.seqNest[6].ks ks : Array Bool
+FlowOpenStack.seqNest[7].km km : Array Bool
+FlowOpenStack.seqNest[9].tl tl : FrameTail
+FlowOpenStack.mapNest[6].ks ks : Array Bool
+FlowOpenStack.mapNest[7].km km : Array Bool
+FlowOpenStack.mapNest[9].tl tl : FrameTail
+FlowStackB.type[3].g g : Option ScannerState
+FlowStackB.type[6].a a : Array Bool
+FlowStackB.type[7].a a : Array Bool
+FlowStackB.type[8].a a : FrameTail
+FlowStackB.nil[6].tl tl : FrameTail
+FlowStackB.open[6].ks ks : Array Bool
+FlowStackB.open[7].km km : Array Bool
+FlowStackB.open[8].tl tl : FrameTail
+FlowStackK.type[3].ks ks : Array Bool
+FlowStackK.type[4].tl tl : FrameTail
+FlowStackK.body km : Array Bool
+FlowStackK.body g : Option ScannerState
+GateOf.type[0].a a : Option ScannerState
+GateOf.body x : Option ScannerState
+ImplicitKeyPack.body ns : List Nat
+ImplicitKeyPack.body ks : List IndentStackCover.FrameLevel
+ImplicitKeyPack.body ks : List IndentStackCover.FrameLevel
+ImplicitKeyPack.body ks : List IndentStackCover.FrameLevel
+InteriorGap.type[1].tl tl : FrameTail
+KeyFrames.type[1].a a : List IndentStackCover.FrameLevel
+KeyFrames.level[2].ks ks : List IndentStackCover.FrameLevel
+KmSound.type[1].km km : Array Bool
+KmSound.body xs : Array Bool
+KmSound.body xs : Array Bool
+MapFrame.type[2].a a : FrameTail
+PackAltG.type[0]._g _g : Option ScannerState
+ParkCore.mk[4].held S : List Nat
+PendingNode.pendingContent[11].h_framesS ks : List IndentStackCover.FrameLevel
+PendingNode.pendingContent[12].h_framesV ks : List IndentStackCover.FrameLevel
+PendingNode.pendingContent[16].h_seqF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingProps[21].h_kslot ns : List Nat
+PendingNode.pendingProps[24].h_closeFE ks : List IndentStackCover.FrameLevel
+PendingNode.pendingProps[25].h_closeF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingProps[26].h_closeFV ks : List IndentStackCover.FrameLevel
+PendingNode.pendingProps[28].h_closeFEV ks : List IndentStackCover.FrameLevel
+PendingNode.pendingBlockContent[13].h_closeF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingBlockContent[16].h_seqF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingBlockContent[17].h_kslotUp ns : List Nat
+PendingNode.pendingBlockContent[18].h_closeFV ks : List IndentStackCover.FrameLevel
+PendingNode.pendingBlock[11].h_closeF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingBlock[13].h_seqF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingBlock[14].h_kslotUp ns : List Nat
+PendingNode.pendingBlock[15].h_closeFV ks : List IndentStackCover.FrameLevel
+PendingNode.pendingMapValue[16].h_kslot ns : List Nat
+PendingNode.pendingMapValue[17].h_closeF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingMapValue[18].h_frames ks : List IndentStackCover.FrameLevel
+PendingNode.pendingMapValue[19].h_closeFV ks : List IndentStackCover.FrameLevel
+PendingNode.pendingMapValue[20].h_framesV ks : List IndentStackCover.FrameLevel
+PendingNode.pendingMapValue[22].h_seqF ks : List IndentStackCover.FrameLevel
+PendingNode.pendingMapValue[23].h_explUp ns : List Nat
+PropsKeyPack.body ns : List Nat
+PropsKeyPack.body ks : List IndentStackCover.FrameLevel
+PropsKeyPack.body ks : List IndentStackCover.FrameLevel
+ResumeFrames.type[1].a a : List IndentStackCover.FrameLevel
+ResumeFrames.level[2].ks ks : List IndentStackCover.FrameLevel
+ResumeKeyCtx.body ks : List IndentStackCover.FrameLevel
+ResumeKeyCtx.body ksv : List IndentStackCover.FrameLevel
+ResumeKeyCtx.body ksq : List IndentStackCover.FrameLevel
+ResumeWidths.type[0].ks ks : List IndentStackCover.FrameLevel
+ResumeWidths.type[1].ks' ks' : List IndentStackCover.FrameLevel
+ResumeWidths.body pre : List IndentStackCover.FrameLevel
+SeqFrame.type[2].a a : FrameTail

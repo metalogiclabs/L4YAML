@@ -1,0 +1,115 @@
+{
+  "status": "CANDIDATE pending clean hosted replay",
+  "owner_commit": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "owner_library_tree": "0a8d15505cf2520df980bc4af05eca0ad72f86c8",
+  "official_baseline_blobs": [
+    {
+      "path": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "sha": "b6379bb4ec2d3a46b1c80edf72413a18fb98e77a",
+      "contentBytes": 0
+    },
+    {
+      "path": "Tests/Guards/Proofs/CapstonePathAudit.lean",
+      "sha": "f159e178a9f09566cbba71b936c8ecfb894318d3",
+      "contentBytes": 33950
+    },
+    {
+      "path": "Tests/Guards/Proofs/GhostIndexCensus.lean",
+      "sha": "90ccacb952097a3b6fe98a37e7895a9d7f41214a",
+      "contentBytes": 41005
+    },
+    {
+      "path": "Tests/Guards/Proofs/OrTrueAudit.lean",
+      "sha": "fae4ebc7cd741492dabda186bdac6400a67a09d9",
+      "contentBytes": 78310
+    },
+    {
+      "path": "Tests/Guards/Proofs/RelaySupplyCensus.lean",
+      "sha": "2af1f549e0c14feb977f23e24d8a0feb85aead7d",
+      "contentBytes": 114349
+    }
+  ],
+  "baseline_receipt_head": "37c7e1a786645d8d85af5e4a8520ebc833b2ebdf",
+  "toolchain": "Lean 4.36.0",
+  "candidate_sources": [
+    {
+      "sha256": "e17428598a780c5bc351b318286803610030a45753f886f85b96dbbcd1636767",
+      "path": "L4YAML/Proofs/Production/StreamAccum.lean"
+    },
+    {
+      "sha256": "a56c8f1a76f27f8b8335cb5893a29f9b3aad5bcedf28994613923a3e0b2dbb5b",
+      "path": "Tests/Guards/Proofs/CapstonePathAudit.lean"
+    },
+    {
+      "sha256": "c85641bc0fafb590e86b8a5fbc33e5da3d85fbbfe058de5da860ba13c6646ec6",
+      "path": "Tests/Guards/Proofs/GhostIndexCensus.lean"
+    },
+    {
+      "sha256": "fef4bef2fcabb15c94f7f8d9fd81b4b8634396eb8456947d757e6659c826a65c",
+      "path": "Tests/Guards/Proofs/OrTrueAudit.lean"
+    },
+    {
+      "sha256": "f55db9d98e2aa755473308678cdf9c0a56a1498df74f29c8eba591b3bab5be3d",
+      "path": "Tests/Guards/Proofs/RelaySupplyCensus.lean"
+    }
+  ],
+  "patch_sha256": "0f68f6a00edfb7d3924cb6cba01f0fcf68a19cd0040d368d934ec2f7d9a70758",
+  "local_proof_build": "PASS",
+  "local_document_consumer_build": "PASS",
+  "local_ghost_strict_guard": "PASS",
+  "six_exact_axiom_profiles": "UNCHANGED including inherited native_decide names",
+  "new_lemmas": {
+    "count": 2,
+    "both_reached_by_capstones": true,
+    "both_standard_axioms_only": true
+  },
+  "controls": {
+    "sources": 180,
+    "explicit_values": 1110,
+    "multiple_mark_cases": 930,
+    "steps": 3660
+  },
+  "metrics_relative_qualified_root": {
+    "ghost": [
+      74,
+      73
+    ],
+    "production_offcol_calls": [
+      3,
+      0
+    ],
+    "wrapper_capstone_reached": [
+      true,
+      false
+    ],
+    "critical_optional_positions": [
+      7,
+      7
+    ],
+    "critical_direct_declines": [
+      5,
+      5
+    ],
+    "relay_direct_declines": [
+      236,
+      236
+    ],
+    "declined_split_leaves": [
+      213,
+      214
+    ],
+    "free_declined_split_leaves": [
+      117,
+      118
+    ],
+    "trivial_writer_roster": "UNCHANGED",
+    "ortrue_summary": "UNCHANGED"
+  },
+  "verification_limit": "Strict relay, OrTrue and capstone guard rebuilds are delegated to the declared fresh hosted replay; this is not a full repository/bindings/docs qualification.",
+  "open": [
+    "scannerDrop",
+    "no-pack and generic escape routes",
+    "universal scan_trace",
+    "corrected Group 7.7"
+  ]
+}
