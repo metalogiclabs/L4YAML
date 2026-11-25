@@ -1,0 +1,40 @@
+ℹ [44/49] Replayed L4YAML.Proofs.Serialization.SerializationWellFormed
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:463:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_correct' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:464:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:465:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:467:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:468:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:470:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.alias_membership_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:471:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.tag_membership_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:473:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_set_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:474:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_set_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:476:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_envEquivalent' depends on axioms: [propext, Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:477:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.wellFormedFrom_envEquivalent' depends on axioms: [propext,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:479:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:480:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_declared_anchor_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:482:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_runtime' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:483:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_runtime' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+ℹ [48/49] Built Tests.Guards.Proofs.AnchoredWordControls (1.9s)
+info: Tests/Guards/Proofs/AnchoredWordControls.lean:75:0: ANCHORED_WORD_CONTROLS pass=724 rejected_properties=2 negative_events=3 fuel_boundaries=5 exact_positions=true
+Build completed successfully (49 jobs).

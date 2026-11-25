@@ -1,0 +1,95 @@
+name: Anchored explicit word assurance
+on:
+  push:
+    branches: [fix/anchored-word-assurance]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  anchored-word:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: pr377
+            owner: 0dbf0c120601fccc1d837025f3bef405cc4f2062
+            library: 0a8d15505cf2520df980bc4af05eca0ad72f86c8
+          - label: upstream
+            owner: e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca
+            library: 19f54b7a36b0b170aa24375889ff86196e7fa475
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: ${{ matrix.owner }}
+          path: upstream
+      - name: Verify frozen research and exact owner source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/proof-sources results/workflows
+          cd evidence
+          sha256sum -c Research/AnchoredWordFragment/source-sha256.txt
+          test "$(sha256sum .github/workflows/group77-owner-key-replay.yml | cut -d' ' -f1)" = 5fdd545bd2f563ee2753e8b8bee486328bb6aad1b07b8adafcb6726fb1eadc7c
+          printf '%s\n' "$GITHUB_SHA" > ../results/evidence-commit.txt
+          cp -r Research/AnchoredWordFragment ../results/research
+          cp .github/workflows/group77-anchored-word.yml .github/workflows/group77-owner-key-replay.yml ../results/workflows/
+          cd ../upstream
+          test "$(git rev-parse HEAD)" = '${{ matrix.owner }}'
+          test "$(git rev-parse HEAD:L4YAML)" = '${{ matrix.library }}'
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML HEAD:lean-toolchain HEAD:lake-manifest.json HEAD:Tests/AdversarialInstantiation.lean > ../results/owner-source.txt
+          git diff --exit-code
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Restore qualified parent and run adversarial instantiation first
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version | tee ../results/lean-version.txt
+          lean --run ../evidence/Research/AnchoredWordFragment/PrepareParent.lean ../evidence .
+          cp ../evidence/Research/AnchoredWordFragment/AnchoredWordControls.lean Tests/Guards/Proofs/
+          sed -i '/^module$/a public import Tests.Guards.Proofs.AnchoredWordControls\npublic meta import Tests.Guards.Proofs.AnchoredWordControls' Tests/AdversarialInstantiation.lean
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json lakefile.lean
+          lake build Tests.AdversarialInstantiation 2>&1 | tee ../results/adversarial-before-proof.log
+          grep -F 'ANCHORED_WORD_CONTROLS pass=724 rejected_properties=2 negative_events=3 fuel_boundaries=5 exact_positions=true' ../results/adversarial-before-proof.log
+      - name: Prove native fold grammar raw payload composition and EOF
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          for source in ExplicitWordPrefix AnchoredWordSource AnchoredWordExecution AnchoredWordGrammar AnchoredWordParser AnchoredWordAssurance AnchoredWordAudit; do
+            cp "../evidence/Research/AnchoredWordFragment/$source.lean" Tests/Guards/Proofs/
+          done
+          cp ../evidence/Research/AnchoredWordFragment/AnchoredWordAuditMain.lean tools/
+          cat >> lakefile.lean <<'LAKE'
+
+          lean_exe «anchored-word-audit» where
+            root := `tools.AnchoredWordAuditMain
+            supportInterpreter := true
+          LAKE
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+          lake build Tests.Guards.Proofs.AnchoredWordAssurance anchored-word-audit 2>&1 | tee ../results/anchored-word-build.log
+          lake env .lake/build/bin/anchored-word-audit 2>&1 | tee ../results/anchored-word-axioms.log
+          test "$(grep -c '^ANCHOR_PROFILE ' ../results/anchored-word-axioms.log)" = 16
+          grep -Fx 'ANCHOR_UNION checked=16 nonstandard=0 new_native_axioms=0 inherited_native_axioms=0' ../results/anchored-word-axioms.log
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+          git diff --check
+          git status --short > ../results/owner-status.txt
+          git diff -- Tests/AdversarialInstantiation.lean lakefile.lean > ../results/test-only-changes.patch
+          git ls-files --others --exclude-standard -z Tests/Guards/Proofs | xargs -0 cp -t ../results/proof-sources/
+          sha256sum ../results/proof-sources/*.lean > ../results/proof-sha256.txt
+          printf '%s\n' 'anchored_word_assurance=PASS' 'profile_nonstandard_axioms=0' 'production_source_changed=false' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: anchored-word-evidence-${{ matrix.label }}
+          path: results/
+          if-no-files-found: error

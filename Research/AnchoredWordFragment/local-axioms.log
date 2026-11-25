@@ -1,0 +1,18 @@
+ANCHORED_WORD_AXIOM_AUDIT
+ANCHOR_PROFILE L4YAML.Tests.Guards.ExplicitWordPrefix.question_step: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.ExplicitWordPrefix.key_step: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.ExplicitWordPrefix.colon_step: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordExecution.anchor_loop: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordExecution.anchor_scan: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordExecution.anchor_dispatch: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordExecution.scalar_scan: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordExecution.anchored_word_fold: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordExecution.filtered_shape: nonstandard=0 standard=2
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordExecution.anchored_word_filtered: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordGrammar.anchored_word_trace: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordParser.parsed_tokens: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordParser.parsed_raw_source: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordParser.parsed_source: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordAssurance.anchored_word_events: nonstandard=0 standard=3
+ANCHOR_PROFILE L4YAML.Tests.Guards.AnchoredWordAssurance.anchored_word_assurance: nonstandard=0 standard=3
+ANCHOR_UNION checked=16 nonstandard=0 new_native_axioms=0 inherited_native_axioms=0
