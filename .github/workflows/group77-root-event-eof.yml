@@ -2986,6 +2986,240 @@ jobs:
           done
           if grep -E 'sorryAx|declaration uses .sorry' ../results/root-word-induction.log; then exit 1; fi
           printf 'root_word_induction\t0\n' >> ../results/outcomes.tsv
+      - name: Derive native fuel and actual word dispatch at EOF or matched colon line
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/RootWordDispatch.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.RootWordInduction
+          public import L4YAML.Proofs.Scanner.ScannerPlainScalar
+          @[expose] public section Blanket
+          set_option autoImplicit false
+          set_option maxHeartbeats 4000000
+          namespace L4YAML.Tests.Guards.RootWordDispatch
+          open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.CharPredicates
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScalarProduction
+          open L4YAML.Proofs.ScalarCoupling
+          open L4YAML.Tests.Guards.RootWordInduction
+          
+          -- The native fuel is sufficient from source bytes, not a separate assumption.
+          lemma bytes_ge_length (xs : List Char) : xs.length ≤ listByteSize xs := by
+            induction xs with
+            | nil => simp [listByteSize]
+            | cons c cs ih =>
+              have hp := Char.utf8Size_pos c
+              simp only [List.length_cons, listByteSize]
+              omega
+          
+          lemma source_remaining_bytes (s : ScannerState) (xs : List Char)
+              (hc : ScannerSurfCorr s ⟨xs, s.col⟩) :
+              s.inputEnd - s.offset = listByteSize xs := by
+            obtain ⟨pre, hsplit, hoff⟩ := hc.input_prefix
+            have he := hc.end_eq
+            rw [utf8ByteSize_eq_listByteSize, hsplit, listByteSize_append] at he
+            change s.input.toList = pre ++ xs at hsplit
+            change s.inputEnd = listByteSize pre + listByteSize xs at he
+            omega
+          
+          lemma word_native_fuel (s : ScannerState) (xs tail : List Char)
+              (hc : ScannerSurfCorr s ⟨xs ++ tail, s.col⟩) :
+              xs.length < (s.inputEnd - s.offset + 1) * 2 := by
+            have hb := source_remaining_bytes s (xs ++ tail) hc
+            rw [listByteSize_append] at hb
+            have hl := bytes_ge_length xs
+            omega
+          
+          lemma fold_letters (xs : List Char) (acc : String) :
+              xs.foldl (fun a c => a ++ String.singleton c) acc =
+                acc ++ String.ofList xs := by
+            induction xs generalizing acc with
+            | nil => simp
+            | cons c cs ih =>
+              rw [List.foldl_cons, ih]
+              rw [← String.toList_inj]
+              simp only [String.toList_append, String.toList_singleton, String.toList_ofList,
+                List.append_assoc, List.singleton_append]
+          
+          lemma lower_no_ws {c : Char} (h : Lowercase c) :
+              (c == ' ' || c == '\t') = false := by
+            unfold Lowercase at h
+            rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+          
+          lemma trim_lower_word (xs : List Char) (h : ∀ c ∈ xs, Lowercase c) :
+              trimTrailingWS (String.ofList xs) = String.ofList xs := by
+            rw [L4YAML.Proofs.ScannerPlainScalar.trimTrailingWS_eq, String.toList_ofList]
+            have hd : xs.reverse.dropWhile (fun c => c == ' ' || c == '\t') = xs.reverse := by
+              cases hr : xs.reverse with
+              | nil => rfl
+              | cons c rest =>
+                have hm : c ∈ xs.reverse := by rw [hr]; simp
+                have hm' : c ∈ xs := by simpa using hm
+                simp [List.dropWhile, lower_no_ws (h c hm')]
+            rw [hd, List.reverse_reverse]
+          
+          -- After LF, a column-zero colon is not whitespace or a blank line.
+          lemma colon_skip_ws (s : ScannerState) (h : s.peek? = some ':') :
+              skipWhitespace s = s := by
+            unfold skipWhitespace
+            generalize s.inputEnd - s.offset = fuel
+            cases fuel with
+            | zero => rfl
+            | succ n =>
+              rw [skipWhitespaceLoop]
+              simp [h, show isWhiteSpaceBool ':' = false by decide]
+          
+          lemma colon_skip_spaces (s : ScannerState) (h : s.peek? = some ':') :
+              skipSpaces s = s := by
+            unfold skipSpaces
+            generalize s.inputEnd - s.offset = fuel
+            cases fuel with
+            | zero => rfl
+            | succ n =>
+              rw [skipSpacesLoop]
+              simp [h]
+          
+          lemma colon_skip_blanks (s : ScannerState) (fuel ie : Nat)
+              (h : s.peek? = some ':') :
+              (skipBlankLinesLoop s 0 fuel ie).2 = s := by
+            cases fuel with
+            | zero => rfl
+            | succ n =>
+              rw [skipBlankLinesLoop]
+              simp [colon_skip_ws s h, h, show isLineBreakBool ':' = false by decide]
+          
+          lemma lf_colon_handler_stops (s : ScannerState) (tail : List Char)
+              (content : String) (ci ie : Nat) (hci : 0 < ci)
+              (hc : ScannerSurfCorr s ⟨'\n' :: ':' :: tail, s.col⟩) :
+              collectPlainScalar_handleBlockLineBreak s content ci ie = none := by
+            have hp : s.peek? = some '\n' := corr_peek_head hc
+            have ha := advance_newline_corr s (':' :: tail) hc (peek_some_has_more hp)
+            have hn : ScannerSurfCorr (consumeNewline s) ⟨':' :: tail, 0⟩ := by
+              rw [consumeNewline]
+              simp only [hp]
+              exact corr_of_needIndentCheck_update true ha
+            have hcolon : (consumeNewline s).peek? = some ':' := corr_peek_head hn
+            have hcol : (consumeNewline s).col = 0 := hn.col_eq.symm
+            unfold collectPlainScalar_handleBlockLineBreak
+            dsimp only []
+            rw [colon_skip_blanks _ _ _ hcolon, colon_skip_spaces _ hcolon, hcol]
+            simp [hci]
+          
+          -- Source-delimited stopping cases: no scanner result is supplied.
+          def WordStop (tail : List Char) (ci : Nat) : Prop :=
+            tail = [] ∨ (∃ rest, tail = '\n' :: ':' :: rest ∧ 0 < ci)
+          
+          lemma word_stop_loop (s : ScannerState) (tail : List Char) (content : String)
+              (fuel ci ie : Nat) (hs : WordStop tail ci)
+              (hc : ScannerSurfCorr s ⟨tail, s.col⟩) (hpos : s.col ≠ 0) :
+              collectPlainScalarLoop s content "" (fuel + 1) false ci ie =
+                .ok {content := content, spaces := "", state := s, terminated := true} := by
+            rcases hs with hnil | ⟨rest, htail, hci⟩
+            · subst tail
+              have hnot : ¬ s.offset < s.inputEnd := by
+                intro h
+                obtain ⟨c, rest, hchars, _⟩ := peek_corr s _ hc h
+                simp at hchars
+              have hp : s.peek? = none := by simp [ScannerState.peek?, hnot]
+              rw [collectPlainScalarLoop]
+              simp [hp]
+            · subst tail
+              have hp : s.peek? = some '\n' := corr_peek_head hc
+              have hterm : collectPlainScalar_terminates? '\n' s content "" false = none := by
+                simp [collectPlainScalar_terminates?, beq_iff_eq, hpos]
+              have hstop := lf_colon_handler_stops s rest content ci ie hci hc
+              rw [collectPlainScalarLoop]
+              simp [hp, hterm, show isLineBreakBool '\n' = true by decide, hstop]
+          
+          -- Compose with the already qualified arbitrary-prefix theorem, spending
+          -- the actual scanner fuel and deriving successful termination.
+          lemma native_word_loop (s : ScannerState) (xs tail : List Char) (ci : Nat)
+              (hw : ∀ c ∈ xs, Lowercase c) (hc : ScannerSurfCorr s ⟨xs ++ tail, s.col⟩)
+              (hpos : s.col ≠ 0) (hs : WordStop tail ci) :
+              ∃ landing,
+                ScannerSurfCorr landing ⟨tail, s.col + xs.length⟩ ∧
+                collectPlainScalarLoop s "" "" ((s.inputEnd - s.offset + 1) * 2)
+                    false ci s.inputEnd =
+                  .ok {content := String.ofList xs, spaces := "", state := landing, terminated := true} := by
+            let f := (s.inputEnd - s.offset + 1) * 2
+            have hf : xs.length < f := word_native_fuel s xs tail hc
+            let remaining := f - xs.length - 1
+            obtain ⟨landing, hland, heq⟩ :=
+              lowercase_prefix_transport xs tail s "" (remaining + 1) ci s.inputEnd hw hc hpos
+            have hcol : landing.col = s.col + xs.length := hland.col_eq.symm
+            have hc' : ScannerSurfCorr landing ⟨tail, landing.col⟩ := by rw [hcol]; exact hland
+            have hpos' : landing.col ≠ 0 := by omega
+            have hfuel : f = xs.length + (remaining + 1) := by dsimp [remaining]; omega
+            refine ⟨landing, hland, ?_⟩
+            change collectPlainScalarLoop s "" "" f false ci s.inputEnd = _
+            rw [hfuel, heq, fold_letters]
+            simp only [String.empty_append]
+            exact word_stop_loop landing tail (String.ofList xs) remaining ci s.inputEnd hs hc' hpos'
+          
+          def blockFloor (s : ScannerState) : Nat := (max 0 (s.currentIndent + 1)).toNat
+          
+          -- Actual production scanner emission, not only a collector theorem.
+          lemma native_word_scan (s : ScannerState) (xs tail : List Char)
+              (hw : ∀ c ∈ xs, Lowercase c) (hc : ScannerSurfCorr s ⟨xs ++ tail, s.col⟩)
+              (hpos : s.col ≠ 0) (hflow : s.inFlow = false)
+              (hs : WordStop tail (blockFloor s)) :
+              ∃ out : ScannerState,
+                scanPlainScalar s = .ok out ∧
+                ScannerSurfCorr out ⟨tail, s.col + xs.length⟩ ∧
+                out.simpleKeyAllowed = false ∧ out.needIndentCheck = false ∧
+                ∃ landing : ScannerState, out.tokens =
+                  landing.tokens.push {pos := s.currentPos, val := .scalar (String.ofList xs) .plain} ∧
+                  ScannerSurfCorr landing ⟨tail, s.col + xs.length⟩ := by
+            obtain ⟨landing, hl, hloop⟩ := native_word_loop s xs tail (blockFloor s) hw hc hpos hs
+            let emitted := landing.emitAt s.currentPos (.scalar (String.ofList xs) .plain)
+            let out := {emitted with simpleKeyAllowed := false, needIndentCheck := false}
+            refine ⟨out, ?_, ?_, rfl, rfl, landing, rfl, hl⟩
+            · unfold scanPlainScalar
+              simp [hflow, ← blockFloor, hloop, bind, Except.bind, trim_lower_word xs hw,
+                pure, Pure.pure, Except.pure, out, emitted]
+            · exact corr_of_simpleKeyAllowed_needIndentCheck_update false false
+                (corr_of_emitAt s.currentPos (.scalar (String.ofList xs) .plain) hl)
+          
+          lemma lower_dispatch_eq (s : ScannerState) (c : Char)
+              (h : Lowercase c) (hflow : s.inFlow = false) :
+              scanNextToken_dispatchContent s c = scanPlainScalar s := by
+            have hs : canStartPlainScalarBool c (s.peekAt? 1) s.inFlow = true := by
+              unfold Lowercase at h
+              rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+            unfold Lowercase at h
+            rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+              simp [scanNextToken_dispatchContent, hs, bind, Except.bind, pure, Pure.pure, Except.pure] <;>
+              cases scanPlainScalar s <;> rfl
+          
+          -- Native content dispatch for nonempty source words at a real landing.
+          lemma native_word_dispatch (s : ScannerState) (c : Char) (cs tail : List Char)
+              (hw : ∀ d ∈ c :: cs, Lowercase d)
+              (hc : ScannerSurfCorr s ⟨(c :: cs) ++ tail, s.col⟩)
+              (hpos : s.col ≠ 0) (hflow : s.inFlow = false)
+              (hs : WordStop tail (blockFloor s)) :
+              ∃ out : ScannerState,
+                scanNextToken_dispatchContent s c = .ok out ∧
+                ScannerSurfCorr out ⟨tail, s.col + (c :: cs).length⟩ ∧
+                out.simpleKeyAllowed = false ∧ out.needIndentCheck = false := by
+            obtain ⟨out, ho, hcorr, hk, hi, _⟩ :=
+              native_word_scan s (c :: cs) tail hw hc hpos hflow hs
+            exact ⟨out, (lower_dispatch_eq s c (hw c (by simp)) hflow).trans ho, hcorr, hk, hi⟩
+          
+          #print axioms source_remaining_bytes
+          #print axioms native_word_loop
+          #print axioms native_word_scan
+          #print axioms native_word_dispatch
+          end L4YAML.Tests.Guards.RootWordDispatch
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/RootWordDispatch.lean ../results/
+          lake build Tests.Guards.Proofs.RootWordDispatch 2>&1 | tee ../results/root-word-dispatch.log
+          for n in source_remaining_bytes native_word_loop native_word_scan native_word_dispatch; do
+            grep -F "$n" ../results/root-word-dispatch.log
+          done
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/root-word-dispatch.log; then exit 1; fi
+          printf 'root_word_dispatch\t0\n' >> ../results/outcomes.tsv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
