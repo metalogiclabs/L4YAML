@@ -1,0 +1,216 @@
+Independent readback of run 45683950774, qualified source 83a6e3e2bd6a47768aaaba427838dce53057f8f3
+Both terminal jobs: SUCCESS. Downloaded ZIP SHA-256 values equal GitHub artifact metadata and upload-job logs.
+Upstream artifact 15056535466: f2e8e23c1368785f01171257c34564af85031779e0a6d6ea77a959873bdb8b00
+PR377 artifact 15056970399: eb033dcd29461fa269437c4a780e1b7121199c675e1c64de9a52aefabe488426
+All 12 research/workflow members additionally compared byte-for-byte with qualified published source.
+Installed proof manifests and axiom reports compared byte-for-byte across owners: identical.
+
+UPSTREAM
+Archive:  /workspace/scratch/58b2c5944c16/qualification/anchored-word-evidence-upstream.zip
+    testing: adversarial-before-proof.log   OK
+    testing: anchored-word-axioms.log   OK
+    testing: anchored-word-build.log   OK
+    testing: evidence-commit.txt      OK
+    testing: lean-version.txt         OK
+    testing: outcomes.txt             OK
+    testing: owner-source.txt         OK
+    testing: owner-status.txt         OK
+    testing: proof-sha256.txt         OK
+    testing: proof-sources/AnchoredWordAssurance.lean   OK
+    testing: proof-sources/AnchoredWordAudit.lean   OK
+    testing: proof-sources/AnchoredWordControls.lean   OK
+    testing: proof-sources/AnchoredWordExecution.lean   OK
+    testing: proof-sources/AnchoredWordGrammar.lean   OK
+    testing: proof-sources/AnchoredWordParser.lean   OK
+    testing: proof-sources/AnchoredWordSource.lean   OK
+    testing: proof-sources/ColonRolePartition.lean   OK
+    testing: proof-sources/ExplicitWordAssurance.lean   OK
+    testing: proof-sources/ExplicitWordAudit.lean   OK
+    testing: proof-sources/ExplicitWordExecution.lean   OK
+    testing: proof-sources/ExplicitWordFragment.lean   OK
+    testing: proof-sources/ExplicitWordFragmentControls.lean   OK
+    testing: proof-sources/ExplicitWordPrefix.lean   OK
+    testing: proof-sources/ExplicitWordParser.lean   OK
+    testing: proof-sources/OwnerExplicitKeyClosure.lean   OK
+    testing: proof-sources/OwnerExplicitKeyConsume.lean   OK
+    testing: proof-sources/OwnerExplicitKeyContent.lean   OK
+    testing: proof-sources/OwnerExplicitKeyFold.lean   OK
+    testing: proof-sources/OwnerExplicitKeyFreshTransport.lean   OK
+    testing: proof-sources/OwnerExplicitKeyPark.lean   OK
+    testing: proof-sources/OwnerExplicitKeyTransport.lean   OK
+    testing: proof-sources/OwnerKeyReplayAudit.lean   OK
+    testing: proof-sources/ReachableEOF.lean   OK
+    testing: proof-sources/RootComposedTrace.lean   OK
+    testing: proof-sources/RootEventEOF.lean   OK
+    testing: proof-sources/RootInhabited.lean   OK
+    testing: proof-sources/RootMatchingTrace.lean   OK
+    testing: proof-sources/ScalarKeyProducer.lean   OK
+    testing: proof-sources/RootPrefixGeometry.lean   OK
+    testing: research/AnchoredWordAssurance.lean   OK
+    testing: research/AnchoredWordAudit.lean   OK
+    testing: research/AnchoredWordAuditMain.lean   OK
+    testing: research/AnchoredWordControls.lean   OK
+    testing: research/AnchoredWordExecution.lean   OK
+    testing: research/AnchoredWordGrammar.lean   OK
+    testing: research/AnchoredWordParser.lean   OK
+    testing: research/AnchoredWordSource.lean   OK
+    testing: research/ExplicitWordPrefix.lean   OK
+    testing: research/PrepareParent.lean   OK
+    testing: research/README.md       OK
+    testing: research/local-axioms.log   OK
+    testing: research/local-build.log   OK
+    testing: research/local-controls.log   OK
+    testing: research/source-sha256.txt   OK
+    testing: test-only-changes.patch   OK
+    testing: workflows/group77-anchored-word.yml   OK
+    testing: workflows/group77-owner-key-replay.yml   OK
+No errors detected in compressed data of /workspace/scratch/58b2c5944c16/qualification/anchored-word-evidence-upstream.zip.
+
+proof-sources/AnchoredWordAssurance.lean: OK
+proof-sources/AnchoredWordAudit.lean: OK
+proof-sources/AnchoredWordControls.lean: OK
+proof-sources/AnchoredWordExecution.lean: OK
+proof-sources/AnchoredWordGrammar.lean: OK
+proof-sources/AnchoredWordParser.lean: OK
+proof-sources/AnchoredWordSource.lean: OK
+proof-sources/ColonRolePartition.lean: OK
+proof-sources/ExplicitWordAssurance.lean: OK
+proof-sources/ExplicitWordAudit.lean: OK
+proof-sources/ExplicitWordExecution.lean: OK
+proof-sources/ExplicitWordFragment.lean: OK
+proof-sources/ExplicitWordFragmentControls.lean: OK
+proof-sources/ExplicitWordParser.lean: OK
+proof-sources/ExplicitWordPrefix.lean: OK
+proof-sources/OwnerExplicitKeyClosure.lean: OK
+proof-sources/OwnerExplicitKeyConsume.lean: OK
+proof-sources/OwnerExplicitKeyContent.lean: OK
+proof-sources/OwnerExplicitKeyFold.lean: OK
+proof-sources/OwnerExplicitKeyFreshTransport.lean: OK
+proof-sources/OwnerExplicitKeyPark.lean: OK
+proof-sources/OwnerExplicitKeyTransport.lean: OK
+proof-sources/OwnerKeyReplayAudit.lean: OK
+proof-sources/ReachableEOF.lean: OK
+proof-sources/RootComposedTrace.lean: OK
+proof-sources/RootEventEOF.lean: OK
+proof-sources/RootInhabited.lean: OK
+proof-sources/RootMatchingTrace.lean: OK
+proof-sources/RootPrefixGeometry.lean: OK
+proof-sources/ScalarKeyProducer.lean: OK
+
+research/AnchoredWordAssurance.lean: OK
+research/AnchoredWordAudit.lean: OK
+research/AnchoredWordAuditMain.lean: OK
+research/AnchoredWordControls.lean: OK
+research/AnchoredWordExecution.lean: OK
+research/AnchoredWordGrammar.lean: OK
+research/AnchoredWordParser.lean: OK
+research/AnchoredWordSource.lean: OK
+research/ExplicitWordPrefix.lean: OK
+research/PrepareParent.lean: OK
+workflows/group77-anchored-word.yml: OK
+workflows/group77-owner-key-replay.yml: OK
+
+PR377
+Archive:  /workspace/scratch/58b2c5944c16/qualification/anchored-word-evidence-pr377.zip
+    testing: anchored-word-build.log   OK
+    testing: anchored-word-axioms.log   OK
+    testing: evidence-commit.txt      OK
+    testing: adversarial-before-proof.log   OK
+    testing: lean-version.txt         OK
+    testing: owner-source.txt         OK
+    testing: outcomes.txt             OK
+    testing: owner-status.txt         OK
+    testing: proof-sha256.txt         OK
+    testing: proof-sources/AnchoredWordAssurance.lean   OK
+    testing: proof-sources/AnchoredWordAudit.lean   OK
+    testing: proof-sources/AnchoredWordControls.lean   OK
+    testing: proof-sources/AnchoredWordExecution.lean   OK
+    testing: proof-sources/AnchoredWordGrammar.lean   OK
+    testing: proof-sources/AnchoredWordParser.lean   OK
+    testing: proof-sources/AnchoredWordSource.lean   OK
+    testing: proof-sources/ColonRolePartition.lean   OK
+    testing: proof-sources/ExplicitWordAudit.lean   OK
+    testing: proof-sources/ExplicitWordAssurance.lean   OK
+    testing: proof-sources/ExplicitWordExecution.lean   OK
+    testing: proof-sources/ExplicitWordFragment.lean   OK
+    testing: proof-sources/ExplicitWordFragmentControls.lean   OK
+    testing: proof-sources/ExplicitWordParser.lean   OK
+    testing: proof-sources/ExplicitWordPrefix.lean   OK
+    testing: proof-sources/OwnerExplicitKeyClosure.lean   OK
+    testing: proof-sources/OwnerExplicitKeyContent.lean   OK
+    testing: proof-sources/OwnerExplicitKeyConsume.lean   OK
+    testing: proof-sources/OwnerExplicitKeyFold.lean   OK
+    testing: proof-sources/OwnerExplicitKeyFreshTransport.lean   OK
+    testing: proof-sources/OwnerExplicitKeyPark.lean   OK
+    testing: proof-sources/OwnerExplicitKeyTransport.lean   OK
+    testing: proof-sources/OwnerKeyReplayAudit.lean   OK
+    testing: proof-sources/ReachableEOF.lean   OK
+    testing: proof-sources/RootComposedTrace.lean   OK
+    testing: proof-sources/RootEventEOF.lean   OK
+    testing: proof-sources/RootInhabited.lean   OK
+    testing: proof-sources/RootMatchingTrace.lean   OK
+    testing: proof-sources/RootPrefixGeometry.lean   OK
+    testing: proof-sources/ScalarKeyProducer.lean   OK
+    testing: research/AnchoredWordAssurance.lean   OK
+    testing: research/AnchoredWordAudit.lean   OK
+    testing: research/AnchoredWordAuditMain.lean   OK
+    testing: research/AnchoredWordControls.lean   OK
+    testing: research/AnchoredWordExecution.lean   OK
+    testing: research/AnchoredWordGrammar.lean   OK
+    testing: research/AnchoredWordParser.lean   OK
+    testing: research/AnchoredWordSource.lean   OK
+    testing: research/ExplicitWordPrefix.lean   OK
+    testing: research/PrepareParent.lean   OK
+    testing: research/README.md       OK
+    testing: research/local-axioms.log   OK
+    testing: research/local-build.log   OK
+    testing: research/local-controls.log   OK
+    testing: research/source-sha256.txt   OK
+    testing: test-only-changes.patch   OK
+    testing: workflows/group77-anchored-word.yml   OK
+    testing: workflows/group77-owner-key-replay.yml   OK
+No errors detected in compressed data of /workspace/scratch/58b2c5944c16/qualification/anchored-word-evidence-pr377.zip.
+
+proof-sources/AnchoredWordAssurance.lean: OK
+proof-sources/AnchoredWordAudit.lean: OK
+proof-sources/AnchoredWordControls.lean: OK
+proof-sources/AnchoredWordExecution.lean: OK
+proof-sources/AnchoredWordGrammar.lean: OK
+proof-sources/AnchoredWordParser.lean: OK
+proof-sources/AnchoredWordSource.lean: OK
+proof-sources/ColonRolePartition.lean: OK
+proof-sources/ExplicitWordAssurance.lean: OK
+proof-sources/ExplicitWordAudit.lean: OK
+proof-sources/ExplicitWordExecution.lean: OK
+proof-sources/ExplicitWordFragment.lean: OK
+proof-sources/ExplicitWordFragmentControls.lean: OK
+proof-sources/ExplicitWordParser.lean: OK
+proof-sources/ExplicitWordPrefix.lean: OK
+proof-sources/OwnerExplicitKeyClosure.lean: OK
+proof-sources/OwnerExplicitKeyConsume.lean: OK
+proof-sources/OwnerExplicitKeyContent.lean: OK
+proof-sources/OwnerExplicitKeyFold.lean: OK
+proof-sources/OwnerExplicitKeyFreshTransport.lean: OK
+proof-sources/OwnerExplicitKeyPark.lean: OK
+proof-sources/OwnerExplicitKeyTransport.lean: OK
+proof-sources/OwnerKeyReplayAudit.lean: OK
+proof-sources/ReachableEOF.lean: OK
+proof-sources/RootComposedTrace.lean: OK
+proof-sources/RootEventEOF.lean: OK
+proof-sources/RootInhabited.lean: OK
+proof-sources/RootMatchingTrace.lean: OK
+proof-sources/RootPrefixGeometry.lean: OK
+proof-sources/ScalarKeyProducer.lean: OK
+
+research/AnchoredWordAssurance.lean: OK
+research/AnchoredWordAudit.lean: OK
+research/AnchoredWordAuditMain.lean: OK
+research/AnchoredWordControls.lean: OK
+research/AnchoredWordExecution.lean: OK
+research/AnchoredWordGrammar.lean: OK
+research/AnchoredWordParser.lean: OK
+research/AnchoredWordSource.lean: OK
+research/ExplicitWordPrefix.lean: OK
+research/PrepareParent.lean: OK
+workflows/group77-anchored-word.yml: OK
+workflows/group77-owner-key-replay.yml: OK

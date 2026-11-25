@@ -1,8 +1,11 @@
 # Anchored explicit word assurance
 
-Local proof and controls passed on exact NASA/JPL owner source
-`0dbf0c120601fccc1d837025f3bef405cc4f2062`, Lean 4.36.0. Independent hosted
-qualification is CANDIDATE until its exact jobs, logs and archives pass.
+**WARRANTED on both exact NASA/JPL sources below**, Lean 4.36.0. Independent
+[run 45683950774](https://github.com/metalogiclabs/L4YAML/actions/runs/45683950774)
+passed both jobs; both evidence archives were independently downloaded,
+SHA-256 checked against GitHub, CRC tested, and reconciled with the published
+proof/workflow bytes. Qualified source is
+`83a6e3e2bd6a47768aaaba427838dce53057f8f3`; this receipt update changes no proof.
 
 The source family is exactly `? key\n: &a value`, with no trailing LF.
 `key` and `value` are arbitrary nonempty lowercase ASCII words; there is no
@@ -51,11 +54,27 @@ frozen parent workflow and copies the source-controlled word proofs. That
 workflow's SHA-256 is pinned; `source-sha256.txt` fixes this extension's sources
 and workflow. No owner library, grammar, toolchain or dependency pin is edited.
 
-The hosted matrix checks both the exact #377 proof owner above (library tree
+The hosted matrix passed both the exact #377 proof owner above (library tree
 `0a8d15505cf2520df980bc4af05eca0ad72f86c8`) and current upstream
 `e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca` (library tree
-`19f54b7a36b0b170aa24375889ff86196e7fa475`). The latter's added declarations
-must not be mistaken for an already completed port before its job passes.
+`19f54b7a36b0b170aa24375889ff86196e7fa475`).
+
+| Owner | Hosted job | Adversarial / proof build jobs | Export profiles | Archive |
+| --- | --- | --- | --- | --- |
+| #377 source 0dbf0c12 | 139451471469 | 309 / 529 | 16, zero nonstandard axioms | 15056970399 |
+| Upstream e7b4eabe | 139451470889 | 309 / 529 | 16, zero nonstandard axioms | 15056535466 |
+
+Each archive has 57 CRC-valid members, 30 installed proof-source manifest
+entries, and 12 research/workflow manifest entries. All hashes passed. Installed
+proof manifests and executable axiom-audit reports are byte-identical across
+the two owners. Each source independently passed the 724 controls before the
+new proof target. These build-job counts are scoped target builds, not a claim
+to have rerun the project's complete native test battery or documentation.
+
+The exact ZIP bytes and independent re-verification receipt are preserved in
+`Evidence/`; machine-readable pins, digests and scope are in
+`QUALIFICATION.json`. Owner library, grammar, toolchain and dependency pins
+remained unchanged. No production PR head was edited or upstream PR merged.
 
 ## Residual
 
@@ -67,5 +86,10 @@ Earlier grammar/specification counterexamples and open obligations remain.
 
 The next consequential extension is a later alias using this actual retained
 anchor registry, with the same nonempty event trace and exact composed payload.
+The separate bounded probe at
+`65667a3beba177fa371aebb6842bfc5e58a72f40` passed 697 native cases with exact
+raw/composed payloads and ordered define/use events. Deleting or renaming the
+actually reached registry rejects all 697 aliases; restoring it recovers all
+697. Its unbounded theorem remains unproved and is not part of this qualification.
 The broader remaining proof needs a compositional reachable-state invariant
 covering properties, nested frames, directives and stream closure.
