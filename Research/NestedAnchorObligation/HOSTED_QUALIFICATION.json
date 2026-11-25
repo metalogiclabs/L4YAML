@@ -1,0 +1,83 @@
+{
+  "epistemic_status": "WARRANTED",
+  "integration_status": "CANDIDATE",
+  "verification_boundary": "Fresh exact-owner Lean proof/consumer build, three affected census guards, finite native controls, exact four-profile axiom comparison, owner dashboard diff, and independent artifact verification. Not a full-project or five-way integration qualification.",
+  "qualified_source_commit": "920795ed5badde6e1b26b77dbf672b9cda01e992",
+  "qualified_source_tree": "3a151babaccdcfae003319866c7cceb2fc83e8a2",
+  "owner_commit": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "owner_library_tree": "0a8d15505cf2520df980bc4af05eca0ad72f86c8",
+  "owner_toolchain_blob": "00f848359b1cdaf7c12cd6b7acc5b4364752e154",
+  "owner_manifest_blob": "d7b89af6a6b9d42c530698c7eb8fa9a77d0e3a2f",
+  "workflow_run": 45706424346,
+  "workflow_job": 139529483685,
+  "run_url": "https://github.com/metalogiclabs/L4YAML/actions/runs/45706424346",
+  "conclusion": "success",
+  "completed_at_UTC": "2026-11-25T21:58:06Z",
+  "artifact": {
+    "id": 15065983914,
+    "name": "nested-anchor-obligation-cc830190",
+    "bytes": 24258,
+    "sha256": "c3945fc4b245eb3fa3bcfbd230d0a3e06ccd13213451e7303ec2a33cc4ea0452",
+    "archive": "Evidence/nested-anchor-obligation-cc830190.zip",
+    "members": 24
+  },
+  "independently_verified": {
+    "digest_matches_GitHub_metadata": true,
+    "CRC_valid": true,
+    "all_members_safe_unique_regular_files": true,
+    "source_commit_and_owner_pins_verified": true,
+    "all_four_compiled_research_sources_match_published_source": true,
+    "all_four_candidate_source_hashes_match_independent_local_reconstruction": true,
+    "all_four_axiom_profiles_exactly_unchanged": true,
+    "hosted_axiom_profiles_equal_local_profiles": true,
+    "native_and_root_controls_match_local_results": true,
+    "dashboard_diff_is_owner_generated": true
+  },
+  "dashboard": {
+    "directed_fields_moved": 1,
+    "toward": 1,
+    "away": 0,
+    "primary_directed_field": "RelaySupplyCensus.DECLINE",
+    "before": 237,
+    "after": 236,
+    "goal": 0,
+    "other_readings_without_direction": 3
+  },
+  "critical_direct_declines": [
+    6,
+    5
+  ],
+  "positions_with_at_least_one_paid_supply": [
+    24,
+    25
+  ],
+  "critical_positions_remaining": 7,
+  "root_supply": {
+    "before": "DECLINE",
+    "after": "PAY",
+    "field_other_supplies": "six SPLITs, unresolved"
+  },
+  "native": {
+    "nested_executions": 3240,
+    "distinct_sources": 3096,
+    "actual_dedent_executions": 1944,
+    "root_producer_executions": 42
+  },
+  "new_library_lemmas": 0,
+  "new_axioms": 0,
+  "scanner_runtime_changed": false,
+  "full_project_native_battery": false,
+  "full_project_census_remeasurement": false,
+  "five_way_integration_qualification": false,
+  "upstream_PR_opened": false,
+  "approved_production_heads_changed": false,
+  "retained_preparation_history": "LOCAL_VERIFICATION.json and Evidence contain the preparation history; this hosted archive is the authority for the exact published source boundary.",
+  "remaining": [
+    "seven critical ON positions",
+    "five direct ON-path declines",
+    "six split supplies of h_kslot",
+    "scannerDrop",
+    "universal scan_trace",
+    "corrected Group 7.7 equivalence"
+  ]
+}
