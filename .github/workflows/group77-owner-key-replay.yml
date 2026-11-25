@@ -980,7 +980,7 @@ jobs:
           private lemma silent_unwind_loop (s : ScannerState) (col : Int) (fuel : Nat) :
               SilentTokens s.tokens (unwindIndentsLoop s col fuel).tokens := by
             induction fuel generalizing s with
-            | zero => exact silent_refl _
+            | zero => simpa only [unwindIndentsLoop] using silent_refl s.tokens
             | succ fuel ih =>
               unfold unwindIndentsLoop
               split
