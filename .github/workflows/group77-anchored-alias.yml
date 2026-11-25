@@ -50,8 +50,8 @@ jobs:
           sed -i '/^module$/a public import Tests.Guards.Proofs.AliasBoundaryControls\npublic meta import Tests.Guards.Proofs.AliasBoundaryControls' Tests/AdversarialInstantiation.lean
           git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json lakefile.lean
           lake build Tests.AdversarialInstantiation 2>&1 | tee ../results/adversarial-before-proof.log
-          grep -Fx 'ANCHOR_ALIAS_PROBE pass=697 deleted_registry_rejected=697 renamed_registry_rejected=697 restored_registry_accepted=697 raw_and_composed_payloads=true ordered_events=true' ../results/adversarial-before-proof.log
-          grep -Fx 'ALIAS_BOUNDARY_CONTROLS pass=24 exact_positions=true fuels=0,1,2,9,10 duplicate_copy_key=true' ../results/adversarial-before-proof.log
+          grep -F 'ANCHOR_ALIAS_PROBE pass=697 deleted_registry_rejected=697 renamed_registry_rejected=697 restored_registry_accepted=697 raw_and_composed_payloads=true ordered_events=true' ../results/adversarial-before-proof.log
+          grep -F 'ALIAS_BOUNDARY_CONTROLS pass=24 exact_positions=true fuels=0,1,2,9,10 duplicate_copy_key=true' ../results/adversarial-before-proof.log
       - name: Prove source scanner grammar raw document and alias composition
         working-directory: upstream
         shell: bash
