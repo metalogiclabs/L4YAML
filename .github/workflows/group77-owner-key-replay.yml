@@ -1,7 +1,7 @@
-name: Owner 377 exact key replay and matched-colon fold
+name: Owner 377 matched-colon native event transport
 on:
   push:
-    branches: [research/group77-owner-377-fold-20261125]
+    branches: [research/group77-owner-377-native-event-transport-20261125]
   workflow_dispatch:
 permissions:
   contents: read
@@ -936,9 +936,197 @@ jobs:
           print('OWNER_MATCHED_COLON_FOLD_STANDARD_AXIOMS_ONLY', sorted(actual))
           PY
           printf 'owner_matched_colon_fold\t0\n' >> ../results/outcomes.tsv
+      - name: Derive silent preprocessing and cleared-key colon trace directly from native transitions
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/OwnerExplicitKeyTransport.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerExplicitKeyFold
+          public import L4YAML.Proofs.Scanner.CloseStaleExplicitKey
+          public import L4YAML.Proofs.Scanner.ScannerCorrectness
+          public section
+          namespace L4YAML.Tests.Guards.OwnerExplicitKeyTransport
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TokenEvents
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.Serialization.TraceOf.ContentBridge
+          open L4YAML.Proofs.CouplingBridge
+          open L4YAML.Proofs.ScannerCorrectness
+          open L4YAML.Proofs.CloseStaleExplicitKey
+          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
+          
+          /-- Compare the actual event fold at every pending TAG state. -/
+          def SilentTokens (a b : Array (Positioned YamlToken)) : Prop :=
+            ∀ p, goOut b.toList p = goOut a.toList p
+          
+          private lemma silent_refl (a : Array (Positioned YamlToken)) : SilentTokens a a := by
+            intro p; rfl
+          
+          private lemma silent_trans {a b c : Array (Positioned YamlToken)}
+              (h₁ : SilentTokens a b) (h₂ : SilentTokens b c) : SilentTokens a c := by
+            intro p
+            exact (h₂ p).trans (h₁ p)
+          
+          private lemma silent_block_end (s : ScannerState) :
+              SilentTokens s.tokens (s.emit .blockEnd).tokens := by
+            intro p
+            simp [ScannerState.emit, Array.toList_push, goOut_append, goOut, tokenEvent]
+          
+          private lemma silent_unwind_loop (s : ScannerState) (col : Int) (fuel : Nat) :
+              SilentTokens s.tokens (unwindIndentsLoop s col fuel).tokens := by
+            induction fuel generalizing s with
+            | zero => exact silent_refl _
+            | succ fuel ih =>
+              unfold unwindIndentsLoop
+              split
+              · exact silent_trans (silent_block_end s) (ih _)
+              · exact silent_refl _
+          
+          private lemma silent_save (s : ScannerState) :
+              SilentTokens s.tokens (saveSimpleKey s).tokens := by
+            intro p
+            unfold saveSimpleKey
+            split
+            · rfl
+            · split
+              · simp [Array.toList_push, goOut_append, goOut, tokenEvent]
+              · rfl
+          
+          /-- Successful preprocessing preserves the entire event/state fold,
+              even across actual indentation pops and placeholder reservation.
+              No reachability, event-prefix or document-handle premise. -/
+          lemma preprocess_silent {s s_prep : ScannerState} {c : Char}
+              (h : scanNextToken_preprocess s = .ok (some (s_prep, c))) :
+              SilentTokens s.tokens s_prep.tokens := by
+            unfold scanNextToken_preprocess at h
+            simp only [bind, pure, Pure.pure, Except.pure] at h
+            simp only [Except.bind] at h
+            split at h
+            · contradiction
+            · rename_i v heq_skip
+              have h_skip := skipToContent_preserves_tokens s v heq_skip
+              split at h
+              · simp at h
+              · split at h
+                · split at h
+                  · contradiction
+                  · split at h
+                    · simp at h
+                    · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+                      obtain ⟨h1, _⟩ := h
+                      rw [← h1, closeStaleExplicitKey_tokens, ← h_skip]
+                      exact silent_trans (silent_unwind_loop v v.col v.indents.size)
+                        (silent_save { unwindIndents v v.col with needIndentCheck := false })
+                · split at h
+                  · contradiction
+                  · split at h
+                    · simp at h
+                    · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+                      obtain ⟨h1, _⟩ := h
+                      rw [← h1, closeStaleExplicitKey_tokens, ← h_skip]
+                      exact silent_save v
+          
+          private lemma silent_mapping_push (s : ScannerState) (col : Int) :
+              SilentTokens s.tokens (pushMappingIndent s col).tokens := by
+            unfold pushMappingIndent
+            split
+            · intro p
+              simp [ScannerState.emit, Array.toList_push, goOut_append, goOut, tokenEvent]
+            · exact silent_refl _
+          
+          private lemma silent_prepare_without_key (s : ScannerState)
+              (hclear : s.simpleKey.possible = false) :
+              SilentTokens s.tokens (scanValuePrepare s).tokens := by
+            unfold scanValuePrepare
+            split
+            · rename_i hkey
+              rw [hclear] at hkey
+              contradiction
+            · split
+              · exact silent_refl _
+              · split
+                · exact silent_mapping_push s s.col
+                · exact silent_refl _
+          
+          /-- The scanner itself, after clearing a phantom simple key, emits only
+              silent tokens. The still-live implicit reservation case is separate. -/
+          lemma scanValue_silent_when_cleared {s s' : ScannerState}
+              (hclear : (scanValueClearKey s).simpleKey.possible = false)
+              (h : scanValue s = .ok s') :
+              SilentTokens s.tokens s'.tokens := by
+            have hc := scanValueClearKey_preserves_tokens s
+            have hp := silent_prepare_without_key (scanValueClearKey s) hclear
+            unfold scanValue at h
+            dsimp only [] at h
+            simp only [bind, Except.bind] at h
+            split at h
+            · contradiction
+            · split at h
+              · contradiction
+              · split at h
+                · contradiction
+                · injection h with heq; subst heq
+                  intro p
+                  dsimp only []
+                  rw [advance_preserves_tokens]
+                  simp only [ScannerState.emit, Array.toList_push, goOut_append]
+                  simp [goOut, tokenEvent, hp p, hc]
+          
+          /-- Actual preprocess and matched value scan now supply the previous
+              arbitrary PushesTrace premise. One native register guard remains:
+              the colon must clear or have no saved implicit key. -/
+          lemma matched_colon_owner_fold_native_trace
+              {start q after scan sp_colon sp_block : SurfPos} {n : Nat}
+              {s sc_colon sc_after : ScannerState} {vc : Char} {ec eo ek : List Event}
+              (hS : TSLYamlStream start s sp_block ec (eo ++ ek) [])
+              (park : KeyReady start q after scan n s ec eo ek)
+              (h_deeper : n < scan.col) (h_colon_col : sp_colon.col = n)
+              (h_flow : sc_colon.inFlow = false)
+              (hpre : scanNextToken_preprocess s = .ok (some (sc_colon, ':')))
+              (hcorr_colon : ScannerSurfCorr sc_colon sp_colon)
+              (hcolon : scanValue sc_colon = .ok sc_after)
+              (hclear : (scanValueClearKey sc_colon).simpleKey.possible = false) :
+              ∃ sp_after, ScannerSurfCorr sc_after sp_after ∧
+                TSLYamlStream start sc_after sp_block ec (eo ++ ek) [] ∧
+                TPendingNode start false sp_block sp_after ec (eo ++ ek) [] ∧
+                TPendingNode.ContentPark start sp_after vc ec (n + 1) (eo ++ ek) := by
+            have htrace := silent_trans (preprocess_silent hpre) (scanValue_silent_when_cleared hclear hcolon)
+            obtain ⟨sp_after, hcorr, hp, hc⟩ :=
+              retained_key_to_owner_value_park (vc := vc) park h_deeper h_colon_col
+                h_flow hpre hcorr_colon hcolon
+            refine ⟨sp_after, hcorr, ⟨hS.stream, ?_⟩, hp, hc⟩
+            rw [htrace [], hS.events]
+          
+          #print axioms preprocess_silent
+          #print axioms scanValue_silent_when_cleared
+          #print axioms matched_colon_owner_fold_native_trace
+          end L4YAML.Tests.Guards.OwnerExplicitKeyTransport
+          LEAN
+          cp Tests/Guards/Proofs/OwnerExplicitKeyTransport.lean ../results/
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyTransport 2>&1 | tee ../results/owner-explicit-key-transport.log
+          python3 - <<'PY'
+          import pathlib, re
+          p = pathlib.Path('../results/owner-explicit-key-transport.log').read_text()
+          names = ['preprocess_silent', 'scanValue_silent_when_cleared', 'matched_colon_owner_fold_native_trace']
+          allowed = {'propext', 'Classical.choice', 'Quot.sound'}
+          for name in names:
+              m = re.search(r"'[^']*\." + re.escape(name) + r"' depends on axioms:\s*\[([^\]]*)\]", p)
+              if not m:
+                  raise SystemExit('Missing exact transport axiom profile: ' + name)
+              actual = {s.strip() for s in m.group(1).split(',') if s.strip()}
+              if not actual <= allowed:
+                  raise SystemExit('Unexpected axiom: ' + repr(actual - allowed))
+              print('OWNER_NATIVE_TRANSPORT_STANDARD_AXIOMS_ONLY', name, sorted(actual))
+          PY
+          printf 'owner_native_event_transport\t0\n' >> ../results/outcomes.tsv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: owner-377-key-fold-evidence
+          name: owner-377-native-event-transport-evidence
           path: results/
           if-no-files-found: error
