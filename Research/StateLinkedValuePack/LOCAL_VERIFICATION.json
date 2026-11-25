@@ -1,5 +1,5 @@
 {
-  "status": "CANDIDATE pending clean hosted replay",
+  "status": "SUPERSEDED by HOSTED_QUALIFICATION.json; the local strict builds and clean hosted replay passed",
   "owner_commit": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
   "owner_library_tree": "0a8d15505cf2520df980bc4af05eca0ad72f86c8",
   "official_baseline_blobs": [
@@ -105,7 +105,7 @@
     "trivial_writer_roster": "UNCHANGED",
     "ortrue_summary": "UNCHANGED"
   },
-  "verification_limit": "Strict relay, OrTrue and capstone guard rebuilds are delegated to the declared fresh hosted replay; this is not a full repository/bindings/docs qualification.",
+  "verification_limit": "All four local strict guards passed on these exact source hashes, followed by the declared fresh hosted replay. See HOSTED_QUALIFICATION.json. Full repository/bindings/docs qualification remains unperformed.",
   "open": [
     "scannerDrop",
     "no-pack and generic escape routes",

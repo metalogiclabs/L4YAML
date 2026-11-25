@@ -1,0 +1,133 @@
+{
+  "epistemic_state": "WARRANTED within focused proof/census qualification",
+  "integration_state": "CANDIDATE; full repository qualification not run; one additional declined split leaf is exposed in two shrink-only dashboard counters",
+  "evidence_source_commit": "412b52803524d2abf0c0df50ae715924a80c0c0e",
+  "evidence_source_tree": "5f21d0e673b83b783948d4f85991981f8ebf5e12",
+  "owner_commit": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "owner_full_tree": "24250184e30652dab027718036272afdd0d492af",
+  "owner_library_tree": "0a8d15505cf2520df980bc4af05eca0ad72f86c8",
+  "qualified_candidate_library_tree": "b52629dcae72a46bf215c85f7c5eae4852592268",
+  "qualified_stream_accum_blob": "eb780a8abc1fa1dbfd82360fc727294ce50c1b0b",
+  "qualified_candidate_sources": [
+    {
+      "sha256": "e17428598a780c5bc351b318286803610030a45753f886f85b96dbbcd1636767",
+      "path": "L4YAML/Proofs/Production/StreamAccum.lean"
+    },
+    {
+      "sha256": "a56c8f1a76f27f8b8335cb5893a29f9b3aad5bcedf28994613923a3e0b2dbb5b",
+      "path": "Tests/Guards/Proofs/CapstonePathAudit.lean"
+    },
+    {
+      "sha256": "c85641bc0fafb590e86b8a5fbc33e5da3d85fbbfe058de5da860ba13c6646ec6",
+      "path": "Tests/Guards/Proofs/GhostIndexCensus.lean"
+    },
+    {
+      "sha256": "fef4bef2fcabb15c94f7f8d9fd81b4b8634396eb8456947d757e6659c826a65c",
+      "path": "Tests/Guards/Proofs/OrTrueAudit.lean"
+    },
+    {
+      "sha256": "f55db9d98e2aa755473308678cdf9c0a56a1498df74f29c8eba591b3bab5be3d",
+      "path": "Tests/Guards/Proofs/RelaySupplyCensus.lean"
+    }
+  ],
+  "previous_root_receipt": "37c7e1a786645d8d85af5e4a8520ebc833b2ebdf",
+  "baseline_snapshot_commit": "6c3d41a4bbdaa0677bb432bd203f699dfe056625",
+  "baseline_snapshot_tree": "9e025f2e936a5428ac08d29fa1a1562e48576f04",
+  "compiler": "Lean (version 4.36.0, x86_64-unknown-linux-gnu, commit 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9, Release)",
+  "run": {
+    "id": 45715345949,
+    "job_id": 139559857872,
+    "url": "https://github.com/metalogiclabs/L4YAML/actions/runs/45715345949",
+    "conclusion": "success",
+    "created_at": "2026-11-25T22:41:18Z",
+    "completed_at": "2026-11-25T22:50:35Z"
+  },
+  "artifact": {
+    "id": 15070845017,
+    "name": "state-linked-value-pack-cc830190",
+    "size": 32032,
+    "sha256": "2c8d7dca20f22cc195127b83e6547d681a4b465c2c2d09f0eaf42f7e4845f5fd",
+    "git_blob": "856cee731380e5752afea31cee3dd22f21cf796f",
+    "path": "Evidence/state-linked-value-pack-cc830190.zip",
+    "safe_unique_files": 23,
+    "crc_verified": true
+  },
+  "independent_checks": {
+    "download_sha_matches_github_digest": true,
+    "compiled_research_sources": 2,
+    "compiled_sources_match_published_inputs": true,
+    "candidate_sources_match_independent_reconstruction": 5,
+    "candidate_patch_matches_published_patch": true,
+    "six_axiom_profiles_equal_before_after": true,
+    "local_and_hosted_exact_axiom_profiles_equal": true,
+    "both_new_lemmas_consumed_by_roots": true,
+    "both_new_lemmas_standard_axioms_only": true,
+    "local_strict_guards": [
+      "RelaySupplyCensus",
+      "OrTrueAudit",
+      "CapstonePathAudit",
+      "GhostIndexCensus"
+    ],
+    "hosted_strict_guards": [
+      "RelaySupplyCensus",
+      "OrTrueAudit",
+      "CapstonePathAudit",
+      "GhostIndexCensus"
+    ]
+  },
+  "measurements_relative_qualified_root": {
+    "ghost_indices": [
+      74,
+      73
+    ],
+    "production_offcol_calls": [
+      3,
+      0
+    ],
+    "offcol_wrapper_reached": [
+      true,
+      false
+    ],
+    "critical_optional_positions": [
+      7,
+      7
+    ],
+    "critical_direct_declines": [
+      5,
+      5
+    ],
+    "relay_direct_declines": [
+      236,
+      236
+    ],
+    "declined_split_leaves": [
+      213,
+      214
+    ],
+    "free_declined_split_leaves": [
+      117,
+      118
+    ],
+    "ortrue_summary": "unchanged",
+    "trivial_writers": "unchanged",
+    "dashboard": {
+      "directed_toward": 1,
+      "directed_away": 2,
+      "interpretation": "The two AWAY counters are the overall and free-leaf readings of one extra unpaid split branch, exposed when the helper's lost coverage is restored."
+    }
+  },
+  "controls": {
+    "initialized_sources": 180,
+    "accepted_explicit_values": 1110,
+    "multiple_mark_cases": 930,
+    "scanner_steps": 3660
+  },
+  "boundaries": [
+    "The constructor re-indexing is logically equivalent to its former covered existential; helper boundaries retain the coverage they previously erased.",
+    "The existing off-column wrapper and singleton helper remain instrument targets, with no production calls to the off-column wrapper.",
+    "CapstonePathAudit drop-set=8/8 counts declarations present, not their reachability.",
+    "No new custom/native axiom; existing inherited native_decide axioms remain in the six unchanged profiles.",
+    "scannerDrop, no-pack/generic routes, universal scan_trace and corrected Group 7.7 remain open.",
+    "No production PR head changed. Full default, bindings and documentation qualification not run."
+  ]
+}

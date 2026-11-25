@@ -5,7 +5,11 @@ Research continuation, 26 November 2026. Owner: NASA/JPL L4YAML
 `0a8d15505cf2520df980bc4af05eca0ad72f86c8`, Lean 4.36.0.
 Baseline: the independently qualified [root-key-slot payment](../NestedAnchorObligation/HOSTED_QUALIFICATION.json).
 
-Status: CANDIDATE pending the final strict census builds and clean hosted replay.
+Status: WARRANTED within the focused proof/census boundary; CANDIDATE for integration.
+The [clean hosted replay](https://github.com/metalogiclabs/L4YAML/actions/runs/45715345949)
+passed. Its 23-file archive was independently downloaded, hash/CRC checked and
+reconciled to the published inputs and independently reconstructed candidate.
+See [the durable receipt](HOSTED_QUALIFICATION.json).
 
 ## Objective and result
 
@@ -29,6 +33,11 @@ The candidate:
 The off-column wrapper remains as an existing instrument target; it is no longer
 in the final correctness proof's dependency closure. Its broader retirement and
 the other census guards belong to a subsequent integration qualification.
+
+The constructor's direct index is logically equivalent to its former covered
+existential. The helpers now retain that coverage instead of discarding it. The
+owner's `drop-set=8/8` summary counts named declarations present in the environment;
+the separate dependency audit establishes actual reachability from the roots.
 
 ## Verification boundary
 

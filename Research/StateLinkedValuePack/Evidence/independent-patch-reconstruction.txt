@@ -1,0 +1,5 @@
+L4YAML/Proofs/Production/StreamAccum.lean: OK
+Tests/Guards/Proofs/CapstonePathAudit.lean: OK
+Tests/Guards/Proofs/GhostIndexCensus.lean: OK
+Tests/Guards/Proofs/OrTrueAudit.lean: OK
+Tests/Guards/Proofs/RelaySupplyCensus.lean: OK
