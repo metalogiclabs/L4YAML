@@ -1,0 +1,386 @@
+name: Core TAG exact e7b4eabe native qualification
+on:
+  push:
+    branches:
+      - experiment/core-tag-e7b4eabe-20261126
+permissions:
+  contents: read
+jobs:
+  derive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        id: [core302, tag361, core-tag]
+    permissions:
+      contents: read
+    env:
+      LEAN_NUM_THREADS: 2
+      ID: ${{ matrix.id }}
+      UP: e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca
+      CORE_HEAD: dc9c881577286e1f27b1c4151f599716fe4c6152
+      TAG_HEAD: e851e63003872d57509ed06e84346bd4ff893000
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Derive merged source from only upstream and exact reviewed heads
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          E="$RUNNER_TEMP/independent-evidence"
+          mkdir -p "$E"
+          export E
+          exec > >(tee "$E/derivation.log") 2>&1
+          git config user.name "MathGraph independent integration"
+          git config user.email "mathgraph-qualification@users.noreply.github.com"
+          git config rerere.enabled false
+          git config merge.conflictStyle diff3
+          git cat-file -e "$UP^{commit}" || git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$UP"
+          for sha in "$UP" "$CORE_HEAD" "$TAG_HEAD"; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
+          done
+          git switch --detach "$UP"
+          python3 - <<'PY'
+          import difflib, json, os, re, subprocess
+          from pathlib import Path
+          E=Path(os.environ["E"])
+          up=os.environ["UP"]
+          heads=[(302,os.environ["CORE_HEAD"]),(361,os.environ["TAG_HEAD"])]
+          selection=os.environ["ID"]
+          assert selection in ("core302","tag361","core-tag")
+          heads=[(n,h) for n,h in heads if selection=="core-tag" or selection=={302:"core302",361:"tag361"}[n]]
+          C="Tests/Guards/Proofs/DeadDeclarationCensus.lean"
+          R="Tests/Guards/Proofs/DeadDeclarationRoster.lean"
+          P="L4YAML/Capstones.lean"
+          def git(*args):
+              return subprocess.check_output(["git",*args],text=True)
+          def call(*args):
+              subprocess.check_call(["git",*args])
+          def source(ref,path):
+              return git("show",f"{ref}:{path}")
+          def write(path,t):
+              Path(path).write_text(t)
+          def save(name,t):
+              (E/name).write_text(t)
+          def delta(a,b):
+              return "".join(difflib.unified_diff(a.splitlines(True),b.splitlines(True),fromfile="before",tofile="after"))
+          pin=re.compile(r'^  "population=[^"\n]+"$',re.M)
+          def normalized(t):
+              assert len(pin.findall(t))==1
+              return pin.sub('  "population=PROVISIONAL"',t)
+          upc=source(up,C); upr=source(up,R)
+          provisional=pin.findall(upc)[0]
+          assert "A-orphan=" in provisional
+          history=normalized(upc)
+          save("upstream-census.lean",upc); save("upstream-roster.lean",upr)
+          expected_counts={300:0,302:2,361:2,370:1,371:1}
+          allowed_bases={300:"2836db2fef546ec69873297f499c43ec9aadf3c7",302:"ca977c71fd3f7ce2f4dad1697cbb434b83fb2124",361:"ca977c71fd3f7ce2f4dad1697cbb434b83fb2124",370:"ca977c71fd3f7ce2f4dad1697cbb434b83fb2124",371:"ca977c71fd3f7ce2f4dad1697cbb434b83fb2124"}
+          allowed={C,R,P}
+          records=[]
+          def reconcile_capstone(pr,base,sha):
+              ours=git("show",f":2:{P}")
+              theirs=git("show",f":3:{P}")
+              b=source(base,P)
+              if pr==302:
+                  # Core and upstream add different entries at the same position
+                  # in the two capstone SET pins. Resolve from the source deltas,
+                  # retaining both exact entries in native measured enumeration order.
+                  aa=b.splitlines(True); bb=theirs.splitlines(True)
+                  ops=[x for x in difflib.SequenceMatcher(None,aa,bb,autojunk=False).get_opcodes() if x[0]!="equal"]
+                  assert len(ops)==4
+                  t=ours
+                  for tag,i,j,k,l in ops:
+                      old="".join(aa[i:j]); new="".join(bb[k:l])
+                      if tag=="replace":
+                          assert old.startswith("| 5 values |") and new.startswith("| 5 values |") and "coreTagCorrespondenceAll" in new
+                          assert t.count(old)==1
+                          t=t.replace(old,new,1)
+                      elif tag=="insert":
+                          assert l-k==1 and i>0 and i<len(aa)
+                          left,right=aa[i-1],aa[i]
+                          assert t.count(left)==1 and t.count(right)==1
+                          start=t.index(left)+len(left)
+                          end=t.index(right,start)
+                          gap=t[start:end]
+                          if new.startswith("public import "):
+                              assert new=="public import L4YAML.Proofs.Schema.SchemaResolution\n" and gap==""
+                              insert=new
+                          else:
+                              assert new.startswith("L4YAML.Proofs.SchemaResolution.coreTagCorrespondenceAll")
+                              assert gap.startswith("L4YAML.Proofs.Serialization.ScannerShape.scanFiltered_parseStream_ok_checkFrom_full") and len(gap.splitlines())==1
+                              assert new.endswith(": pure\n")==gap.endswith(": pure\n")
+                              # Native #guard_msgs in run 45546229061 measured upstream entry before Core in both pins.
+                              insert=gap+new
+                          t=t[:start]+insert+t[end:]
+                      else:
+                          raise AssertionError(("Unexpected Core capstone delta",tag))
+                  save("capstones-302-source-derived.delta",delta(ours,t))
+                  write(P,t); call("add",P)
+                  return
+              block=""
+              if pr==371:
+                  m=re.search(r'(?m)^-- Replay needs the actual axiom types.*?\n(?=public meta import L4YAML.CapstoneAttr$)',theirs,re.S|re.M)
+                  assert m, "No exact private replay import block"
+                  block=m.group()
+                  assert block not in b and block not in ours
+                  assert len(re.findall(r"^import all ",block,re.M))==13
+                  theirs=theirs[:m.start()]+theirs[m.end():]
+              for k,t in (("ours",ours),("base",b),("incoming-normalized",theirs)):
+                  save(f"capstones-{pr}-{k}.lean",t)
+              result=subprocess.run(["git","merge-file","-p",str(E/f"capstones-{pr}-ours.lean"),str(E/f"capstones-{pr}-base.lean"),str(E/f"capstones-{pr}-incoming-normalized.lean")],capture_output=True,text=True)
+              save(f"capstones-{pr}-threeway.lean",result.stdout)
+              assert result.returncode==0,"Non-import capstone conflict requires review"
+              t=result.stdout
+              if block:
+                  anchor="public meta import L4YAML.CapstoneAttr\n"
+                  assert t.count(anchor)==1 and block not in t
+                  t=t.replace(anchor,block+anchor)
+              write(P,t); call("add",P)
+          for pr,sha in heads:
+              base=git("merge-base",up,sha).strip()
+              assert base==allowed_bases[pr],(pr,base)
+              before=git("rev-parse","HEAD").strip()
+              # Read only the original reviewed PR delta against its true upstream ancestor.
+              a=normalized(source(base,C)); b=normalized(source(sha,C))
+              save(f"census-pr{pr}-original.delta",delta(a,b))
+              aa=a.splitlines(True); bb=b.splitlines(True)
+              ops=[x for x in difflib.SequenceMatcher(None,aa,bb,autojunk=False).get_opcodes() if x[0]!="equal"]
+              assert len(ops)==expected_counts[pr],(pr,ops)
+              prev=history
+              for tag,i,j,k,l in ops:
+                  old="".join(aa[i:j]); new="".join(bb[k:l])
+                  if tag=="insert":
+                      assert new.startswith("-- ") and all(x.startswith("--") for x in new.splitlines())
+                      anchor=aa[i]
+                      assert anchor.startswith("-- 2026-11-") and history.count(anchor)==1 and new not in history
+                      history=history.replace(anchor,new+anchor,1)
+                  elif tag=="replace":
+                      assert pr==361 and old=="  a name leaving it was deleted or reached by a capstone.\n"
+                      assert new=="  a name leaving it was deleted, reached by a library root, or reclassified\n  (including test-only reach).\n"
+                      assert history.count(old)==1
+                      history=history.replace(old,new,1)
+                  else:
+                      raise AssertionError(f"Unsupported census edit {pr} {tag}")
+              save(f"census-pr{pr}-applied.delta",delta(prev,history))
+              merge=subprocess.run(["git","merge","--no-ff","--no-commit",sha],capture_output=True,text=True)
+              save(f"merge-pr{pr}.log",merge.stdout+merge.stderr)
+              assert git("rev-parse","MERGE_HEAD").strip()==sha
+              conflicts=set(git("diff","--name-only","--diff-filter=U").splitlines())
+              save(f"pr{pr}-unmerged-index.txt",git("ls-files","-u"))
+              assert conflicts<=allowed,(pr,conflicts)
+              for idx,file in enumerate(sorted(conflicts)):
+                  for stage in (1,2,3):
+                      save(f"pr{pr}-conflict{idx}-stage{stage}.lean",git("show",f":{stage}:{file}"))
+                  save(f"pr{pr}-conflict{idx}-path.txt",file+"\n")
+              if P in conflicts:
+                  reconcile_capstone(pr,base,sha)
+              # Only exact duplicate private imports may be removed; never change public imports or other lines.
+              t=Path(P).read_text()
+              seen=set(); result=[]; removed=[]
+              for line in t.splitlines(True):
+                  if line.startswith("import all ") and line in seen:
+                      removed.append(line); continue
+                  if line.startswith("import all "): seen.add(line)
+                  result.append(line)
+              if removed:
+                  assert pr==371
+                  save(f"pr{pr}-duplicate-imports.txt","".join(removed))
+                  write(P,"".join(result)); call("add",P)
+              # Bootstrap with the internally consistent upstream measurements, not any guessed merged count.
+              # The actual merged environment regenerates both generated values below.
+              assert history.count('  "population=PROVISIONAL"')==1
+              write(C,history.replace('  "population=PROVISIONAL"',provisional))
+              write(R,upr)
+              call("add",C,R)
+              assert not git("diff","--name-only","--diff-filter=U").strip()
+              call("diff","--cached","--check")
+              save(f"pr{pr}-staged.patch",git("diff","--cached","--binary"))
+              call("commit","-m",f"Independent exact-source merge PR {pr}; upstream census bootstrap")
+              assert git("rev-parse","HEAD^1").strip()==before
+              assert git("rev-parse","HEAD^2").strip()==sha
+              records.append({"pr":pr,"head":sha,"base":base,"conflicts":sorted(conflicts),"merge":git("rev-parse","HEAD").strip(),"tree":git("rev-parse","HEAD^{tree}").strip()})
+          for sha in [up]+[s for _,s in heads]:
+              call("merge-base","--is-ancestor",sha,"HEAD")
+          save("source-lineage.json",json.dumps(records,indent=2)+"\n")
+          save("pre-native-tree.txt",git("rev-parse","HEAD","HEAD^{tree}"))
+          save("pre-native.patch",git("diff","--binary",up,"HEAD"))
+          save("provisional-census.lean",Path(C).read_text())
+          print("SOURCE_DERIVATION_COMPLETE")
+          PY
+          git submodule update --init --recursive
+          git submodule status --recursive > "$E/submodules.txt"
+      - name: Retain source derivation before native qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-e7b4eabe-source-derivation
+          path: ${{ runner.temp }}/independent-evidence/
+          if-no-files-found: warn
+      - name: Install exact Lean toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Remeasure generated census and roster on actual native environment
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          E="$RUNNER_TEMP/independent-evidence"
+          lean --version | tee "$E/lean-version.txt"
+          lake build 2>&1 | tee "$E/build.log"
+          lake build tests demo limittests 2>&1 | tee "$E/extra-build.log"
+          lake run dead-census -- --write 2>&1 | tee "$E/census-write.log"
+          lake build 2>&1 | tee "$E/post-census-build.log"
+          lake run dead-census -- --check 2>&1 | tee "$E/census-check.log"
+          lake run census-dashboard -- --check --html "$E/census-dashboard.html" 2>&1 | tee "$E/dashboard.log"
+          test -s "$E/census-dashboard.html"
+          sha256sum "$E/census-dashboard.html" | tee "$E/dashboard-html.sha256"
+          git diff --check
+          git diff --binary > "$E/native-repin.patch"
+          export E
+          python3 - <<'PY'
+          import os,re,subprocess
+          from pathlib import Path
+          E=Path(os.environ["E"])
+          C="Tests/Guards/Proofs/DeadDeclarationCensus.lean"
+          R="Tests/Guards/Proofs/DeadDeclarationRoster.lean"
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          assert changed<={C,R},changed
+          pin=re.compile(r'^  "population=[^"\n]+"$',re.M)
+          before=(E/"provisional-census.lean").read_text()
+          after=Path(C).read_text()
+          assert len(pin.findall(before))==len(pin.findall(after))==1
+          assert pin.sub("",before)==pin.sub("",after),"Non-numeric census content changed"
+          def roster(t):
+              m=re.search(r'def expectedDeadRoster : String := r"(.*?)"',t,re.S)
+              assert m
+              rows=[x for x in m.group(1).splitlines() if x]
+              assert len(set(rows))==len(rows)
+              return set(rows)
+          old=roster((E/"upstream-roster.lean").read_text())
+          new=roster(Path(R).read_text())
+          (E/"roster-entered.txt").write_text("\n".join(sorted(new-old))+"\n")
+          (E/"roster-left.txt").write_text("\n".join(sorted(old-new))+"\n")
+          (E/"measured-summary.txt").write_text(pin.findall(after)[0]+"\n")
+          assert len(new)==int(re.search(r"B-roster=(\d+)",after).group(1))
+          print("NATIVE_ROSTER_DELTA",len(new-old),len(old-new))
+          PY
+      - name: Prepare full qualification receipts
+        shell: bash
+        run: mkdir -p qualification-evidence
+      - name: Execute targeted regression and complete native test battery
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if test "$ID" != tag361; then lake env lean Tests/Guards/Proofs/SchemaResolution.lean 2>&1 | tee qualification-evidence/targeted-core.log; fi
+          if test "$ID" != core302; then lake env lean Tests/Guards/Proofs/TagDirectiveRepair.lean 2>&1 | tee qualification-evidence/targeted-tag.log; fi
+          lake env lean Tests/Guards.lean 2>&1 | tee qualification-evidence/complete-guards.log
+          lake env lean Tests/Guards/Dump.lean 2>&1 | tee qualification-evidence/targeted-dump.log
+          lake exe adversarialinstantiation 2>&1 | tee qualification-evidence/adversarial.log
+          lake run run-all-tests -- docs/reports 2>&1 | tee qualification-evidence/full-suite.log
+          lake exe eventscore --suite yaml-test-suite 2>&1 | tee qualification-evidence/eventscore.log
+      - name: Verify proof profiles source guards and final hygiene
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" 2>&1 | tee "qualification-evidence/$gate.log"
+          done
+          lake exe collect-stats --emit-lean 2>&1 | tee qualification-evidence/collect-stats.log
+          lake run check-hygiene -- docs/reports/stats.json 2>&1 | tee qualification-evidence/hygiene.log
+          # Owner StatsData.lean is explicitly workspace-only generated data.
+          # Preserve generated bytes and the complete tracked diff before restoring ONLY this path.
+          E="$RUNNER_TEMP/independent-evidence"
+          stats=doc/Doc/L4YAML/StatsData.lean
+          git ls-files --error-unmatch "$stats"
+          git status --short --untracked-files=no | tee "$E/post-hygiene-status.txt"
+          git diff --binary > "$E/post-hygiene-tracked.patch"
+          test -s "$stats"
+          cp "$stats" "$E/generated-StatsData.lean"
+          cp docs/reports/stats.json "$E/generated-stats.json"
+          sha256sum "$E/generated-StatsData.lean" "$E/generated-stats.json" > "$E/generated-stats.sha256"
+          git restore --worktree -- "$stats"
+          git diff --exit-code -- "$stats"
+      - name: Install C and Python prerequisites for exact refreshed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+          python3 -m venv "$RUNNER_TEMP/bindings-venv"
+          mkdir -p "$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONPATH="$RUNNER_TEMP/bindings-venv/empty-pythonpath"
+          export PYTHONNOUSERSITE=1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pip install --quiet pytest
+          echo "$RUNNER_TEMP/bindings-venv/bin" >> "$GITHUB_PATH"
+          echo "PYTHONPATH=$PYTHONPATH" >> "$GITHUB_ENV"
+          echo "PYTHONNOUSERSITE=1" >> "$GITHUB_ENV"
+          echo "L4YAML_LIB=$GITHUB_WORKSPACE/ffi/out/libl4yaml.so" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/ffi/out:$("$HOME/.elan/bin/lean" --print-prefix)/lib/lean" >> "$GITHUB_ENV"
+      - name: Build and test C Rust FFI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -B ffi/out -S ffi 2>&1 | tee qualification-evidence/bindings-cmake-configure.log
+          cmake --build ffi/out --parallel 2 2>&1 | tee qualification-evidence/bindings-cmake-build.log
+          test -f ffi/out/libl4yaml.so
+          test -x ffi/out/tryparse_c
+          (cd rust/l4yaml && cargo build --release --example tryparse --jobs 2) 2>&1 | tee qualification-evidence/bindings-rust-example.log
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 2>&1 | tee qualification-evidence/bindings-rust-tests.log
+          sha256sum ffi/out/libl4yaml.so ffi/out/tryparse_c rust/target/release/examples/tryparse > qualification-evidence/bindings-binaries.sha256
+      - name: Run Python FFI package and cross-language checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pytest Tests/test_python_ffi.py -v --tb=short --no-header --junitxml=docs/reports/python-ffi-junit.xml 2>&1 | tee qualification-evidence/bindings-python-ffi.log
+          python3 -m pytest python/tests/ -v --tb=short --no-header --junitxml=docs/reports/python-package-junit.xml 2>&1 | tee qualification-evidence/bindings-python-package.log
+          lake run cross-lang-compare -- docs/reports 2>&1 | tee qualification-evidence/bindings-cross-lang.log
+      - name: Freeze independently derived source after full native qualification
+        id: freeze
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          E="$RUNNER_TEMP/independent-evidence"
+          git status --short --untracked-files=no | tee "$E/pre-freeze-status.txt"
+          git diff --binary > "$E/pre-freeze-tracked.patch"
+          git diff --check
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          git diff --exit-code -- . ':(exclude)Tests/Guards/Proofs/DeadDeclarationCensus.lean' ':(exclude)Tests/Guards/Proofs/DeadDeclarationRoster.lean'
+          git diff --binary | cmp - "$E/native-repin.patch"
+          git add Tests/Guards/Proofs/DeadDeclarationCensus.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          if ! git diff --cached --quiet; then
+            git commit -m "Measure exact independently derived Core TAG census"
+          fi
+          test -z "$(git diff --name-only)"
+          git merge-base --is-ancestor "$UP" HEAD
+          if test "$ID" != tag361; then git merge-base --is-ancestor "$CORE_HEAD" HEAD; fi
+          if test "$ID" != core302; then git merge-base --is-ancestor "$TAG_HEAD" HEAD; fi
+          source=$(git rev-parse HEAD)
+          tree=$(git rev-parse HEAD^{tree})
+          printf 'SOURCE=%s\nTREE=%s\n' "$source" "$tree" | tee "$E/frozen-candidate.txt"
+          git diff --binary "$UP" HEAD > "$E/final-candidate.patch"
+          cp "$E/frozen-candidate.txt" qualification-evidence/final-source.txt
+          # Preserve native commits without trying to publish source or modify a reviewed head.
+          git bundle create "$E/candidate.bundle" HEAD ^"$UP" ^"$CORE_HEAD" ^"$TAG_HEAD"
+          git bundle verify "$E/candidate.bundle" 2>&1 | tee "$E/bundle-verify.log"
+          sha256sum "$E/candidate.bundle" | tee "$E/bundle.sha256"
+      - name: Retain native derivation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-e7b4eabe-native-evidence
+          path: ${{ runner.temp }}/independent-evidence/
+          if-no-files-found: warn
+      - name: Retain full native qualification receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-e7b4eabe-native-qualification
+          path: qualification-evidence/
+          if-no-files-found: warn
