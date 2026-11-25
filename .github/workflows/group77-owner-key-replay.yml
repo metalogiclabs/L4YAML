@@ -1,14 +1,14 @@
-name: Owner explicit-key colon and actual content fold
+name: End-to-end explicit lowercase word fragment
 on:
   push:
-    branches: [fix/explicit-key-content-consumer]
+    branches: [research/explicit-word-fragment]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   explicit-key:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1252,9 +1252,43 @@ jobs:
           grep -F OWNER_KEY_REPLAY_CONTROLS_PASS ../results/owner-key-replay-audit.log
           grep -Fx 'OWNER_KEY_REPLAY_UNION raw=45 validated=45 rejected=0' ../results/owner-key-replay-audit.log
           printf 'owner_key_axiom_replay\t0\n' >> ../results/outcomes.tsv
+      - name: Compile source-defined unbounded fragment and replay its exact axiom closure
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results/word-fragment
+          cp ../evidence/Research/ExplicitWordFragment/Proofs/*.lean Tests/Guards/Proofs/
+          cp ../evidence/Research/ExplicitWordFragment/ExplicitWordReplayMain.lean tools/
+          cp -r ../evidence/Research/ExplicitWordFragment/* ../results/word-fragment/
+          sed -i '/^module$/a public import Tests.Guards.Proofs.ExplicitWordFragmentControls\npublic meta import Tests.Guards.Proofs.ExplicitWordFragmentControls' Tests/AdversarialInstantiation.lean
+          cat >> Tests/AdversarialInstantiation.lean <<'LEAN'
+
+          -- Source-defined word fragment, including explicit keys past 1024 characters.
+          #eval L4YAML.Tests.Guards.ExplicitWordFragmentControls.main
+          LEAN
+          cat >> lakefile.lean <<'LAKE'
+
+          lean_exe «explicit-word-replay» where
+            root := `tools.ExplicitWordReplayMain
+            supportInterpreter := true
+          LAKE
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+          lake build Tests.Guards.Proofs.ExplicitWordAssurance Tests.AdversarialInstantiation explicit-word-replay 2>&1 | tee ../results/word-fragment-build.log
+          lake env .lake/build/bin/explicit-word-replay 2>&1 | tee ../results/word-fragment-audit.log
+          grep -F 'EXPLICIT_WORD_FRAGMENT_CONTROLS pass=724 failed_hypothesis=0 refuted=0 negative_controls=2' ../results/word-fragment-build.log
+          test "$(grep -c '^WORD_PROFILE ' ../results/word-fragment-audit.log)" = 12
+          grep -Fx 'WORD_LINEAGE same_inherited_axiom_set=true' ../results/word-fragment-audit.log
+          grep -Fx 'WORD_UNION raw=45 validated=45 rejected=0' ../results/word-fragment-audit.log
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+          git diff --check
+          git status --short > ../results/word-fragment-status.txt
+          printf '%s\n' "$GITHUB_SHA" > ../results/word-fragment-evidence-commit.txt
+          sha256sum Tests/Guards/Proofs/ExplicitWord*.lean > ../results/word-fragment-proof-sha256.txt
+          printf 'explicit_word_fragment\t0\n' >> ../results/outcomes.tsv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: explicit-key-content-consumer-evidence
+          name: explicit-word-fragment-evidence
           path: results/
           if-no-files-found: error

@@ -1,0 +1,32 @@
+OWNER 0dbf0c120601fccc1d837025f3bef405cc4f2062
+OWNER_LIBRARY_TREE 0a8d15505cf2520df980bc4af05eca0ad72f86c8
+TOOLCHAIN leanprover/lean4:v4.36.0
+
+lake build Tests.Guards.Proofs.ExplicitWordAssurance explicit-word-replay
+PASS 523 jobs
+
+lake env .lake/build/bin/explicit-word-replay
+PASS 12 profiles; exact inherited dependency set equal to parent consumer
+WORD_UNION raw=45 validated=45 rejected=0
+
+lake build Tests.Guards.Proofs.ExplicitWordFragmentControls
+PASS 49 jobs
+EXPLICIT_WORD_FRAGMENT_CONTROLS pass=724 failed_hypothesis=0 refuted=0 negative_controls=2
+
+lake build Tests.AdversarialInstantiation
+PASS 309 jobs; includes the same fragment controls in the actual adversarial target
+
+git diff --exit-code -- L4YAML
+PASS; no owner library or grammar changes
+
+CONSTRUCTION LINEAGE
+The first broad simplifier attempt for the mutual token parser exceeded its step budget.
+This was not a refutation. It was replaced with scalar, entry, mapping, document and
+stream lemmas that prove the exact result without native_decide or a success oracle.
+The earlier root proof's unavailable content_leaf_at_with_gate interface was adapted
+to the already qualified OwnerExplicitKeyPark.content_leaf_at_retained, without an
+owner source modification. Unrelated finite fixtures were omitted from RootInhabited.
+
+BOUNDARY
+Local verification is complete. Independent CI replay is CANDIDATE at this commit.
+Full scan_trace, Group 7.7, normative grammar equivalence and schema resolution remain open.

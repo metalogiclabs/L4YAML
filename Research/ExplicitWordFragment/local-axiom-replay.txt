@@ -1,0 +1,60 @@
+EXPLICIT_WORD_FRAGMENT_AUDIT
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordFragment.word_prefix: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordFragment.word_eof: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordFragment.word_before_colon: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordExecution.scan_filtered: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordExecution.filtered_shape: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordAssurance.source_guard: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordAssurance.word_fragment_trace: raw=45 validated=45 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordParser.parsed_tokens: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordParser.parsed_source: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordExecution.word_fold: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordAssurance.word_events: raw=0 validated=0 rejected=0
+WORD_PROFILE L4YAML.Tests.Guards.ExplicitWordAssurance.word_fragment_assurance: raw=45 validated=45 rejected=0
+WORD_LINEAGE same_inherited_axiom_set=true
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_1
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_1
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_4
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_5
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_6
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_4
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_5
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_6
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_7
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_5
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_6
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_7
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_7
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_8
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.parseBlockHeaderLoop_offset_preserves._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_4
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_5
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_6
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_7
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_8
+WORD_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_9
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_2
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_3
+WORD_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_4
+WORD_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_10
+WORD_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_11
+WORD_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_6
+WORD_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_7
+WORD_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_8
+WORD_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_9
+WORD_UNION raw=45 validated=45 rejected=0
