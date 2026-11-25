@@ -1,0 +1,84 @@
+name: Five-way integration replay
+on:
+  push:
+    branches: [experiment/five-way-replay-20261125]
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reconstruct exact qualified tree and audit resolutions
+        shell: bash
+        run: |
+          git config user.name 'Integration replay'
+          git config user.email 'integration-replay@example.invalid'
+          python - <<'PY'
+          import subprocess as s, pathlib, os, json, hashlib
+          base='cb899c0fa4529d4b40d701f04f5c494047a6b695'
+          target='117818c9ea72c184d66b9f3baed44d2f92ac702c'
+          heads={300:'dcf6ad15503dd3be569fd983e94d8991a3379e00',302:'dc9c881577286e1f27b1c4151f599716fe4c6152',361:'e851e63003872d57509ed06e84346bd4ff893000',370:'e8db9cf2dff3eb4a857c4cfae852749326c021f6',371:'c5e0f0c6b449261d23fef5ddd588c360d5e5d630'}
+          def g(*a,check=True):
+              return s.run(['git',*a],stdout=s.PIPE,stderr=s.PIPE,check=check)
+          def t(*a):
+              return g(*a).stdout.decode().strip()
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'integration-replay'
+          out.mkdir()
+          for sha in [base,*heads.values()]:
+              g('merge-base','--is-ancestor',sha,target)
+          g('checkout','--detach',base)
+          records=[]
+          for pr,sha in heads.items():
+              p=g('-c','commit.gpgsign=false','merge','--no-ff','--no-commit',sha,check=False)
+              conflicts=t('diff','--name-only','--diff-filter=U').splitlines()
+              if p.returncode and not conflicts:
+                  raise RuntimeError(p.stderr.decode())
+              for f in conflicts:
+                  # Use the previously qualified blob, not an invented resolution.
+                  if g('cat-file','-e',target+':'+f,check=False).returncode==0:
+                      g('checkout',target,'--',f)
+                  else:
+                      g('rm','-f','--',f)
+              assert not t('diff','--name-only','--diff-filter=U')
+              if g('rev-parse','-q','--verify','MERGE_HEAD',check=False).returncode==0:
+                  g('-c','commit.gpgsign=false','commit','-m',f'Replay merge PR {pr}')
+              g('merge-base','--is-ancestor',sha,'HEAD')
+              records.append({'pr':pr,'head':sha,'conflicts_resolved_from_target':conflicts,'tree':t('rev-parse','HEAD^{tree}')})
+          pre=t('rev-parse','HEAD')
+          residual=g('diff','--binary',pre,target).stdout
+          (out/'residual.patch').write_bytes(residual)
+          residual_files=t('diff','--name-only',pre,target).splitlines()
+          # Keep residual explicit and auditable; do not call this an automatic merge.
+          if residual:
+              s.run(['git','apply','--index','--binary'],input=residual,check=True)
+          final=t('write-tree')
+          expected=t('rev-parse',target+'^{tree}')
+          assert final==expected
+          assert not t('diff','--cached',target,'--name-only')
+          # Audit each PR's changed paths against the final qualified tree.
+          audit=[]
+          for pr,sha in heads.items():
+              mb=t('merge-base',base,sha)
+              for f in g('diff','--name-only','-z',mb,sha).stdout.decode().split('\0'):
+                  if not f: continue
+                  def blob(ref):
+                      p=g('rev-parse','--verify',ref+':'+f,check=False)
+                      return p.stdout.decode().strip() if p.returncode==0 else None
+                  audit.append({'pr':pr,'path':f,'base_blob':blob(mb),'pr_blob':blob(sha),'qualified_blob':blob(target),'exact_match':blob(sha)==blob(target)})
+          (out/'path-audit.json').write_text(json.dumps(audit,indent=2))
+          summary={'base':base,'target':target,'order':list(heads),'steps':records,'residual_files':residual_files,'residual_sha256':hashlib.sha256(residual).hexdigest(),'qualified_tree':expected,'replayed_tree':final,'exact_tree_match':final==expected,'pr_path_matches':sum(x['exact_match'] for x in audit),'pr_path_total':len(audit),'boundary':'Target-assisted conflict resolution and explicit residual patch; exact reconstruction, not proof of semantic preservation at every intermediate step.'}
+          (out/'summary.json').write_text(json.dumps(summary,indent=2))
+          print(json.dumps(summary,indent=2))
+          PY
+          cd "$RUNNER_TEMP/integration-replay"
+          sha256sum summary.json path-audit.json residual.patch > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: five-way-integration-replay
+          path: ${{ runner.temp }}/integration-replay/
+          if-no-files-found: error
