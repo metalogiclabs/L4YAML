@@ -1,6 +1,6 @@
 # Source-defined explicit word fragment
 
-Candidate for independent CI replay. Local verification passed on Lean 4.36.0.
+WARRANTED for the exact source-defined fragment after local verification and independently inspected hosted replay on Lean 4.36.0.
 
 `word_fragment_assurance` assumes only that `key` and `value` are nonempty lists
 of lowercase ASCII letters. Its source is exactly `? key\n: value`, without a
@@ -41,7 +41,7 @@ owner's pending-node/content-park infrastructure.
 | Final grammar theorem | Exactly the same 45 inherited closed Boolean axioms as the parent consumer; all 45 independently replayed, none rejected |
 | New nonstandard axioms | Zero in the new theorem closures |
 | Local verification | 523 build jobs; 12 checked profiles; 724 source/parser/token/EOF controls; two corrupted-payload controls |
-| Independent qualification | The branch's owner-key replay workflow; candidate until its actual run and evidence archive pass |
+| Independent qualification | [Run 45582970898](https://github.com/metalogiclabs/L4YAML/actions/runs/45582970898), job 139097352108, exact proof/workflow commit `afdab55ae7d6a4da04e987a33706d4f6faeff920`: terminal success; 541 proof/control build jobs, 12 profiles, all 45 inherited native leaves replay-validated, zero rejected; 724 controls and two corrupted-payload controls |
 
 The replay policy retains its native-evaluation fallback and therefore has the
 same additional trust boundary as the parent qualification; this is not a
@@ -50,6 +50,15 @@ reduction. Their names and raw counts are preserved in `local-axiom-replay.txt`.
 `source-sha256.json` fixes every research Lean file. The CI artifact records
 the evidence commit and verifies the owner's library, toolchain and manifest
 remain unchanged.
+
+Independent archive verification (26 November 2026): artifact `15007862196`,
+`explicit-word-fragment-evidence`, downloaded ZIP SHA-256
+`f7e73ee54018719c346423067db9886bb16d0f9e0ee206146a9a9b0d258fc03f`
+exactly matches GitHub's artifact digest. All 50 members pass ZIP CRC checks;
+all 15 manifest entries match both archived bytes and exact published source.
+The hosted audit reports `WORD_LINEAGE same_inherited_axiom_set=true` and
+`WORD_UNION raw=45 validated=45 rejected=0`. This promotes the formerly
+candidate hosted qualification only; it adds no proof or broader claim.
 
 ## Specification boundary and residual
 
