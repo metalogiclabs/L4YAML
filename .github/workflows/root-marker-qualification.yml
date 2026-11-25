@@ -1,0 +1,118 @@
+name: Root and document-marker proof qualification
+on:
+  push:
+    branches: [test/root-marker-qualification]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          submodules: recursive
+          path: upstream
+      - name: Bind owner, patch and compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd evidence
+          sha256sum -c Research/RootMarkerPayment/source-sha256.txt
+          git rev-parse HEAD > ../results/evidence-commit.txt
+          cd ../upstream
+          test "$(git rev-parse HEAD)" = cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          test "$(git rev-parse HEAD:L4YAML)" = 0a8d15505cf2520df980bc4af05eca0ad72f86c8
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} HEAD:L4YAML HEAD:lean-toolchain HEAD:lake-manifest.json > ../results/owner-source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          mkdir -p Research/RootMarkerPayment
+          cp ../evidence/Research/RootMarkerPayment/*.lean Research/RootMarkerPayment/
+      - name: Controls and baseline axiom sets before changing proofs
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version > ../results/lean-version.txt
+          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath > ../results/baseline-build.txt 2>&1
+          lake env lean --run Research/RootMarkerPayment/RootProducerControls.lean > ../results/root-controls.txt 2>&1
+          lake env lean --run Research/RootMarkerPayment/DocumentMarkerControls.lean > ../results/marker-controls.txt 2>&1
+          grep -F 'ROOT_PRODUCER executions=42' ../results/root-controls.txt
+          grep -Fx 'DOCUMENT_MARKER_CONTROLS sources=126 start_states=252 end_states=210 initialized_from_source=true actual_marked_columns_empty=true' ../results/marker-controls.txt
+          lake env lean Research/RootMarkerPayment/AxiomAudit.lean > ../results/axioms-before.txt 2>&1
+      - name: Build the proof and remeasure every affected guard
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --check ../evidence/Research/RootMarkerPayment/root-marker-proof.patch
+          git apply ../evidence/Research/RootMarkerPayment/root-marker-proof.patch
+          printf '%s\n' 'ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
+          lake build Scripts.Main.Repin
+          passed=false
+          for round in $(seq 1 12); do
+            if lake build > "../results/full-build-$round.txt" 2>&1; then
+              passed=true
+              printf '%s\n' "$round" > ../results/successful-build-round.txt
+              break
+            fi
+            lake exe scripts-repin "../results/full-build-$round.txt" > "../results/repin-$round.txt" 2>&1
+          done
+          test "$passed" = true
+          printf '%s\n' 'ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+          git diff --check
+          git diff --name-only > ../results/changed-paths.txt
+          while IFS= read -r path; do
+            case "$path" in
+              L4YAML/Proofs/Production/StreamAccum.lean|Tests/Guards/Proofs/*.lean) ;;
+              *) echo "Unexpected qualification edit: $path"; exit 1 ;;
+            esac
+          done < ../results/changed-paths.txt
+          git diff > ../results/qualified-candidate.patch
+          xargs sha256sum < ../results/changed-paths.txt > ../results/candidate-source-sha256.txt
+          git add -- L4YAML Tests/Guards
+          git write-tree > ../results/candidate-tree.txt
+          git reset --quiet HEAD -- L4YAML Tests/Guards
+          lake run census-dashboard -- --diff HEAD > ../results/dashboard-diff.md
+          if grep -E 'AWAY|BROKEN' ../results/dashboard-diff.md; then exit 1; fi
+          lake env lean Research/RootMarkerPayment/AxiomAudit.lean > ../results/axioms-after.txt 2>&1
+          sed -n '/ROOT_MARKER_AXIOM /p' ../results/axioms-before.txt > ../results/axiom-set-before.txt
+          sed -n '/ROOT_MARKER_AXIOM /p' ../results/axioms-after.txt > ../results/axiom-set-after.txt
+          diff -u ../results/axiom-set-before.txt ../results/axiom-set-after.txt
+          lake env lean Research/RootMarkerPayment/SupplyAudit.lean > ../results/final-supply-audit.txt 2>&1
+      - name: Run repository gates and native tests
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
+            lake run "$gate" > "../results/$gate.txt" 2>&1
+          done
+          lake run dead-census -- --check > ../results/dead-census.txt 2>&1
+          lake run census-dashboard -- --check > ../results/dashboard-check.txt 2>&1
+          lake run run-all-tests > ../results/run-all-tests.txt 2>&1
+          lake exe suiterunner > ../results/suiterunner.txt 2>&1
+          lake exe eventscore > ../results/eventscore.txt 2>&1
+          lake exe collect-stats > ../results/collect-stats.txt 2>&1
+          lake run check-hygiene -- docs/reports/stats.json > ../results/hygiene.txt 2>&1
+          cp docs/reports/stats.json ../results/stats.json
+          cp ../evidence/Research/RootMarkerPayment/*.lean ../results/
+          printf '%s\n' 'full_default_build=PASS' 'required_gates=PASS' 'native_tests=PASS' 'axiom_sets_unchanged=true' 'no_directed_regression=true' 'scannerDrop_retired=false' 'upstream_submitted=false' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: root-marker-payment-cc830190
+          path: results/
+          if-no-files-found: error

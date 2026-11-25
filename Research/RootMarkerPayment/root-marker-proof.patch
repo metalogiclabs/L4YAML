@@ -1,0 +1,94 @@
+diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
+index b6379bb4e..1680f5ddc 100644
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -26939,7 +26939,11 @@ lemma accum_block_on_noPending
+     -- width is at or right of, and the one no other producer can name (item
+     -- 254).  The caller has carried it since item 147.
+     (h_mono : IndentStackMono.Mono sc)
+-    (h_gate : sc.inFlow = false → sp_block.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#')) :
++    (h_gate : sc.inFlow = false → sp_block.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#'))
++    -- The accumulation already carries the scanner's slot/register invariant.
++    -- A fresh root sequence owes no explicit-key value line: derive that
++    -- empty domain from the actual state instead of supplying PackAlt.
++    (h_sound : PendingKeySound.Sound sc) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -27034,7 +27038,20 @@ lemma accum_block_on_noPending
+              (park_col_of_indicator hcol_mid h_ind h_dash)
+              -- Item 92: a landed `-` with nothing pending opens `[183]` under
+              -- no `[187]` frame — there is no value line to pack.
+-             (Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch (PackAlt.ofRefused (h_noek (noflow_park_of_noflow h_preprocess h_noflow)))))
++             (by
++               have hfl : sc.flowLevel = 0 := by
++                 simpa [ScannerState.inFlow] using h_scflow
++               have h_empty : RegisterWitness.MarkedColsIn sc [] :=
++                 RegisterWitness.MarkedColsIn.of_explicitKeyLine_none
++                   h_sound hfl (h_noek h_scflow)
++               have h_prep := RegisterWitness.preprocess_markedCols h_preprocess h_empty
++               have h_slots := (PendingKeySound.preprocess_sound h_preprocess h_sound h_mono).slots
++               have h_out : RegisterWitness.MarkedColsIn s' [] :=
++                 RegisterWitness.dispatchBlockIndicators_markedCols_of_ne h_dispatch
++                   (by decide)
++                   (h_prep.transport (by split <;> rfl) (by split <;> rfl))
++                   (by split <;> exact h_slots)
++               exact Or.inl (fun nv hm => absurd (h_out.mem hm) List.not_mem_nil))
+              -- **Item 256: the root's resume frames, PAID, at floor 0.**  The
+              -- seed's stack is EMPTY (`h_ntop`), so on a monotone stack no mapping
+              -- level stands at or right of column 0 (`covered_nil_of_ntop`); the
+@@ -31014,7 +31031,7 @@ lemma accum_block_pending (sc : ScannerState)
+         h_corr h_from h_ok
+   cases h_pending with
+   | noPending _ _ h_col h_arm h_nodoc h_noek h_ntop208 =>
+-    exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
++    exact accum_block_on_noPending (h_sound := h_sound) sc sp_start sp_block s_prep s' c sp_prep sp_scan'
+       -- Item 223: the landing wants the flag alone; the park now carries the
+       -- cleared register beside it and this site projects it off.
+       h_stream_block (h_col.resolve_right (by simp [sc_noflow_of_prep h_preprocess h_noflow])) hcorr_prep hcorr_result h_corr h_col (h_arm.imp_left And.left)
+@@ -31026,6 +31043,12 @@ lemma accum_block_pending (sc : ScannerState)
+       -- resume frames at floor 0.
+       h_mono (fun hnf hcol => absurd (h_col.resolve_right (by simp [hnf])) hcol)
+   | pendingDocEnd _ _ _ h_line h_marker h_arm77 h_nic0E _ h_noekE h_nextE =>
++    -- The document marker cleared the register. Soundness identifies its
++    -- actual marked-column projection, so this pack has no unpaid column.
++    have h_empty : RegisterWitness.MarkedColsIn sc [] :=
++      RegisterWitness.MarkedColsIn.of_explicitKeyLine_none h_sound
++        (by simpa [ScannerState.inFlow] using
++          (sc_noflow_of_prep h_preprocess h_noflow)) h_noekE
+     -- Item 36: `[204] l-document-suffix` ends the marker with `s-l-comments`,
+     -- so a `-`/`?`/`:` on the marker's own line is a state the scanner refuses
+     -- (`trailingContentAfterDocEnd`).  The escape is REFUSED here, not paid.
+@@ -31036,7 +31059,9 @@ lemma accum_block_pending (sc : ScannerState)
+     -- own slot. ═══
+     exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+       h_close_pending
+-      (Or.inr (PackAlt.ofRefused h_noekE)) (Or.inr (fun h_res _ => (docEnd_refutes_inline_residue h_line
++      (Or.inl ⟨RegisterWitness.markedCols sc,
++        fun nv hm => absurd (h_empty.mem hm) List.not_mem_nil⟩)
++      (Or.inr (fun h_res _ => (docEnd_refutes_inline_residue h_line
+         (block_indicator_char h_dispatch) h_res).elim)) hcorr_prep hcorr_result h_corr h_noflow
+       h_arm77
+       h_preprocess h_dispatch
+@@ -31057,12 +31082,20 @@ lemma accum_block_pending (sc : ScannerState)
+       -- Item 208: item 207's field.
+       h_nic0E (GStar.nil _) (fun _ _ => (h_nextE (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep
+   | pendingDocStart _ _ _ h_doc_route h_nic48 h_real48 _ h_arm77 _ h_nic0S h_docline48 h_noekS h_nextS =>
++    -- Quantify over the scanner's own columns. The marker's cleared
++    -- register and the maintained invariant prove that domain empty.
++    have h_empty : RegisterWitness.MarkedColsIn sc [] :=
++      RegisterWitness.MarkedColsIn.of_explicitKeyLine_none h_sound
++        (by simpa [ScannerState.inFlow] using
++          (sc_noflow_of_prep h_preprocess h_noflow)) h_noekS
+     -- ═══ Item 48: the marker still on the line refutes all three indicators
+     -- — B1/B2's `markerOnLine` for `-`/`?`, B4 for `:` — so the arm's
+     -- inline residue is EMPTY and only the landed close remains. ═══
+     exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+       h_close_pending
+-      (Or.inr (PackAlt.ofRefused h_noekS)) (Or.inr (fun _ h_pay =>
++      (Or.inl ⟨RegisterWitness.markedCols sc,
++        fun nv hm => absurd (h_empty.mem hm) List.not_mem_nil⟩)
++      (Or.inr (fun _ h_pay =>
+         (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inr (Or.inl h_docline48))
+           (preprocess_preserves_implicitValueLine sc s_prep c h_preprocess)
+           (preprocess_preserves_docStartLine sc s_prep c h_preprocess)
