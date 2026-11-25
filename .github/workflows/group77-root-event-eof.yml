@@ -2338,7 +2338,9 @@ jobs:
           
           lemma getOk_eq {a : Type} [Inhabited a] {x : Except ScanError a}
               (h : x.isOk = true) : x = .ok (getOk x) := by
-            cases x <;> simp_all [getOk, Except.isOk]
+            cases x with
+            | error e => change false = true at h; contradiction
+            | ok v => rfl
           
           def someGood {a : Type} (x : Except ScanError (Option a)) : Bool :=
             match x with | .ok (some _) => true | _ => false
@@ -2354,7 +2356,7 @@ jobs:
           
           lemma unitGood_eq {x : Except ScanError Unit} (h : x.isOk = true) : x = .ok () := by
             cases x with
-            | error e => simp [Except.isOk] at h
+            | error e => change false = true at h; contradiction
             | ok u => cases u; rfl
           
           def prePair (s : ScannerState) : ScannerState × Char :=
@@ -2391,9 +2393,11 @@ jobs:
               (hb : scanNextToken_dispatchBlockIndicators (upd p) c = .ok (some t)) :
               scanNextToken s = .ok (some t) := by
             rcases hc with ⟨hd, hf, hs, hn, hbare, hflow⟩
+            have hflow' := noneGood_eq hflow
+            unfold upd at hflow' hb
             unfold scanNextToken
             simp [hp, unitGood_eq hd, unitGood_eq hf, noneGood_eq hs,
-              unitGood_eq hn, unitGood_eq hbare, ← upd, noneGood_eq hflow, hb,
+              unitGood_eq hn, unitGood_eq hbare, hflow', hb,
               bind, Except.bind, pure, Pure.pure, Except.pure]
           
           lemma stepContent {s p t : ScannerState} {c : Char}
@@ -2404,10 +2408,14 @@ jobs:
               (ht : scanNextToken_dispatchContent (upd p) c = .ok t) :
               scanNextToken s = .ok (some t) := by
             rcases hc with ⟨hd, hf, hs, hn, hbare, hflow⟩
+            have hflow' := noneGood_eq hflow
+            have hb' := noneGood_eq hb
+            have ha' := unitGood_eq ha
+            unfold upd at hflow' hb' ha' ht
             unfold scanNextToken
             simp [hp, unitGood_eq hd, unitGood_eq hf, noneGood_eq hs,
-              unitGood_eq hn, unitGood_eq hbare, ← upd, noneGood_eq hflow,
-              noneGood_eq hb, unitGood_eq ha, ht, bind, Except.bind, pure, Pure.pure, Except.pure]
+              unitGood_eq hn, unitGood_eq hbare, hflow', hb', ha', ht,
+              bind, Except.bind, pure, Pure.pure, Except.pure]
           
           /-- A real token offering the slot is a constructive witness, not an assumed SlotGateAt. -/
           def offerIndex (s : ScannerState) : Nat := (prevRealIdx? s.tokens s.tokens.size).getD 0
@@ -2484,9 +2492,14 @@ jobs:
             r.v.col = r.q.col ∧ r.out.implicitValueLine ≠ some r.out.line ∧
             r.q.col + 1 ≤ r.kp.col ∧ r.q.col + 1 ≤ r.vp.col
           
+          set_option maxRecDepth 4096 in
+          set_option maxSynthPendingDepth 256 in
           instance (input : String) (r : Run) : Decidable (Guard input r) := by
             unfold Guard Common ScalarGuard OfferGuard
-            infer_instance
+            first
+            | infer_instance
+            | repeat' apply instDecidableAnd
+              all_goals infer_instance
           
           /-- Every admitted input has an actual successful filtered output and a direct
               independent grammar trace. All former scanner-state and grammar witnesses
