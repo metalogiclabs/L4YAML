@@ -42,6 +42,31 @@ jobs:
             git merge-base --is-ancestor "$UP" "$sha"
           done
           git switch --detach "$CORETAG"
+          # The earlier qualified combined tree was built from a separate
+          # lineage. Admit the actual reviewed heads by real merges, never
+          # by an ours strategy or a fabricated ancestry-only commit.
+          for sha in dc9c881577286e1f27b1c4151f599716fe4c6152 e851e63003872d57509ed06e84346bd4ff893000; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
+            if git merge-base --is-ancestor "$sha" HEAD; then
+              echo "REVIEWED_HEAD_ALREADY_ANCESTOR $sha"
+              continue
+            fi
+            before=$(git rev-parse HEAD)
+            git merge-base HEAD "$sha" | tee "qualification-evidence/reviewed-base-$sha.txt"
+            if ! git merge --no-ff --no-commit "$sha"; then
+              git diff --name-only --diff-filter=U | tee "qualification-evidence/reviewed-conflicts-$sha.txt"
+              git ls-files -u > "qualification-evidence/reviewed-index-$sha.txt"
+              git diff --cc > "qualification-evidence/reviewed-conflict-diff-$sha.txt"
+              echo "REVIEWED_HEAD_RECONCILIATION_REQUIRED $sha"
+              exit 1
+            fi
+            git diff --cached --binary > "qualification-evidence/reviewed-delta-$sha.patch"
+            git diff --cached --check
+            git commit -m "Merge actual reviewed PR head $sha into separately qualified Core/TAG lineage"
+            test "$(git rev-parse HEAD^1)" = "$before"
+            test "$(git rev-parse HEAD^2)" = "$sha"
+            git merge-base --is-ancestor "$sha" HEAD
+          done
           for sha in "$PYTHON" "$DUMP" "$AXIOM"; do
             before=$(git rev-parse HEAD)
             if ! git merge --no-ff --no-commit "$sha"; then
@@ -115,6 +140,7 @@ jobs:
             test "$(git rev-parse HEAD^2)" = "$sha"
           done
           for sha in "$UP" "$CORETAG" "$PYTHON" "$DUMP" "$AXIOM" dcf6ad15503dd3be569fd983e94d8991a3379e00 dc9c881577286e1f27b1c4151f599716fe4c6152 e851e63003872d57509ed06e84346bd4ff893000 e8db9cf2dff3eb4a857c4cfae852749326c021f6 c5e0f0c6b449261d23fef5ddd588c360d5e5d630; do
+            echo "CHECK_FINAL_ANCESTRY $sha"
             git merge-base --is-ancestor "$sha" HEAD
           done
           # Preserve the measured combined-parent summary/roster pair until native --write.
