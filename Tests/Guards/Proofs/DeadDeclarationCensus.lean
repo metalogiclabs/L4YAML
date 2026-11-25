@@ -91,6 +91,10 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
 -- The standalone native census must recheck this expectation before the PR is updated.
 -- 2026-11-23 (dump tag rendering, #369): population +1 / def +1 for `Dump.renderTag`,
 -- reached through the exported dumper; every unreached class and the B-roster are unchanged.
+-- 2026-11-23 (axiom admission): population/defs +4 for `replayBooleanAxiom`, `AxiomReplayM`,
+-- `axiomAdmitted`, and `unvalidatedAxioms` in `L4YAML.CapstoneAttr`. The proof-policy helpers
+-- are classified as API by convention (C-api +4); capstone proof terms do not reference their
+-- checking instrument. No theorem, directed census, B-roster name or cluster root changes.
 -- 2026-11-23 (item 532, β PR 5): population 14260 → 14262, thm 10222 → 10224, unreached 6556 → 6558 (thm 4631 → 4633),
 -- A-campaign 1341 → 1343 — ContentBridge's `TFlowContent.of_scalar` and `content_leaf_at`, spent by the unreached
 -- `TPendingNode.content_step_props` (now at every indentation).

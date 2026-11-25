@@ -289,3 +289,4 @@ import Tests.Guards.Proofs.TagDirectiveSoundnessIx
 import Tests.Guards.Proofs.TagDirectiveConsumer
 import Tests.Guards.Proofs.ResumeFramesOne
 import Tests.Guards.Proofs.SeqTopKeyFace
+import Tests.Guards.Proofs.CapstoneAxioms
