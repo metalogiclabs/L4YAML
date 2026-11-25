@@ -3065,7 +3065,7 @@ jobs:
             unfold skipWhitespace
             generalize s.inputEnd - s.offset = fuel
             cases fuel with
-            | zero => rfl
+            | zero => simp [skipWhitespaceLoop]
             | succ n =>
               rw [skipWhitespaceLoop]
               simp [h, show isWhiteSpaceBool ':' = false by decide]
@@ -3075,7 +3075,7 @@ jobs:
             unfold skipSpaces
             generalize s.inputEnd - s.offset = fuel
             cases fuel with
-            | zero => rfl
+            | zero => simp [skipSpacesLoop]
             | succ n =>
               rw [skipSpacesLoop]
               simp [h]
@@ -3176,7 +3176,8 @@ jobs:
             let out := {emitted with simpleKeyAllowed := false, needIndentCheck := false}
             refine ⟨out, ?_, ?_, rfl, rfl, landing, rfl, hl⟩
             · unfold scanPlainScalar
-              simp [hflow, ← blockFloor, hloop, bind, Except.bind, trim_lower_word xs hw,
+              unfold blockFloor at hloop
+              simp [hflow, hloop, bind, Except.bind, trim_lower_word xs hw,
                 pure, Pure.pure, Except.pure, out, emitted]
             · exact corr_of_simpleKeyAllowed_needIndentCheck_update false false
                 (corr_of_emitAt s.currentPos (.scalar (String.ofList xs) .plain) hl)
