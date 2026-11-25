@@ -1,0 +1,17 @@
+# Explicit-key native owner content-step experiment
+
+Local boundary: WARRANTED after 301/301 proof jobs and 472/472 replay-executable build jobs, followed by 45/45 independently validated owner native axioms, zero rejected. Independent GitHub run is CANDIDATE until it succeeds.
+
+Objective: Blueprint 7.7 → actual depth-zero owner fold → scan_trace. Full fold, scan_trace, Group 7.7 remain open.
+
+Owner pin: nasa-jpl/L4YAML@0dbf0c120601fccc1d837025f3bef405cc4f2062; Lean 4.36.0. Parent: metalogiclabs/L4YAML@fca2d2609e18038147878cf3bf3c1b18629f2b96, independently successful run https://github.com/metalogiclabs/L4YAML/actions/runs/45572870504. Its artifact 15002549612 rehashed as 00c606e9e0d6441719606a5e584ed9734ce21f9671f5244dd76bc69b5d5b22b9: 23 CRC-valid members, 19 manifest entries verified. Parent strengthened reconciliation run https://github.com/metalogiclabs/L4YAML/actions/runs/45571441810 also passed and its archive was independently rehashed.
+
+Change: derive the post-colon IndentFloor, exact column and NextIsSep from actual preprocessing plus scanNextToken_dispatchBlockIndicators. Derive the next content dispatch's incoming TSLYamlStream event coupling from native preprocessing. Then spend these facts in the owner's actual TPendingNode.content_step_park. The exported matched_colon_then_owner_content_step returns the actual owner pending after value content, or a distinct DedentLanding; no independently supplied post-colon floor, column, follower or event-transport assumption.
+
+Reuse: the parent's skip_col_drop_allowed helper changes from private to public solely because the new readiness proof consumes it. Its proof body is unchanged. No L4YAML library code, owner grammar, toolchain or audit implementation is modified.
+
+Qualification: native readiness probes ran BEFORE proof work: fresh=99, col_drop=660, failed_hypothesis=0, theorem_refuted=0, synthetic alias-overwrite negative control PASS; pending TAG states [], [!h!], [!x!,!h!] retained. The readiness theorem has only propext/Classical.choice/Quot.sound. The composed value theorem has exactly the SAME full axiom set as the existing owner content_step_park: 45 native leaves plus standard foundations. All 45 are replayed with the unchanged #371-derived Boolean-claim validator; original nine-profile/39-leaf controls run too. Six extra leaves relative to the key-only closure come from the actual owner's scalar/block-scalar content machinery. No new proof-side native_decide or custom axiom was introduced.
+
+Remaining assumptions: incoming TSLYamlStream and KeyReady with their grammar routes; matching/deeper columns; native preprocessing and dispatch equations; scanner/surface correspondence; actual ContentArm, depth, document-boundary exclusion and SlotGateAt. This is one real owner content fold step after the matched colon, not the entire depth-zero scan induction. Next residual is obtaining/maintaining the incoming KeyReady and its route from actual reachable scanner execution, and accounting for the other depth-zero arms.
+
+Failure lineage: early local draft selected unqualified scanValue_prod, then the flow-only same-named lemma; final source explicitly uses StructureProduction.scanValue_prod. These were elaboration failures, not theorem refutations. The native replay executable first ran outside Lake's search environment and could not import Tests; the qualified command runs through lake -f lakefile.value-replay.lean env. Preserve prior failed property/transport/combined runs as ancestors; this experiment does not rewrite them.

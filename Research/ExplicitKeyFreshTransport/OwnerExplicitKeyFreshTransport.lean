@@ -94,7 +94,7 @@ lemma scanValue_silent_after_fresh_save {s s' : ScannerState}
 
 /-- A column decrease forces the actual break branch. Reading that branch
     directly avoids the owner's native-decide line-counter dependencies. -/
-private lemma skip_col_drop_allowed {s s' : ScannerState}
+lemma skip_col_drop_allowed {s s' : ScannerState}
     (h : skipToContent s = .ok s') (hf : s.inFlow = false)
     (hd : s'.col < s.col) : s'.simpleKeyAllowed = true := by
   unfold skipToContent skipToContentLoop at h
