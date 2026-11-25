@@ -1,0 +1,161 @@
+name: Five-way exact-source documentation and reconciliation recovery
+on:
+  push:
+    branches: [fix/five-way-qualified-docs-recovery]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 165
+    env:
+      LEAN_NUM_THREADS: 2
+      SOURCE_COMMIT: 3e753c2ec9df65e1c57c97927259888a4878d637
+      EXPECTED_TREE: fd5922dfa026da145204a2b060b1d1d137918a41
+    steps:
+      - name: Checkout exact original PR source with full submodules
+        uses: actions/checkout@v4
+        with:
+          ref: 3e753c2ec9df65e1c57c97927259888a4878d637
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Pin source and install exact toolchain and docs dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs-evidence
+          git switch --detach "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git merge-base --is-ancestor eb821055512cf640530319760cbb426e0182b22c HEAD
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          test "$(cat doc/lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/source.txt
+          cat lean-toolchain | tee docs-evidence/toolchain.txt
+          git submodule status | tee docs-evidence/submodules.txt
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json | tee docs-evidence/pins.sha256
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+      - name: Install proven docs memory allowance (24 GiB swap)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          free -h | tee docs-evidence/resources-before.txt
+          sudo fallocate -l 24G /mnt/tag361-exact-docs.swap
+          sudo chmod 600 /mnt/tag361-exact-docs.swap
+          sudo mkswap /mnt/tag361-exact-docs.swap
+          sudo swapon /mnt/tag361-exact-docs.swap
+          free -h | tee docs-evidence/resources-after.txt
+          test "$(grep -Fc /mnt/tag361-exact-docs.swap /proc/swaps)" -eq 1
+      - name: Build Verso and all required graph inputs on exact source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee docs-evidence/lean-version.txt
+          (cd doc && lake build l4yaml-doc) 2>&1 | tee docs-evidence/verso-build.log
+          lake build L4YAML.Scanner.Scanner L4YAML.Parser.Composition L4YAML.Surface.Document L4YAML.Output.Dump L4YAML.Output.Emitter L4YAML.FFI.FFI L4YAML.Schema.Api L4YAML.Config.Config 2>&1 | tee docs-evidence/graph-inputs.log
+          lake build graph 2>&1 | tee docs-evidence/graph-build.log
+          mkdir -p doc/Doc/L4YAML/graphs
+          lake exe graph --to=L4YAML.Scanner.Scanner,L4YAML.Parser.Composition,L4YAML.Surface.Document,L4YAML.Output.Dump,L4YAML.Output.Emitter,L4YAML.FFI.FFI,L4YAML.Schema.Api,L4YAML.Config.Config doc/Doc/L4YAML/graphs/import-graph.dot
+          dot -Tsvg doc/Doc/L4YAML/graphs/import-graph.dot -o doc/Doc/L4YAML/graphs/import-graph.svg
+          lake run check-doc-graphs -- --strict 2>&1 | tee docs-evidence/graph-check.log
+          (cd doc && lake exe l4yaml-doc) 2>&1 | tee docs-evidence/verso-render.log
+          lake run svg-objects -- doc/_out/html-multi 2>&1 | tee docs-evidence/svg.log
+      - name: Preserve pre-API receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiveway-eb821055-docs-pre-api
+          path: docs-evidence/
+          if-no-files-found: error
+      - name: Build full API documentation with proven memory provision
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake build :docs 2>&1 | tee docs-evidence/api-docs.log
+          echo "DOCS_NATIVE_BUILD_SUCCESS" | tee docs-evidence/result.txt
+      - name: Validate immutable source and toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          sha256sum -c docs-evidence/pins.sha256
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/final-source.txt
+          free -h | tee docs-evidence/resources-final.txt
+      - name: Retain receipts on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiveway-eb821055-docs-receipts
+          path: docs-evidence/
+          if-no-files-found: warn
+
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CANDIDATE: 3e753c2ec9df65e1c57c97927259888a4878d637
+      CANDIDATE_TREE: fd5922dfa026da145204a2b060b1d1d137918a41
+      REFERENCE: 117818c9ea72c184d66b9f3baed44d2f92ac702c
+      REFERENCE_TREE: c22da9e09b42cbbafa569c24f747865b80602249
+      OLD_UP: cb899c0fa4529d4b40d701f04f5c494047a6b695
+      NEW_UP: eb821055512cf640530319760cbb426e0182b22c
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 3e753c2ec9df65e1c57c97927259888a4878d637
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare new qualified tree to historical reference and owner source delta
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export E="$RUNNER_TEMP/comparison"
+          mkdir -p "$E"
+          test "$(git rev-parse HEAD)" = "$CANDIDATE"
+          test "$(git rev-parse HEAD^{tree})" = "$CANDIDATE_TREE"
+          git cat-file -e "$REFERENCE^{commit}" || git fetch --no-tags origin "$REFERENCE"
+          test "$(git rev-parse "$REFERENCE^{tree}")" = "$REFERENCE_TREE"
+          git merge-base --is-ancestor "$OLD_UP" "$NEW_UP"
+          git merge-base --is-ancestor "$NEW_UP" HEAD
+          git diff --name-status "$OLD_UP" "$NEW_UP" | tee "$E/owner-paths.txt"
+          git diff --name-status "$REFERENCE" "$CANDIDATE" | tee "$E/candidate-paths.txt"
+          git diff --binary "$OLD_UP" "$NEW_UP" > "$E/owner-delta.patch"
+          git diff --binary "$REFERENCE" "$CANDIDATE" > "$E/candidate-delta.patch"
+          python3 - <<'PY'
+          import os, subprocess, json
+          from pathlib import Path
+          E=Path(os.environ["E"])
+          old,new,ref,cand=[os.environ[k] for k in ("OLD_UP","NEW_UP","REFERENCE","CANDIDATE")]
+          def git(*args):
+              return subprocess.check_output(["git",*args],text=True).strip()
+          def paths(a,b):
+              return set(git("diff","--name-only",a,b).splitlines())
+          def blob(rev,path):
+              return git("rev-parse",f"{rev}:{path}")
+          generated={"Tests/Guards/Proofs/DeadDeclarationCensus.lean","Tests/Guards/Proofs/DeadDeclarationRoster.lean"}
+          owner=paths(old,new); actual=paths(ref,cand)
+          unexpected=sorted(actual-owner-generated)
+          missing=[]; shared=[]
+          for path in sorted(owner-generated):
+              if blob(old,path)==blob(ref,path):
+                  if blob(new,path)!=blob(cand,path): missing.append(path)
+              else:
+                  shared.append(path)
+          report={"old_upstream":old,"new_upstream":new,"reference":ref,"candidate":cand,"candidate_tree":os.environ["CANDIDATE_TREE"],"unexpected_paths":unexpected,"unpreserved_owner_only_paths":missing,"shared_paths_requiring_delta_review":shared,"generated_paths":sorted(actual & generated)}
+          (E/"delta-review.json").write_text(json.dumps(report,indent=2)+"\n")
+          print(json.dumps(report,indent=2))
+          assert not unexpected and not missing, report
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fiveway-eb821055-owner-delta-review
+          path: ${{ runner.temp }}/comparison/
+          if-no-files-found: warn
