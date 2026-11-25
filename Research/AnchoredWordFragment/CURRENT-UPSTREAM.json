@@ -1,0 +1,29 @@
+{
+  "observed_date_pacific_auckland": "2026-11-26",
+  "upstream_commit": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "upstream_parent": "e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca",
+  "merged_pull_request": 377,
+  "reuse_classification": "REUSABLE_BY_EXACT_LIBRARY_IDENTITY",
+  "qualified_owner_commit": "0dbf0c120601fccc1d837025f3bef405cc4f2062",
+  "qualification_run": 45683950774,
+  "qualification_job": 139451471469,
+  "qualification_source": "83a6e3e2bd6a47768aaaba427838dce53057f8f3",
+  "identical_git_objects_at_both_owner_commits": {
+    "L4YAML": "0a8d15505cf2520df980bc4af05eca0ad72f86c8",
+    "lean-toolchain": "00f848359b1cdaf7c12cd6b7acc5b4364752e154",
+    "lake-manifest.json": "d7b89af6a6b9d42c530698c7eb8fa9a77d0e3a2f",
+    "Tests/AdversarialInstantiation.lean": "f4f2466bff219e5cf60657d5bfa13c33eafce26e"
+  },
+  "lakefile_difference": "Seven added lines invoke the census-dashboard HTML generator from run-all-tests; package options, dependency declarations and scoped proof-build configuration unchanged",
+  "fresh_hosted_run_on_cc830190": false,
+  "full_native_battery_qualification_on_cc830190": false,
+  "approved_production_heads_unchanged_at_readback": {
+    "300": "dcf6ad15503dd3be569fd983e94d8991a3379e00",
+    "302": "dc9c881577286e1f27b1c4151f599716fe4c6152",
+    "361": "e851e63003872d57509ed06e84346bd4ff893000",
+    "370": "e8db9cf2dff3eb4a857c4cfae852749326c021f6",
+    "371": "c5e0f0c6b449261d23fef5ddd588c360d5e5d630"
+  },
+  "upstream_merge_was_by_maintainer": true,
+  "proof_or_workflow_changes_in_this_receipt": false
+}

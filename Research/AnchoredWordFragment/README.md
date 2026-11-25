@@ -55,7 +55,7 @@ workflow's SHA-256 is pinned; `source-sha256.txt` fixes this extension's sources
 and workflow. No owner library, grammar, toolchain or dependency pin is edited.
 
 The hosted matrix passed both the exact #377 proof owner above (library tree
-`0a8d15505cf2520df980bc4af05eca0ad72f86c8`) and current upstream
+`0a8d15505cf2520df980bc4af05eca0ad72f86c8`) and then-upstream
 `e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca` (library tree
 `19f54b7a36b0b170aa24375889ff86196e7fa475`).
 
@@ -75,6 +75,16 @@ The exact ZIP bytes and independent re-verification receipt are preserved in
 `Evidence/`; machine-readable pins, digests and scope are in
 `QUALIFICATION.json`. Owner library, grammar, toolchain and dependency pins
 remained unchanged. No production PR head was edited or upstream PR merged.
+
+Upstream subsequently merged #377 as
+`cc83019024fb88b7c0d0cdadc4e590bda7a72788`. Its entire library, toolchain,
+dependency manifest and original adversarial module have exactly the same
+Git object IDs as the qualified #377 source. The seven-line Lakefile
+difference only calls the census-dashboard generator from `run-all-tests`;
+it changes none of this proof's scoped build configuration. The proof is
+REUSABLE on that identical library. This is source-identity transfer, not a
+claim of a fresh hosted job or complete test-battery qualification on cc830190.
+`CURRENT-UPSTREAM.json` preserves the identity checks.
 
 ## Residual
 
