@@ -1,0 +1,11 @@
+ACTUAL_ROOT_COLON form=plain before_col=5 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=double-quoted before_col=7 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=single-quoted before_col=7 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=alias before_col=4 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=anchor-and-scalar before_col=8 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=tag-and-scalar before_col=11 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=empty-property-key before_col=4 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=literal before_col=0 colon_col=0 drop=false saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=folded before_col=0 colon_col=0 drop=false saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=flow-sequence before_col=7 colon_col=0 drop=true saved_possible=true cleared=true
+ACTUAL_ROOT_COLON form=flow-map before_col=10 colon_col=0 drop=true saved_possible=true cleared=true
