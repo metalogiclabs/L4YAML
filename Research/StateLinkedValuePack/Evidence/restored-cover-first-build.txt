@@ -1,0 +1,801 @@
+L4YAML/Proofs/Production/StreamAccum.lean:19649:5: warning: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:29259:11: error: Application type mismatch: The argument
+  fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => ?m.274
+has type
+  (nv' : ?m.263) →
+    (hmem : ?m.275 nv') →
+      (sp_m : ?m.276 nv' hmem) →
+        (sp_i : ?m.277 nv' hmem sp_m) →
+          (sp_c : ?m.278 nv' hmem sp_m sp_i) →
+            (h_ssl_m : ?m.279 nv' hmem sp_m sp_i sp_c) →
+              (h_iv : ?m.280 nv' hmem sp_m sp_i sp_c h_ssl_m) →
+                (h_lit : ?m.281 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv) →
+                  (sp_v : ?m.282 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit) →
+                    (h_sbi : ?m.283 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v) →
+                      ?m.284 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi
+but is expected to have type
+  RegisterWitness.MarkedColsIn sc (RegisterWitness.markedCols sc) ∧
+    ∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∀ (sp_m sp_i sp_c : SurfPos),
+          SSLComments sp_gram sp_m →
+            SIndent nv sp_m sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+in the application
+  Exists.intro (RegisterWitness.markedCols sc) fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => ?m.274
+L4YAML/Proofs/Production/StreamAccum.lean:29260:20: error(nested.lean.propRecLargeElim): Tactic `cases` failed with a nested error:
+Tactic `induction` failed: recursor `Exists.casesOn` can only eliminate into `Prop`
+
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+s_prep s' : ScannerState
+c : Char
+sp_prep sp_scan' sp_gram : SurfPos
+h_stream_block : SLYamlStream sp_start sp_block
+h_run : GStar SSWhite sp_gram sp_scan
+h_gate : sp_gram = sp_scan → sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_close_pending :
+  danglingNodePos? sc = none →
+    underIndentedFlowValuePos? sc = none →
+      ∀ (sp_mid : SurfPos), SSLComments sp_gram sp_mid → SLYamlStream sp_start sp_mid
+h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars
+h_key :
+  sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line → ImplicitKeyPack sc sp_start sp_scan ∨ KeyPackPunt sc
+h_vpack :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m sp_i sp_c : SurfPos),
+              SSLComments sp_gram sp_m →
+                SIndent nv sp_m sp_i →
+                  GLit ':' sp_i sp_c →
+                    ∀ (sp_v : SurfPos),
+                      SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+hcorr_prep : ScannerSurfCorr s_prep sp_prep
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_noflow : s_prep.inFlow = false
+h_kbc : ScannerCorrectness.KeysBehindCursor sc
+h_scf : StaleCursorFloor.StaleKeyCursorFloor sc
+h_stale : InlineResidue sp_scan ':' → StaleNodeTail sc
+h_park : sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false ∨ 0 < sp_scan.col
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, c))
+h_dispatch :
+  scanNextToken_dispatchBlockIndicators
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      c =
+    Except.ok (some s')
+h_bare : scanNextToken_checkBareDocument s_prep = Except.ok ()
+h_dn : scanNextToken_checkDanglingNode sc s_prep = Except.ok ()
+h_fv : scanNextToken_checkFlowValueIndent sc s_prep = Except.ok ()
+h_base : IndentStackBase.SentinelBase sc
+h_mono : IndentStackMono.Mono sc
+h_tail139 : CompletedTail sc
+h_seqF168 :
+  (∃ ke kk ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ kk) ∧
+        ∀ (sp_mid : SurfPos),
+          SSLComments sp_gram sp_mid →
+            ∀ (sp_e : SurfPos), SCompactMapTail kk sp_mid sp_e → ResumeFrames (SeqEntryTail sp_start ke) ks sp_e) ∨
+    True
+h_mapF109 : (∃ ks, ∀ (sp_m : SurfPos), SSLComments sp_gram sp_m → ResumeFrames (SLYamlStream sp_start) ks sp_m) ∨ True
+h_mapFV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks, ∀ (sp_m : SurfPos), SSLComments sp_gram sp_m → KeyFrames (ExplValueLine sp_start nv) ks sp_m) ∨
+    PackAlt sc
+h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true
+h_live : InlineResidue sp_scan ':' → sc.simpleKey.possible = true
+h_mcstep :
+  ∀ (ns : List Nat), RegisterWitness.MarkedColsIn sc ns → RegisterWitness.MarkedColsIn s' ((↑s_prep.col).toNat :: ns)
+h_mcstep_ne : c ≠ '?' → ∀ (ns : List Nat), RegisterWitness.MarkedColsIn sc ns → RegisterWitness.MarkedColsIn s' ns
+h_sound : PendingKeySound.Sound sc
+h_cf : ColFloor.ColFloor sc
+h_lkt : ScalarWalkColFloor.LiveKeyTop sc
+h_seqLanding :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ ke) ∧
+        ∀ (sp_mid : SurfPos),
+          SSLComments sp_gram sp_mid →
+            ∀ (sp_fin : SurfPos), SCompactSeqTail ke sp_mid sp_fin → ResumeFrames (SLYamlStream sp_start) ks sp_fin) ∨
+    True
+hc : ¬c = ':'
+hall :
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols sc →
+      ∃ ks, ∀ (sp_m : SurfPos), SSLComments sp_gram sp_m → KeyFrames (ExplValueLine sp_start nv) ks sp_m
+nv' : Nat
+hmem : nv' ∈ RegisterWitness.markedCols sc
+sp_m : ?m.276 nv' hmem
+sp_i : ?m.277 nv' hmem sp_m
+sp_c : ?m.278 nv' hmem sp_m sp_i
+h_ssl_m : ?m.279 nv' hmem sp_m sp_i sp_c
+h_iv : ?m.280 nv' hmem sp_m sp_i sp_c h_ssl_m
+h_lit : ?m.281 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv
+sp_v : ?m.282 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit
+h_sbi : ?m.283 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v
+x✝ : ∃ ks, ∀ (sp_m : SurfPos), SSLComments sp_gram sp_m → KeyFrames (ExplValueLine sp_start nv') ks sp_m
+⊢ ?m.284 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi
+L4YAML/Proofs/Production/StreamAccum.lean:29602:15: error: Application type mismatch: The argument
+  fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => ?m.1129
+has type
+  (nv' : ?m.1118) →
+    (hmem : ?m.1130 nv') →
+      (sp_m : ?m.1131 nv' hmem) →
+        (sp_i : ?m.1132 nv' hmem sp_m) →
+          (sp_c : ?m.1133 nv' hmem sp_m sp_i) →
+            (h_ssl_m : ?m.1134 nv' hmem sp_m sp_i sp_c) →
+              (h_iv : ?m.1135 nv' hmem sp_m sp_i sp_c h_ssl_m) →
+                (h_lit : ?m.1136 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv) →
+                  (sp_v : ?m.1137 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit) →
+                    (h_sbi : ?m.1138 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v) →
+                      ?m.1139 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi
+but is expected to have type
+  RegisterWitness.MarkedColsIn sc (RegisterWitness.markedCols sc) ∧
+    ∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∀ (sp_m sp_i sp_c : SurfPos),
+          SSLComments sp_gram sp_m →
+            SIndent nv sp_m sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+in the application
+  Exists.intro (RegisterWitness.markedCols sc) fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => ?m.1129
+L4YAML/Proofs/Production/StreamAccum.lean:29603:24: error(nested.lean.propRecLargeElim): Tactic `cases` failed with a nested error:
+Tactic `induction` failed: recursor `Exists.casesOn` can only eliminate into `Prop`
+
+sp_gram : SurfPos
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+s_prep s' : ScannerState
+sp_scan' : SurfPos
+n : Nat
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_pending :
+  danglingNodePos? sc = none →
+    underIndentedFlowValuePos? sc = none →
+      ∀ (sp_mid : SurfPos), SSLComments sp_gram sp_mid → SLYamlStream sp_start sp_mid
+h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars
+h_entry_old :
+  ∀ (sp : SurfPos),
+    SSLComments sp_gram sp → ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end
+h_kslot :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∀ (sp_m : SurfPos),
+          SSLComments sp_gram sp_m →
+            ∀ (sp_e : SurfPos),
+              SCompactSeqTail n sp_m sp_e →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_e sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_key :
+  sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line → ImplicitKeyPack sc sp_start sp_scan ∨ KeyPackPunt sc
+h_stale : InlineResidue sp_scan ':' → StaleNodeTail sc
+h_kbc : ScannerCorrectness.KeysBehindCursor sc
+h_scf : StaleCursorFloor.StaleKeyCursorFloor sc
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_noflow : s_prep.inFlow = false
+h_park : sc.simpleKeyAllowed = true ∧ sc.simpleKey.possible = false ∨ 0 < sp_scan.col
+h_bare : scanNextToken_checkBareDocument s_prep = Except.ok ()
+h_dn : scanNextToken_checkDanglingNode sc s_prep = Except.ok ()
+h_fv : scanNextToken_checkFlowValueIndent sc s_prep = Except.ok ()
+h_base : IndentStackBase.SentinelBase sc
+h_sound : PendingKeySound.Sound sc
+h_mono : IndentStackMono.Mono sc
+h_tail139 : CompletedTail sc
+h_seqF_old :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ ke) ∧
+        ∀ (sp_mid : SurfPos),
+          SSLComments sp_gram sp_mid →
+            ∀ (sp_end : SurfPos),
+              SCompactSeqTail n sp_mid sp_end →
+                ∀ (sp_fin : SurfPos),
+                  SCompactSeqTail ke sp_end sp_fin → ResumeFrames (SLYamlStream sp_start) ks sp_fin) ∨
+    True
+h_kslotUp :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SSLComments sp_gram sp_m →
+                ∀ (sp_e : SurfPos),
+                  SCompactSeqTail n sp_m sp_e →
+                    ∀ (sp_i sp_c : SurfPos),
+                      SIndent nv sp_e sp_i →
+                        GLit ':' sp_i sp_c →
+                          ∀ (sp_v : SurfPos),
+                            SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeF_old :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+          (∀ (sp_mid : SurfPos),
+              SSLComments sp_gram sp_mid →
+                ∀ (sp_end : SurfPos),
+                  SCompactSeqTail n sp_mid sp_end → ResumeFrames (SLYamlStream sp_start) ks sp_end) ∧
+            (((∃ e, sc.indents.back? = some e ∧ e.isSequence = false) →
+                ∀ (sp_mid : SurfPos),
+                  SSLComments sp_gram sp_mid →
+                    ∀ (sp_end : SurfPos),
+                      SCompactSeqTail n sp_mid sp_end →
+                        ∀ (sp_fin : SurfPos),
+                          SCompactMapTail n sp_end sp_fin → ResumeFrames (SLYamlStream sp_start) ks sp_fin) ∨
+              True)) ∨
+    True
+h_closeFV_old :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SSLComments sp_gram sp_mid →
+                  ∀ (sp_end : SurfPos),
+                    SCompactSeqTail n sp_mid sp_end → KeyFrames (ExplValueLine sp_start nv) ks sp_end) ∨
+    PackAlt sc
+h_nic0 : sp_scan.col = 0 → sc.needIndentCheck = true
+h_live : InlineResidue sp_scan ':' → sc.simpleKey.possible = true
+h_run : GStar SSWhite sp_gram sp_scan
+h_gate : sp_gram = sp_scan → sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_mcstep :
+  ∀ (ns : List Nat), RegisterWitness.MarkedColsIn sc ns → RegisterWitness.MarkedColsIn s' ((↑s_prep.col).toNat :: ns)
+h_cf : ColFloor.ColFloor sc
+h_lkt : ScalarWalkColFloor.LiveKeyTop sc
+sp_mid sp_sc : SurfPos
+h_land :
+  SSLComments sp_gram sp_mid ∧
+      sp_mid.col = 0 ∧
+        (sp_scan.col ≠ 0 →
+          s_prep.inFlow = false →
+            s_prep.simpleKey.possible = true ∧
+              s_prep.simpleKey.pos.col = s_prep.col ∧
+                s_prep.simpleKeyAllowed = true ∧ (s_prep.currentIndent ≤ ↑s_prep.col ∨ s_prep.indents.size ≤ 1)) ∨
+    sp_mid = sp_scan ∧
+      sp_scan.col ≠ 0 ∧
+        (sc.needIndentCheck = false →
+            LastTokenReal sc.tokens →
+              s_prep.line = sc.line ∧
+                s_prep.needIndentCheck = false ∧
+                  lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
+                    penultRealToken? s_prep.tokens = penultRealToken? sc.tokens) ∧
+          (sc.needIndentCheck = false → s_prep.indents = sc.indents) ∧
+            (sc.needIndentCheck = false →
+              sc.simpleKeyAllowed = false →
+                s_prep.simpleKey = sc.simpleKey ∧
+                  s_prep.tokens = sc.tokens ∧ sc.offset ≤ s_prep.offset ∧ s_prep.simpleKeyAllowed = false)
+hcorr_sc : ScannerSurfCorr s_prep sp_sc
+hsuf_mid : sp_mid.chars <:+ sp_scan.chars
+hcorr_prep : ScannerSurfCorr s_prep sp_sc
+h_ssl : SSLComments sp_gram sp_mid
+hcol_mid : sp_mid.col = 0
+h_larm :
+  sp_scan.col ≠ 0 →
+    s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧
+        s_prep.simpleKey.pos.col = s_prep.col ∧
+          s_prep.simpleKeyAllowed = true ∧ (s_prep.currentIndent ≤ ↑s_prep.col ∨ s_prep.indents.size ≤ 1)
+h_nd_land : danglingNodePos? sc = none
+h_ui_land : underIndentedFlowValuePos? sc = none
+hws : GStar SSWhite sp_mid sp_sc
+hcmt : GOpt SCNbCommentText sp_sc sp_sc
+h_pk : sp_sc = sp_sc ∨ s_prep.peek? = none
+k : Nat
+h_ind : SIndent k sp_mid sp_sc
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, '-'))
+h_dispatch :
+  scanNextToken_dispatchBlockIndicators
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      '-' =
+    Except.ok (some s')
+h_mcstep_ne : '-' ≠ '?' → ∀ (ns : List Nat), RegisterWitness.MarkedColsIn sc ns → RegisterWitness.MarkedColsIn s' ns
+h_inl :
+  InlineResidue sp_scan '-' →
+    (sc.needIndentCheck = false →
+        LastTokenReal sc.tokens →
+          s_prep.line = sc.line ∧
+            s_prep.needIndentCheck = false ∧
+              lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
+                penultRealToken? s_prep.tokens = penultRealToken? sc.tokens) →
+      ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+        SLYamlStream sp_start sp_gram' ∧
+          BlockStack sp_gram' sp_block' ∧
+            FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+              PendingNode s' false sp_start sp_flow' sp_scan'' ∧ ScannerSurfCorr s' sp_scan''
+h_markBack :
+  ∀ (nv : Nat), nv ∈ RegisterWitness.markedCols s' → ('-' = '?' → nv ≠ k) → nv ∈ RegisterWitness.markedCols sc
+hkn : ¬k = n
+hall :
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols sc →
+      ∃ ks,
+        (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+          ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos),
+              SSLComments sp_gram sp_mid →
+                ∀ (sp_end : SurfPos), SCompactSeqTail n sp_mid sp_end → KeyFrames (ExplValueLine sp_start nv) ks sp_end
+nv' : Nat
+hmem : nv' ∈ RegisterWitness.markedCols sc
+sp_m : ?m.1131 nv' hmem
+sp_i : ?m.1132 nv' hmem sp_m
+sp_c : ?m.1133 nv' hmem sp_m sp_i
+h_ssl_m : ?m.1134 nv' hmem sp_m sp_i sp_c
+h_iv : ?m.1135 nv' hmem sp_m sp_i sp_c h_ssl_m
+h_lit : ?m.1136 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv
+sp_v : ?m.1137 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit
+h_sbi : ?m.1138 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v
+x✝ :
+  ∃ ks,
+    (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos),
+          SSLComments sp_gram sp_mid →
+            ∀ (sp_end : SurfPos), SCompactSeqTail n sp_mid sp_end → KeyFrames (ExplValueLine sp_start nv') ks sp_end
+⊢ ?m.1139 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi
+L4YAML/Proofs/Production/StreamAccum.lean:30331:15: error: Application type mismatch: The argument
+  fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => ?m.1748
+has type
+  (nv' : ?m.1737) →
+    (hmem : ?m.1749 nv') →
+      (sp_m : ?m.1750 nv' hmem) →
+        (sp_i : ?m.1751 nv' hmem sp_m) →
+          (sp_c : ?m.1752 nv' hmem sp_m sp_i) →
+            (h_ssl_m : ?m.1753 nv' hmem sp_m sp_i sp_c) →
+              (h_iv : ?m.1754 nv' hmem sp_m sp_i sp_c h_ssl_m) →
+                (h_lit : ?m.1755 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv) →
+                  (sp_v : ?m.1756 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit) →
+                    (h_sbi : ?m.1757 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v) →
+                      ?m.1758 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi
+but is expected to have type
+  RegisterWitness.MarkedColsIn sc (RegisterWitness.markedCols sc) ∧
+    ∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∀ (sp_m sp_i sp_c : SurfPos),
+          SSLComments sp_scan sp_m →
+            SIndent nv sp_m sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+in the application
+  Exists.intro (RegisterWitness.markedCols sc) fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => ?m.1748
+L4YAML/Proofs/Production/StreamAccum.lean:30332:24: error(nested.lean.propRecLargeElim): Tactic `cases` failed with a nested error:
+Tactic `induction` failed: recursor `Exists.casesOn` can only eliminate into `Prop`
+
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+s_prep s' : ScannerState
+sp_scan' : SurfPos
+n : Nat
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_pending :
+  danglingNodePos? sc = none →
+    underIndentedFlowValuePos? sc = none →
+      ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid
+h_close_entry_old :
+  ∀ (sp : SurfPos),
+    SBlockIndented n YamlContext.blockIn sp_scan sp →
+      ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end
+h_kslot :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∀ (sp_m : SurfPos),
+          SBlockIndented n YamlContext.blockIn sp_scan sp_m →
+            ∀ (sp_e : SurfPos),
+              SCompactSeqTail n sp_m sp_e →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_e sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_sk : sc.simpleKeyAllowed = true
+h_col_old : sp_scan.col = n + 1
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_noflow : s_prep.inFlow = false
+h_next : sc.inFlow = false → NextIsSep sc
+h_bare : scanNextToken_checkBareDocument s_prep = Except.ok ()
+h_dn : scanNextToken_checkDanglingNode sc s_prep = Except.ok ()
+h_fv : scanNextToken_checkFlowValueIndent sc s_prep = Except.ok ()
+h_base : IndentStackBase.SentinelBase sc
+h_sound : PendingKeySound.Sound sc
+h_mono : IndentStackMono.Mono sc
+h_seqF_old :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ ke) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockIndented n YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_end : SurfPos),
+              SCompactSeqTail n sp_mid sp_end →
+                ∀ (sp_fin : SurfPos),
+                  SCompactSeqTail ke sp_end sp_fin → ResumeFrames (SLYamlStream sp_start) ks sp_fin) ∨
+    True
+h_kslotUp :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SBlockIndented n YamlContext.blockIn sp_scan sp_m →
+                ∀ (sp_e : SurfPos),
+                  SCompactSeqTail n sp_m sp_e →
+                    ∀ (sp_i sp_c : SurfPos),
+                      SIndent nv sp_e sp_i →
+                        GLit ':' sp_i sp_c →
+                          ∀ (sp_v : SurfPos),
+                            SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeFV_old :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SBlockIndented n YamlContext.blockIn sp_scan sp_mid →
+                  ∀ (sp_end : SurfPos),
+                    SCompactSeqTail n sp_mid sp_end → KeyFrames (ExplValueLine sp_start nv) ks sp_end) ∨
+    PackAlt sc
+h_closeF_old :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+          (∀ (sp_mid : SurfPos),
+              SBlockIndented n YamlContext.blockIn sp_scan sp_mid →
+                ∀ (sp_end : SurfPos),
+                  SCompactSeqTail n sp_mid sp_end → ResumeFrames (SLYamlStream sp_start) ks sp_end) ∧
+            (((∃ e, sc.indents.back? = some e ∧ e.isSequence = false) →
+                ∀ (sp_mid : SurfPos),
+                  SBlockIndented n YamlContext.blockIn sp_scan sp_mid →
+                    ∀ (sp_end : SurfPos),
+                      SCompactSeqTail n sp_mid sp_end →
+                        ∀ (sp_fin : SurfPos),
+                          SCompactMapTail n sp_end sp_fin → ResumeFrames (SLYamlStream sp_start) ks sp_fin) ∨
+              True)) ∨
+    True
+h_top_old : sc.currentIndent ≤ ↑n
+h_lvl_old : ↑n ≤ sc.currentIndent
+h_nic_old : sc.needIndentCheck = false
+h_mcstep :
+  ∀ (ns : List Nat), RegisterWitness.MarkedColsIn sc ns → RegisterWitness.MarkedColsIn s' ((↑s_prep.col).toNat :: ns)
+sp_mid sp_sc : SurfPos
+h_land :
+  SSLComments sp_scan sp_mid ∧
+      sp_mid.col = 0 ∧
+        (sp_scan.col ≠ 0 →
+          s_prep.inFlow = false →
+            s_prep.simpleKey.possible = true ∧
+              s_prep.simpleKey.pos.col = s_prep.col ∧
+                s_prep.simpleKeyAllowed = true ∧ (s_prep.currentIndent ≤ ↑s_prep.col ∨ s_prep.indents.size ≤ 1)) ∨
+    sp_mid = sp_scan ∧
+      sp_scan.col ≠ 0 ∧
+        (sc.needIndentCheck = false →
+            LastTokenReal sc.tokens →
+              s_prep.line = sc.line ∧
+                s_prep.needIndentCheck = false ∧
+                  lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
+                    penultRealToken? s_prep.tokens = penultRealToken? sc.tokens) ∧
+          (sc.needIndentCheck = false → s_prep.indents = sc.indents) ∧
+            (sc.needIndentCheck = false →
+              sc.simpleKeyAllowed = false →
+                s_prep.simpleKey = sc.simpleKey ∧
+                  s_prep.tokens = sc.tokens ∧ sc.offset ≤ s_prep.offset ∧ s_prep.simpleKeyAllowed = false)
+hcorr_sc : ScannerSurfCorr s_prep sp_sc
+hsuf_mid : sp_mid.chars <:+ sp_scan.chars
+hcorr_prep : ScannerSurfCorr s_prep sp_sc
+hws : GStar SSWhite sp_mid sp_sc
+hcmt : GOpt SCNbCommentText sp_sc sp_sc
+h_pk : sp_sc = sp_sc ∨ s_prep.peek? = none
+h_ssl : SSLComments sp_scan sp_mid
+hcol_mid : sp_mid.col = 0
+h_larm :
+  sp_scan.col ≠ 0 →
+    s_prep.inFlow = false →
+      s_prep.simpleKey.possible = true ∧
+        s_prep.simpleKey.pos.col = s_prep.col ∧
+          s_prep.simpleKeyAllowed = true ∧ (s_prep.currentIndent ≤ ↑s_prep.col ∨ s_prep.indents.size ≤ 1)
+h_nd_land : danglingNodePos? sc = none
+h_ui_land : underIndentedFlowValuePos? sc = none
+k : Nat
+h_ind : SIndent k sp_mid sp_sc
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, '-'))
+h_dispatch :
+  scanNextToken_dispatchBlockIndicators
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      '-' =
+    Except.ok (some s')
+h_mcstep_ne : '-' ≠ '?' → ∀ (ns : List Nat), RegisterWitness.MarkedColsIn sc ns → RegisterWitness.MarkedColsIn s' ns
+h_markBack :
+  ∀ (nv : Nat), nv ∈ RegisterWitness.markedCols s' → ('-' = '?' → nv ≠ k) → nv ∈ RegisterWitness.markedCols sc
+h_node_old : SBlockIndented n YamlContext.blockIn sp_scan sp_mid
+hkn : ¬k = n
+_hge : n ≥ k
+hall :
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols sc →
+      ∃ ks,
+        (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+          ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos),
+              SBlockIndented n YamlContext.blockIn sp_scan sp_mid →
+                ∀ (sp_end : SurfPos), SCompactSeqTail n sp_mid sp_end → KeyFrames (ExplValueLine sp_start nv) ks sp_end
+nv' : Nat
+hmem : nv' ∈ RegisterWitness.markedCols sc
+sp_m : ?m.1750 nv' hmem
+sp_i : ?m.1751 nv' hmem sp_m
+sp_c : ?m.1752 nv' hmem sp_m sp_i
+h_ssl_m : ?m.1753 nv' hmem sp_m sp_i sp_c
+h_iv : ?m.1754 nv' hmem sp_m sp_i sp_c h_ssl_m
+h_lit : ?m.1755 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv
+sp_v : ?m.1756 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit
+h_sbi : ?m.1757 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v
+x✝ :
+  ∃ ks,
+    (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockIndented n YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_end : SurfPos), SCompactSeqTail n sp_mid sp_end → KeyFrames (ExplValueLine sp_start nv') ks sp_end
+⊢ ?m.1758 nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi
+L4YAML/Proofs/Production/StreamAccum.lean:31118:70: error: Application type mismatch: The argument
+  k
+has type
+  ∀ (nv : Nat),
+    nv ∈ ns →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_gramO sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+but is expected to have type
+  RegisterWitness.MarkedColsIn sc ns ∧
+    ∀ (nv : Nat),
+      nv ∈ ns →
+        ∀ (sp_m sp_i sp_c : SurfPos),
+          SSLComments sp_gramO sp_m →
+            SIndent nv sp_m sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+in the application
+  Exists.intro ns k
+L4YAML/Proofs/Production/StreamAccum.lean:31163:50: error: Application type mismatch: The argument
+  fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+    kslot nv hmem sp_m
+      (flowInBlock_blockNode h_sep_p
+        (SFlowNode.propsEmpty n_p YamlContext.flowOut sp_p sp_scan (PropsRun.toProperties h_run)) h_ssl)
+      sp_i sp_c h_ind h_lit sp_v h_sbi
+has type
+  ∀ (nv : Nat),
+    nv ∈ ns →
+      ∀ (sp_m sp_i sp_c : SurfPos),
+        SSLComments sp_scan sp_m →
+          SIndent nv sp_m sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+but is expected to have type
+  RegisterWitness.MarkedColsIn sc ns ∧
+    ∀ (nv : Nat),
+      nv ∈ ns →
+        ∀ (sp_m sp_i sp_c : SurfPos),
+          SSLComments sp_scan sp_m →
+            SIndent nv sp_m sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+in the application
+  Exists.intro ns fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+    kslot nv hmem sp_m
+      (flowInBlock_blockNode h_sep_p
+        (SFlowNode.propsEmpty n_p YamlContext.flowOut sp_p sp_scan (PropsRun.toProperties h_run)) h_ssl)
+      sp_i sp_c h_ind h_lit sp_v h_sbi
+L4YAML/Proofs/Production/StreamAccum.lean:31195:48: error: Application type mismatch: The argument
+  fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+    kslot nv hmem sp_m
+      (flowInBlock_blockNode h_sep_p
+        (SFlowNode.propsEmpty n_p YamlContext.flowOut sp_p sp_scan (PropsRun.toProperties h_run)) h_ssl)
+      sp_i sp_c h_ind h_lit sp_v h_sbi
+has type
+  ∀ (nv : Nat),
+    nv ∈ ns →
+      ∀ (sp_m sp_i sp_c : SurfPos),
+        SSLComments sp_scan sp_m →
+          SIndent nv sp_m sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+but is expected to have type
+  RegisterWitness.MarkedColsIn sc ns ∧
+    ∀ (nv : Nat),
+      nv ∈ ns →
+        ∀ (sp_m sp_i sp_c : SurfPos),
+          SSLComments sp_scan sp_m →
+            SIndent nv sp_m sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+in the application
+  Exists.intro ns fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+    kslot nv hmem sp_m
+      (flowInBlock_blockNode h_sep_p
+        (SFlowNode.propsEmpty n_p YamlContext.flowOut sp_p sp_scan (PropsRun.toProperties h_run)) h_ssl)
+      sp_i sp_c h_ind h_lit sp_v h_sbi
+L4YAML/Proofs/Production/StreamAccum.lean:31257:48: error: Application type mismatch: The argument
+  fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+    kslot nv hmem sp_m (SBlockNode.emptyNode (nmv + 1) YamlContext.blockIn sp_scan sp_m h_ssl) sp_i sp_c h_ind h_lit
+      sp_v h_sbi
+has type
+  ∀ (nv : Nat),
+    nv ∈ ns →
+      ∀ (sp_m sp_i sp_c : SurfPos),
+        SSLComments sp_scan sp_m →
+          SIndent nv sp_m sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+but is expected to have type
+  RegisterWitness.MarkedColsIn sc ns ∧
+    ∀ (nv : Nat),
+      nv ∈ ns →
+        ∀ (sp_m sp_i sp_c : SurfPos),
+          SSLComments sp_scan sp_m →
+            SIndent nv sp_m sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+in the application
+  Exists.intro ns fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+    kslot nv hmem sp_m (SBlockNode.emptyNode (nmv + 1) YamlContext.blockIn sp_scan sp_m h_ssl) sp_i sp_c h_ind h_lit
+      sp_v h_sbi
+L4YAML/Proofs/Production/StreamAccum.lean:31324:8: error: Application type mismatch: The argument
+  frameChainUnion
+    (frameChainUnion
+      (match h_expl51 with
+      | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, right⟩⟩) =>
+        Or.inl
+          (Exists.intro [nmv]
+            (frameChainOne fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+              ResumeFrames.one
+                (route sp_v
+                  (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
+                    (SBlockIndented.empty nmv YamlContext.blockOut sp_scan sp_m h_ssl) h_ind h_lit h_sbi))))
+      | Or.inr h => Or.inl (Exists.intro [] fun x hm => False.elim (List.not_mem_nil hm)))
+      (match h_kslot93 with
+      | Or.inl (Exists.intro ns ⟨left, kslot⟩) =>
+        Or.inl
+          (Exists.intro ns fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+            kslot nv hmem sp_m (SBlockNode.emptyNode (nmv + 1) YamlContext.blockIn sp_scan sp_m h_ssl) sp_i sp_c h_ind
+              h_lit sp_v h_sbi)
+      | Or.inr h_alt => Or.inr h_alt))
+    (match h_explUp190 with
+    | Or.inl (Exists.intro sp_q (Exists.intro nsU ⟨h_qlit, ⟨left, up⟩⟩)) =>
+      Or.inl
+        (Exists.intro nsU fun nvU hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+          up nvU hmem sp_m
+            (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
+              (SBlockIndented.empty nmv YamlContext.blockOut sp_scan sp_m h_ssl))
+            sp_i sp_c h_ind h_lit sp_v h_sbi)
+    | Or.inr h => Or.inl (Exists.intro [] fun x hm => False.elim (List.not_mem_nil hm)))
+has type
+  (∃ ns,
+      ∀ (nv : Nat),
+        nv ∈ ns →
+          ∀ (sp_m sp_i sp_c : SurfPos),
+            SSLComments sp_scan sp_m →
+              SIndent nv sp_m sp_i →
+                GLit ':' sp_i sp_c →
+                  ∀ (sp_v : SurfPos),
+                    SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+but is expected to have type
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m sp_i sp_c : SurfPos),
+              SSLComments sp_scan sp_m →
+                SIndent nv sp_m sp_i →
+                  GLit ':' sp_i sp_c →
+                    ∀ (sp_v : SurfPos),
+                      SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+in the application
+  accum_block_on_closeThenBlock sc sp_start sp_scan s_prep s' c sp_prep sp_scan' h_close_pending
+    (frameChainUnion
+      (frameChainUnion
+        (match h_expl51 with
+        | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, right⟩⟩) =>
+          Or.inl
+            (Exists.intro [nmv]
+              (frameChainOne fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                ResumeFrames.one
+                  (route sp_v
+                    (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit
+                      (SBlockIndented.empty nmv YamlContext.blockOut sp_scan sp_m h_ssl) h_ind h_lit h_sbi))))
+        | Or.inr h => Or.inl (Exists.intro [] fun x hm => False.elim (List.not_mem_nil hm)))
+        (match h_kslot93 with
+        | Or.inl (Exists.intro ns ⟨left, kslot⟩) =>
+          Or.inl
+            (Exists.intro ns fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+              kslot nv hmem sp_m (SBlockNode.emptyNode (nmv + 1) YamlContext.blockIn sp_scan sp_m h_ssl) sp_i sp_c h_ind
+                h_lit sp_v h_sbi)
+        | Or.inr h_alt => Or.inr h_alt))
+      (match h_explUp190 with
+      | Or.inl (Exists.intro sp_q (Exists.intro nsU ⟨h_qlit, ⟨left, up⟩⟩)) =>
+        Or.inl
+          (Exists.intro nsU fun nvU hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+            up nvU hmem sp_m
+              (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
+                (SBlockIndented.empty nmv YamlContext.blockOut sp_scan sp_m h_ssl))
+              sp_i sp_c h_ind h_lit sp_v h_sbi)
+      | Or.inr h => Or.inl (Exists.intro [] fun x hm => False.elim (List.not_mem_nil hm))))

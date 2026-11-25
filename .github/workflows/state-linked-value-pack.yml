@@ -1,0 +1,97 @@
+name: State-linked value pack and off-column escape
+on:
+  push:
+    branches: [fix/content-pack-payments]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          path: upstream
+      - name: Bind source and compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd evidence
+          sha256sum -c Research/StateLinkedValuePack/source-sha256.txt
+          printf '%s\n' "$GITHUB_SHA" > ../results/evidence-commit.txt
+          cd ../upstream
+          test "$(git rev-parse HEAD)" = cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          test "$(git rev-parse HEAD:L4YAML)" = 0a8d15505cf2520df980bc4af05eca0ad72f86c8
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML HEAD:lean-toolchain HEAD:lake-manifest.json > ../results/owner-source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Execute reachable-state controls
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version | tee ../results/lean-version.txt
+          mkdir -p Research/StateLinkedValuePack
+          cp ../evidence/Research/StateLinkedValuePack/ReachableControls.lean Research/StateLinkedValuePack/
+          cp ../evidence/Research/StateLinkedValuePack/DependencyAudit.lean Research/StateLinkedValuePack/
+          cat >> lakefile.lean <<'LAKE'
+
+          lean_lib «Research.StateLinkedValuePack» where
+            roots := #[`Research.StateLinkedValuePack.ReachableControls]
+          LAKE
+          lake build Research.StateLinkedValuePack.ReachableControls Scripts.Path.CapstonePath 2>&1 | tee ../results/native-build.txt
+          lake env lean --run Research/StateLinkedValuePack/ReachableControls.lean 2>&1 | tee ../results/reachable-controls.txt
+          grep -Fx 'STATE_LINKED_CONTROLS sources=180 accepted_explicit_values=1110 nested_mark_cases=930 scanner_steps=3660 empty_domain_refutations=1110 initialized_from_source=true' ../results/reachable-controls.txt
+      - name: Qualify previous root payment as baseline
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --unidiff-zero ../evidence/Research/NestedAnchorObligation/root-keyslot-payment.patch
+          lake build L4YAML.Proofs.Production.DocumentProduction Tests.Guards.Proofs.CapstonePathAudit Tests.Guards.Proofs.GhostIndexCensus 2>&1 | tee ../results/baseline-build.txt
+          lake env lean Research/StateLinkedValuePack/DependencyAudit.lean 2>&1 | tee ../results/dependencies-before.txt
+          grep -F 'block_dispatch_deferred_stamp_offcol exists=true reached=true' ../results/dependencies-before.txt
+          git diff -- L4YAML Tests > ../results/baseline.patch
+      - name: Check strengthened invariant and final proof consumers
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git restore -- L4YAML Tests
+          git apply --check ../evidence/Research/StateLinkedValuePack/state-linked-value-pack.patch
+          git apply ../evidence/Research/StateLinkedValuePack/state-linked-value-pack.patch
+          lake build L4YAML.Proofs.Production.DocumentProduction Tests.Guards.Proofs.CapstonePathAudit Tests.Guards.Proofs.GhostIndexCensus 2>&1 | tee ../results/candidate-build.txt
+          lake env lean Research/StateLinkedValuePack/DependencyAudit.lean 2>&1 | tee ../results/dependencies-after.txt
+          grep -F 'block_dispatch_deferred_stamp_offcol exists=true reached=false' ../results/dependencies-after.txt
+          grep -F 'VALUE_PACK_NEW_LEMMA L4YAML.Proofs.StreamAccum.marked_col_of_explicit_source reached=true standard_only=true' ../results/dependencies-after.txt
+          grep -F 'VALUE_PACK_NEW_LEMMA L4YAML.Proofs.StreamAccum.every_mark_of_covered_chain reached=true standard_only=true' ../results/dependencies-after.txt
+          sed -n '/^VALUE_PACK_AXIOM/p' ../results/dependencies-before.txt > ../results/axioms-before.txt
+          sed -n '/^VALUE_PACK_AXIOM/p' ../results/dependencies-after.txt > ../results/axioms-after.txt
+          test -s ../results/axioms-before.txt
+          diff -u ../results/axioms-before.txt ../results/axioms-after.txt
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+          git diff --check
+          git diff --name-only -- L4YAML Tests > ../results/changed-paths.txt
+          printf '%s\n' L4YAML/Proofs/Production/StreamAccum.lean Tests/Guards/Proofs/CapstonePathAudit.lean Tests/Guards/Proofs/GhostIndexCensus.lean Tests/Guards/Proofs/OrTrueAudit.lean Tests/Guards/Proofs/RelaySupplyCensus.lean > ../results/expected-paths.txt
+          diff -u ../results/expected-paths.txt ../results/changed-paths.txt
+          xargs sha256sum < ../results/changed-paths.txt > ../results/candidate-source-sha256.txt
+          lake run census-dashboard -- --diff HEAD > ../results/dashboard-diff.md
+          cp ../evidence/Research/StateLinkedValuePack/state-linked-value-pack.patch ../results/qualified-candidate.patch
+          cp Research/StateLinkedValuePack/*.lean ../results/
+          sha256sum Research/StateLinkedValuePack/*.lean > ../results/compiled-source-sha256.txt
+          printf '%s\n' 'reachable_native_controls=PASS' 'ghost_indices=74->73' 'production_offcol_calls=3->0' 'offcol_capstone_reached=true->false' 'six_axiom_profiles_unchanged=true' 'new_lemmas=2' 'new_lemmas_consumed=2' 'critical_positions_still_open=true' 'scannerDrop_retired=false' 'full_repository_qualification=false' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-linked-value-pack-cc830190
+          path: results/
+          if-no-files-found: error

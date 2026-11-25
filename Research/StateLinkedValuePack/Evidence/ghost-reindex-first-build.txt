@@ -1,0 +1,375 @@
+L4YAML/Proofs/Production/StreamAccum.lean:20255:69: error: Invalid `⟨...⟩` notation: The expected type
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols (scanFlowSequenceEnd s_ad) →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_tok sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+is not an inductive type
+
+Note: This notation can only be used when the expected type is an inductive type with a single constructor
+L4YAML/Proofs/Production/StreamAccum.lean:20488:71: error: Invalid `⟨...⟩` notation: The expected type
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols (scanFlowMappingEnd s_ad) →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_tok sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+is not an inductive type
+
+Note: This notation can only be used when the expected type is an inductive type with a single constructor
+L4YAML/Proofs/Production/StreamAccum.lean:38341:13: error: Application type mismatch: The argument
+  frameChainUnionD
+    (match h_expl with
+    | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, h_chainUp⟩⟩) =>
+      match h_chainUp with
+      | Or.inl up =>
+        Or.inl
+          (Exists.intro (RegisterWitness.markedCols sc)
+            ⟨MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+              fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+              explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+                (SBlockIndented_blockIn_to_blockOut
+                  (SBlockIndented.node n YamlContext.blockIn sp_scan sp_mid
+                    (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all
+                      (h_flow_all (n + 1)) h_ssl)))
+                sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+      | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)
+    | Or.inr h => Or.inr trivial)
+    (match h_kslot with
+    | Or.inl (Exists.intro ns ⟨hd, kslot⟩) =>
+      Or.inl
+        (Exists.intro ns
+          ⟨MarkedColsIn.step_content h_preprocess h_dispatch hd,
+            fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+            kslot nv hmem sp_m
+              (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gram sp_m h_sep_all
+                (h_flow_all (n + 1)) h_ssl)
+              sp_i sp_c h_ind h_lit sp_v h_sbi⟩)
+    | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+has type
+  (∃ ns,
+      RegisterWitness.MarkedColsIn s' ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_mid sp_i sp_c : SurfPos),
+              SSLComments sp_gram sp_mid →
+                SIndent nv sp_mid sp_i →
+                  GLit ':' sp_i sp_c →
+                    ∀ (sp_v : SurfPos),
+                      SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt s'
+but is expected to have type
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols s' →
+        ∀ (sp_mid sp_i sp_c : SurfPos),
+          SSLComments sp_gram sp_mid →
+            SIndent nv sp_mid sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt s'
+in the application
+  PendingNode.pendingContent sp_start sp_block sp_scan' sp_gram h_line
+    (fun x x_1 sp_final h_ssl =>
+      h_close_old sp_final
+        (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gram sp_final h_sep_all
+          (h_flow_all (n + 1)) h_ssl))
+    (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan' h_gatePark h_close_old h_kslot
+      h_compact_vslot h_ivl_pack
+      (match h_closeF99 with
+      | Or.inl (Exists.intro ks ⟨h_lt, ⟨h_cov, closeF⟩⟩) =>
+        Or.inl (Exists.intro (FrameLevel.map n :: ks) ⟨fun k' hk' => ?m.957, ⟨h_cov, closeF⟩⟩)
+      | Or.inr h => Or.inr trivial)
+      h_frames99 h_closeFV108 h_framesV108 (Or.inl ⟨h_mono, h_base⟩) hna hnt h_ska hcorr_prep hcorr_result h_corr
+      h_not_doc h_flow_disp h_preprocess h_dead (Or.elim h_refused (fun h => PackAlt.ofRefused h) fun x => trivial)
+      h_dispatch (Or.inr trivial)
+      (match h_seqF168 with
+      | Or.inl (Exists.intro ke (Exists.intro ks ⟨h_ltq, seqF⟩)) =>
+        Or.inl
+          (Exists.intro ke
+            (Exists.intro (FrameLevel.map n :: ks)
+              ⟨?m.1034, fun sp_m h_bn =>
+                ResumeFrames.level n ks sp_m h_ltq fun sp_end h_tail => seqF sp_m h_bn sp_end h_tail⟩))
+      | Or.inr h => Or.inr trivial))
+    (stale_of_dispatch h_dispatch hna hnt ?m.1084 hcorr_result)
+    (frameChainUnionD
+      (match h_expl with
+      | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, h_chainUp⟩⟩) =>
+        match h_chainUp with
+        | Or.inl up =>
+          Or.inl
+            (Exists.intro (RegisterWitness.markedCols sc)
+              ⟨MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+                fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+                  (SBlockIndented_blockIn_to_blockOut
+                    (SBlockIndented.node n YamlContext.blockIn sp_scan sp_mid
+                      (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all
+                        (h_flow_all (n + 1)) h_ssl)))
+                  sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+        | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)
+      | Or.inr h => Or.inr trivial)
+      (match h_kslot with
+      | Or.inl (Exists.intro ns ⟨hd, kslot⟩) =>
+        Or.inl
+          (Exists.intro ns
+            ⟨MarkedColsIn.step_content h_preprocess h_dispatch hd,
+              fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+              kslot nv hmem sp_m
+                (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gram sp_m h_sep_all
+                  (h_flow_all (n + 1)) h_ssl)
+                sp_i sp_c h_ind h_lit sp_v h_sbi⟩)
+      | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
+L4YAML/Proofs/Production/StreamAccum.lean:38542:13: error: Application type mismatch: The argument
+  frameChainUnionD
+    (match h_expl with
+    | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, h_chainUp⟩⟩) =>
+      match h_chainUp with
+      | Or.inl up =>
+        Or.inl
+          (Exists.intro (RegisterWitness.markedCols sc)
+            ⟨MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+              fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+              explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+                (SBlockIndented_blockIn_to_blockOut
+                  (SBlockIndented.node n YamlContext.blockIn sp_scan sp_mid (h_nodeAt sp_mid h_ssl)))
+                sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+      | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)
+    | Or.inr h => Or.inr trivial)
+    (match h_kslot with
+    | Or.inl (Exists.intro ns ⟨hd, kslot⟩) =>
+      Or.inl
+        (Exists.intro ns
+          ⟨MarkedColsIn.step_content h_preprocess h_dispatch hd,
+            fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+            kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl) sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+    | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+has type
+  (∃ ns,
+      RegisterWitness.MarkedColsIn s' ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_mid sp_i sp_c : SurfPos),
+              SSLComments sp_scan' sp_mid →
+                SIndent nv sp_mid sp_i →
+                  GLit ':' sp_i sp_c →
+                    ∀ (sp_v : SurfPos),
+                      SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt s'
+but is expected to have type
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols s' →
+        ∀ (sp_mid sp_i sp_c : SurfPos),
+          SSLComments sp_scan' sp_mid →
+            SIndent nv sp_mid sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt s'
+in the application
+  PendingNode.pendingContent sp_start sp_scan' sp_scan' sp_scan' h_line
+    (fun x x_1 sp_final h_ssl => h_close_old sp_final (h_nodeAt sp_final h_ssl)) (fun h_poss x => absurd h_poss ?m.2298)
+    (stale_of_dispatch h_dispatch hna hnt ?m.2304 hcorr_result)
+    (frameChainUnionD
+      (match h_expl with
+      | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, h_chainUp⟩⟩) =>
+        match h_chainUp with
+        | Or.inl up =>
+          Or.inl
+            (Exists.intro (RegisterWitness.markedCols sc)
+              ⟨MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+                fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+                  (SBlockIndented_blockIn_to_blockOut
+                    (SBlockIndented.node n YamlContext.blockIn sp_scan sp_mid (h_nodeAt sp_mid h_ssl)))
+                  sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+        | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)
+      | Or.inr h => Or.inr trivial)
+      (match h_kslot with
+      | Or.inl (Exists.intro ns ⟨hd, kslot⟩) =>
+        Or.inl
+          (Exists.intro ns
+            ⟨MarkedColsIn.step_content h_preprocess h_dispatch hd,
+              fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+              kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl) sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+      | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
+L4YAML/Proofs/Production/StreamAccum.lean:38648:13: error: Application type mismatch: The argument
+  frameChainUnionD
+    (match h_expl with
+    | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, h_chainUp⟩⟩) =>
+      match h_chainUp with
+      | Or.inl up =>
+        Or.inl
+          (Exists.intro (RegisterWitness.markedCols sc)
+            ⟨MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+              fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+              explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+                (SBlockIndented_blockIn_to_blockOut
+                  (SBlockIndented.node n YamlContext.blockIn sp_scan sp_mid
+                    (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all
+                      h_node_f h_ssl)))
+                sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+      | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)
+    | Or.inr h => Or.inr trivial)
+    (match h_kslot with
+    | Or.inl (Exists.intro ns ⟨hd, kslot⟩) =>
+      Or.inl
+        (Exists.intro ns
+          ⟨MarkedColsIn.step_content h_preprocess h_dispatch hd,
+            fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+            kslot nv hmem sp_m
+              (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gramf sp_m h_sep_all h_node_f
+                h_ssl)
+              sp_i sp_c h_ind h_lit sp_v h_sbi⟩)
+    | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+has type
+  (∃ ns,
+      RegisterWitness.MarkedColsIn s' ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_mid sp_i sp_c : SurfPos),
+              SSLComments sp_gramf sp_mid →
+                SIndent nv sp_mid sp_i →
+                  GLit ':' sp_i sp_c →
+                    ∀ (sp_v : SurfPos),
+                      SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt s'
+but is expected to have type
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols s' →
+        ∀ (sp_mid sp_i sp_c : SurfPos),
+          SSLComments sp_gramf sp_mid →
+            SIndent nv sp_mid sp_i →
+              GLit ':' sp_i sp_c →
+                ∀ (sp_v : SurfPos),
+                  SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                    ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt s'
+in the application
+  PendingNode.pendingContent sp_start sp_block sp_scan' sp_gramf h_line
+    (fun x x_1 sp_final h_ssl =>
+      h_close_old sp_final
+        (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gramf sp_final h_sep_all h_node_f h_ssl))
+    (entryKeyPack_of_dispatch sc sp_start sp_scan n s_prep s' c sp_prep sp_scan' h_gatePark h_close_old h_kslot
+      h_compact_vslot h_ivl_pack
+      (match h_closeF99 with
+      | Or.inl (Exists.intro ks ⟨h_lt, ⟨h_cov, closeF⟩⟩) =>
+        Or.inl (Exists.intro (FrameLevel.map n :: ks) ⟨fun k' hk' => ?m.2877, ⟨h_cov, closeF⟩⟩)
+      | Or.inr h => Or.inr trivial)
+      h_frames99 h_closeFV108 h_framesV108 (Or.inl ⟨h_mono, h_base⟩) hna hnt h_ska hcorr_prep hcorr_result h_corr
+      h_not_doc h_flow_disp h_preprocess h_dead (Or.elim h_refused (fun h => PackAlt.ofRefused h) fun x => trivial)
+      h_dispatch (Or.inr trivial)
+      (match h_seqF168 with
+      | Or.inl (Exists.intro ke (Exists.intro ks ⟨h_ltq, seqF⟩)) =>
+        Or.inl
+          (Exists.intro ke
+            (Exists.intro (FrameLevel.map n :: ks)
+              ⟨?m.2954, fun sp_m h_bn =>
+                ResumeFrames.level n ks sp_m h_ltq fun sp_end h_tail => seqF sp_m h_bn sp_end h_tail⟩))
+      | Or.inr h => Or.inr trivial))
+    (stale_of_dispatch h_dispatch hna hnt ?m.3004 hcorr_result)
+    (frameChainUnionD
+      (match h_expl with
+      | Or.inl (Exists.intro sp_q ⟨h_qlit, ⟨route, h_chainUp⟩⟩) =>
+        match h_chainUp with
+        | Or.inl up =>
+          Or.inl
+            (Exists.intro (RegisterWitness.markedCols sc)
+              ⟨MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+                fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+                  (SBlockIndented_blockIn_to_blockOut
+                    (SBlockIndented.node n YamlContext.blockIn sp_scan sp_mid
+                      (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all
+                        h_node_f h_ssl)))
+                  sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+        | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)
+      | Or.inr h => Or.inr trivial)
+      (match h_kslot with
+      | Or.inl (Exists.intro ns ⟨hd, kslot⟩) =>
+        Or.inl
+          (Exists.intro ns
+            ⟨MarkedColsIn.step_content h_preprocess h_dispatch hd,
+              fun nv hmem sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+              kslot nv hmem sp_m
+                (SBlockNode.flowInBlock (n + 1) YamlContext.blockIn sp_scan sp_prep sp_gramf sp_m h_sep_all h_node_f
+                  h_ssl)
+                sp_i sp_c h_ind h_lit sp_v h_sbi⟩)
+      | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
+L4YAML/Proofs/Production/StreamAccum.lean:40258:63: error: Invalid `⟨...⟩` notation: The expected type
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols s' →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_ne sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+is not an inductive type
+
+Note: This notation can only be used when the expected type is an inductive type with a single constructor
+L4YAML/Proofs/Production/StreamAccum.lean:40343:63: error: Invalid `⟨...⟩` notation: The expected type
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols s' →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_ne sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+is not an inductive type
+
+Note: This notation can only be used when the expected type is an inductive type with a single constructor
+L4YAML/Proofs/Production/StreamAccum.lean:40629:63: error: Invalid `⟨...⟩` notation: The expected type
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols s' →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_ne sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+is not an inductive type
+
+Note: This notation can only be used when the expected type is an inductive type with a single constructor
+L4YAML/Proofs/Production/StreamAccum.lean:40757:63: error: Invalid `⟨...⟩` notation: The expected type
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols s' →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_scan' sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+is not an inductive type
+
+Note: This notation can only be used when the expected type is an inductive type with a single constructor
+L4YAML/Proofs/Production/StreamAccum.lean:40877:63: error: Invalid `⟨...⟩` notation: The expected type
+  ∀ (nv : Nat),
+    nv ∈ RegisterWitness.markedCols s' →
+      ∀ (sp_mid sp_i sp_c : SurfPos),
+        SSLComments sp_ne sp_mid →
+          SIndent nv sp_mid sp_i →
+            GLit ':' sp_i sp_c →
+              ∀ (sp_v : SurfPos),
+                SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v
+is not an inductive type
+
+Note: This notation can only be used when the expected type is an inductive type with a single constructor

@@ -1,0 +1,39 @@
+the relay supply census moved.
+expected: edges=640 skipped=41 [DECLINE=236, FIELD=60, LOCAL=26, PAY=51, RELAY=64, SPLIT=175, VIA=28]
+got:      edges=648 skipped=41 [DECLINE=236, FIELD=60, LOCAL=26, PAY=49, RELAY=64, SPLIT=176, VIA=37]
+the PRODUCER surface moved.
+expected (10):
+2 VIA FlowBaseRoutes.key
+2 VIA FlowBaseRoutes.valueF
+2 VIA frameChainUnion
+2 VIA markerctx_of_landing
+2 VIA nodocctx_of_preprocess
+2 VIA suffixctx_of_landing
+3 VIA flowKeyRoute_of_open
+3 VIA flowKeyRoute_of_root
+3 VIA frameChainUnionD
+7 VIA keyctx_of_preprocess
+got (10):
+10 VIA every_mark_of_covered_chain
+2 VIA FlowBaseRoutes.key
+2 VIA FlowBaseRoutes.valueF
+2 VIA markerctx_of_landing
+2 VIA nodocctx_of_preprocess
+2 VIA suffixctx_of_landing
+3 VIA flowKeyRoute_of_open
+3 VIA flowKeyRoute_of_root
+4 VIA frameChainUnionD
+7 VIA keyctx_of_preprocess
+the SPLIT landing moved.
+expected: survived=175 collapsed=12 leaves=419 elsewhere=11 [DECLINE=213, PAY=195, VIA=11] [DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|VIA|VIA|VIA=1, DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|PAY|VIA|VIA=1, DECLINE|DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=9, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, DECLINE|PAY=149, DECLINE|PAY|PAY=2, PAY|VIA=1, PAY|VIA|VIA=1]
+got:      survived=176 collapsed=10 leaves=423 elsewhere=11 [DECLINE=215, PAY=197, VIA=11] [DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|VIA|VIA|VIA=1, DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|PAY|VIA|VIA=1, DECLINE|DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=9, DECLINE|DECLINE|PAY|PAY=1, DECLINE|DECLINE|PAY|PAY|PAY=2, DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, DECLINE|PAY=149, DECLINE|PAY|PAY=2, PAY|VIA=1, PAY|VIA|VIA=1]
+the SPLIT BRANCH census moved.
+expected: splits=175 leaves=419 relayRooted=161 siteDecided=14 optionalRoot=109 plainRoot=52 agree=116/116 disagree=0 [DECLINE-closed=96, DECLINE-free=117, PAY-free=195, VIA L4YAML.Proofs.StreamAccum.deeperLandingResume-=2, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA absurd-=8]
+got:      splits=176 leaves=423 relayRooted=162 siteDecided=14 optionalRoot=109 plainRoot=53 agree=116/116 disagree=0 [DECLINE-closed=97, DECLINE-free=118, PAY-free=197, VIA L4YAML.Proofs.StreamAccum.deeperLandingResume-=2, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA absurd-=8]
+disagreements: []
+the DECLINE REACH census moved.
+expected: pairs=37 orphan=4 direct=7 closureDecline=33 dead=0 maxDepth=2 liveSplits=103 deadSplits=0 accounted=640/640 nodes=157 fieldEdges=60 fieldResolved=60 withCycle=10 declineWriters=19 parkHop=22
+got:      pairs=37 orphan=4 direct=7 closureDecline=33 dead=0 maxDepth=2 liveSplits=103 deadSplits=0 accounted=648/648 nodes=158 fieldEdges=60 fieldResolved=60 withCycle=10 declineWriters=19 parkHop=22
+the COLLAPSED edge moved.
+expected: compact_open_map → PendingNode.pendingMapValue#16 (h_kslot) = DECLINE via Or.elim; compact_open_map → PendingNode.pendingMapValue#19 (h_closeFV) = DECLINE via Or.elim; compact_open_map → PendingNode.pendingMapValue#20 (h_framesV) = DECLINE via Or.elim; accum_flow_open_depth0 → flowKeyRoute_of_root#26 (h_mapFV) = DECLINE via Or.elim; accum_flow_open_depth0 → flowKeyRoute_of_root#26 (h_mapFV) = DECLINE via Or.elim; colon_open_map_explicit → PendingNode.pendingMapValue#16 (h_kslot) = DECLINE via Or.elim; colon_open_map_explicit → PendingNode.pendingMapValue#19 (h_closeFV) = DECLINE via Or.elim; colon_open_map_explicit → PendingNode.pendingMapValue#20 (h_framesV) = DECLINE via Or.elim; accum_block_pending → frameChainUnion#2 (h₁) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_23; accum_block_pending → frameChainUnion#3 (h₂) = PAY via _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.accum_block_pending.match_1_25; accum_block_on_closeThenBlock → PendingNode.pendingBlock#11 (h_closeF) = PAY via Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→And.casesOn→And.casesOn→dite; accum_block_on_closeThenBlock → PendingNode.pendingBlock#13 (h_seqF) = PAY via Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→And.casesOn→And.casesOn→dite
+got:      compact_open_map → PendingNode.pendingMapValue#16 (h_kslot) = DECLINE via Or.elim; compact_open_map → PendingNode.pendingMapValue#19 (h_closeFV) = DECLINE via Or.elim; compact_open_map → PendingNode.pendingMapValue#20 (h_framesV) = DECLINE via Or.elim; accum_flow_open_depth0 → flowKeyRoute_of_root#26 (h_mapFV) = DECLINE via Or.elim; accum_flow_open_depth0 → flowKeyRoute_of_root#26 (h_mapFV) = DECLINE via Or.elim; colon_open_map_explicit → PendingNode.pendingMapValue#16 (h_kslot) = DECLINE via Or.elim; colon_open_map_explicit → PendingNode.pendingMapValue#19 (h_closeFV) = DECLINE via Or.elim; colon_open_map_explicit → PendingNode.pendingMapValue#20 (h_framesV) = DECLINE via Or.elim; accum_block_on_closeThenBlock → PendingNode.pendingBlock#11 (h_closeF) = PAY via Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→And.casesOn→And.casesOn→dite; accum_block_on_closeThenBlock → PendingNode.pendingBlock#13 (h_seqF) = PAY via Or.casesOn→Exists.casesOn→Exists.casesOn→And.casesOn→And.casesOn→And.casesOn→And.casesOn→dite
