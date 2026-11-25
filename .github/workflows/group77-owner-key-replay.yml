@@ -507,9 +507,9 @@ jobs:
             | ready : KeyReady start q after scan n s ec eo ek → KeyProgress start q after scan n s ec eo ek
             | props : KeyProps start q after scan n s ec eo ek → KeyProgress start q after scan n s ec eo ek
           
-          /-- Every content arm preserves the deferred-key route and the exact event
-              suffix. For block and alias landings the comment gate remains explicit
-              until its scanner producer is proved; no fabricated endpoint is allowed. -/
+          /-- Every content arm preserves the deferred-key route and exact event
+              suffix. The alias and block-scalar gates are read from the native
+              dispatch itself, rather than supplied as extra caller assumptions. -/
           lemma explicit_key_content_step
               {start q after sp_block sp_prep sp_a : SurfPos}
               {n : Nat} {sc s_prep s_ad s' : ScannerState} {c : Char} {ec eo : List Event}
@@ -525,9 +525,7 @@ jobs:
               (h_depth : s_ad.flowLevel = 0)
               (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
               (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
-              (h_src : SlotGateAt s_prep)
-              (h_gate : (c = '*' ∨ c = '|' ∨ c = '>') → s'.col ≠ 0 →
-                  ¬ (CommentOk s' ∧ s'.peek? = some '#')) :
+              (h_src : SlotGateAt s_prep) :
               (∃ ek, TSLYamlStream start s' sp_block ec (eo ++ ek) [] ∧
                 KeyProgress start q after sp_a n s' ec eo ek) ∨
                 L4YAML.Proofs.FlowIndexLift.DedentLanding (n + 1) after sp_prep := by
@@ -540,6 +538,16 @@ jobs:
               rw [h_ad]
               have := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
               split <;> exact this
+            have h_gate : (c = '*' ∨ c = '|' ∨ c = '>') → s'.col ≠ 0 →
+                ¬ (CommentOk s' ∧ s'.peek? = some '#') := by
+              intro hc
+              rcases hc with hstar | hbs
+              · subst c
+                obtain ⟨_, _, ⟨_, hpb, hnw⟩, _⟩ :=
+                  L4YAML.Proofs.StreamAccum.dispatchContent_aliasNode_prod s_ad sp_prep hcorr_ad hpeek h_dispatch
+                exact L4YAML.Proofs.StreamAccum.park_gate_of_peekBack hpb hnw
+              · have hp := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
+                exact L4YAML.Proofs.StreamAccum.blockScalar_park_gate hp (h_ad ▸ h_dispatch) hbs
             rcases TPendingNode.content_sep_of_preprocess h_ad park.floor park.col h_col0 h_next park.corr
                 hcorr_prep hcorr' h_preprocess h_not_doc hflow h_dispatch h_src with
               ⟨h_sep, h_fl⟩ | h_ded
@@ -591,11 +599,10 @@ jobs:
           /-- A held property may describe an empty key, but its event is retained. -/
           lemma props_empty_key_ready {start q after scan : SurfPos}
               {n : Nat} {s : ScannerState} {ec eo ep : List Event}
-              (park : KeyProps start q after scan n s ec eo ep)
-              (hgate : s.col ≠ 0 → ¬ (CommentOk s ∧ s.peek? = some '#')) :
+              (park : KeyProps start q after scan n s ec eo ep) :
               KeyReady start q after scan n s ec eo ep := by
             rcases park with ⟨sp_p, hq, hc, hs, hp, hn, route⟩
-            refine .ready scan hq hc (GStar.nil _) (fun _ => hgate) ?_ route
+            refine .ready scan hq hc (GStar.nil _) (fun _ _ => NextIsSep.gate hn) ?_ route
             intro sp_mid h_ssl
             exact .node n .blockOut _ _ ep
               (.flowInBlock (n + 1) .blockOut _ _ _ _ ep hs (.propsEmpty _ _ _ _ _ hp) h_ssl)
