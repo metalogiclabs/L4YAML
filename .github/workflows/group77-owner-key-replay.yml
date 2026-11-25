@@ -99,13 +99,15 @@ jobs:
                 exact ⟨sp_g, sp', TFlowContent.of_scalar hcont hlb hlc, hws, fun he _ hh => hhash he hh.2, hcorr'⟩
           
           /-- The explicit-key park is a deferred map entry, not a completed node.
-              Store its actual scanner correspondence and the map route the value will consume. -/
+              Store its actual scanner correspondence, native indicator follower,
+              and the map route the value will consume. -/
           structure QuestionPark (start q after : SurfPos) (n : Nat)
               (sc : ScannerState) (ec eo : List Event) : Prop where
             question : GLit '?' q after
             corr : ScannerSurfCorr sc after
             floor : IndentFloor sc (n + 1)
             col : n + 1 ≤ after.col
+            next : NextIsSep sc
             route : ∀ sp ev, TBlockMapEntry n q sp ev → TLYamlStream start sp (ec ++ eo ++ ev)
           
           /-- The key's grammar, actual scanner landing, whitespace and comment gate
@@ -124,11 +126,14 @@ jobs:
           lemma question_park_from_scan
               {start q : SurfPos} {s sc : ScannerState} {ec eo : List Event}
               (hcorr : ScannerSurfCorr s q) (hpeek : s.peek? = some '?')
-              (hok : scanKey s = .ok sc) (hflow : s.inFlow = false)
+              (hdispatch : scanNextToken_dispatchBlockIndicators s '?' = .ok (some sc))
+              (hflow : s.inFlow = false)
               (hnic : s.needIndentCheck = false)
               (route : ∀ sp ev, TBlockMapEntry s.col q sp ev →
                 TLYamlStream start sp (ec ++ eo ++ ev)) :
               ∃ after, QuestionPark start q after s.col sc ec eo := by
+            have hok := L4YAML.Proofs.StreamAccum.dispatchBlock_question_scanKey hdispatch
+            have hnext := L4YAML.Proofs.StreamAccum.dispatchBlock_question_next hflow hpeek hdispatch
             obtain ⟨after, hq, hc⟩ := scanKey_prod s q hcorr hpeek sc hok
             have hf : IndentFloor sc (s.col + 1) :=
               IndentFloor.succ_of_int_le ((scanKey_needIndentCheck hflow hok).trans hnic)
@@ -137,7 +142,7 @@ jobs:
               have hqc := hcorr.col_eq
               cases hq
               simp_all
-            exact ⟨after, ⟨hq, hc, hf, hcol, route⟩⟩
+            exact ⟨after, ⟨hq, hc, hf, hcol, hnext, route⟩⟩
           
           /-- Scalar content step off the real explicit-key park. Unlike content_step_at,
               this must not close the enclosing stream before the colon. Dedent is
@@ -147,7 +152,6 @@ jobs:
               {n : Nat} {sc s_prep s_ad s' : ScannerState} {c : Char} {ec eo : List Event}
               (hS : TSLYamlStream start s_ad sp_block ec eo [])
               (park : QuestionPark start q after n sc ec eo)
-              (h_next : NextIsSep sc)
               (h_ad : s_ad = if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
               (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -172,7 +176,7 @@ jobs:
               rw [h_ad]
               have := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
               split <;> exact this
-            rcases TPendingNode.content_sep_of_preprocess h_ad park.floor park.col h_col0 h_next park.corr
+            rcases TPendingNode.content_sep_of_preprocess h_ad park.floor park.col h_col0 park.next park.corr
                 hcorr_prep hcorr' h_preprocess h_not_doc hflow h_dispatch h_src with
               ⟨h_sep, h_fl⟩ | h_ded
             · obtain ⟨sp_gram, sp_res, hT, hws, hgate, hcorr_res⟩ :=
@@ -515,7 +519,6 @@ jobs:
               {n : Nat} {sc s_prep s_ad s' : ScannerState} {c : Char} {ec eo : List Event}
               (hS : TSLYamlStream start s_ad sp_block ec eo [])
               (park : QuestionPark start q after n sc ec eo)
-              (h_next : NextIsSep sc)
               (h_ad : s_ad = if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
               (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -548,7 +551,7 @@ jobs:
                 exact L4YAML.Proofs.StreamAccum.park_gate_of_peekBack hpb hnw
               · have hp := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
                 exact L4YAML.Proofs.StreamAccum.blockScalar_park_gate hp (h_ad ▸ h_dispatch) hbs
-            rcases TPendingNode.content_sep_of_preprocess h_ad park.floor park.col h_col0 h_next park.corr
+            rcases TPendingNode.content_sep_of_preprocess h_ad park.floor park.col h_col0 park.next park.corr
                 hcorr_prep hcorr' h_preprocess h_not_doc hflow h_dispatch h_src with
               ⟨h_sep, h_fl⟩ | h_ded
             · obtain ⟨ek, hpt, hdisj⟩ := accum_step_content_trace_out arm hcorr_ad hpeek h_depth h_dispatch
