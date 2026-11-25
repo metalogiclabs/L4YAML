@@ -1,6 +1,6 @@
 # First explicit-key route from native initialization
 
-WARRANTED_LOCAL at the six exported statements' exact boundary. Hosted qualification remains CANDIDATE until its actual run and artifact are inspected.
+WARRANTED at the six exported statements' exact conditional boundary after local qualification and independent hosted source replay.
 
 Owner: nasa-jpl/L4YAML@0dbf0c120601fccc1d837025f3bef405cc4f2062, Lean 4.36.0, library tree 0a8d15505cf2520df980bc4af05eca0ad72f86c8. Parent experiment: metalogiclabs/L4YAML@150392885918c9798c4d3f2731f4abbc0de54f4d, independently successful run https://github.com/metalogiclabs/L4YAML/actions/runs/45574626287. Owner library, grammar, original adversarial module, toolchain and inherited Boolean-claim validator remain unchanged.
 
@@ -9,6 +9,8 @@ The new chain starts at exactly `scan`'s native initializer, including BOM handl
 The final `initial_scalar_then_owner_value` assumes native preprocessing/dispatch equations, the native question branch, the scalar-key character restrictions, matching/deeper scanner columns and document-boundary exclusions. It does not assume an incoming `KeyReady`, grammar route, stream/event coupling, source correspondence, ContentArm, depth or either slot gate. Key and value dedents remain explicit alternatives.
 
 Local qualification: 475/475 proof/replay-executable build jobs. The two question-producer profiles have only `propext`, `Classical.choice`, `Quot.sound`. The four key/content profiles have exactly 45 inherited native leaves, contained in the owner's content-fold axiom closure; all 45 were independently replayed, rejected=0. The original nine-profile/39-leaf replay and positive/negative admission controls pass too. Raw local receipts are in Evidence/.
+
+Independent qualification: https://github.com/metalogiclabs/L4YAML/actions/runs/45583074345, job 139097695703, exact proof/workflow source 85a62f66bf378ce2462617b2b432e175f2298cfd, terminal SUCCESS. Raw logs independently inspected: 305 proof build jobs, 475 replay build jobs, all six new profiles pass, exact 45/45 unique inherited native leaves validated, zero rejected; original 39-leaf controls pass. Artifact 15008276514 was independently downloaded and rehashed: ZIP SHA256 c4df8c00b41aa699a0c57599a4c5f496eee6925e48f47f64647dc4e832ada8a4, exact provider/upload-log match. All 12 members pass CRC; all 11 manifest hashes pass. The four Lean files and workflow match the published source exactly; local/hosted 45-name leaf sets are identical. Evidence/hosted-evidence.zip preserves the exact 24,964 archive bytes. The later receipt-only commit does not alter the qualified proof or workflow.
 
 Controls ran before the corresponding proof work: 90 actual initial-state question cases, 90 next landings, 27 scalar-key/colon/value executions reaching EOF, five excluded non-question cases, three refused tab-indentation controls, zero refutations. The 90 cases include BOM, comments, CRLF, indented roots, property starts, block scalars and flow starts; the final composed theorem's key class is narrower and does not claim all those arms. Fuel 0/1/2 produced no successful complete scalar-chain scan. Concrete controls run natively, not as new proof axioms.
 
