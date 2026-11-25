@@ -2496,10 +2496,8 @@ jobs:
           set_option maxSynthPendingDepth 256 in
           instance (input : String) (r : Run) : Decidable (Guard input r) := by
             unfold Guard Common ScalarGuard OfferGuard
-            first
-            | infer_instance
-            | repeat' apply instDecidableAnd
-              all_goals infer_instance
+            repeat' refine @instDecidableAnd _ _ ?_ ?_
+            all_goals infer_instance
           
           /-- Every admitted input has an actual successful filtered output and a direct
               independent grammar trace. All former scanner-state and grammar witnesses
