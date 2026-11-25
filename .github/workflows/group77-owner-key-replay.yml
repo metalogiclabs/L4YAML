@@ -936,6 +936,159 @@ jobs:
           print('OWNER_MATCHED_COLON_FOLD_STANDARD_AXIOMS_ONLY', sorted(actual))
           PY
           printf 'owner_matched_colon_fold\t0\n' >> ../results/outcomes.tsv
+      - name: Derive event transport from preprocessing and live explicit-value scan
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/OwnerExplicitKeyEventTransport.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerExplicitKeyFold
+          public section
+          set_option maxHeartbeats 4000000
+          namespace L4YAML.Tests.Guards.OwnerExplicitKeyEventTransport
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TokenEvents
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.Serialization.TraceOf.ContentBridge
+          open L4YAML.Proofs.CouplingBridge
+          open L4YAML.Proofs.ScannerCorrectness
+          open L4YAML.Proofs.CloseStaleExplicitKey
+          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
+          
+          /-- The two possible saved-key placeholders are silent for every pending tag state. -/
+          lemma saveSimpleKey_goOut (s : ScannerState) (p : List String) :
+              goOut (saveSimpleKey s).tokens.toList p = goOut s.tokens.toList p := by
+            unfold saveSimpleKey
+            split
+            · rfl
+            · split
+              · simp [Array.toList_push, goOut_append, goOut, tokenEvent]
+              · rfl
+          
+          /-- Unwinding block collections appends only silent block ends. -/
+          lemma unwindIndents_goOut (s : ScannerState) (p : List String) :
+              goOut (unwindIndents s s.col).tokens.toList p = goOut s.tokens.toList p := by
+            obtain ⟨ends, he, hall⟩ := unwindIndents_tokens_append s s.col
+            have hE := goOut_blockEnds ends hall [] (goOut s.tokens.toList p).2
+            simp only [List.append_nil] at hE
+            rw [he, goOut_append, hE]
+            simp [goOut]
+          
+          /-- No event or pending tag handle is lost or gained by any successful
+              preprocessing that returns content. This reads the actual scanner stages. -/
+          lemma preprocess_goOut (s s1 : ScannerState) (c : Char)
+              (h : scanNextToken_preprocess s = .ok (some (s1, c))) (p : List String) :
+              goOut s1.tokens.toList p = goOut s.tokens.toList p := by
+            unfold scanNextToken_preprocess at h
+            simp only [bind, pure, Pure.pure, Except.pure] at h
+            simp only [Except.bind] at h
+            split at h
+            · contradiction
+            · rename_i v heq_skip
+              have hskip := skipToContent_preserves_tokens s v heq_skip
+              split at h
+              · simp at h
+              · split at h
+                · split at h
+                  · contradiction
+                  · split at h
+                    · simp at h
+                    · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+                      obtain ⟨h1, _⟩ := h
+                      rw [← h1, closeStaleExplicitKey_tokens, saveSimpleKey_goOut]
+                      change goOut (unwindIndents v v.col).tokens.toList p = _
+                      rw [unwindIndents_goOut, hskip]
+                · split at h
+                  · contradiction
+                  · split at h
+                    · simp at h
+                    · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at h
+                      obtain ⟨h1, _⟩ := h
+                      rw [← h1, closeStaleExplicitKey_tokens, saveSimpleKey_goOut, hskip]
+          
+          /-- A real explicit-value scan does not overwrite any reservation: the clear
+              state has no live simple key and retains the explicit-key line. We do not
+              infer these facts merely from a successful colon or a grammar column. -/
+          lemma scanValue_live_explicit_goOut (s s' : ScannerState)
+              (hok : scanValue s = .ok s')
+              (hclear : (scanValueClearKey s).simpleKey.possible = false)
+              (hlive : (scanValueClearKey s).explicitKeyLine.isSome = true)
+              (p : List String) :
+              goOut s'.tokens.toList p = goOut s.tokens.toList p := by
+            have hp : (scanValuePrepare (scanValueClearKey s)).tokens = s.tokens := by
+              simp [scanValuePrepare, hclear, hlive, scanValueClearKey_preserves_tokens]
+            unfold scanValue at hok
+            dsimp only [] at hok
+            simp only [bind, Except.bind] at hok
+            split at hok
+            · contradiction
+            · split at hok
+              · contradiction
+              · split at hok
+                · contradiction
+                · injection hok with heq
+                  subst heq
+                  dsimp only []
+                  rw [advance_preserves_tokens]
+                  simp [ScannerState.emit, hp, Array.toList_push, goOut_append, goOut, tokenEvent]
+          
+          /-- Replace the independently supplied trace with two real scanner equalities.
+              The narrower live-explicit/cleared-reservation condition is still explicit. -/
+          lemma matched_colon_owner_fold_native
+              {start q after scan sp_colon sp_block : SurfPos} {n : Nat}
+              {s sc_colon sc_after : ScannerState} {vc : Char} {ec eo ek : List Event}
+              (hS : TSLYamlStream start s sp_block ec (eo ++ ek) [])
+              (park : KeyReady start q after scan n s ec eo ek)
+              (h_deeper : n < scan.col) (h_colon_col : sp_colon.col = n)
+              (h_flow : sc_colon.inFlow = false)
+              (hpre : scanNextToken_preprocess s = .ok (some (sc_colon, ':')))
+              (hcorr_colon : ScannerSurfCorr sc_colon sp_colon)
+              (hcolon : scanValue sc_colon = .ok sc_after)
+              (hclear : (scanValueClearKey sc_colon).simpleKey.possible = false)
+              (hlive : (scanValueClearKey sc_colon).explicitKeyLine.isSome = true) :
+              ∃ sp_after, ScannerSurfCorr sc_after sp_after ∧
+                TSLYamlStream start sc_after sp_block ec (eo ++ ek) [] ∧
+                TPendingNode start false sp_block sp_after ec (eo ++ ek) [] ∧
+                TPendingNode.ContentPark start sp_after vc ec (n + 1) (eo ++ ek) := by
+            obtain ⟨sp_after, hcorr, hp, hc⟩ :=
+              retained_key_to_owner_value_park (vc := vc) park h_deeper h_colon_col
+                h_flow hpre hcorr_colon hcolon
+            refine ⟨sp_after, hcorr, ⟨hS.stream, ?_⟩, hp, hc⟩
+            rw [scanValue_live_explicit_goOut sc_colon sc_after hcolon hclear hlive [],
+                preprocess_goOut s sc_colon ':' hpre [], hS.events]
+          
+          #print axioms saveSimpleKey_goOut
+          #print axioms unwindIndents_goOut
+          #print axioms preprocess_goOut
+          #print axioms scanValue_live_explicit_goOut
+          #print axioms matched_colon_owner_fold_native
+          end L4YAML.Tests.Guards.OwnerExplicitKeyEventTransport
+          LEAN
+          cp Tests/Guards/Proofs/OwnerExplicitKeyEventTransport.lean ../results/
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyEventTransport 2>&1 | tee ../results/owner-explicit-key-event-transport.log
+          python3 - <<'PY'
+          import pathlib, re
+          p = pathlib.Path('../results/owner-explicit-key-event-transport.log').read_text()
+          allowed = {'propext', 'Classical.choice', 'Quot.sound'}
+          names = ['saveSimpleKey_goOut', 'unwindIndents_goOut', 'preprocess_goOut',
+                   'scanValue_live_explicit_goOut', 'matched_colon_owner_fold_native']
+          for name in names:
+              m = re.search(r"'[^']*\." + re.escape(name) + r"' depends on axioms:\s*\[([^\]]*)\]", p)
+              if m:
+                  actual = {s.strip() for s in m.group(1).split(',') if s.strip()}
+              elif re.search(r"'[^']*\." + re.escape(name) + r"' does not depend on any axioms", p):
+                  actual = set()
+              else:
+                  raise SystemExit('Missing profile: ' + name)
+              if not actual <= allowed:
+                  raise SystemExit('Unexpected axiom: ' + name + ' ' + repr(actual - allowed))
+              print('OWNER_EVENT_TRANSPORT_STANDARD_AXIOMS_ONLY', name, sorted(actual))
+          PY
+          printf 'owner_event_transport\t0\n' >> ../results/outcomes.tsv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
