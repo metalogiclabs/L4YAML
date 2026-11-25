@@ -1,0 +1,89 @@
+name: Owner first explicit-key route from native initialization
+on:
+  push:
+    branches: [fix/explicit-key-reachable-route]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reachable-route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 0dbf0c120601fccc1d837025f3bef405cc4f2062
+          path: upstream
+          persist-credentials: false
+      - name: Pin exact owner and prepare Lean
+        working-directory: upstream
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 0dbf0c120601fccc1d837025f3bef405cc4f2062
+          test "$(git rev-parse HEAD:L4YAML)" = 0a8d15505cf2520df980bc4af05eca0ad72f86c8
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean HEAD:L4YAML/Proofs/Serialization/TraceOf/ContentBridge.lean HEAD:Tests/AdversarialInstantiation.lean > ../results/owner-source.txt
+          git -C ../evidence rev-parse HEAD > ../results/experiment-source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Restore exact qualified predecessor and stage new source
+        working-directory: upstream
+        run: |
+          set -euo pipefail
+          lean --run ../evidence/Research/ExplicitKeyReachableRoute/PreparePredecessor.lean ../evidence/.github/workflows/group77-owner-value-content-step.yml .
+          cp ../evidence/Research/ExplicitKeyFreshTransport/OwnerExplicitKeyFreshTransport.lean Tests/Guards/Proofs/
+          cp ../evidence/Research/ExplicitKeyValueContentStep/OwnerExplicitKeyValueContentStep.lean Tests/Guards/Proofs/
+          cp ../evidence/Research/ExplicitKeyReachableRoute/OwnerExplicitKeyReachableRoute.lean Tests/Guards/Proofs/
+          cp ../evidence/Research/ExplicitKeyReachableRoute/AdversarialControls.lean tools/ReachableQuestionControls.lean
+          cp ../evidence/Research/ExplicitKeyReachableRoute/OwnerReachableRouteReplayMain.lean tools/
+          git diff --exit-code
+      - name: Run native boundary and negative controls before proof
+        working-directory: upstream
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Scanner.Scanner L4YAML.Proofs.Serialization.TokenEvents
+          lake env lean tools/ReachableQuestionControls.lean 2>&1 | tee ../results/native-controls.log
+          grep -F 'questions=90 next_landings=90 scalar_chains_to_eof=27' ../results/native-controls.log
+      - name: Verify producer and composed owner content fold
+        working-directory: upstream
+        run: |
+          set -euo pipefail
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyReachableRoute 2>&1 | tee ../results/proof-build.log
+      - name: Replay all exact inherited native axioms and admission controls
+        working-directory: upstream
+        run: |
+          set -euo pipefail
+          cp lakefile.lean lakefile.reachable.lean
+          cat >> lakefile.reachable.lean <<'LAKE'
+
+          lean_exe «owner-reachable-route-replay» where
+            root := `tools.OwnerReachableRouteReplayMain
+            supportInterpreter := true
+          LAKE
+          lake -f lakefile.reachable.lean build owner-reachable-route-replay 2>&1 | tee ../results/replay-build.log
+          lake -f lakefile.reachable.lean env .lake/build/bin/owner-reachable-route-replay 2>&1 | tee ../results/native-axiom-replay.log
+          grep -F 'OWNER_REACHABLE_ROUTE_REPLAY_UNION raw=45 validated=45 rejected=0' ../results/native-axiom-replay.log
+          grep -F 'OWNER_KEY_REPLAY_CONTROLS_PASS' ../results/native-axiom-replay.log
+          git diff --exit-code
+      - name: Preserve exact sources and receipts
+        if: always()
+        run: |
+          set -euo pipefail
+          cp evidence/Research/ExplicitKeyReachableRoute/*.lean results/
+          cp evidence/.github/workflows/group77-owner-reachable-route.yml results/workflow.yml
+          cd results
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum --check SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owner-first-explicit-key-route-evidence
+          path: results/
+          if-no-files-found: error
