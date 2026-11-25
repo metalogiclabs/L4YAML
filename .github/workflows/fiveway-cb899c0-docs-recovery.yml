@@ -1,8 +1,8 @@
-name: "Exact cb899c0 five-way docs isolated recovery with checkpoints"
+name: "Exact eb821055 five-way docs isolated recovery with checkpoints"
 on:
   push:
     branches:
-      - experiment/cb899c0-fiveway-docs-recovery-20261125
+      - experiment/eb821055-fiveway-readonly-docs-20261125
 permissions:
   contents: read
 jobs:
@@ -14,8 +14,8 @@ jobs:
       matrix:
         include:
           - id: fiveway
-            source: 117818c9ea72c184d66b9f3baed44d2f92ac702c
-            tree: c22da9e09b42cbbafa569c24f747865b80602249
+            source: 3e753c2ec9df65e1c57c97927259888a4878d637
+            tree: fd5922dfa026da145204a2b060b1d1d137918a41
     env:
       LEAN_NUM_THREADS: 2
       SOURCE_COMMIT: ${{ matrix.source }}
@@ -36,7 +36,7 @@ jobs:
           git switch --detach "$SOURCE_COMMIT"
           test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
           test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
-          git merge-base --is-ancestor cb899c0fa4529d4b40d701f04f5c494047a6b695 HEAD
+          git merge-base --is-ancestor eb821055512cf640530319760cbb426e0182b22c HEAD
           test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
           test "$(cat doc/lean-toolchain)" = "leanprover/lean4:v4.36.0"
           printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/source.txt
@@ -76,7 +76,7 @@ jobs:
       - name: Preserve independently completed pre-API checks before long build
         uses: actions/upload-artifact@v4
         with:
-          name: fiveway-cb899c0-docs-pre-api-checkpoint
+          name: fiveway-eb821055-docs-pre-api-checkpoint
           path: docs-evidence/
           if-no-files-found: error
       - name: Build full API documentation with proven memory provision
@@ -112,6 +112,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fiveway-cb899c0-docs-recovery-receipts
+          name: fiveway-eb821055-docs-recovery-receipts
           path: docs-evidence/
           if-no-files-found: warn
