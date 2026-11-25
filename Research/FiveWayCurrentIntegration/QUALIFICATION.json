@@ -1,0 +1,106 @@
+{
+  "native_status": "WARRANTED",
+  "complete_documentation_status": "UNKNOWN",
+  "current_cc830190_integration_status": "UNKNOWN",
+  "workflow_run": 45679557868,
+  "workflow_job": 139436148548,
+  "workflow_commit": "ffb766220e9110fb6ec44c459c3e184ed706626e",
+  "overall_workflow_conclusion": "failure",
+  "upstream_base": "e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca",
+  "source_commit": "7cbfe4a3f9a9f2d7747059933ef54488e17f6f7a",
+  "source_tree": "7e2dc97c7fb4aeeec8e5be9692a7deb1e04bafbb",
+  "library_tree": "9e485356afb8bd39bd81af915366f2fd2bb5f3fa",
+  "source_parents": [
+    "3e753c2ec9df65e1c57c97927259888a4878d637",
+    "e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca"
+  ],
+  "all_approved_pr_heads_verified_ancestors": {
+    "300": "dcf6ad15503dd3be569fd983e94d8991a3379e00",
+    "302": "dc9c881577286e1f27b1c4151f599716fe4c6152",
+    "361": "e851e63003872d57509ed06e84346bd4ff893000",
+    "370": "e8db9cf2dff3eb4a857c4cfae852749326c021f6",
+    "371": "c5e0f0c6b449261d23fef5ddd588c360d5e5d630"
+  },
+  "lean_version": "4.36.0",
+  "verified_native_tests": {"passed": 64769, "total": 64769},
+  "adversarial_tests": {"passed": 62478, "total": 62478},
+  "python_ffi_tests": 78,
+  "python_package_tests": 192,
+  "python_package_subtests": 91,
+  "rust_tests": 24,
+  "rust_doctests": 1,
+  "cross_language": {
+    "all_four_backends_identical_for_each_preset": true,
+    "rows_per_preset": 1020,
+    "preset_counts": {
+      "default": {"passed": 854, "failed": 15, "skipped": 151},
+      "strict": {"passed": 853, "failed": 16, "skipped": 151},
+      "permissive": {"passed": 854, "failed": 15, "skipped": 151},
+      "safe_tags": {"passed": 853, "failed": 16, "skipped": 151}
+    },
+    "normative_yaml_conformance_not_claimed_from_backend_agreement": true
+  },
+  "native_census": {
+    "population": 14195,
+    "A_campaign": 1173,
+    "A_orphan": 141,
+    "B_roster": 3119,
+    "native_repin_patch_bytes": 0,
+    "check_agrees_with_source": true
+  },
+  "generated_dashboard_html_sha256": "36a8c753b56349fc14941e6240a10f68c23d8a215f57293eaeb9a47735875e22",
+  "generated_dashboard_published": false,
+  "api_documentation_failure": {
+    "task": "L4YAML:srcUri.github",
+    "diagnostic": "resource exhausted (error code: 12, not enough memory)",
+    "last_reported_failed_tasks": ["3121/3444", "3122/3444"],
+    "swap_installed_GiB": 24,
+    "process_level_root_cause": "UNKNOWN",
+    "native_or_proof_regression_inferred": false,
+    "successful_Verso_and_graph_stages_retained": true
+  },
+  "archives": [
+    {
+      "file": "Evidence/five-way-e7b4eabe-native-evidence.zip",
+      "artifact": 15056128884,
+      "bytes": 291206,
+      "members": 33,
+      "git_blob": "c6f1351daf87e3455f63de25fb3bd7584a8c06a0",
+      "sha256": "0b9e701cae46dededfa5c29e550728d5ffc167ab1dc87dbd9eec4cb32059a9cc"
+    },
+    {
+      "file": "Evidence/five-way-e7b4eabe-native-qualification.zip",
+      "artifact": 15056293507,
+      "bytes": 342814,
+      "members": 27,
+      "git_blob": "1e38a4cf6b35e4d9aef7046e57f1bf6252138fe7",
+      "sha256": "4d9d054831b648ad5c1033529550e26be29730869fe9cdb1ed741a22aac5816c"
+    },
+    {
+      "file": "Evidence/five-way-e7b4eabe-docs-qualification.zip",
+      "artifact": 15058206325,
+      "bytes": 54481,
+      "members": 13,
+      "git_blob": "0d46da4bbfe54fb6ecf45bef2cd4b0d6a284fafb",
+      "sha256": "b799e42b74790616f0e5403d99171e2014ec37fd8f162d6127e07b08a9cd2025"
+    }
+  ],
+  "independent_reverification": {
+    "archive_digests_match_GitHub_metadata": true,
+    "all_archives_CRC_valid": true,
+    "git_bundle_verified_and_imported": true,
+    "git_bundle_sha256": "8dcffa8c93c3c65c21eb8ce73e1da2f240b3f16086b327336798f47fcaac37b2",
+    "bundle_tree_matches_native_and_docs_receipts": true,
+    "all_five_reviewed_heads_and_owner_ancestries_verified": true,
+    "final_and_applied_owner_patches_match_reconstructed_Git_diff": true,
+    "patch_diff_core_abbrev": 8,
+    "dashboard_digest_and_pinned_counts_checked": true,
+    "fresh_native_reexecution_by_receipt_author": false
+  },
+  "latest_observed_integration_branch": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "latest_observed_branch_name": "fix-a-grammar-completeness",
+  "scope": "Historical exact e7b4eabe five-way native qualification. Not a new full-battery qualification on cc830190 and not complete API documentation.",
+  "duplicate_native_or_docs_run_launched_by_this_readback": false,
+  "approved_production_heads_changed": false,
+  "upstream_merge_decision": "Nicolas"
+}

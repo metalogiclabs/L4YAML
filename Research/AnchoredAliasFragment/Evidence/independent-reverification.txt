@@ -1,0 +1,199 @@
+Independent readback: successful run 45694861752, job 139489491190.
+Qualified source 55294e3c2c7a518f92b365d67b6b025f233e2283.
+Exact owner cc83019024fb88b7c0d0cdadc4e590bda7a72788.
+Library tree 0a8d15505cf2520df980bc4af05eca0ad72f86c8.
+Lean 4.36.0, compiler commit 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9.
+
+Original ZIP artifact 15060407887: 159548 bytes.
+SHA-256 68543f1930a4be61556be4eaa67d2355ce04cd36d34752e591b9837da26cdb60.
+Digest equals GitHub artifact metadata and actual upload-job log.
+62 unique safe regular-file members; all compressed data CRC-valid.
+
+Fresh target builds: 311 adversarial jobs BEFORE 541 proof/audit jobs.
+697 original probe executions plus 24 boundary executions = 721 executions.
+These are not claimed to be distinct source inputs or a full-project battery.
+All 23 export closures use only the three standard Lean axioms. Zero new or
+inherited native assertion axioms. The hosted axiom report is byte-identical
+to the independently executed local 23-export audit.
+
+All 38 installed proof-source hashes verified. All 38 files additionally
+compared byte-for-byte with a fresh reconstruction from published source:
+PrepareParent.lean extracted the six embedded parent blocks from the frozen
+owner-key replay workflow, restored the two consumer and fourteen word files,
+then the six qualified anchored-word modules, probe, eight alias modules and
+audit main were copied from the exact qualified published tree.
+
+All 14 research/workflow archive members compared byte-for-byte with the exact
+published source. All 34 archived preparation-manifest entries independently
+hash-verified against that published source. Owner/toolchain/manifest/original
+adversarial object IDs and evidence commit compared with exact Git objects.
+Test-only diff contains exactly the two adversarial imports and audit executable.
+
+The initial run 45694031784 passed its 311-job native target build and emitted
+both control markers, then its grep -Fx harness check rejected Lean's prefixed
+output. New proof stage was skipped. Commit 55294e3c changes only those two
+marker checks to grep -F; research/proof source bytes are unchanged from 69367f8f.
+This is a superseded harness failure, not a proof refutation.
+
+CRC OUTPUT
+Archive:  anchored-alias-evidence-cc830190.zip
+    testing: adversarial-before-proof.log   OK
+    testing: anchored-alias-axioms.log   OK
+    testing: anchored-alias-build.log   OK
+    testing: evidence-commit.txt      OK
+    testing: lean-version.txt         OK
+    testing: outcomes.txt             OK
+    testing: owner-source.txt         OK
+    testing: owner-status.txt         OK
+    testing: proof-sha256.txt         OK
+    testing: proof-sources/AliasBoundaryControls.lean   OK
+    testing: proof-sources/AnchoredAliasAssurance.lean   OK
+    testing: proof-sources/AnchoredAliasAudit.lean   OK
+    testing: proof-sources/AnchoredAliasAuditMain.lean   OK
+    testing: proof-sources/AnchoredAliasExecution.lean   OK
+    testing: proof-sources/AnchoredAliasGrammar.lean   OK
+    testing: proof-sources/AnchoredAliasParser.lean   OK
+    testing: proof-sources/AnchoredAliasSource.lean   OK
+    testing: proof-sources/AnchoredAliasStates.lean   OK
+    testing: proof-sources/AnchoredWordAliasProbe.lean   OK
+    testing: proof-sources/AnchoredWordAssurance.lean   OK
+    testing: proof-sources/AnchoredWordExecution.lean   OK
+    testing: proof-sources/AnchoredWordGrammar.lean   OK
+    testing: proof-sources/AnchoredWordParser.lean   OK
+    testing: proof-sources/AnchoredWordSource.lean   OK
+    testing: proof-sources/ColonRolePartition.lean   OK
+    testing: proof-sources/ExplicitWordAssurance.lean   OK
+    testing: proof-sources/ExplicitWordAudit.lean   OK
+    testing: proof-sources/ExplicitWordExecution.lean   OK
+    testing: proof-sources/ExplicitWordFragment.lean   OK
+    testing: proof-sources/ExplicitWordParser.lean   OK
+    testing: proof-sources/ExplicitWordFragmentControls.lean   OK
+    testing: proof-sources/ExplicitWordPrefix.lean   OK
+    testing: proof-sources/OwnerExplicitKeyClosure.lean   OK
+    testing: proof-sources/OwnerExplicitKeyConsume.lean   OK
+    testing: proof-sources/OwnerExplicitKeyContent.lean   OK
+    testing: proof-sources/OwnerExplicitKeyFold.lean   OK
+    testing: proof-sources/OwnerExplicitKeyFreshTransport.lean   OK
+    testing: proof-sources/OwnerExplicitKeyPark.lean   OK
+    testing: proof-sources/OwnerExplicitKeyTransport.lean   OK
+    testing: proof-sources/OwnerKeyReplayAudit.lean   OK
+    testing: proof-sources/ReachableEOF.lean   OK
+    testing: proof-sources/RootComposedTrace.lean   OK
+    testing: proof-sources/RootEventEOF.lean   OK
+    testing: proof-sources/RootInhabited.lean   OK
+    testing: proof-sources/RootMatchingTrace.lean   OK
+    testing: proof-sources/RootPrefixGeometry.lean   OK
+    testing: proof-sources/ScalarKeyProducer.lean   OK
+    testing: research/AnchoredAliasFragment/AliasBoundaryControls.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasAudit.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasAssurance.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasAuditMain.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasExecution.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasGrammar.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasParser.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasSource.lean   OK
+    testing: research/AnchoredAliasFragment/AnchoredAliasStates.lean   OK
+    testing: research/AnchoredAliasFragment/README.md   OK
+    testing: research/AnchoredAliasFragment/source-sha256.txt   OK
+    testing: research/AnchoredWordAliasProbe.lean   OK
+    testing: test-only-changes.patch   OK
+    testing: workflows/group77-anchored-alias.yml   OK
+    testing: workflows/group77-owner-key-replay.yml   OK
+No errors detected in compressed data of anchored-alias-evidence-cc830190.zip.
+proof-sources/AliasBoundaryControls.lean: OK
+proof-sources/AnchoredAliasAssurance.lean: OK
+proof-sources/AnchoredAliasAudit.lean: OK
+proof-sources/AnchoredAliasAuditMain.lean: OK
+proof-sources/AnchoredAliasExecution.lean: OK
+proof-sources/AnchoredAliasGrammar.lean: OK
+proof-sources/AnchoredAliasParser.lean: OK
+proof-sources/AnchoredAliasSource.lean: OK
+proof-sources/AnchoredAliasStates.lean: OK
+proof-sources/AnchoredWordAliasProbe.lean: OK
+proof-sources/AnchoredWordAssurance.lean: OK
+proof-sources/AnchoredWordExecution.lean: OK
+proof-sources/AnchoredWordGrammar.lean: OK
+proof-sources/AnchoredWordParser.lean: OK
+proof-sources/AnchoredWordSource.lean: OK
+proof-sources/ColonRolePartition.lean: OK
+proof-sources/ExplicitWordAssurance.lean: OK
+proof-sources/ExplicitWordAudit.lean: OK
+proof-sources/ExplicitWordExecution.lean: OK
+proof-sources/ExplicitWordFragment.lean: OK
+proof-sources/ExplicitWordFragmentControls.lean: OK
+proof-sources/ExplicitWordParser.lean: OK
+proof-sources/ExplicitWordPrefix.lean: OK
+proof-sources/OwnerExplicitKeyClosure.lean: OK
+proof-sources/OwnerExplicitKeyConsume.lean: OK
+proof-sources/OwnerExplicitKeyContent.lean: OK
+proof-sources/OwnerExplicitKeyFold.lean: OK
+proof-sources/OwnerExplicitKeyFreshTransport.lean: OK
+proof-sources/OwnerExplicitKeyPark.lean: OK
+proof-sources/OwnerExplicitKeyTransport.lean: OK
+proof-sources/OwnerKeyReplayAudit.lean: OK
+proof-sources/ReachableEOF.lean: OK
+proof-sources/RootComposedTrace.lean: OK
+proof-sources/RootEventEOF.lean: OK
+proof-sources/RootInhabited.lean: OK
+proof-sources/RootMatchingTrace.lean: OK
+proof-sources/RootPrefixGeometry.lean: OK
+proof-sources/ScalarKeyProducer.lean: OK
+Research/AnchoredAliasFragment/AliasBoundaryControls.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasAssurance.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasAudit.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasAuditMain.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasExecution.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasGrammar.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasParser.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasSource.lean: OK
+Research/AnchoredAliasFragment/AnchoredAliasStates.lean: OK
+Research/ExplicitWordFragment/Proofs/ColonRolePartition.lean: OK
+Research/ExplicitWordFragment/Proofs/ExplicitWordAssurance.lean: OK
+Research/ExplicitWordFragment/Proofs/ExplicitWordAudit.lean: OK
+Research/ExplicitWordFragment/Proofs/ExplicitWordExecution.lean: OK
+Research/ExplicitWordFragment/Proofs/ExplicitWordFragment.lean: OK
+Research/ExplicitWordFragment/Proofs/ExplicitWordFragmentControls.lean: OK
+Research/ExplicitWordFragment/Proofs/ExplicitWordParser.lean: OK
+Research/ExplicitWordFragment/Proofs/ReachableEOF.lean: OK
+Research/ExplicitWordFragment/Proofs/RootComposedTrace.lean: OK
+Research/ExplicitWordFragment/Proofs/RootEventEOF.lean: OK
+Research/ExplicitWordFragment/Proofs/RootInhabited.lean: OK
+Research/ExplicitWordFragment/Proofs/RootMatchingTrace.lean: OK
+Research/ExplicitWordFragment/Proofs/RootPrefixGeometry.lean: OK
+Research/ExplicitWordFragment/Proofs/ScalarKeyProducer.lean: OK
+Research/ExplicitKeyContentConsumer/OwnerExplicitKeyFreshTransport.lean: OK
+Research/ExplicitKeyContentConsumer/OwnerExplicitKeyConsume.lean: OK
+Research/AnchoredWordFragment/PrepareParent.lean: OK
+Research/AnchoredWordFragment/ExplicitWordPrefix.lean: OK
+Research/AnchoredWordFragment/AnchoredWordSource.lean: OK
+Research/AnchoredWordFragment/AnchoredWordExecution.lean: OK
+Research/AnchoredWordFragment/AnchoredWordGrammar.lean: OK
+Research/AnchoredWordFragment/AnchoredWordParser.lean: OK
+Research/AnchoredWordFragment/AnchoredWordAssurance.lean: OK
+Research/AnchoredWordAliasProbe/Controls.lean: OK
+.github/workflows/group77-owner-key-replay.yml: OK
+ANCHORED_ALIAS_AXIOM_AUDIT
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasSource.word_before_question: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasStates.first_value_step: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.q_scan: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.copy_scan: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.c_scan: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.alias_loop: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.alias_scan: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.alias_dispatch: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.next_eof: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.filtered_shape: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.alias_word_fold: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasExecution.alias_word_filtered: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasGrammar.alias_word_trace: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasGrammar.alias_events_wellformed: nonstandard=0 standard=1
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasParser.alias_exact: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasParser.second_entry: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasParser.document_word: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasParser.parsed_tokens: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasParser.parsed_raw_source: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasParser.parsed_source: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasAssurance.alias_word_events: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasAssurance.alias_empty_registry_rejected: nonstandard=0 standard=3
+ALIAS_PROFILE L4YAML.Tests.Guards.AnchoredAliasAssurance.alias_word_assurance: nonstandard=0 standard=3
+ALIAS_UNION checked=23 nonstandard=0 new_native_axioms=0 inherited_native_axioms=0
