@@ -1,7 +1,7 @@
-name: Owner explicit-key exact axiom replay
+name: Owner 377 exact key replay and matched-colon fold
 on:
   push:
-    branches: [research/group77-owner-key-replay-20261125]
+    branches: [research/group77-owner-377-fold-20261125]
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: nasa-jpl/L4YAML
-          ref: 78797230d504e45a8b92e9b74f9e92e9da16b630
+          ref: 0dbf0c120601fccc1d837025f3bef405cc4f2062
           path: upstream
       - name: Verify exact owner source and prepare Lean
         working-directory: upstream
@@ -24,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ../results
-          test "$(git rev-parse HEAD)" = 78797230d504e45a8b92e9b74f9e92e9da16b630
+          test "$(git rev-parse HEAD)" = 0dbf0c120601fccc1d837025f3bef405cc4f2062
           git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
           git rev-parse HEAD:L4YAML/Proofs/Serialization/TraceOf/StreamBridge.lean HEAD:L4YAML/Proofs/Serialization/TraceOf/ContentBridge.lean HEAD:Tests/AdversarialInstantiation.lean >> ../results/source.txt
           test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
@@ -871,9 +871,74 @@ jobs:
           grep -F OWNER_KEY_REPLAY_CONTROLS_PASS ../results/owner-key-replay-audit.log
           grep -Fx 'OWNER_KEY_REPLAY_UNION raw=39 validated=39 rejected=0' ../results/owner-key-replay-audit.log
           printf 'owner_key_axiom_replay\t0\n' >> ../results/outcomes.tsv
+      - name: Retain actual native transition producer index and pair colon route with owner fold
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git grep -n -E '^[[:space:]]*(private |public |protected )?(lemma|theorem|def|abbrev) .*([sS]canValue|[sS]canKey|[pP]reprocess.*(tokens|trace|events)|[dD]ispatchBlock.*(tokens|trace|events))' -- L4YAML > ../results/native-transition-producers.txt
+          test -s ../results/native-transition-producers.txt
+          cat > Tests/Guards/Proofs/OwnerExplicitKeyFold.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerExplicitKeyPark
+          public section
+          namespace L4YAML.Tests.Guards.OwnerExplicitKeyFold
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.Serialization.TraceOf.ContentBridge
+          open L4YAML.Proofs.CouplingBridge
+          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
+
+          /-- The actual matched-colon route is consumed by the owner's TPendingNode,
+              with the TSLYamlStream coupling at exactly the same returned scanner state.
+              The remaining native token/event transport is an explicit premise, not an
+              assumed theorem about all scanner states. -/
+          lemma matched_colon_owner_fold
+              {start q after scan sp_colon sp_block : SurfPos} {n : Nat}
+              {s sc_colon sc_after : ScannerState} {vc : Char} {ec eo ek : List Event}
+              (hS : TSLYamlStream start s sp_block ec (eo ++ ek) [])
+              (park : KeyReady start q after scan n s ec eo ek)
+              (h_deeper : n < scan.col) (h_colon_col : sp_colon.col = n)
+              (h_flow : sc_colon.inFlow = false)
+              (hpre : scanNextToken_preprocess s = .ok (some (sc_colon, ':')))
+              (hcorr_colon : ScannerSurfCorr sc_colon sp_colon)
+              (hcolon : scanValue sc_colon = .ok sc_after)
+              (htrace : PushesTrace s.tokens sc_after.tokens []) :
+              ∃ sp_after, ScannerSurfCorr sc_after sp_after ∧
+                TSLYamlStream start sc_after sp_block ec (eo ++ ek) [] ∧
+                TPendingNode start false sp_block sp_after ec (eo ++ ek) [] ∧
+                TPendingNode.ContentPark start sp_after vc ec (n + 1) (eo ++ ek) := by
+            obtain ⟨sp_after, hcorr, hp, hc⟩ :=
+              retained_key_to_owner_value_park (vc := vc) park h_deeper h_colon_col
+                h_flow hpre hcorr_colon hcolon
+            refine ⟨sp_after, hcorr, ⟨hS.stream, ?_⟩, hp, hc⟩
+            rw [htrace.goOut_at [], hS.events]
+            simp
+
+          #print axioms matched_colon_owner_fold
+          end L4YAML.Tests.Guards.OwnerExplicitKeyFold
+          LEAN
+          cp Tests/Guards/Proofs/OwnerExplicitKeyFold.lean ../results/
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyFold 2>&1 | tee ../results/owner-explicit-key-fold.log
+          python3 - <<'PY'
+          import pathlib, re
+          p = pathlib.Path('../results/owner-explicit-key-fold.log').read_text()
+          m = re.search(r"'[^']*matched_colon_owner_fold' depends on axioms:\s*\[([^\]]*)\]", p)
+          if not m:
+              raise SystemExit('Missing exact fold axiom profile')
+          actual = {s.strip() for s in m.group(1).split(',') if s.strip()}
+          allowed = {'propext', 'Classical.choice', 'Quot.sound'}
+          if not actual <= allowed:
+              raise SystemExit('Unexpected axiom: ' + repr(actual - allowed))
+          print('OWNER_MATCHED_COLON_FOLD_STANDARD_AXIOMS_ONLY', sorted(actual))
+          PY
+          printf 'owner_matched_colon_fold\t0\n' >> ../results/outcomes.tsv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: owner-explicit-key-replay-evidence
+          name: owner-377-key-fold-evidence
           path: results/
           if-no-files-found: error
