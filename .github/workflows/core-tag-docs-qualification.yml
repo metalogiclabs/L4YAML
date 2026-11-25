@@ -1,0 +1,161 @@
+name: "Exact reviewed Core TAG documentation qualification"
+on:
+  push:
+    branches:
+      - chore/core-tag-docs-qualification
+permissions:
+  contents: read
+  actions: read
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: core302
+            source: c39f7faae10f4b7008d870536e86c9f4bf21b85d
+            tree: 6d2369b3fd19e809fcf4545e9f4683cc784e6f5b
+            artifact: 15052102197
+            digest: 6d6efad288c72965460fc3b76fc4d3f537261e4885ab6f1123b25d6d3048b89d
+          - id: tag361
+            source: 36a8aa1143b073d41c1fda43fe35ac4669cd6daa
+            tree: c8f5c1e1b229060e827f0f4efff268a800357a6d
+            artifact: 15053226679
+            digest: 76598c198fd997fb7dc637c8b78246d2aba0530bf294c2e2e71c8590a5c3cb42
+          - id: core-tag
+            source: 1c5166315f214d2fd0c8c0f1624228a8d8b86a6a
+            tree: 6ab7d84f4a368e69457ec1f40b0f279bc57d7f04
+            artifact: 15052841630
+            digest: c310f3e1924ea00dc7f949c825562582b5790a95c09f726f1947d14fd443ab9d
+    env:
+      LEAN_NUM_THREADS: 2
+      SOURCE_COMMIT: ${{ matrix.source }}
+      EXPECTED_TREE: ${{ matrix.tree }}
+      UP: e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout qualification harness
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Recover exact native-qualified source from hash-pinned artifact
+        shell: bash
+        env:
+          ARTIFACT_ID: ${{ matrix.artifact }}
+          ARTIFACT_SHA256: ${{ matrix.digest }}
+          ID: ${{ matrix.id }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs-evidence
+          E="$RUNNER_TEMP/native-source"
+          mkdir -p "$E"
+          archive="$RUNNER_TEMP/native-source.zip"
+          gh api "repos/metalogiclabs/L4YAML/actions/artifacts/$ARTIFACT_ID/zip" > "$archive"
+          printf '%s  %s\n' "$ARTIFACT_SHA256" "$archive" | sha256sum -c - | tee docs-evidence/native-artifact-check.log
+          unzip -q "$archive" -d "$E"
+          test -s "$E/candidate.bundle"
+          read -r bundle_digest ignored < "$E/bundle.sha256"
+          test "$(sha256sum "$E/candidate.bundle" | cut -d' ' -f1)" = "$bundle_digest"
+          for sha in "$UP" dc9c881577286e1f27b1c4151f599716fe4c6152 e851e63003872d57509ed06e84346bd4ff893000; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
+          done
+          git bundle verify "$E/candidate.bundle" 2>&1 | tee docs-evidence/native-bundle-check.log
+          git fetch "$E/candidate.bundle" HEAD
+          git switch --detach "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git submodule update --init --recursive
+          cp "$E/frozen-candidate.txt" docs-evidence/native-source.txt
+          cp "$E/source-lineage.json" docs-evidence/native-lineage.json
+          git merge-base --is-ancestor "$UP" HEAD
+          if test "$ID" != tag361; then git merge-base --is-ancestor dc9c881577286e1f27b1c4151f599716fe4c6152 HEAD; fi
+          if test "$ID" != core302; then git merge-base --is-ancestor e851e63003872d57509ed06e84346bd4ff893000 HEAD; fi
+      - name: Pin source and install exact toolchain and docs dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs-evidence
+          git switch --detach "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git merge-base --is-ancestor e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca HEAD
+          test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          test "$(cat doc/lean-toolchain)" = "leanprover/lean4:v4.36.0"
+          printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/source.txt
+          cat lean-toolchain | tee docs-evidence/toolchain.txt
+          git submodule status | tee docs-evidence/submodules.txt
+          sha256sum lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json | tee docs-evidence/pins.sha256
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev graphviz python3-venv
+      - name: Install proven docs memory allowance (24 GiB swap)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          free -h | tee docs-evidence/resources-before.txt
+          sudo fallocate -l 24G /mnt/exact-docs.swap
+          sudo chmod 600 /mnt/exact-docs.swap
+          sudo mkswap /mnt/exact-docs.swap
+          sudo swapon /mnt/exact-docs.swap
+          free -h | tee docs-evidence/resources-after.txt
+          test "$(grep -Fc /mnt/exact-docs.swap /proc/swaps)" -eq 1
+      - name: Build Verso and all required graph inputs on exact source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee docs-evidence/lean-version.txt
+          (cd doc && lake build l4yaml-doc) 2>&1 | tee docs-evidence/verso-build.log
+          lake build L4YAML.Scanner.Scanner L4YAML.Parser.Composition L4YAML.Surface.Document L4YAML.Output.Dump L4YAML.Output.Emitter L4YAML.FFI.FFI L4YAML.Schema.Api L4YAML.Config.Config 2>&1 | tee docs-evidence/graph-inputs.log
+          lake build graph 2>&1 | tee docs-evidence/graph-build.log
+          mkdir -p doc/Doc/L4YAML/graphs
+          lake exe graph --to=L4YAML.Scanner.Scanner,L4YAML.Parser.Composition,L4YAML.Surface.Document,L4YAML.Output.Dump,L4YAML.Output.Emitter,L4YAML.FFI.FFI,L4YAML.Schema.Api,L4YAML.Config.Config doc/Doc/L4YAML/graphs/import-graph.dot
+          dot -Tsvg doc/Doc/L4YAML/graphs/import-graph.dot -o doc/Doc/L4YAML/graphs/import-graph.svg
+          lake run check-doc-graphs -- --strict 2>&1 | tee docs-evidence/graph-check.log
+          (cd doc && lake exe l4yaml-doc) 2>&1 | tee docs-evidence/verso-render.log
+          lake run svg-objects -- doc/_out/html-multi 2>&1 | tee docs-evidence/svg.log
+      - name: Preserve independently completed pre-API checks before long build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-e7b4eabe-docs-pre-api-checkpoint
+          path: docs-evidence/
+          if-no-files-found: error
+      - name: Build full API documentation with proven memory provision
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          (
+            while true; do
+              date -u
+              free -h
+              df -h / /mnt
+              cat /proc/swaps
+              sleep 60
+            done
+          ) > docs-evidence/api-resources.log 2>&1 &
+          monitor=$!
+          trap 'kill "$monitor" 2>/dev/null || true' EXIT
+          lake build :docs 2>&1 | tee docs-evidence/api-docs.log
+          echo "DOCS_NATIVE_BUILD_SUCCESS" | tee docs-evidence/result.txt
+      - name: Validate immutable source and toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git diff --exit-code -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          sha256sum -c docs-evidence/pins.sha256
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git diff --binary > docs-evidence/generated-tracked.patch
+          git diff --exit-code -- L4YAML Tests Scripts lean-toolchain lake-manifest.json
+          printf 'FINAL_SOURCE=%s\nFINAL_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/final-source.txt
+          free -h | tee docs-evidence/resources-final.txt
+      - name: Retain receipts on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}-e7b4eabe-docs-qualification-receipts
+          path: docs-evidence/
+          if-no-files-found: warn
