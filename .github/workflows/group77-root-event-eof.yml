@@ -2819,6 +2819,173 @@ jobs:
           grep -F ROOT_REPLAY_CONTROLS_PASS ../results/root-replay-audit.log
           grep -F ROOT_REPLAY_UNION ../results/root-replay-audit.log
           printf 'root_axiom_replay\t0\n' >> ../results/outcomes.tsv
+      - name: Test source-defined word-length controls before induction
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/RootWordControls.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.RootInhabited
+          public meta import Tests.Guards.Proofs.RootInhabited
+          @[expose] public section Blanket
+          namespace L4YAML.Tests.Guards.RootWordControls
+          open L4YAML.Tests.Guards.RootInhabited
+          
+          -- Frozen source cases vary key/value lengths independently, including the
+          -- implicit-key length boundary. A failed guard is reported, not discarded.
+          def mkWord (n : Nat) (c : Char) : String := String.ofList (List.replicate n c)
+          def wordRoot (bom : Bool) (k v : String) : String :=
+            (if bom then "\uFEFF" else "") ++ "? " ++ k ++ "\n: " ++ v
+          def lengths : List Nat := [1, 2, 3, 7, 31, 127, 1023, 1024, 1025, 2048]
+          set_option maxRecDepth 16384 in
+          set_option maxHeartbeats 0 in
+          #eval do
+            let mut pass := 0
+            let mut fail := 0
+            for bom in [false, true] do
+              for n in lengths do
+                for (k,v) in [(mkWord n 'a', "b"), ("a", mkWord n 'z'),
+                               (mkWord n 'a', mkWord n 'z')] do
+                  let input := wordRoot bom k v
+                  let admitted := decide (Guard input (route input))
+                  if admitted then pass := pass + 1
+                  else
+                    fail := fail + 1
+                    IO.println s!"WORD_GUARD_FALSE bom={bom} key={k.length} value={v.length}"
+            IO.println s!"WORD_GUARD_LENGTH_CONTROLS pass={pass} fail={fail}"
+          end L4YAML.Tests.Guards.RootWordControls
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/RootWordControls.lean ../results/
+          lake build Tests.Guards.Proofs.RootWordControls 2>&1 | tee ../results/root-word-controls.log
+          grep -F WORD_GUARD_LENGTH_CONTROLS ../results/root-word-controls.log
+      - name: Prove unbounded lowercase prefix transport and exact EOF termination
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/RootWordInduction.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.RootInhabited
+          public import L4YAML.Proofs.Production.ScalarProduction
+          public meta import Tests.Guards.Proofs.RootInhabited
+          public meta import L4YAML.Scanner.Scanner
+          @[expose] public section Blanket
+          set_option autoImplicit false
+          set_option maxHeartbeats 4000000
+          namespace L4YAML.Tests.Guards.RootWordInduction
+          open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.CharPredicates
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScalarProduction
+          open L4YAML.Tests.Guards.RootInhabited
+          
+          -- Source-defined alphabet; independent of scanner and grammar predicates.
+          def Lowercase (c : Char) : Prop :=
+            c = 'a' ∨ c = 'b' ∨ c = 'c' ∨ c = 'd' ∨ c = 'e' ∨ c = 'f' ∨ c = 'g' ∨ c = 'h' ∨ c = 'i' ∨ c = 'j' ∨ c = 'k' ∨ c = 'l' ∨ c = 'm' ∨ c = 'n' ∨ c = 'o' ∨ c = 'p' ∨ c = 'q' ∨ c = 'r' ∨ c = 's' ∨ c = 't' ∨ c = 'u' ∨ c = 'v' ∨ c = 'w' ∨ c = 'x' ∨ c = 'y' ∨ c = 'z'
+          
+          def LowerWord (cs : List Char) : Prop :=
+            cs ≠ [] ∧ ∀ c ∈ cs, Lowercase c
+          
+          def wordRoot (bom : Bool) (k v : List Char) : String :=
+            (if bom then "\uFEFF" else "") ++ "? " ++ String.ofList k ++ "\n: " ++ String.ofList v
+          
+          -- Finite character-class facts only. No enumeration of word lengths.
+          lemma lower_facts {c : Char} (h : Lowercase c) :
+              c ≠ '#' ∧ c ≠ ':' ∧ c ≠ '\n' ∧ c ≠ '\r' ∧
+              isLineBreakBool c = false ∧ isWhiteSpaceBool c = false ∧
+              isPlainSafeBool c false = true := by
+            unfold Lowercase at h
+            rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+          
+          /-- Arbitrarily many source letters consume one real scanner advance per letter.
+              Preserve the exact suffix and column, and the remaining fuel/continuation.
+              No hypothesis about scanner success or grammar derivability is required. -/
+          lemma lowercase_prefix_transport (letters tail : List Char)
+              (sc : ScannerState) (content : String) (fuel ci ie : Nat)
+              (hletters : ∀ c ∈ letters, Lowercase c)
+              (hc : ScannerSurfCorr sc ⟨letters ++ tail, sc.col⟩)
+              (hpos : sc.col ≠ 0) :
+              ∃ landing : ScannerState,
+                ScannerSurfCorr landing ⟨tail, sc.col + letters.length⟩ ∧
+                collectPlainScalarLoop sc content "" (letters.length + fuel) false ci ie =
+                  collectPlainScalarLoop landing
+                    (letters.foldl (fun acc c => acc ++ String.singleton c) content)
+                    "" fuel false ci ie := by
+            induction letters generalizing sc content with
+            | nil =>
+              exact ⟨sc, by simpa using hc, by simp⟩
+            | cons c cs ih =>
+              have hl : Lowercase c := hletters c (by simp)
+              have ht : ∀ d ∈ cs, Lowercase d := fun d hd => hletters d (by simp [hd])
+              rcases lower_facts hl with ⟨hhash, hcolon, hnl, hcr, hnlb, hws, hsafe⟩
+              have hc0 : ScannerSurfCorr sc ⟨c :: (cs ++ tail), sc.col⟩ := by
+                simpa only [List.cons_append] using hc
+              have hp : sc.peek? = some c := corr_peek_head hc0
+              have hm : sc.offset < sc.inputEnd := peek_some_has_more hp
+              have hn := advance_non_newline_corr sc c (cs ++ tail) hc0 hm hnl hcr
+              have hcol : sc.advance.col = sc.col + 1 := hn.col_eq.symm
+              have hca : ScannerSurfCorr sc.advance ⟨cs ++ tail, sc.advance.col⟩ := by
+                rw [hcol]
+                exact hn
+              have hpos' : sc.advance.col ≠ 0 := by omega
+              have hterm : collectPlainScalar_terminates? c sc content "" false = none := by
+                simp [collectPlainScalar_terminates?, beq_iff_eq, hhash, hcolon, hpos]
+              obtain ⟨landing, hland, heq⟩ :=
+                ih sc.advance (content ++ String.singleton c) ht hca hpos'
+              refine ⟨landing, ?_, ?_⟩
+              · have hcols : sc.advance.col + cs.length = sc.col + (c :: cs).length := by
+                  simp only [List.length_cons]
+                  omega
+                rw [← hcols]
+                exact hland
+              · calc
+                  collectPlainScalarLoop sc content "" ((c :: cs).length + fuel) false ci ie =
+                      collectPlainScalarLoop sc.advance (content ++ String.singleton c)
+                        "" (cs.length + fuel) false ci ie := by
+                    rw [show (c :: cs).length + fuel = (cs.length + fuel) + 1 by simp; omega]
+                    rw [collectPlainScalarLoop]
+                    simp [hp, hterm, hnlb, hws, hsafe]
+                  _ = collectPlainScalarLoop landing
+                        ((c :: cs).foldl (fun acc d => acc ++ String.singleton d) content)
+                        "" fuel false ci ie := by
+                    simpa only [List.foldl_cons] using heq
+          
+          /-- At EOF the unbounded prefix theorem yields actual successful termination
+              with the exact accumulated word, rather than merely an existential end. -/
+          lemma lowercase_word_eof (letters : List Char)
+              (sc : ScannerState) (content : String) (ci ie : Nat)
+              (hletters : ∀ c ∈ letters, Lowercase c)
+              (hc : ScannerSurfCorr sc ⟨letters, sc.col⟩)
+              (hpos : sc.col ≠ 0) :
+              ∃ landing : ScannerState,
+                ScannerSurfCorr landing ⟨[], sc.col + letters.length⟩ ∧
+                collectPlainScalarLoop sc content "" (letters.length + 1) false ci ie =
+                  .ok { content := letters.foldl (fun acc c => acc ++ String.singleton c) content,
+                        spaces := "", state := landing, terminated := true } := by
+            have hc' : ScannerSurfCorr sc ⟨letters ++ [], sc.col⟩ := by simpa using hc
+            obtain ⟨landing, hland, heq⟩ :=
+              lowercase_prefix_transport letters [] sc content 1 ci ie hletters hc' hpos
+            have hnot : ¬ landing.offset < landing.inputEnd := by
+              intro h
+              obtain ⟨c, rest, hchars, _⟩ := peek_corr landing _ hland h
+              simp at hchars
+            have hp : landing.peek? = none := by simp [ScannerState.peek?, hnot]
+            refine ⟨landing, hland, ?_⟩
+            rw [heq, collectPlainScalarLoop]
+            simp [hp]
+          
+          #print axioms lowercase_prefix_transport
+          #print axioms lowercase_word_eof
+          end L4YAML.Tests.Guards.RootWordInduction
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/RootWordInduction.lean ../results/
+          lake build Tests.Guards.Proofs.RootWordInduction 2>&1 | tee ../results/root-word-induction.log
+          for n in lowercase_prefix_transport lowercase_word_eof; do
+            grep -F "$n" ../results/root-word-induction.log
+          done
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/root-word-induction.log; then exit 1; fi
+          printf 'root_word_induction\t0\n' >> ../results/outcomes.tsv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
