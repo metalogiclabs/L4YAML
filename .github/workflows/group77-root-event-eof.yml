@@ -2319,6 +2319,7 @@ jobs:
           cat > Tests/Guards/Proofs/RootInhabited.lean <<'LEAN'
           module
           public import Tests.Guards.Proofs.RootMatchingTrace
+          public meta import Tests.Guards.Proofs.RootEventEOF
           public meta import L4YAML.Scanner.Scanner
           @[expose] public section Blanket
           namespace L4YAML.Tests.Guards.RootInhabited
