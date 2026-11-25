@@ -57,8 +57,46 @@ jobs:
               git diff --name-only --diff-filter=U | tee "qualification-evidence/reviewed-conflicts-$sha.txt"
               git ls-files -u > "qualification-evidence/reviewed-index-$sha.txt"
               git diff --cc > "qualification-evidence/reviewed-conflict-diff-$sha.txt"
-              echo "REVIEWED_HEAD_RECONCILIATION_REQUIRED $sha"
-              exit 1
+              # Only the census file may conflict. Its exact reviewed histories
+              # are already present in the qualified combined source, except
+              # for the superseded upstream roster-description sentence.
+              test "$(git diff --name-only --diff-filter=U)" = "$CENSUS"
+              for stage in 1 2 3; do
+                git show ":$stage:$CENSUS" > "qualification-evidence/reviewed-census-$sha-$stage.lean"
+              done
+              python3 - "$sha" <<'PY'
+          import sys
+          from pathlib import Path
+          sha=sys.argv[1]
+          ev=Path("qualification-evidence")
+          base,ours,incoming=[(ev/f"reviewed-census-{sha}-{i}.lean").read_text() for i in (1,2,3)]
+          needle="def expectedDeadCensus : String :=\n"
+          def split(t):
+              assert t.count(needle)==1
+              h,rest=t.split(needle)
+              p,tail=rest.split("\n",1)
+              assert p.startswith('  "population=') and p.endswith('"')
+              return h,p,tail
+          bh,bp,bt=split(base)
+          oh,op,ot=split(ours)
+          ih,ip,it=split(incoming)
+          assert bt==ot==it, "Executable census definitions differ"
+          obsolete="  a name leaving it was deleted or reached by a capstone."
+          def normalize(h):
+              return [line for line in h.splitlines() if line!=obsolete]
+          # All incoming audit lines must occur in the existing history in order.
+          # The one obsolete prose sentence is superseded by upstream item 530.
+          assert "A-orphan" in oh and "item 530" in oh
+          def subsequence(a,b):
+              it=iter(b)
+              return all(any(x==y for y in it) for x in a)
+          assert subsequence(normalize(ih),normalize(oh)), "Missing reviewed history"
+          assert subsequence(normalize(bh),normalize(oh)), "Missing common history"
+          Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean").write_text(ours)
+          print("REVIEWED_HISTORY_ALREADY_PRESERVED",sha)
+          PY
+              git add "$CENSUS"
+              test -z "$(git diff --name-only --diff-filter=U)"
             fi
             git diff --cached --binary > "qualification-evidence/reviewed-delta-$sha.patch"
             git diff --cached --check
