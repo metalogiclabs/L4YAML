@@ -2755,9 +2755,8 @@ jobs:
           private axiom falsePropControl : False
           private axiom trueBoolControl : true = true
           
-          open Elab Command in
-          elab "#audit_root_axioms" : command => do
-            let lines ← liftCoreM <| (do
+          /-- Run only after loading the compiled module environment with extensions. -/
+          def auditRootAxioms : CoreM (Array String) := (do
               unless (← axiomAdmitted ``trueBoolControl) do
                 throwError "positive Boolean control rejected"
               if (← axiomAdmitted ``falseBoolControl) then
@@ -2780,17 +2779,43 @@ jobs:
                 rows := rows.push s!"ROOT_REPLAY {n}: raw={raw.size} validated={raw.size} rejected=0"
               rows := rows.push s!"ROOT_REPLAY_UNION raw={leaves.size} validated={leaves.size} rejected=0"
               return rows : AxiomReplayM (Array String)).run' {}
-            for line in lines do logInfo line
-          
-          set_option maxHeartbeats 0 in
-          set_option trace.L4YAML.rootAxiomReplay true in
-          #audit_root_axioms
           
           end L4YAML.Tests.Guards.RootReplayAudit
           end Blanket
           LEAN
           cp Tests/Guards/Proofs/RootReplayAudit.lean ../results/
-          lake build Tests.Guards.Proofs.RootReplayAudit 2>&1 | tee ../results/root-replay-audit.log
+          lake build Tests.Guards.Proofs.RootReplayAudit 2>&1 | tee ../results/root-replay-build.log
+          cat > tools/RootReplayMain.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.RootReplayAudit
+          public meta import Lean
+          public section
+          
+          open Lean
+          open L4YAML.Tests.Guards.RootReplayAudit
+          
+          -- Match the source-qualified #371 compiled-environment loader.
+          unsafe def runAudit : IO Unit := do
+            Lean.initSearchPath (← Lean.findSysroot)
+            Lean.enableInitializersExecution
+            let env ← Lean.importModules #[{ module := `Tests.Guards.Proofs.RootReplayAudit }] {} 0 (loadExts := true)
+            let coreCtx : Lean.Core.Context := { fileName := "<root-replay>", fileMap := default }
+            let coreState : Lean.Core.State := { env }
+            let (rows, _) ← auditRootAxioms.toIO coreCtx coreState
+            for row in rows do IO.println row
+          
+          unsafe def main : IO Unit := runAudit
+          LEAN
+          cat >> lakefile.lean <<'LAKE'
+
+          lean_exe «root-replay-audit» where
+            root := `RootReplayMain
+            srcDir := "tools"
+            supportInterpreter := true
+          LAKE
+          cp tools/RootReplayMain.lean ../results/
+          lake build root-replay-audit 2>&1 | tee ../results/root-replay-main-build.log
+          lake env .lake/build/bin/root-replay-audit 2>&1 | tee ../results/root-replay-audit.log
           grep -F ROOT_REPLAY_CONTROLS_PASS ../results/root-replay-audit.log
           grep -F ROOT_REPLAY_UNION ../results/root-replay-audit.log
           printf 'root_axiom_replay\t0\n' >> ../results/outcomes.tsv
