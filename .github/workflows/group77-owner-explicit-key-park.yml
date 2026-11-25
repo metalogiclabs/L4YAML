@@ -315,6 +315,410 @@ jobs:
           if grep -E 'sorryAx|declaration uses .sorry' ../results/owner-explicit-key-park.log; then exit 1; fi
           git diff --exit-code
           printf 'owner_explicit_key_bridge\t0\n' >> ../results/outcomes.tsv
+      - name: Close retained explicit keys at real EOF or nonmatching next landing
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/OwnerExplicitKeyClosure.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerExplicitKeyPark
+          public import L4YAML.Proofs.Scanner.ScanStrictCoupling
+          public section
+          set_option maxHeartbeats 4000000
+          namespace L4YAML.Tests.Guards.OwnerExplicitKeyClosure
+          open L4YAML L4YAML.Surface L4YAML.Scanner
+          open L4YAML.Proofs.CloseStaleExplicitKey
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScannerCoupling
+          open L4YAML.Proofs.ScalarCoupling L4YAML.Proofs.StructureCoupling
+          open L4YAML.Proofs.ScanStrictCoupling
+          open L4YAML.Proofs.BlockScalarFlowGuard L4YAML.Proofs.FlowAdjacency
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TokenEvents
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.PreprocessProduction L4YAML.Proofs.ScannerWhitespace
+          open L4YAML.Proofs.StreamAccum (white_prepend_SSLComments)
+          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
+          
+          -- Replay the previously qualified actual EOF producer on the exact owner source.
+          lemma preprocess_none_reachable_eof (sc : ScannerState) (sp : SurfPos)
+              (hcorr : ScannerSurfCorr sc sp)
+              (hok : scanNextToken_preprocess sc = .ok none) :
+              ∃ (e : ScannerState) (p : SurfPos), skipToContent sc = .ok e ∧
+                ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] := by
+            unfold scanNextToken_preprocess at hok
+            simp only [bind, Except.bind, pure, Except.pure] at hok
+            split at hok
+            · cases hok
+            · rename_i s_content h_skip
+              split at hok
+              · rename_i h_hasMore
+                obtain ⟨sp_c, hcorr_c⟩ := skipToContentLoop_ok_corr sc sp _ s_content hcorr
+                  (Nat.le_refl _) h_skip
+                have h_not_lt : ¬ s_content.offset < s_content.inputEnd := by
+                  simp [ScannerState.hasMore] at h_hasMore; omega
+                refine ⟨s_content, sp_c, h_skip, hcorr_c, ?_, eof_corr s_content sp_c hcorr_c h_not_lt⟩
+                simpa [ScannerState.hasMore] using h_not_lt
+              · rename_i h_hasMore
+                split at hok
+                · split at hok
+                  · cases hok
+                  · split at hok
+                    · rename_i h_indent h_no_trailing h_peek_none
+                      exfalso; rw [closeStaleExplicitKey_peek, saveSimpleKey_peek] at h_peek_none
+                      unfold ScannerState.peek? at h_peek_none; dsimp only [] at h_peek_none
+                      unfold unwindIndents at h_peek_none
+                      simp only [unwindIndentsLoop_offset, unwindIndentsLoop_inputEnd,
+                        unwindIndentsLoop_input] at h_peek_none
+                      split at h_peek_none
+                      · cases h_peek_none
+                      · rename_i h_not_lt; simp [ScannerState.hasMore] at h_hasMore
+                        exact h_not_lt h_hasMore
+                    · cases hok
+                · split at hok
+                  · cases hok
+                  · split at hok
+                    · rename_i h_no_indent h_no_trailing h_peek_none
+                      exfalso; rw [closeStaleExplicitKey_peek, saveSimpleKey_peek] at h_peek_none
+                      unfold ScannerState.peek? at h_peek_none
+                      split at h_peek_none
+                      · cases h_peek_none
+                      · rename_i h_not_lt; simp [ScannerState.hasMore] at h_hasMore
+                        exact h_not_lt h_hasMore
+                    · cases hok
+          
+          lemma next_none_reachable_eof (sc : ScannerState) (sp : SurfPos)
+              (hcorr : ScannerSurfCorr sc sp)
+              (hok : scanNextToken sc = .ok none) :
+              ∃ (e : ScannerState) (p : SurfPos), skipToContent sc = .ok e ∧
+                ScannerSurfCorr e p ∧ ¬ e.hasMore ∧ p.chars = [] := by
+            unfold scanNextToken at hok
+            simp only [bind, Except.bind, pure, Except.pure] at hok
+            split at hok
+            · simp at hok
+            · split at hok
+              · rename_i h_pre
+                exact preprocess_none_reachable_eof sc sp hcorr h_pre
+              · -- §9.2 dangling-node check (item 133)
+                split at hok
+                · simp at hok
+                -- §8.1 flow-value floor (item 172)
+                split at hok
+                · simp at hok
+                split at hok
+                · simp at hok
+                · split at hok
+                  · exact absurd (Except.ok.inj hok) nofun
+                  · -- pending-directives check (Fix B)
+                    split at hok
+                    · simp at hok
+                    -- §9.2 bare-document check (item 132)
+                    split at hok
+                    · simp at hok
+                    · split at hok
+                      · simp at hok
+                      · split at hok
+                        · exact absurd (Except.ok.inj hok) nofun
+                        · split at hok
+                          · simp at hok
+                          · split at hok
+                            · exact absurd (Except.ok.inj hok) nofun
+                            · -- adjacent-value check (item 47)
+                              split at hok
+                              · simp at hok
+                              · split at hok
+                                · simp at hok
+                                · exact absurd (Except.ok.inj hok) nofun
+          
+          /-- A retained explicit key without a value is an explicitEmpty map entry,
+              not an incomplete stream. This lemma only constructs the grammar route;
+              the native EOF consumer below determines when it may be spent. -/
+          lemma key_ready_close_ssl {start q after scan endp : SurfPos}
+              {n : Nat} {s : ScannerState} {ec eo ek : List Event}
+              (park : KeyReady start q after scan n s ec eo ek)
+              (hssl : SSLComments scan endp) :
+              TLYamlStream start endp (ec ++ eo ++ ek) := by
+            rcases park with ⟨gram, hq, hcorr, hrun, hgate, hkey, route⟩
+            exact route endp ek (.explicitEmpty n q after endp ek hq
+              (hkey endp (white_prepend_SSLComments hrun hssl)))
+          
+          /-- Native scanner termination is the authority for choosing the no-colon arm.
+              Retain the actual skip result and empty source, plus the trace of real tokens. -/
+          lemma key_ready_close_at_eof {start q after scan sp_block : SurfPos}
+              {n : Nat} {s : ScannerState} {ec eo ek : List Event}
+              (hS : TSLYamlStream start s sp_block ec (eo ++ ek) [])
+              (park : KeyReady start q after scan n s ec eo ek)
+              (hstop : scanNextToken s = .ok none) :
+              ∃ e sp_end, skipToContent s = .ok e ∧ ¬ e.hasMore ∧ sp_end.chars = [] ∧
+                TLYamlStream start sp_end (tokenEvents s.tokens) := by
+            rcases park with ⟨gram, hq, hcorr, hrun, hgate, hkey, route⟩
+            obtain ⟨e, p, hskip, _, heof, _⟩ := next_none_reachable_eof s scan hcorr hstop
+            obtain ⟨sp_end, hfrom, hchars, h_ok⟩ :=
+              L4YAML.Proofs.StreamAccum.skipToContent_eof_ssl_comments s scan e hcorr hskip heof
+            have hssl := L4YAML.Proofs.StreamAccum.SSLCommentsFrom_at_park hcorr hrun hgate hfrom h_ok
+            refine ⟨e, sp_end, hskip, heof, hchars, ?_⟩
+            rw [hS.total]
+            simpa [List.append_assoc] using route sp_end ek
+              (TBlockMapEntry.explicitEmpty n q after sp_end ek hq (hkey sp_end hssl))
+          
+          /-- A real nonmatching landing at or left of the key's level closes the entry
+              at the pre-indentation grammar endpoint, not at an invented suffix.
+              This leaves the next token and its fold transition to the caller. -/
+          lemma key_ready_close_before_next {start q after scan sp_next sp_block : SurfPos}
+              {n : Nat} {s next : ScannerState} {c : Char} {ec eo ek : List Event}
+              (hS : TSLYamlStream start s sp_block ec (eo ++ ek) [])
+              (park : KeyReady start q after scan n s ec eo ek)
+              (h_deeper : n < scan.col)
+              (hpre : scanNextToken_preprocess s = .ok (some (next, c)))
+              (hcorr_next : ScannerSurfCorr next sp_next)
+              (hcol : sp_next.col ≤ n)
+              (h_nonmatch : c ≠ ':' ∨ sp_next.col ≠ n)
+              (h_not_tab : c ≠ '\t') :
+              ∃ sp_mid, sp_mid.col = 0 ∧ GStar SSWhite sp_mid sp_next ∧
+                TLYamlStream start sp_mid (tokenEvents s.tokens) := by
+            rcases park with ⟨gram, hq, hcorr, hrun, hg, hkey, route⟩
+            classical
+            obtain ⟨sp_mid, sp_ws, sp_prep2, hland, hws, _, hcorr2, hpk, hsuf⟩ :=
+              L4YAML.Proofs.StreamAccum.preprocess_some_ssl_comments_landing
+                s scan next c hcorr hpre hrun hg
+            have hp := L4YAML.Proofs.StreamAccum.preprocess_some_peek hpre
+            have h_eq : sp_prep2 = sp_ws := by
+              rcases hpk with h | h
+              · exact h
+              · rw [hp] at h
+                exact False.elim (h_not_tab (Option.some.inj h))
+            have h_pe : sp_next = sp_ws :=
+              (ScannerSurfCorr_unique hcorr_next hcorr2).trans h_eq
+            rw [← h_pe] at hws
+            rcases hland with hland | hflat
+            · refine ⟨sp_mid, hland.2.1, hws, ?_⟩
+              rw [hS.total]
+              simpa [List.append_assoc] using route sp_mid ek
+                (TBlockMapEntry.explicitEmpty n q after sp_mid ek hq (hkey sp_mid hland.1))
+            · obtain ⟨ws, _, _, hcolrun⟩ := L4YAML.Proofs.StreamAccum.gstar_sswhite_run hws
+              have hmid := hflat.1
+              rw [hmid] at hcolrun
+              exfalso
+              omega
+          
+          #print axioms key_ready_close_ssl
+          #print axioms key_ready_close_at_eof
+          #print axioms key_ready_close_before_next
+          end L4YAML.Tests.Guards.OwnerExplicitKeyClosure
+          LEAN
+          cp Tests/Guards/Proofs/OwnerExplicitKeyClosure.lean ../results/
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyClosure 2>&1 | tee ../results/OwnerExplicitKeyClosure.log
+          for n in key_ready_close_ssl key_ready_close_at_eof key_ready_close_before_next; do
+            grep -F "$n" ../results/OwnerExplicitKeyClosure.log
+          done
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/OwnerExplicitKeyClosure.log; then exit 1; fi
+          git diff --exit-code
+          printf 'owner_key_closure\t0\n' >> ../results/outcomes.tsv
+      - name: Retain all explicit-key content arms and complete property keys
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/OwnerExplicitKeyContent.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerExplicitKeyPark
+          public section
+          set_option maxHeartbeats 4000000
+          namespace L4YAML.Tests.Guards.OwnerExplicitKeyContent
+          open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.CharPredicates
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.Serialization.TraceOf.ContentBridge
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScannerCoupling
+          open L4YAML.Proofs.PreprocessIndentStable
+          open L4YAML.Proofs.StreamAccum (ContentArm NextIsSep SlotGateAt)
+          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
+          
+          /-- The property belongs to the deferred key, never a completed document. -/
+          inductive KeyProps (start q after scan : SurfPos) (n : Nat)
+              (s : ScannerState) (ec eo ep : List Event) : Prop where
+            | held (sp_p : SurfPos)
+                (hq : GLit '?' q after)
+                (hcorr : ScannerSurfCorr s scan)
+                (hsep : SSeparate (n + 1) .flowOut after sp_p)
+                (hprops : TCNsProperties (n + 1) .flowOut sp_p scan ep)
+                (hnext : NextIsSep s)
+                (route : ∀ sp ev, TBlockMapEntry n q sp ev → TLYamlStream start sp (ec ++ eo ++ ev)) :
+                KeyProps start q after scan n s ec eo ep
+          
+          inductive KeyProgress (start q after scan : SurfPos) (n : Nat)
+              (s : ScannerState) (ec eo ek : List Event) : Prop where
+            | ready : KeyReady start q after scan n s ec eo ek → KeyProgress start q after scan n s ec eo ek
+            | props : KeyProps start q after scan n s ec eo ek → KeyProgress start q after scan n s ec eo ek
+          
+          /-- Every content arm preserves the deferred-key route and the exact event
+              suffix. For block and alias landings the comment gate remains explicit
+              until its scanner producer is proved; no fabricated endpoint is allowed. -/
+          lemma explicit_key_content_step
+              {start q after sp_block sp_prep sp_a : SurfPos}
+              {n : Nat} {sc s_prep s_ad s' : ScannerState} {c : Char} {ec eo : List Event}
+              (hS : TSLYamlStream start s_ad sp_block ec eo [])
+              (park : QuestionPark start q after n sc ec eo)
+              (h_next : NextIsSep sc)
+              (h_ad : s_ad = if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
+              (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+              (hcorr' : ScannerSurfCorr s' sp_a)
+              (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+              (arm : ContentArm s_ad s' c sp_prep sp_a)
+              (h_depth : s_ad.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
+              (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
+              (h_src : SlotGateAt s_prep)
+              (h_gate : (c = '*' ∨ c = '|' ∨ c = '>') → s'.col ≠ 0 →
+                  ¬ (CommentOk s' ∧ s'.peek? = some '#')) :
+              (∃ ek, TSLYamlStream start s' sp_block ec (eo ++ ek) [] ∧
+                KeyProgress start q after sp_a n s' ec eo ek) ∨
+                L4YAML.Proofs.FlowIndexLift.DedentLanding (n + 1) after sp_prep := by
+            have h_col0 : 0 < after.col := by have h := park.col; omega
+            have hflow : s_ad.inFlow = false := by unfold ScannerState.inFlow; rw [h_depth]; rfl
+            have hcorr_ad : ScannerSurfCorr s_ad sp_prep := by
+              rw [h_ad]
+              exact L4YAML.Proofs.StreamAccum.corr_of_allowDirectives_update hcorr_prep
+            have hpeek : s_ad.peek? = some c := by
+              rw [h_ad]
+              have := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
+              split <;> exact this
+            rcases TPendingNode.content_sep_of_preprocess h_ad park.floor park.col h_col0 h_next park.corr
+                hcorr_prep hcorr' h_preprocess h_not_doc hflow h_dispatch h_src with
+              ⟨h_sep, h_fl⟩ | h_ded
+            · obtain ⟨ek, hpt, hdisj⟩ := accum_step_content_trace_out arm hcorr_ad hpeek h_depth h_dispatch
+              refine Or.inl ⟨ek, ⟨hS.stream, by rw [hpt.goOut_at [], hS.events]; simp⟩, ?_⟩
+              have h_scalar : ek = [] → (c ≠ '&' ∧ c ≠ '!' ∧ c ≠ '*') →
+                  KeyProgress start q after sp_a n s' ec eo ek := fun hev h_value => by
+                subst ek
+                by_cases hbs : c = '|' ∨ c = '>'
+                · obtain ⟨sp_bs, d, h_floor, _, hcorr_bs, h_absorb⟩ :=
+                    L4YAML.Proofs.StreamAccum.dispatchContent_blockScalar_prod_at s_ad sp_prep hcorr_ad hpeek hbs h_dispatch
+                  have heq := ScannerSurfCorr_unique hcorr_bs hcorr'
+                  rw [heq] at h_absorb
+                  have hn : n + 1 ≤ d := by
+                    unfold minContentIndentOf at h_fl
+                    exact Nat.le_trans h_fl h_floor
+                  refine .ready (.ready sp_a park.question hcorr' (GStar.nil _) (fun _ => h_gate (Or.inr hbs)) ?_ park.route)
+                  intro sp_mid h_ssl
+                  exact .node n .blockOut _ _ [] ((h_absorb sp_mid h_ssl).elim
+                    (fun hl => .blockLiteral (n + 1) .blockOut after sp_prep sp_prep sp_mid [] h_sep (TOpt.none _) (hl (n + 1) hn))
+                    (fun hf => .blockFolded (n + 1) .blockOut after sp_prep sp_prep sp_mid [] h_sep (TOpt.none _) (hf (n + 1) hn)))
+                · obtain ⟨sp_gram, sp_res, hT, hws, hgate, hcorr_res⟩ :=
+                    content_leaf_at_retained (n + 1) hcorr_ad hpeek hflow h_not_doc
+                      h_value.1 h_value.2.2 h_value.2.1 (fun h => hbs (Or.inl h)) (fun h => hbs (Or.inr h))
+                      h_dispatch h_fl
+                  obtain rfl : sp_res = sp_a := ScannerSurfCorr_unique hcorr_res hcorr'
+                  refine .ready (.ready sp_gram park.question hcorr' hws hgate ?_ park.route)
+                  intro sp_mid h_ssl
+                  exact .node n .blockOut _ _ []
+                    (.flowInBlock (n + 1) .blockOut _ _ _ _ [] h_sep (.content _ _ _ _ _ hT) h_ssl)
+              rcases hdisj with ⟨hev, -, -, -, -, hv⟩ | ⟨hev, hc, -⟩ | ⟨hev, hc, -⟩ |
+                  ⟨hc, ha, hn⟩ | ⟨hc, ht, hn⟩ | ⟨hc, hal⟩
+              · exact h_scalar hev hv
+              · exact h_scalar hev (by rcases hc with h | h <;> subst h <;> decide)
+              · exact h_scalar hev (by rcases hc with h | h <;> subst h <;> decide)
+              · exact .props (.held sp_prep park.question hcorr' h_sep
+                  (by simpa using TCNsProperties.anchorFirst sp_prep sp_a sp_a ek [] ha (TOpt.none _))
+                  hn park.route)
+              · exact .props (.held sp_prep park.question hcorr' h_sep
+                  (by simpa using TCNsProperties.tagFirst sp_prep sp_a sp_a ek [] ht (TOpt.none _))
+                  hn park.route)
+              · refine .ready (.ready sp_a park.question hcorr' (GStar.nil _)
+                  (fun _ => h_gate (Or.inl hc)) ?_ park.route)
+                intro sp_mid h_ssl
+                exact .node n .blockOut _ _ ek
+                  (.flowInBlock (n + 1) .blockOut _ _ _ _ ek h_sep (.alias _ _ _ _ _ hal) h_ssl)
+            · exact Or.inr h_ded
+          
+          /-- A held property may describe an empty key, but its event is retained. -/
+          lemma props_empty_key_ready {start q after scan : SurfPos}
+              {n : Nat} {s : ScannerState} {ec eo ep : List Event}
+              (park : KeyProps start q after scan n s ec eo ep)
+              (hgate : s.col ≠ 0 → ¬ (CommentOk s ∧ s.peek? = some '#')) :
+              KeyReady start q after scan n s ec eo ep := by
+            rcases park with ⟨sp_p, hq, hc, hs, hp, hn, route⟩
+            refine .ready scan hq hc (GStar.nil _) (fun _ => hgate) ?_ route
+            intro sp_mid h_ssl
+            exact .node n .blockOut _ _ ep
+              (.flowInBlock (n + 1) .blockOut _ _ _ _ ep hs (.propsEmpty _ _ _ _ _ hp) h_ssl)
+          
+          /-- Scalar content after an anchor/tag belongs to that key. The scalar is
+              silent while the property events remain in the scanner and grammar.
+              The actual preprocessing supplies separation or a distinct dedent. -/
+          lemma props_scalar_key_step
+              {start q after scan sp_block sp_prep sp_a : SurfPos}
+              {n : Nat} {sc s_prep s_ad s' : ScannerState} {c : Char} {ec eo ep : List Event}
+              (hS : TSLYamlStream start s_ad sp_block ec (eo ++ ep) [])
+              (park : KeyProps start q after scan n sc ec eo ep)
+              (hf : IndentFloor sc (n + 1)) (hcol : n + 1 ≤ scan.col)
+              (h_ad : s_ad = if s_prep.allowDirectives then
+                { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
+              (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+              (hcorr' : ScannerSurfCorr s' sp_a)
+              (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+              (arm : ContentArm s_ad s' c sp_prep sp_a)
+              (h_depth : s_ad.flowLevel = 0)
+              (h_dispatch : scanNextToken_dispatchContent s_ad c = .ok s')
+              (h_not_doc : s_ad.col = 0 → atDocumentBoundary s_ad = false)
+              (h_amp : c ≠ '&') (h_star : c ≠ '*') (h_bang : c ≠ '!')
+              (h_pipe : c ≠ '|') (h_gt : c ≠ '>')
+              (h_src : SlotGateAt s_prep) :
+              (TSLYamlStream start s' sp_block ec (eo ++ ep) [] ∧
+                KeyReady start q after sp_a n s' ec eo ep) ∨
+                L4YAML.Proofs.FlowIndexLift.DedentLanding (n + 1) scan sp_prep := by
+            rcases park with ⟨sp_p, hq, hc, hs, hprops, hn, route⟩
+            have hflow : s_ad.inFlow = false := by unfold ScannerState.inFlow; rw [h_depth]; rfl
+            have hcorr_ad : ScannerSurfCorr s_ad sp_prep := by
+              rw [h_ad]; exact L4YAML.Proofs.StreamAccum.corr_of_allowDirectives_update hcorr_prep
+            have hpeek : s_ad.peek? = some c := by
+              rw [h_ad]
+              have := L4YAML.Proofs.StreamAccum.preprocess_some_peek h_preprocess
+              split <;> exact this
+            rcases TPendingNode.content_sep_of_preprocess h_ad hf hcol (by omega) hn hc
+                hcorr_prep hcorr' h_preprocess h_not_doc hflow h_dispatch h_src with
+              ⟨h_sep, h_fl⟩ | h_ded
+            · obtain ⟨sp_gram, sp_res, hT, hws, hgate, hcorr_res⟩ :=
+                content_leaf_at_retained (n + 1) hcorr_ad hpeek hflow h_not_doc
+                  h_amp h_star h_bang h_pipe h_gt h_dispatch h_fl
+              obtain rfl : sp_res = sp_a := ScannerSurfCorr_unique hcorr_res hcorr'
+              obtain ⟨ev_n, hpt, hdisj⟩ := accum_step_content_trace_out arm hcorr_ad hpeek h_depth h_dispatch
+              have hev : ev_n = [] := by
+                rcases hdisj with ⟨hev, -⟩ | ⟨hev, -⟩ | ⟨hev, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩
+                · exact hev
+                · exact hev
+                · exact hev
+                · exact absurd hc h_amp
+                · exact absurd hc h_bang
+                · exact absurd hc h_star
+              subst ev_n
+              refine Or.inl ⟨⟨hS.stream, by rw [hpt.goOut_at [], hS.events]; simp⟩,
+                .ready sp_gram hq hcorr' hws hgate ?_ route⟩
+              intro sp_mid h_ssl
+              exact .node n .blockOut _ _ ep
+                (.flowInBlock (n + 1) .blockOut _ _ _ _ ep hs
+                  (by simpa using TFlowNode.propsContent (n + 1) .flowOut sp_p scan sp_prep sp_gram ep [] hprops h_sep hT)
+                  h_ssl)
+            · exact Or.inr h_ded
+          
+          #print axioms explicit_key_content_step
+          #print axioms props_empty_key_ready
+          #print axioms props_scalar_key_step
+          end L4YAML.Tests.Guards.OwnerExplicitKeyContent
+          LEAN
+          cp Tests/Guards/Proofs/OwnerExplicitKeyContent.lean ../results/
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyContent 2>&1 | tee ../results/OwnerExplicitKeyContent.log
+          for n in explicit_key_content_step props_empty_key_ready props_scalar_key_step; do
+            grep -F "$n" ../results/OwnerExplicitKeyContent.log
+          done
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/OwnerExplicitKeyContent.log; then exit 1; fi
+          git diff --exit-code
+          printf 'owner_key_content\t0\n' >> ../results/outcomes.tsv
       - uses: actions/upload-artifact@v4
         if: always()
         with:
