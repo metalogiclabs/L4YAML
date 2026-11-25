@@ -1,4 +1,4 @@
-name: Owner explicit-key reconciled native fold
+name: Owner explicit-key native content fold and reachability boundary
 on:
   push:
     branches: [fix/explicit-key-native-fold]
@@ -718,199 +718,6 @@ jobs:
           if grep -E 'sorryAx|declaration uses .sorry' ../results/OwnerExplicitKeyContent.log; then exit 1; fi
           git diff --exit-code
           printf 'owner_key_content\t0\n' >> ../results/outcomes.tsv
-      - name: Replay exact owner key theorem axiom closure
-        working-directory: upstream
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > Tests/Guards/Proofs/OwnerKeyReplayAudit.lean <<'LEAN'
-          module
-          public import Tests.Guards.Proofs.OwnerExplicitKeyClosure
-          public import Tests.Guards.Proofs.OwnerExplicitKeyContent
-          public meta import Tests.Guards.Proofs.OwnerExplicitKeyClosure
-          public meta import Tests.Guards.Proofs.OwnerExplicitKeyContent
-          public import Lean.Meta.Native
-          public meta import Lean
-          set_option compiler.relaxedMetaCheck true
-          @[expose] public section Blanket
-          namespace L4YAML.Tests.Guards.OwnerKeyReplayAudit
-          open Lean
-          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
-          open L4YAML.Tests.Guards.OwnerExplicitKeyClosure
-          open L4YAML.Tests.Guards.OwnerExplicitKeyContent
-          
-          -- Replay policy verbatim from #371, except namespace and trace class.
-          -- Source: metalogiclabs/L4YAML@46283c63ceb82e3ceb16e19a7a4e802ba844a777
-          -- Blob: 7f7d9e3079018c8486ed85d1640247c758971e72
-          /-- Axioms admitted without replay. All other dependencies, including private
-              and generated-looking names, must pass `replayBooleanAxiom`. -/
-          def allowedCapstoneAxioms : List Name :=
-            [``propext, ``Classical.choice, ``Quot.sound]
-          
-          initialize registerTraceClass `L4YAML.ownerKeyAxiomReplay
-          
-          /-- Validate the proposition of a nonstandard Boolean axiom independently of
-              its name. Lean 4.36's `nativeEqTrue` records an ordinary `Eq Bool e true`
-              axiom and an optional source range; neither authenticates tactic origin.
-          
-              The claim must be closed and its transitive axiom dependencies must be
-              only itself and the standard foundations. In particular a computation
-              carrying an arbitrary proof assumption is rejected before evaluation.
-              First try a fresh kernel-checked reflexivity proof (with kernel checking
-              forced on and a small finite budget). If opacity or cost prevents that,
-              replay the closed Boolean
-              with Lean's native evaluator, the same additional trust as native_decide.
-              The temporary declaration/environment is discarded. Unreadable claims,
-              exceptions, non-Boolean axioms and a false computation fail closed.
-          
-              A fabricated but independently true Boolean assertion can pass replay;
-              this is claim validation, not a declaration-origin certificate. Callers
-              must retain raw axiom counts rather than claim that no axiom was declared. -/
-          def replayBooleanAxiom (name : Name) : CoreM Bool := withCurrHeartbeats do
-            try
-              let env := (← getEnv).setExporting false
-              -- Read the checked kernel environment, as `collectAxioms` does. During
-              -- asynchronous/module elaboration, the public elaborator view can omit
-              -- generated axioms even though the checked proof already depends on them.
-              let some (.axiomInfo info) := env.toKernelEnv.find? name | do
-                trace[L4YAML.ownerKeyAxiomReplay] "unreadable: {name}"
-                return false
-              if info.isUnsafe then return false
-              let .app (.app (.app (.const ``Eq _) (.const ``Bool _)) lhs)
-                  (.const ``Bool.true _) := info.type | do
-                trace[L4YAML.ownerKeyAxiomReplay] "not Boolean: {name}: {info.type}"
-                return false
-              if lhs.hasFVar || lhs.hasMVar || lhs.hasLooseBVars then return false
-              let deps ← collectAxioms name
-              unless deps.all (fun a => a == name || allowedCapstoneAxioms.contains a) do
-                trace[L4YAML.ownerKeyAxiomReplay] "dependencies: {name}: {deps}"
-                return false
-              let proofName ← mkFreshUserName `_l4yamlAxiomReplay
-              let decl := Declaration.thmDecl {
-                name := proofName
-                levelParams := info.levelParams
-                type := info.type
-                value := mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Bool) lhs
-              }
-              let opts := debug.skipKernelTC.set (← getOptions) false
-              -- Do not spend the full elaboration budget reducing a large finite test
-              -- in the kernel before replaying it with the evaluator that produced it.
-              let budget := maxHeartbeats.get opts
-              let opts := maxHeartbeats.set opts (if budget == 0 then 2000 else min budget 2000)
-              match env.toKernelEnv.addDecl opts decl with
-              | .ok _ =>
-                trace[L4YAML.ownerKeyAxiomReplay] "kernel validated: {name}"
-                return true
-              | .error _ =>
-                trace[L4YAML.ownerKeyAxiomReplay] "native fallback: {name}"
-                let result ← ((do
-                  withoutModifyingEnv do
-                    setEnv env
-                    withOptions (debug.skipKernelTC.set · false) do
-                      Meta.nativeEqTrue `l4yaml_axiom_replay lhs : MetaM Meta.NativeEqTrueResult).run' {} {})
-                match result with
-                | .success _ =>
-                  trace[L4YAML.ownerKeyAxiomReplay] "native validated: {name}"
-                  return true
-                | .notTrue => return false
-            catch ex =>
-              trace[L4YAML.ownerKeyAxiomReplay] "replay exception: {name}: {ex.toMessageData}"
-              return false
-          
-          /-- Per-invocation cache: a shared dependency is replayed once per gate/census.
-              It is never reused after an environment or source change. -/
-          abbrev AxiomReplayM := StateT (NameMap Bool) CoreM
-          
-          /-- Common admission rule used by the capstone and compiled-environment gates.
-              Namespace, private visibility and generated-looking names grant no exemption. -/
-          def axiomAdmitted (name : Name) : AxiomReplayM Bool := do
-            if allowedCapstoneAxioms.contains name then return true
-            if let some accepted := (← get).find? name then return accepted
-            let accepted ← replayBooleanAxiom name
-            modify fun cache => cache.insert name accepted
-            return accepted
-          
-          /-- Unsupported transitive dependencies of a declaration, including assumptions
-              outside the declaration's namespace. -/
-          def unvalidatedAxioms (name : Name) : AxiomReplayM (Array Name) := do
-            let axs ← collectAxioms name
-            axs.filterM fun a => return !(← axiomAdmitted a)
-          
-          
-          -- Negative/positive controls are deliberately confined to this audit module.
-          private axiom falseBoolControl : false = true
-          private axiom falsePropControl : False
-          private axiom trueBoolControl : true = true
-          
-          /-- Run only after loading the compiled module environment with extensions. -/
-          def auditOwnerKeyAxioms : CoreM (Array String) := (do
-              unless (← axiomAdmitted ``trueBoolControl) do
-                throwError "positive Boolean control rejected"
-              if (← axiomAdmitted ``falseBoolControl) then
-                throwError "false Boolean control accepted"
-              if (← axiomAdmitted ``falsePropControl) then
-                throwError "unsupported proposition control accepted"
-              let mut rows : Array String := #["OWNER_KEY_REPLAY_CONTROLS_PASS"]
-              let mut leaves : Array Name := #[]
-              let names : Array (Name × Nat) := #[( ``question_park_from_scan, 0),
-                (``explicit_scalar_content_step, 39), (``retained_key_to_owner_value_park, 0),
-                (``key_ready_close_ssl, 0), (``key_ready_close_at_eof, 0), (``key_ready_close_before_next, 0),
-                (``explicit_key_content_step, 39), (``props_empty_key_ready, 0), (``props_scalar_key_step, 39)]
-              for (n, expected) in names do
-                let axs ← collectAxioms n
-                let raw := axs.filter fun a => !allowedCapstoneAxioms.contains a
-                unless raw.size == expected do
-                  throwError "owner key axiom census changed for {n}: expected {expected}, got {raw.size}"
-                for a in raw do
-                  unless leaves.contains a do leaves := leaves.push a
-                let rejected ← unvalidatedAxioms n
-                unless rejected.isEmpty do
-                  throwError "owner key replay failed for {n}: {rejected}"
-                rows := rows.push s!"OWNER_KEY_REPLAY {n}: raw={raw.size} validated={raw.size} rejected=0"
-              unless leaves.size == 39 do throwError "owner key axiom union changed: {leaves.size}"
-              for a in leaves do rows := rows.push s!"OWNER_KEY_REPLAY_LEAF {a}"
-              rows := rows.push s!"OWNER_KEY_REPLAY_UNION raw={leaves.size} validated={leaves.size} rejected=0"
-              return rows : AxiomReplayM (Array String)).run' {}
-          
-          end L4YAML.Tests.Guards.OwnerKeyReplayAudit
-          end Blanket
-          LEAN
-          cp Tests/Guards/Proofs/OwnerKeyReplayAudit.lean ../results/
-          lake build Tests.Guards.Proofs.OwnerKeyReplayAudit 2>&1 | tee ../results/owner-key-replay-build.log
-          cat > tools/OwnerKeyReplayMain.lean <<'LEAN'
-          module
-          public import Tests.Guards.Proofs.OwnerKeyReplayAudit
-          public meta import Lean
-          public section
-          
-          open Lean
-          open L4YAML.Tests.Guards.OwnerKeyReplayAudit
-          
-          -- Match the source-qualified #371 compiled-environment loader.
-          unsafe def runAudit : IO Unit := do
-            Lean.initSearchPath (← Lean.findSysroot)
-            Lean.enableInitializersExecution
-            let env ← Lean.importModules #[{ module := `Tests.Guards.Proofs.OwnerKeyReplayAudit }] {} 0 (loadExts := true)
-            let coreCtx : Lean.Core.Context := { fileName := "<owner-key-replay>", fileMap := default }
-            let coreState : Lean.Core.State := { env }
-            let (rows, _) ← auditOwnerKeyAxioms.toIO coreCtx coreState
-            for row in rows do IO.println row
-          
-          unsafe def main : IO Unit := runAudit
-          LEAN
-          cat >> lakefile.lean <<'LAKE'
-
-          lean_exe «owner-key-replay-audit» where
-            root := `OwnerKeyReplayMain
-            srcDir := "tools"
-            supportInterpreter := true
-          LAKE
-          cp tools/OwnerKeyReplayMain.lean ../results/
-          lake build owner-key-replay-audit 2>&1 | tee ../results/owner-key-replay-main-build.log
-          lake env .lake/build/bin/owner-key-replay-audit 2>&1 | tee ../results/owner-key-replay-audit.log
-          grep -F OWNER_KEY_REPLAY_CONTROLS_PASS ../results/owner-key-replay-audit.log
-          grep -Fx 'OWNER_KEY_REPLAY_UNION raw=39 validated=39 rejected=0' ../results/owner-key-replay-audit.log
-          printf 'owner_key_axiom_replay\t0\n' >> ../results/outcomes.tsv
       - name: Retain actual native transition producer index and pair colon route with owner fold
         working-directory: upstream
         shell: bash
@@ -1001,7 +808,7 @@ jobs:
           open L4YAML.Tests.Guards.OwnerExplicitKeyPark
           
           /-- Compare the actual event fold at every pending TAG state. -/
-          def SilentTokens (a b : Array (Positioned YamlToken)) : Prop :=
+          @[expose] def SilentTokens (a b : Array (Positioned YamlToken)) : Prop :=
             ∀ p, goOut b.toList p = goOut a.toList p
           
           private lemma silent_refl (a : Array (Positioned YamlToken)) : SilentTokens a a := by
@@ -1164,6 +971,502 @@ jobs:
               print('OWNER_NATIVE_TRANSPORT_STANDARD_AXIOMS_ONLY', name, sorted(actual))
           PY
           printf 'owner_native_event_transport\t0\n' >> ../results/outcomes.tsv
+      - name: Test actual native prefixes and consume successful colon through owner content fold
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >> Tests/AdversarialInstantiation.lean <<'ADVERSARIAL'
+          /- Priority 142, Group 7.7 scan_trace: actual native prefixes for the
+             reconciled explicit-key transport and owner content-fold experiment. -/
+          public section
+          namespace Tests.AdversarialInstantiation.P142Test
+          open L4YAML L4YAML.Scanner
+          open L4YAML.Proofs.Serialization.TokenEvents
+          
+          private def require (ok : Bool) (label : String) : IO Unit :=
+            unless ok do throw (IO.userError label)
+          
+          private def walk (input : String) (s : ScannerState) (fuel : Nat) : IO Nat := do
+            match fuel with
+            | 0 => throw (IO.userError s!"P142 exhausted diagnostic fuel: {repr input}")
+            | fuel + 1 =>
+              match scanNextToken s with
+              | .error e => throw (IO.userError s!"P142 unexpected scan refusal: {repr input}: {repr e}")
+              | .ok none => return 0
+              | .ok (some out) =>
+                let .ok (some (prep, c)) := scanNextToken_preprocess s
+                  | throw (IO.userError "P142 successful scanner step without preprocessing")
+                for pending in ([[], ["h"], ["a", "b"]] : List (List String)) do
+                  require (goOut prep.tokens.toList pending == goOut s.tokens.toList pending)
+                    "P142 preprocessing changed event fold"
+                for f in [0, 1, 2] do
+                  require (goOut (unwindIndentsLoop prep (-1) f).tokens.toList [] ==
+                    goOut prep.tokens.toList []) "P142 unwind changed event fold"
+                let mut seen := 0
+                if c == ':' && !prep.inFlow && !prep.allowDirectives && isValueCandidate prep then
+                  let .ok scanned := scanValue prep
+                    | throw (IO.userError "P142 native colon did not use successful scanValue")
+                  require (scanned.tokens == out.tokens && scanned.offset == out.offset &&
+                    scanned.line == out.line && scanned.col == out.col)
+                    "P142 actual colon result disagrees with scanValue"
+                  if !(scanValueClearKey prep).simpleKey.possible then
+                    require (!out.needIndentCheck && (prep.col : Int) <= out.currentIndent)
+                      "P142 cleared colon did not supply shifted value floor"
+                    for pending in ([[], ["h"], ["a", "b"]] : List (List String)) do
+                      require (goOut out.tokens.toList pending == goOut prep.tokens.toList pending)
+                        "P142 cleared colon changed event fold"
+                    seen := 1
+                return seen + (← walk input out fuel)
+          
+          public def runControls : IO Unit := do
+            let inputs := ["? a\n: b", "? 'a'\n: \"b\"", "? \"a\"\n: 'b'",
+              "? &a key\n: value", "? !foo key\n: value", "base: &a x\n? *a\n: value",
+              "? |\n  key\n: value", "? >\n  key\n: value", "?\n: value",
+              "? a # key\n: b # value", "? &a !foo key\n: value",
+              "? a\n: &b value", "? a\n: !foo value", "? &b a\n: *b",
+              "? : value", "? ? x\n  : y\n: z"]
+            let mut reached := 0
+            for input in inputs do
+              let s := (ScannerState.mk' input).emit .streamStart
+              reached := reached + (← walk input s (4 * (input.utf8ByteSize + 1)))
+            require (reached >= 12) "P142 insufficient nonvacuous cleared-colon cases"
+            require (match scan "? *a\n: value" with
+              | .error (.undefinedAlias _ _ _) => true
+              | _ => false) "P142 undefined-alias negative control was admitted"
+            -- The guard cannot be erased for arbitrary, fabricated scanner states:
+            -- a forged saved-key index can overwrite a real anchor event.
+            let seed := ScannerState.mk' ": "
+            let pos := seed.currentPos
+            let bad : ScannerState := { seed with
+              tokens := #[⟨pos, .anchor "sentinel", pos⟩, ⟨pos, .placeholder, pos⟩]
+              simpleKey := { possible := true, tokenIndex := 0, pos := pos } }
+            let .ok out := scanValue bad
+              | throw (IO.userError "P142 forged-state negative control did not execute")
+            require (tokenEvents bad.tokens != tokenEvents out.tokens)
+              "P142 forged-state negative control failed to refute unconditional transport"
+            IO.println s!"OWNER_NATIVE_EXECUTION_CONTROLS_PASS inputs={inputs.length} reached={reached} forged_state_refutation=1"
+          
+          end Tests.AdversarialInstantiation.P142Test
+          ADVERSARIAL
+          cat > Tests/Guards/Proofs/OwnerExplicitKeyExecutionControls.lean <<'LEAN'
+          module
+          public import Tests.AdversarialInstantiation
+          public meta import Tests.AdversarialInstantiation
+          #eval Tests.AdversarialInstantiation.P142Test.runControls
+          LEAN
+          cp Tests/Guards/Proofs/OwnerExplicitKeyExecutionControls.lean ../results/
+          git diff -- Tests/AdversarialInstantiation.lean > ../results/adversarial-extension.patch
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyExecutionControls 2>&1 | tee ../results/owner-native-execution-controls.log
+          grep -F 'OWNER_NATIVE_EXECUTION_CONTROLS_PASS inputs=16 reached=16 forged_state_refutation=1' ../results/owner-native-execution-controls.log
+          cat > Tests/Guards/Proofs/OwnerExplicitKeyExecution.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerExplicitKeyTransport
+          public import Tests.Guards.Proofs.OwnerExplicitKeyContent
+          public section
+          set_option maxHeartbeats 4000000
+          namespace L4YAML.Tests.Guards.OwnerExplicitKeyExecution
+          open L4YAML L4YAML.Scanner L4YAML.Surface
+          open L4YAML.Proofs.Serialization.SerializationWellFormed
+          open L4YAML.Proofs.Serialization.TokenEvents
+          open L4YAML.Proofs.Serialization.TraceOf
+          open L4YAML.Proofs.Serialization.TraceOf.DocBridge
+          open L4YAML.Proofs.Serialization.TraceOf.StreamBridge
+          open L4YAML.Proofs.Serialization.TraceOf.ContentBridge
+          open L4YAML.Proofs.CouplingBridge L4YAML.Proofs.ScannerCoupling
+          open L4YAML.Proofs.ScannerCorrectness L4YAML.Proofs.PreprocessIndentStable
+          open L4YAML.Proofs.StreamAccum
+          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
+          open L4YAML.Tests.Guards.OwnerExplicitKeyTransport
+          
+          /- Capstone path: native successful colon step -> owner value park ->
+             content_step_park -> scan_trace -> Group 7.7. Runtime branch classifiers
+             remain explicit; no universal scanner correctness claim is assumed. -/
+          
+          /-- Read the actual value scan from the complete successful scanner dispatch.
+              No independently supplied equation about scanValue's returned state. -/
+          lemma scanNextToken_colon_scan {s prep out : ScannerState}
+              (hpre : scanNextToken_preprocess s = .ok (some (prep, ':')))
+              (hflow : prep.inFlow = false) (hallow : prep.allowDirectives = false)
+              (hcandidate : isValueCandidate prep = true)
+              (hnext : scanNextToken s = .ok (some out)) :
+              scanValue prep = .ok out := by
+            have hp := preprocess_some_peek hpre
+            have hp0 : prep.peekAt? 0 = some ':' := by
+              simpa [ScannerState.peekAt?, ScannerState.peekAt?Loop, ScannerState.peek?] using hp
+            have hds : atDocumentStart prep = false := by simp [atDocumentStart, hp0]
+            have hde : atDocumentEnd prep = false := by simp [atDocumentEnd, hp0]
+            have hstruct : scanNextToken_dispatchStructural prep ':' = .ok none := by
+              simp [scanNextToken_dispatchStructural, hflow, hds, hde, pure, Except.pure]
+            have hfi : scanNextToken_dispatchFlowIndicators prep ':' = .ok none := by
+              simp [scanNextToken_dispatchFlowIndicators, scanNextToken_checkFlowAdjacency, hflow,
+                pure, Except.pure, bind, Except.bind]
+            simp only [scanNextToken, hpre, bind, Except.bind, pure, Except.pure] at hnext
+            split at hnext
+            · cases hnext
+            · split at hnext
+              · cases hnext
+              · simp only [hstruct, hallow, Bool.false_eq_true, ite_false,
+                  hfi, scanNextToken_dispatchBlockIndicators, hcandidate] at hnext
+                simp only [bind, Except.bind, pure, Except.pure] at hnext
+                generalize hval : scanValue prep = vr at hnext
+                cases vr with
+                | error e =>
+                  repeat' split at hnext
+                  all_goals simp_all
+                | ok v =>
+                  repeat' split at hnext
+                  all_goals simp_all
+          
+          /-- The cleared-key branch itself supplies the shifted value floor. -/
+          lemma scanValue_cleared_floor {s out : ScannerState} {n : Nat}
+              (hflow : s.inFlow = false) (hnic : s.needIndentCheck = false)
+              (hcol : s.col = n)
+              (hclear : (scanValueClearKey s).simpleKey.possible = false)
+              (hscan : scanValue s = .ok out) : IndentFloor out (n + 1) := by
+            have hnic' := (scanValue_needIndentCheck hscan).trans hnic
+            apply IndentFloor.succ_of_int_le hnic'
+            subst n
+            unfold scanValue at hscan
+            simp only [bind, Except.bind] at hscan
+            split at hscan
+            · cases hscan
+            · rename_i u hvalid
+              cases u
+              split at hscan
+              · cases hscan
+              · split at hscan
+                · cases hscan
+                · have he := Except.ok.inj hscan
+                  subst out
+                  obtain ⟨hcol, hind, hfl, hpos, _, _, _⟩ :=
+                    L4YAML.Proofs.PreprocessIndentStable.scanValueClearKey_fields s
+                  have hfresh : (scanValueClearKey s).simpleKey.possible = true →
+                      (scanValueClearKey s).simpleKey.pos.col = (scanValueClearKey s).col := by
+                    intro hp; rw [hclear] at hp; cases hp
+                  have hfloor := scanValuePrepare_col_le
+                    (s := scanValueClearKey s) (by rw [hfl]; exact hflow) hfresh hvalid
+                  rw [hcol] at hfloor
+                  change (s.col : Int) ≤
+                    (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).currentIndent
+                  rw [currentIndent_of_indents_eq
+                    (show (((scanValuePrepare (scanValueClearKey s)).emit YamlToken.value).advance).indents
+                      = (scanValuePrepare (scanValueClearKey s)).indents from by
+                        rw [advance_indents]; rfl)]
+                  exact hfloor
+          
+          /-- Consume the native colon return and the next native content dispatch in
+              the owner's actual content fold. The value floor, column, separator,
+              ContentArm and token/event transport are derived, not caller premises.
+              A dedent remains a genuine separate outcome. -/
+          lemma matched_colon_content_fold
+              {start q after scan sp_colon sp_block sp_value : SurfPos} {n : Nat}
+              {s colon out prep ad value : ScannerState} {c : Char} {ec eo ek : List Event}
+              (hS : TSLYamlStream start s sp_block ec (eo ++ ek) [])
+              (park : KeyReady start q after scan n s ec eo ek)
+              (hdeeper : n < scan.col) (hcol : sp_colon.col = n)
+              (hflow : colon.inFlow = false) (hallow : colon.allowDirectives = false)
+              (hcandidate : isValueCandidate colon = true)
+              (hpre : scanNextToken_preprocess s = .ok (some (colon, ':')))
+              (hcorr : ScannerSurfCorr colon sp_colon)
+              (hnext : scanNextToken s = .ok (some out))
+              (hclear : (scanValueClearKey colon).simpleKey.possible = false)
+              (hvaluepre : scanNextToken_preprocess out = .ok (some (prep, c)))
+              (had : ad = if prep.allowDirectives then
+                { prep with allowDirectives := false, documentEverStarted := true } else prep)
+              (hcorr_value : ScannerSurfCorr prep sp_value)
+              (hdispatch : scanNextToken_dispatchContent ad c = .ok value)
+              (hnotdoc : ad.col = 0 → atDocumentBoundary ad = false)
+              (hsrc : SlotGateAt prep) :
+              ∃ sp_after, ScannerSurfCorr out sp_after ∧
+                ((∃ sp_result ev, ScannerSurfCorr value sp_result ∧
+                  TSLYamlStream start value sp_block ec ((eo ++ ek) ++ ev) [] ∧
+                  TPendingNode start false sp_block sp_result ec ((eo ++ ek) ++ ev) []) ∨
+                  L4YAML.Proofs.FlowIndexLift.DedentLanding (n + 1) sp_after sp_value) := by
+            have hcolon := scanNextToken_colon_scan hpre hflow hallow hcandidate hnext
+            obtain ⟨sp_after, hcorr_after, hS_after, hpending, hpark⟩ :=
+              matched_colon_owner_fold_native_trace (vc := c) hS park hdeeper hcol hflow hpre hcorr hcolon hclear
+            refine ⟨sp_after, hcorr_after, ?_⟩
+            have hscflow := sc_noflow_of_prep hpre hflow
+            have hnic := L4YAML.Proofs.PropsRunLineCoupling.preprocess_some_needIndentCheck_false hscflow hpre
+            have hfloor := scanValue_cleared_floor hflow hnic (hcorr.col_eq.symm.trans hcol) hclear hcolon
+            have h_col_after : n + 1 ≤ sp_after.col := by
+              obtain ⟨sp', hlit, hcorr'⟩ := L4YAML.Proofs.StructureProduction.scanValue_prod
+                colon sp_colon hcorr (preprocess_some_peek hpre) out hcolon
+              have heq := ScannerSurfCorr_unique hcorr' hcorr_after
+              rw [heq] at hlit
+              cases hlit
+              simp_all
+            have hnflow : out.inFlow = false := by
+              unfold ScannerState.inFlow at hflow ⊢
+              rw [scanValue_preserves_flowLevel colon out hcolon]; exact hflow
+            have hdepth : ad.flowLevel = 0 := by
+              have hf := preprocess_preserves_flowLevel out prep c hvaluepre
+              have hzero : out.flowLevel = 0 := by
+                simpa [ScannerState.inFlow] using hnflow
+              rw [had]
+              split <;> simpa [hf] using hzero
+            have hcorr_ad : ScannerSurfCorr ad sp_value := by
+              rw [had]; exact corr_of_allowDirectives_update hcorr_value
+            have hpeek : ad.peek? = some c := by
+              have hp := preprocess_some_peek hvaluepre
+              rw [had]; split <;> exact hp
+            obtain ⟨sp_result, harm⟩ := contentArm_of_dispatch ad sp_value c hcorr_ad hpeek
+              hnotdoc (by intro hp; omega) hdispatch
+            have hcorr_result : ScannerSurfCorr value sp_result := by
+              cases harm <;> assumption
+            have hS_ad : TSLYamlStream start ad sp_block ec (eo ++ ek) [] := by
+              refine ⟨hS_after.stream, ?_⟩
+              have hs := preprocess_silent hvaluepre []
+              have ht : ad.tokens = prep.tokens := by rw [had]; split <;> rfl
+              rw [ht, hs, hS_after.events]
+            rcases TPendingNode.content_step_park hS_ad hpark had hfloor h_col_after (by omega)
+                (nextIsSep_of_scanValue hflow (preprocess_some_peek hpre) hcandidate hcolon)
+                hcorr_after hcorr_value hcorr_result hvaluepre harm hdepth hdispatch hnotdoc hsrc with hr | hd
+            · left
+              obtain ⟨ev, hstream, hpending⟩ := hr
+              exact ⟨sp_result, ev, hcorr_result, hstream, hpending⟩
+            · exact Or.inr hd
+          
+          /-- Dropping all native-state conditions is false: a fabricated live-key
+              reservation can target and overwrite a genuine anchor event. This is a
+              refutation over arbitrary states, not a reachable scanner counterexample. -/
+          lemma scanValue_unconditional_transport_refuted :
+              ¬ (∀ s out : ScannerState, scanValue s = .ok out → SilentTokens s.tokens out.tokens) := by
+            intro hall
+            let seed := ScannerState.mk' ": "
+            let pos := seed.currentPos
+            let bad : ScannerState := { seed with
+              tokens := #[⟨pos, .anchor "sentinel", pos⟩, ⟨pos, .placeholder, pos⟩]
+              simpleKey := { possible := true, tokenIndex := 0, pos := pos } }
+            let out := (scanValue bad).toOption.getD bad
+            have hscan : scanValue bad = .ok out := by rfl
+            have hne : goOut out.tokens.toList [] ≠ goOut bad.tokens.toList [] := by decide
+            exact hne (hall bad out hscan [])
+          
+          #print axioms scanNextToken_colon_scan
+          #print axioms scanValue_cleared_floor
+          #print axioms matched_colon_content_fold
+          #print axioms scanValue_unconditional_transport_refuted
+          end L4YAML.Tests.Guards.OwnerExplicitKeyExecution
+          LEAN
+          cp Tests/Guards/Proofs/OwnerExplicitKeyExecution.lean ../results/
+          lake build Tests.Guards.Proofs.OwnerExplicitKeyExecution 2>&1 | tee ../results/owner-explicit-key-execution.log
+          if grep -E 'sorryAx|declaration uses .sorry' ../results/owner-explicit-key-execution.log; then exit 1; fi
+          printf 'owner_native_execution_and_content_fold\t0\n' >> ../results/outcomes.tsv
+      - name: Replay exact owner key theorem axiom closure
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > Tests/Guards/Proofs/OwnerKeyReplayAudit.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerExplicitKeyClosure
+          public import Tests.Guards.Proofs.OwnerExplicitKeyContent
+          public import Tests.Guards.Proofs.OwnerExplicitKeyExecution
+          public meta import Tests.Guards.Proofs.OwnerExplicitKeyClosure
+          public meta import Tests.Guards.Proofs.OwnerExplicitKeyContent
+          public meta import Tests.Guards.Proofs.OwnerExplicitKeyExecution
+          public import Lean.Meta.Native
+          public meta import Lean
+          set_option compiler.relaxedMetaCheck true
+          @[expose] public section Blanket
+          namespace L4YAML.Tests.Guards.OwnerKeyReplayAudit
+          open Lean
+          open L4YAML.Tests.Guards.OwnerExplicitKeyPark
+          open L4YAML.Tests.Guards.OwnerExplicitKeyClosure
+          open L4YAML.Tests.Guards.OwnerExplicitKeyContent
+          open L4YAML.Tests.Guards.OwnerExplicitKeyFold
+          open L4YAML.Tests.Guards.OwnerExplicitKeyTransport
+          open L4YAML.Tests.Guards.OwnerExplicitKeyExecution
+          
+          -- Replay policy verbatim from #371, except namespace and trace class.
+          -- Source: metalogiclabs/L4YAML@46283c63ceb82e3ceb16e19a7a4e802ba844a777
+          -- Blob: 7f7d9e3079018c8486ed85d1640247c758971e72
+          /-- Axioms admitted without replay. All other dependencies, including private
+              and generated-looking names, must pass `replayBooleanAxiom`. -/
+          def allowedCapstoneAxioms : List Name :=
+            [``propext, ``Classical.choice, ``Quot.sound]
+          
+          initialize registerTraceClass `L4YAML.ownerKeyAxiomReplay
+          
+          /-- Validate the proposition of a nonstandard Boolean axiom independently of
+              its name. Lean 4.36's `nativeEqTrue` records an ordinary `Eq Bool e true`
+              axiom and an optional source range; neither authenticates tactic origin.
+          
+              The claim must be closed and its transitive axiom dependencies must be
+              only itself and the standard foundations. In particular a computation
+              carrying an arbitrary proof assumption is rejected before evaluation.
+              First try a fresh kernel-checked reflexivity proof (with kernel checking
+              forced on and a small finite budget). If opacity or cost prevents that,
+              replay the closed Boolean
+              with Lean's native evaluator, the same additional trust as native_decide.
+              The temporary declaration/environment is discarded. Unreadable claims,
+              exceptions, non-Boolean axioms and a false computation fail closed.
+          
+              A fabricated but independently true Boolean assertion can pass replay;
+              this is claim validation, not a declaration-origin certificate. Callers
+              must retain raw axiom counts rather than claim that no axiom was declared. -/
+          def replayBooleanAxiom (name : Name) : CoreM Bool := withCurrHeartbeats do
+            try
+              let env := (← getEnv).setExporting false
+              -- Read the checked kernel environment, as `collectAxioms` does. During
+              -- asynchronous/module elaboration, the public elaborator view can omit
+              -- generated axioms even though the checked proof already depends on them.
+              let some (.axiomInfo info) := env.toKernelEnv.find? name | do
+                trace[L4YAML.ownerKeyAxiomReplay] "unreadable: {name}"
+                return false
+              if info.isUnsafe then return false
+              let .app (.app (.app (.const ``Eq _) (.const ``Bool _)) lhs)
+                  (.const ``Bool.true _) := info.type | do
+                trace[L4YAML.ownerKeyAxiomReplay] "not Boolean: {name}: {info.type}"
+                return false
+              if lhs.hasFVar || lhs.hasMVar || lhs.hasLooseBVars then return false
+              let deps ← collectAxioms name
+              unless deps.all (fun a => a == name || allowedCapstoneAxioms.contains a) do
+                trace[L4YAML.ownerKeyAxiomReplay] "dependencies: {name}: {deps}"
+                return false
+              let proofName ← mkFreshUserName `_l4yamlAxiomReplay
+              let decl := Declaration.thmDecl {
+                name := proofName
+                levelParams := info.levelParams
+                type := info.type
+                value := mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Bool) lhs
+              }
+              let opts := debug.skipKernelTC.set (← getOptions) false
+              -- Do not spend the full elaboration budget reducing a large finite test
+              -- in the kernel before replaying it with the evaluator that produced it.
+              let budget := maxHeartbeats.get opts
+              let opts := maxHeartbeats.set opts (if budget == 0 then 2000 else min budget 2000)
+              match env.toKernelEnv.addDecl opts decl with
+              | .ok _ =>
+                trace[L4YAML.ownerKeyAxiomReplay] "kernel validated: {name}"
+                return true
+              | .error _ =>
+                trace[L4YAML.ownerKeyAxiomReplay] "native fallback: {name}"
+                let result ← ((do
+                  withoutModifyingEnv do
+                    setEnv env
+                    withOptions (debug.skipKernelTC.set · false) do
+                      Meta.nativeEqTrue `l4yaml_axiom_replay lhs : MetaM Meta.NativeEqTrueResult).run' {} {})
+                match result with
+                | .success _ =>
+                  trace[L4YAML.ownerKeyAxiomReplay] "native validated: {name}"
+                  return true
+                | .notTrue => return false
+            catch ex =>
+              trace[L4YAML.ownerKeyAxiomReplay] "replay exception: {name}: {ex.toMessageData}"
+              return false
+          
+          /-- Per-invocation cache: a shared dependency is replayed once per gate/census.
+              It is never reused after an environment or source change. -/
+          abbrev AxiomReplayM := StateT (NameMap Bool) CoreM
+          
+          /-- Common admission rule used by the capstone and compiled-environment gates.
+              Namespace, private visibility and generated-looking names grant no exemption. -/
+          def axiomAdmitted (name : Name) : AxiomReplayM Bool := do
+            if allowedCapstoneAxioms.contains name then return true
+            if let some accepted := (← get).find? name then return accepted
+            let accepted ← replayBooleanAxiom name
+            modify fun cache => cache.insert name accepted
+            return accepted
+          
+          /-- Unsupported transitive dependencies of a declaration, including assumptions
+              outside the declaration's namespace. -/
+          def unvalidatedAxioms (name : Name) : AxiomReplayM (Array Name) := do
+            let axs ← collectAxioms name
+            axs.filterM fun a => return !(← axiomAdmitted a)
+          
+          
+          -- Negative/positive controls are deliberately confined to this audit module.
+          private axiom falseBoolControl : false = true
+          private axiom falsePropControl : False
+          private axiom trueBoolControl : true = true
+          
+          /-- Run only after loading the compiled module environment with extensions. -/
+          def auditOwnerKeyAxioms : CoreM (Array String) := (do
+              unless (← axiomAdmitted ``trueBoolControl) do
+                throwError "positive Boolean control rejected"
+              if (← axiomAdmitted ``falseBoolControl) then
+                throwError "false Boolean control accepted"
+              if (← axiomAdmitted ``falsePropControl) then
+                throwError "unsupported proposition control accepted"
+              let mut rows : Array String := #["OWNER_KEY_REPLAY_CONTROLS_PASS"]
+              let mut leaves : Array Name := #[]
+              let names : Array (Name × Nat) := #[( ``question_park_from_scan, 0),
+                (``explicit_scalar_content_step, 39), (``retained_key_to_owner_value_park, 0),
+                (``key_ready_close_ssl, 0), (``key_ready_close_at_eof, 0), (``key_ready_close_before_next, 0),
+                (``explicit_key_content_step, 39), (``props_empty_key_ready, 0), (``props_scalar_key_step, 39),
+                (``matched_colon_owner_fold, 0), (``preprocess_silent, 0),
+                (``scanValue_silent_when_cleared, 0), (``matched_colon_owner_fold_native_trace, 0),
+                (``scanNextToken_colon_scan, 0), (``scanValue_cleared_floor, 0),
+                (``matched_colon_content_fold, 45), (``scanValue_unconditional_transport_refuted, 0)]
+              for (n, expected) in names do
+                let axs ← collectAxioms n
+                let raw := axs.filter fun a => !allowedCapstoneAxioms.contains a
+                unless raw.size == expected do
+                  throwError "owner key axiom census changed for {n}: expected {expected}, got {raw.size}"
+                for a in raw do
+                  unless leaves.contains a do leaves := leaves.push a
+                let rejected ← unvalidatedAxioms n
+                unless rejected.isEmpty do
+                  throwError "owner key replay failed for {n}: {rejected}"
+                rows := rows.push s!"OWNER_KEY_REPLAY {n}: raw={raw.size} validated={raw.size} rejected=0"
+              unless leaves.size == 45 do throwError "owner key axiom union changed: {leaves.size}"
+              for a in leaves do rows := rows.push s!"OWNER_KEY_REPLAY_LEAF {a}"
+              rows := rows.push s!"OWNER_KEY_REPLAY_UNION raw={leaves.size} validated={leaves.size} rejected=0"
+              return rows : AxiomReplayM (Array String)).run' {}
+          
+          end L4YAML.Tests.Guards.OwnerKeyReplayAudit
+          end Blanket
+          LEAN
+          cp Tests/Guards/Proofs/OwnerKeyReplayAudit.lean ../results/
+          lake build Tests.Guards.Proofs.OwnerKeyReplayAudit 2>&1 | tee ../results/owner-key-replay-build.log
+          cat > tools/OwnerKeyReplayMain.lean <<'LEAN'
+          module
+          public import Tests.Guards.Proofs.OwnerKeyReplayAudit
+          public meta import Lean
+          public section
+          
+          open Lean
+          open L4YAML.Tests.Guards.OwnerKeyReplayAudit
+          
+          -- Match the source-qualified #371 compiled-environment loader.
+          unsafe def runAudit : IO Unit := do
+            Lean.initSearchPath (← Lean.findSysroot)
+            Lean.enableInitializersExecution
+            let env ← Lean.importModules #[{ module := `Tests.Guards.Proofs.OwnerKeyReplayAudit }] {} 0 (loadExts := true)
+            let coreCtx : Lean.Core.Context := { fileName := "<owner-key-replay>", fileMap := default }
+            let coreState : Lean.Core.State := { env }
+            let (rows, _) ← auditOwnerKeyAxioms.toIO coreCtx coreState
+            for row in rows do IO.println row
+          
+          unsafe def main : IO Unit := runAudit
+          LEAN
+          cat >> lakefile.lean <<'LAKE'
+
+          lean_exe «owner-key-replay-audit» where
+            root := `OwnerKeyReplayMain
+            srcDir := "tools"
+            supportInterpreter := true
+          LAKE
+          cp tools/OwnerKeyReplayMain.lean ../results/
+          lake build owner-key-replay-audit 2>&1 | tee ../results/owner-key-replay-main-build.log
+          lake env .lake/build/bin/owner-key-replay-audit 2>&1 | tee ../results/owner-key-replay-audit.log
+          grep -F OWNER_KEY_REPLAY_CONTROLS_PASS ../results/owner-key-replay-audit.log
+          grep -Fx 'OWNER_KEY_REPLAY_UNION raw=45 validated=45 rejected=0' ../results/owner-key-replay-audit.log
+          printf 'owner_key_axiom_replay\t0\n' >> ../results/outcomes.tsv
+      - name: Freeze exact evidence and preserve owner library
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- L4YAML Blueprint lean-toolchain lake-manifest.json
+          git rev-parse HEAD HEAD:L4YAML > ../results/final-source.txt
+          cmp ../results/final-source.txt <(head -n 2 ../results/source.txt)
+          cd ../results
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum -c SHA256SUMS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
