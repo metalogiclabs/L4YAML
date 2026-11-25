@@ -1,7 +1,7 @@
-name: Owner explicit-key exact axiom replay
+name: Owner explicit-key property floor and column replay
 on:
   push:
-    branches: [research/group77-owner-key-replay-20261125]
+    branches: [research/group77-owner-key-property-floor-20261125]
   workflow_dispatch:
 permissions:
   contents: read
@@ -108,6 +108,7 @@ jobs:
             floor : IndentFloor sc (n + 1)
             col : n + 1 ≤ after.col
             next : NextIsSep sc
+            noflow : sc.inFlow = false
             route : ∀ sp ev, TBlockMapEntry n q sp ev → TLYamlStream start sp (ec ++ eo ++ ev)
           
           /-- The key's grammar, actual scanner landing, whitespace and comment gate
@@ -142,7 +143,11 @@ jobs:
               have hqc := hcorr.col_eq
               cases hq
               simp_all
-            exact ⟨after, ⟨hq, hc, hf, hcol, hnext, route⟩⟩
+            have hnf : sc.inFlow = false := by
+              unfold ScannerState.inFlow at hflow ⊢
+              rw [L4YAML.Proofs.ScannerCorrectness.scanKey_preserves_flowLevel s sc hok]
+              exact hflow
+            exact ⟨after, ⟨hq, hc, hf, hcol, hnext, hnf, route⟩⟩
           
           /-- Scalar content step off the real explicit-key park. Unlike content_step_at,
               this must not close the enclosing stream before the colon. Dedent is
@@ -480,6 +485,7 @@ jobs:
           cat > Tests/Guards/Proofs/OwnerExplicitKeyContent.lean <<'LEAN'
           module
           public import Tests.Guards.Proofs.OwnerExplicitKeyPark
+          public import L4YAML.Proofs.Scanner.PropsRunLineCoupling
           public section
           set_option maxHeartbeats 4000000
           namespace L4YAML.Tests.Guards.OwnerExplicitKeyContent
@@ -494,6 +500,81 @@ jobs:
           open L4YAML.Proofs.StreamAccum (ContentArm NextIsSep SlotGateAt)
           open L4YAML.Tests.Guards.OwnerExplicitKeyPark
           
+          /-- Each property lexeme consists of column-increasing grammar leaves. -/
+          private lemma key_gchar_star_col {p : Char → Prop} {a b : SurfPos}
+              (h : GStar (GChar p) a b) : a.col ≤ b.col := by
+            induction h with
+            | nil s => exact Nat.le_refl _
+            | cons s₁ s₂ s₃ hc _ ih =>
+              have hm : s₁.col ≤ s₂.col := by cases hc; simp
+              exact Nat.le_trans hm ih
+
+          private lemma key_gchar_plus_col {p : Char → Prop} {a b : SurfPos}
+              (h : GPlus (GChar p) a b) : a.col ≤ b.col := by
+            cases h with
+            | mk s₁ s₂ s₃ hc hs =>
+              have hm : s₁.col ≤ s₂.col := by cases hc; simp
+              exact Nat.le_trans hm (key_gchar_star_col hs)
+
+          private lemma key_glit_col {c : Char} {a b : SurfPos} (h : GLit c a b) :
+              a.col ≤ b.col := by cases h; simp
+
+          private lemma key_anchor_col {a b : SurfPos} (h : SCNsAnchorProperty a b) :
+              a.col ≤ b.col := by
+            cases h with
+            | mk rest col s' hp _ =>
+              have hm := key_gchar_plus_col hp
+              change col + 1 ≤ s'.col at hm
+              change col ≤ s'.col
+              omega
+
+          private lemma key_tag_col {a b : SurfPos} (h : SCNsTagProperty a b) :
+              a.col ≤ b.col := by
+            cases h with
+            | verbatim rest col s₁ s₂ s' hl hp hg =>
+              have h₁ := key_glit_col hl
+              have h₂ := key_gchar_plus_col hp
+              have h₃ := key_glit_col hg
+              change col + 1 ≤ s₁.col at h₁
+              change col ≤ s'.col
+              omega
+            | secondary rest col s' hs _ =>
+              have hm := key_gchar_star_col hs
+              change col + 2 ≤ s'.col at hm
+              change col ≤ s'.col
+              omega
+            | named rest col s₁ s₂ s' hp hl hs _ =>
+              have h₁ := key_gchar_plus_col hp
+              have h₂ := key_glit_col hl
+              have h₃ := key_gchar_star_col hs
+              change col + 1 ≤ s₁.col at h₁
+              change col ≤ s'.col
+              omega
+            | nonSpecific rest col _ =>
+              change col ≤ col + 1
+              omega
+            | primary rest col s' hp _ =>
+              have hm := key_gchar_plus_col hp
+              change col + 1 ≤ s'.col at hm
+              change col ≤ s'.col
+              omega
+
+          /-- Property dispatch preserves the actual scanner's cleared indent flag
+              and stack, so its park inherits the reading floor. -/
+          private lemma key_property_floor {m : Nat} {s s' : ScannerState} {c : Char}
+              (hc : c = '&' ∨ c = '!') (hp : s.peek? = some c)
+              (hd : scanNextToken_dispatchContent s c = .ok s')
+              (hn : s.needIndentCheck = false) (hf : m ≤ minContentIndentOf s) :
+              IndentFloor s' m := by
+            have hi := dispatchContent_props_indents hc hd
+            have hnic : s'.needIndentCheck = s.needIndentCheck := by
+              rcases hc with he | he
+              · subst c
+                exact (L4YAML.Proofs.PropsRunLineCoupling.dispatchContent_anchor_line_nic hp hd).2
+              · subst c
+                exact (L4YAML.Proofs.PropsRunLineCoupling.dispatchContent_tag_line_nic hp hd).2
+            exact ⟨hnic.trans hn, by rw [minContentIndentOf_congr hi]; exact hf⟩
+          
           /-- The property belongs to the deferred key, never a completed document. -/
           inductive KeyProps (start q after scan : SurfPos) (n : Nat)
               (s : ScannerState) (ec eo ep : List Event) : Prop where
@@ -503,6 +584,8 @@ jobs:
                 (hsep : SSeparate (n + 1) .flowOut after sp_p)
                 (hprops : TCNsProperties (n + 1) .flowOut sp_p scan ep)
                 (hnext : NextIsSep s)
+                (hfloor : IndentFloor s (n + 1))
+                (hcol : n + 1 ≤ scan.col)
                 (route : ∀ sp ev, TBlockMapEntry n q sp ev → TLYamlStream start sp (ec ++ eo ++ ev)) :
                 KeyProps start q after scan n s ec eo ep
           
@@ -586,12 +669,26 @@ jobs:
               · exact h_scalar hev hv
               · exact h_scalar hev (by rcases hc with h | h <;> subst h <;> decide)
               · exact h_scalar hev (by rcases hc with h | h <;> subst h <;> decide)
-              · exact .props (.held sp_prep park.question hcorr' h_sep
+              · have hnic_p := L4YAML.Proofs.PropsRunLineCoupling.preprocess_some_needIndentCheck_false park.noflow h_preprocess
+                have hnic_a : s_ad.needIndentCheck = false := by
+                  rw [h_ad]
+                  split <;> exact hnic_p
+                have hf := key_property_floor (Or.inl hc) hpeek h_dispatch hnic_a h_fl
+                have hcp := L4YAML.Proofs.StreamAccum.separate_col_ge h_sep park.col
+                have hcs := Nat.le_trans hcp (key_anchor_col ha.1)
+                exact .props (.held sp_prep park.question hcorr' h_sep
                   (by simpa using TCNsProperties.anchorFirst sp_prep sp_a sp_a ek [] ha (TOpt.none _))
-                  hn park.route)
-              · exact .props (.held sp_prep park.question hcorr' h_sep
+                  hn hf hcs park.route)
+              · have hnic_p := L4YAML.Proofs.PropsRunLineCoupling.preprocess_some_needIndentCheck_false park.noflow h_preprocess
+                have hnic_a : s_ad.needIndentCheck = false := by
+                  rw [h_ad]
+                  split <;> exact hnic_p
+                have hf := key_property_floor (Or.inr hc) hpeek h_dispatch hnic_a h_fl
+                have hcp := L4YAML.Proofs.StreamAccum.separate_col_ge h_sep park.col
+                have hcs := Nat.le_trans hcp (key_tag_col ht.1)
+                exact .props (.held sp_prep park.question hcorr' h_sep
                   (by simpa using TCNsProperties.tagFirst sp_prep sp_a sp_a ek [] ht (TOpt.none _))
-                  hn park.route)
+                  hn hf hcs park.route)
               · refine .ready (.ready sp_a park.question hcorr' (GStar.nil _)
                   (fun _ => h_gate (Or.inl hc)) ?_ park.route)
                 intro sp_mid h_ssl
@@ -604,7 +701,7 @@ jobs:
               {n : Nat} {s : ScannerState} {ec eo ep : List Event}
               (park : KeyProps start q after scan n s ec eo ep) :
               KeyReady start q after scan n s ec eo ep := by
-            rcases park with ⟨sp_p, hq, hc, hs, hp, hn, route⟩
+            rcases park with ⟨sp_p, hq, hc, hs, hp, hn, _, _, route⟩
             refine .ready scan hq hc (GStar.nil _) (fun _ _ => NextIsSep.gate hn) ?_ route
             intro sp_mid h_ssl
             exact .node n .blockOut _ _ ep
@@ -618,7 +715,6 @@ jobs:
               {n : Nat} {sc s_prep s_ad s' : ScannerState} {c : Char} {ec eo ep : List Event}
               (hS : TSLYamlStream start s_ad sp_block ec (eo ++ ep) [])
               (park : KeyProps start q after scan n sc ec eo ep)
-              (hf : IndentFloor sc (n + 1)) (hcol : n + 1 ≤ scan.col)
               (h_ad : s_ad = if s_prep.allowDirectives then
                 { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep)
               (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
@@ -634,7 +730,7 @@ jobs:
               (TSLYamlStream start s' sp_block ec (eo ++ ep) [] ∧
                 KeyReady start q after sp_a n s' ec eo ep) ∨
                 L4YAML.Proofs.FlowIndexLift.DedentLanding (n + 1) scan sp_prep := by
-            rcases park with ⟨sp_p, hq, hc, hs, hprops, hn, route⟩
+            rcases park with ⟨sp_p, hq, hc, hs, hprops, hn, hf, hcol, route⟩
             have hflow : s_ad.inFlow = false := by unfold ScannerState.inFlow; rw [h_depth]; rfl
             have hcorr_ad : ScannerSurfCorr s_ad sp_prep := by
               rw [h_ad]; exact L4YAML.Proofs.StreamAccum.corr_of_allowDirectives_update hcorr_prep
@@ -877,6 +973,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: owner-explicit-key-replay-evidence
+          name: owner-key-property-floor-evidence
           path: results/
           if-no-files-found: error
