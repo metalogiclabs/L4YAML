@@ -1,0 +1,3 @@
+Tests/Guards/Proofs/RelaySupplyCensus.lean:1577:0: error: the relay supply census moved.
+expected: edges=640 skipped=41 [DECLINE=237, FIELD=60, LOCAL=26, PAY=50, RELAY=64, SPLIT=175, VIA=28]
+got:      edges=640 skipped=41 [DECLINE=236, FIELD=60, LOCAL=26, PAY=51, RELAY=64, SPLIT=175, VIA=28]

@@ -1,0 +1,12 @@
+diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -2965,7 +2965,7 @@
+         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v))
+       -- Item 99 (LAST, same reason): `h_close_entry`'s RESUME twin — the
+       -- entry's content and the collection's remaining tail close the
+       -- sequence, and the still-open mapping levels BELOW it stand ready

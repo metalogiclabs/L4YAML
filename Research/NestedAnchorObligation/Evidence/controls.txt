@@ -1,0 +1,2 @@
+NESTED_ANCHOR executions=3240 distinct_sources=3096 actual_dedent_cases=1944 popped_frames=9720 preprocessing_checks=73980 exact_raw=true exact_composed=true ordered_events=true
+NESTED_CONTROLS deletion=3240 rename=3240 restoration=3240 wrong_payload_rejected=3240 low_fuel=9720 document_resets=2 redefinition=1 undefined_sources=3 empty=1

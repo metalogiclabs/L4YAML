@@ -1,0 +1,38 @@
+{
+  "owner_commit": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "source": "GitHub exact-commit file retrieval; these source pins are not a fresh full-census build",
+  "files": [
+    {"path":"Tests/Guards/Proofs/RelaySupplyCensus.lean","git_blob_sha":"2af1f549e0c14feb977f23e24d8a0feb85aead7d","url":"https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Tests/Guards/Proofs/RelaySupplyCensus.lean"},
+    {"path":"Scripts/Census/Dashboard.lean","git_blob_sha":"f91034181c90218997f8c0d4d8562e252bcb84e7","url":"https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Scripts/Census/Dashboard.lean"},
+    {
+      "path": "Tests/Guards/Proofs/CapstonePathAudit.lean",
+      "git_blob_sha": "f159e178a9f09566cbba71b936c8ecfb894318d3",
+      "url": "https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Tests/Guards/Proofs/CapstonePathAudit.lean"
+    },
+    {
+      "path": "Tests/Guards/Proofs/OrTrueAudit.lean",
+      "git_blob_sha": "fae4ebc7cd741492dabda186bdac6400a67a09d9",
+      "url": "https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Tests/Guards/Proofs/OrTrueAudit.lean"
+    },
+    {
+      "path": "Tests/Guards/Proofs/GhostIndexCensus.lean",
+      "git_blob_sha": "90ccacb952097a3b6fe98a37e7895a9d7f41214a",
+      "url": "https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Tests/Guards/Proofs/GhostIndexCensus.lean"
+    },
+    {
+      "path": "Tests/Guards/Proofs/SuffixGapAudit.lean",
+      "git_blob_sha": "80d683fce191669783029fdbb7f5bf9eecfaf9a1",
+      "url": "https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Tests/Guards/Proofs/SuffixGapAudit.lean"
+    },
+    {
+      "path": "Tests/Guards/Proofs/DropDependents.lean",
+      "git_blob_sha": "8a82ce965ba0c36f8a1ea8add19c6b436ad82331",
+      "url": "https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Tests/Guards/Proofs/DropDependents.lean"
+    },
+    {
+      "path": "Tests/Guards/Proofs/DeadDeclarationCensus.lean",
+      "git_blob_sha": "fa3d9908cccd32483bbcadb86595351740baeea2",
+      "url": "https://github.com/nasa-jpl/L4YAML/blob/cc83019024fb88b7c0d0cdadc4e590bda7a72788/Tests/Guards/Proofs/DeadDeclarationCensus.lean"
+    }
+  ]
+}

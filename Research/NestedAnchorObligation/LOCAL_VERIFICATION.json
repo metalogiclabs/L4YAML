@@ -1,0 +1,118 @@
+{
+  "epistemic_status": "WARRANTED",
+  "boundary": "Local Lean 4.36.0 proof, three affected census guards, four axiom profiles, and finite native controls. Fresh hosted replay separately required.",
+  "owner_commit": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "owner_library_tree": "0a8d15505cf2520df980bc4af05eca0ad72f86c8",
+  "qualified_parent_source": "55294e3c2c7a518f92b365d67b6b025f233e2283",
+  "research_parent_commit": "7026d0d65e360aa7e70ed0774a0fd0d12e5e86b1",
+  "local_cache_source_snapshot": "0dbf0c120601fccc1d837025f3bef405cc4f2062",
+  "local_cache_library_tree_matches_owner": true,
+  "native_experiment": {
+    "executions": 3240,
+    "distinct_sources": 3096,
+    "dedent_executions": 1944,
+    "popped_frames": 9720,
+    "preprocessing_steps": 73980,
+    "deletion": 3240,
+    "rename": 3240,
+    "restoration": 3240,
+    "wrong_payload_rejections": 3240,
+    "low_fuel_checks": 9720,
+    "document_resets": 2,
+    "redefinition": 1,
+    "undefined_sources": 3,
+    "empty": 1,
+    "root_producer_controls": 42,
+    "controls_before_root_proof": true
+  },
+  "executed_exit_codes": {
+    "native_controls": 0,
+    "root_controls": 0,
+    "baseline_impact_audit": 0,
+    "baseline_StreamAccum": 0,
+    "whole_field_strengthening_probe": 1,
+    "restored_StreamAccum": 0,
+    "root_payment_StreamAccum": 0,
+    "root_payment_DocumentProduction": 0,
+    "baseline_RelaySupplyCensus": 0,
+    "baseline_OrTrueAudit": 0,
+    "baseline_CapstonePathAudit": 0,
+    "candidate_RelaySupplyCensus": 0,
+    "candidate_OrTrueAudit": 0,
+    "candidate_CapstonePathAudit": 0,
+    "baseline_root_supply_and_axiom_audit": 0,
+    "candidate_root_supply_and_axiom_audit": 0,
+    "exact_axiom_profile_comparison": 0
+  },
+  "deltas": {
+    "relay_DECLINE": [
+      237,
+      236
+    ],
+    "relay_PAY": [
+      50,
+      51
+    ],
+    "on_path_direct_pack_declines": [
+      6,
+      5
+    ],
+    "positions_with_at_least_one_paid_supply": [
+      24,
+      25
+    ],
+    "critical_positions": [
+      7,
+      7
+    ],
+    "trivial_writers": [
+      460,
+      460
+    ],
+    "disjunction_positions": [
+      253,
+      253
+    ],
+    "deletion_set_reached": [
+      8,
+      8
+    ],
+    "root_supply": [
+      "DECLINE",
+      "PAY"
+    ],
+    "remaining_splits_for_field": 6,
+    "new_library_lemmas": 0
+  },
+  "axiom_profiles": {
+    "unchanged_by_exact_name": true,
+    "standard_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "inherited_native_decide_counts": {
+      "accum_block_on_noPending": 6,
+      "accum_block_pending": 8,
+      "scan_strict_proof": 51,
+      "parse_strict_proof": 51
+    },
+    "new_axioms": 0,
+    "other_custom_axioms": 0
+  },
+  "integration_status": "CANDIDATE",
+  "no_upstream_PR_or_message_posted": true,
+  "approved_production_heads_unchanged": true,
+  "whole_project_qualification": false,
+  "unknown": [
+    "retirement of full h_kslot field",
+    "remaining five direct ON-path declines",
+    "six split supplies of this field",
+    "universal nested-source theorem",
+    "scannerDrop retirement",
+    "universal scan_trace",
+    "corrected Group 7.7 equivalence"
+  ],
+  "rejected_completion_promotion": "The nested anchor experiment alone has zero owner-capstone impact; no new anchor-family scaffolding is promoted.",
+  "failure_preserved": "Whole-field alternative deletion failed at consumers/producers; this is a first-round price, not a statement refutation."
+}

@@ -1,0 +1,101 @@
+name: Nested anchors and root key-slot payment
+on:
+  push:
+    branches: [fix/nested-anchor-obligation]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nested-anchor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          path: upstream
+      - name: Verify exact source and install pinned compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd evidence
+          sha256sum -c Research/NestedAnchorObligation/source-sha256.txt
+          printf '%s\n' "$GITHUB_SHA" > ../results/evidence-commit.txt
+          cd ../upstream
+          test "$(git rev-parse HEAD)" = cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          test "$(git rev-parse HEAD:L4YAML)" = 0a8d15505cf2520df980bc4af05eca0ad72f86c8
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML HEAD:lean-toolchain HEAD:lake-manifest.json > ../results/owner-source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Execute native controls before dependency audit
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version | tee ../results/lean-version.txt
+          mkdir -p Research/NestedAnchorObligation
+          cp ../evidence/Research/NestedAnchorObligation/Controls.lean Research/NestedAnchorObligation/
+          cp ../evidence/Research/NestedAnchorObligation/RootProducerControls.lean Research/NestedAnchorObligation/
+          cat >> lakefile.lean <<'LAKE'
+
+          lean_lib «Research.NestedAnchorObligation» where
+            roots := #[`Research.NestedAnchorObligation.Controls, `Research.NestedAnchorObligation.RootProducerControls]
+          LAKE
+          lake build Research.NestedAnchorObligation.Controls Research.NestedAnchorObligation.RootProducerControls Scripts.Path.CapstonePath 2>&1 | tee ../results/build.txt
+          lake env lean --run Research/NestedAnchorObligation/Controls.lean 2>&1 | tee ../results/controls.txt
+          grep -Fx 'NESTED_ANCHOR executions=3240 distinct_sources=3096 actual_dedent_cases=1944 popped_frames=9720 preprocessing_checks=73980 exact_raw=true exact_composed=true ordered_events=true' ../results/controls.txt
+          grep -Fx 'NESTED_CONTROLS deletion=3240 rename=3240 restoration=3240 wrong_payload_rejected=3240 low_fuel=9720 document_resets=2 redefinition=1 undefined_sources=3 empty=1' ../results/controls.txt
+          lake env lean --run Research/NestedAnchorObligation/RootProducerControls.lean 2>&1 | tee ../results/root-producer-controls.txt
+          grep -Fx 'ROOT_PRODUCER executions=42 actual_initialization=true parser_accepts=true marked_columns_before_prep_after_empty=true' ../results/root-producer-controls.txt
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+      - name: Read actual capstone dependencies and preserve boundary
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../evidence/Research/NestedAnchorObligation/ImpactAudit.lean Research/NestedAnchorObligation/
+          lake build L4YAML.Proofs.Serialization.TraceOf.ContentBridge L4YAML.Proofs.Production.DocumentProduction Tests.Guards.Proofs.CapstonePathAudit 2>&1 | tee ../results/audit-imports-build.txt
+          lake env lean Research/NestedAnchorObligation/ImpactAudit.lean 2>&1 | tee ../results/impact-audit.txt
+          grep -F 'OBLIGATION_IMPACT critical_declarations_reached=7 deletion_set_reached=8 new_controls_reached=0/49 discharged=0' ../results/impact-audit.txt
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+          cp ../evidence/Research/NestedAnchorObligation/RootPaymentAudit.lean Research/NestedAnchorObligation/
+          lake env lean Research/NestedAnchorObligation/RootPaymentAudit.lean 2>&1 | tee ../results/root-payment-audit-before.txt
+          grep -F 'ROOT_PAYMENT producer_on_capstone_path=true root_supply=DECLINE field_pay=0 field_decline=1 field_split=6' ../results/root-payment-audit-before.txt
+      - name: Qualify the actual root producer payment and remeasured pins
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --check --unidiff-zero ../evidence/Research/NestedAnchorObligation/root-keyslot-payment.patch
+          git apply --unidiff-zero ../evidence/Research/NestedAnchorObligation/root-keyslot-payment.patch
+          lake build L4YAML.Proofs.Production.DocumentProduction Tests.Guards.Proofs.CapstonePathAudit 2>&1 | tee ../results/root-payment-build.txt
+          lake env lean Research/NestedAnchorObligation/RootPaymentAudit.lean 2>&1 | tee ../results/root-payment-audit-after.txt
+          grep -F 'ROOT_PAYMENT producer_on_capstone_path=true root_supply=PAY field_pay=1 field_decline=0 field_split=6' ../results/root-payment-audit-after.txt
+          sed -n '/^ROOT_PAYMENT_AXIOMS /p; /^ROOT_PAYMENT_NATIVE /p' ../results/root-payment-audit-before.txt > ../results/axioms-before.txt
+          sed -n '/^ROOT_PAYMENT_AXIOMS /p; /^ROOT_PAYMENT_NATIVE /p' ../results/root-payment-audit-after.txt > ../results/axioms-after.txt
+          test -s ../results/axioms-before.txt
+          diff -u ../results/axioms-before.txt ../results/axioms-after.txt
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+          git diff --name-only -- L4YAML Tests > ../results/candidate-changed-paths.txt
+          printf '%s\n' L4YAML/Proofs/Production/StreamAccum.lean Tests/Guards/Proofs/CapstonePathAudit.lean Tests/Guards/Proofs/OrTrueAudit.lean Tests/Guards/Proofs/RelaySupplyCensus.lean > ../results/expected-changed-paths.txt
+          diff -u ../results/expected-changed-paths.txt ../results/candidate-changed-paths.txt
+          git diff --check
+          git diff -- L4YAML Tests > ../results/qualified-candidate.patch
+          sha256sum L4YAML/Proofs/Production/StreamAccum.lean Tests/Guards/Proofs/CapstonePathAudit.lean Tests/Guards/Proofs/OrTrueAudit.lean Tests/Guards/Proofs/RelaySupplyCensus.lean > ../results/candidate-source-sha256.txt
+          lake run census-dashboard -- --diff HEAD > ../results/dashboard-diff.md
+          cp Research/NestedAnchorObligation/*.lean ../results/
+          sha256sum Research/NestedAnchorObligation/*.lean > ../results/compiled-source-sha256.txt
+          printf '%s\n' 'bounded_native_experiment=PASS' 'root_producer_controls=PASS' 'root_producer_payment=PASS' 'relay_declines=237->236' 'critical_direct_declines=6->5' 'paid_supply_positions=24->25' 'critical_positions_remaining=7' 'axiom_profiles_unchanged=true' 'new_library_lemmas=0' 'new_nested_universal_proof=false' 'upstream_production_heads_changed=false' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nested-anchor-obligation-cc830190
+          path: results/
+          if-no-files-found: error

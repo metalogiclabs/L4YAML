@@ -1,0 +1,1 @@
+3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05  L4YAML/Proofs/Production/StreamAccum.lean

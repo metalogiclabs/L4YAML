@@ -1,0 +1,66 @@
+diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
+index b6379bb4e..9628bd00d 100644
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -26942 +26942,5 @@ lemma accum_block_on_noPending
+-    (h_gate : sc.inFlow = false → sp_block.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#')) :
++    (h_gate : sc.inFlow = false → sp_block.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#'))
++    -- The accumulation already carries the scanner's slot/register invariant.
++    -- A fresh root sequence owes no explicit-key value line: derive that
++    -- empty domain from the actual state instead of supplying PackAlt.
++    (h_sound : PendingKeySound.Sound sc) :
+@@ -27037 +27041,14 @@ lemma accum_block_on_noPending
+-             (Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch (PackAlt.ofRefused (h_noek (noflow_park_of_noflow h_preprocess h_noflow)))))
++             (by
++               have hfl : sc.flowLevel = 0 := by
++                 simpa [ScannerState.inFlow] using h_scflow
++               have h_empty : RegisterWitness.MarkedColsIn sc [] :=
++                 RegisterWitness.MarkedColsIn.of_explicitKeyLine_none
++                   h_sound hfl (h_noek h_scflow)
++               have h_prep := RegisterWitness.preprocess_markedCols h_preprocess h_empty
++               have h_slots := (PendingKeySound.preprocess_sound h_preprocess h_sound h_mono).slots
++               have h_out : RegisterWitness.MarkedColsIn s' [] :=
++                 RegisterWitness.dispatchBlockIndicators_markedCols_of_ne h_dispatch
++                   (by decide)
++                   (h_prep.transport (by split <;> rfl) (by split <;> rfl))
++                   (by split <;> exact h_slots)
++               exact Or.inl (fun nv hm => absurd (h_out.mem hm) List.not_mem_nil))
+@@ -31017 +31034 @@ lemma accum_block_pending (sc : ScannerState)
+-    exact accum_block_on_noPending sc sp_start sp_block s_prep s' c sp_prep sp_scan'
++    exact accum_block_on_noPending (h_sound := h_sound) sc sp_start sp_block s_prep s' c sp_prep sp_scan'
+diff --git a/Tests/Guards/Proofs/CapstonePathAudit.lean b/Tests/Guards/Proofs/CapstonePathAudit.lean
+index f159e178a..051db1afb 100644
+--- a/Tests/Guards/Proofs/CapstonePathAudit.lean
++++ b/Tests/Guards/Proofs/CapstonePathAudit.lean
+@@ -48 +48 @@ def expectedSummary : String :=
+-  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=6 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=235 relays=138 drop-set=8/8"
++  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=5 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=235 relays=138 drop-set=8/8"
+@@ -54 +54 @@ def expectedOn : List String :=
+-   "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[10].h_kslot top ∨ PackAlt on-relay DECLINE=1",
++   "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[10].h_kslot top ∨ PackAlt on-relay",
+diff --git a/Tests/Guards/Proofs/OrTrueAudit.lean b/Tests/Guards/Proofs/OrTrueAudit.lean
+index fae4ebc7c..26ad95bec 100644
+--- a/Tests/Guards/Proofs/OrTrueAudit.lean
++++ b/Tests/Guards/Proofs/OrTrueAudit.lean
+@@ -264 +264 @@ def expectedSummary : String :=
+-  "positions=253 top=162 nested=91 True=177 PackAlt=67 PackAltG=9 modules=2 supply: paid=24 relayed=119 declined-only=0 never-supplied=0 unresolved=8 conclusions=9 consumers: spent=102 relayed=13 unused=0 unreadable=36 writers=37 inrTrivial=460"
++  "positions=253 top=162 nested=91 True=177 PackAlt=67 PackAltG=9 modules=2 supply: paid=25 relayed=118 declined-only=0 never-supplied=0 unresolved=8 conclusions=9 consumers: spent=102 relayed=13 unused=0 unreadable=36 writers=37 inrTrivial=460"
+@@ -551 +551 @@ def expectedSupply : List String :=
+-  "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[10].h_kslot relayed [DECLINE=1 SPLIT=6]",
++  "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[10].h_kslot paid [PAY=1 SPLIT=6]",
+diff --git a/Tests/Guards/Proofs/RelaySupplyCensus.lean b/Tests/Guards/Proofs/RelaySupplyCensus.lean
+index 2af1f549e..48dd8d3e1 100644
+--- a/Tests/Guards/Proofs/RelaySupplyCensus.lean
++++ b/Tests/Guards/Proofs/RelaySupplyCensus.lean
+@@ -974 +974 @@ def expectedTally : String :=
+-  "edges=640 skipped=41 [DECLINE=237, FIELD=60, LOCAL=26, PAY=50, RELAY=64, \
++  "edges=640 skipped=41 [DECLINE=236, FIELD=60, LOCAL=26, PAY=51, RELAY=64, \
+@@ -1456 +1456 @@ def expectedBranchSupply : List String :=
+-   "h_kslot :: accum_block_on_pendingBlock#13 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
++   "h_kslot :: accum_block_on_pendingBlock#13 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ PAY+brDECLINE+brPAY",
+@@ -1464 +1464 @@ def expectedBranchSupply : List String :=
+-   "h_kslot_old :: accum_content_on_pendingBlock_indented#13 :: splits=8 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
++   "h_kslot_old :: accum_content_on_pendingBlock_indented#13 :: splits=8 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslot ⇒ PAY+brDECLINE+brPAY",
+@@ -1520 +1520 @@ def expectedDeclineWriters : List String :=
+-   "13 accum_block_on_noPending",
++   "11 accum_block_on_noPending",

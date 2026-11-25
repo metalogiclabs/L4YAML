@@ -1,0 +1,9 @@
+OBLIGATION_IMPACT critical_declarations_reached=7 deletion_set_reached=8 new_controls_reached=0/49 discharged=0
+STILL_REACHED L4YAML.Proofs.StreamAccum.PendingNode.pendingContent
+STILL_REACHED L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent
+STILL_REACHED L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock
+STILL_REACHED L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock
+STILL_REACHED L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock
+STILL_REACHED L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent
+STILL_REACHED L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent
+BOUNDARY anchored_family_imported_by_capstones=false universal_scan_trace_proved_by_this_experiment=false
