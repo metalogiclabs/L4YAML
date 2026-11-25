@@ -1,0 +1,27 @@
+Exact owner 0dbf0c120601fccc1d837025f3bef405cc4f2062; Lean 4.36.0. Core L4YAML diff check: exit 0.
+
+337f264b63f32993c0ad4d5abb0b2cb73678b9e0c5d7d37a7e7fe8851f5a95aa  Tests/Guards/Proofs/OwnerExplicitKeyFreshTransport.lean
+e427e6c4b1300dbddd5a0a64a444f609db48f4a1ddc4803b443bcef0289c9018  /workspace/scratch/6daf105415cf/NativeFreshControls.lean
+f7431bf41399f4ccc271f2889ea21878374f5e11467651eac00e20dc78ccecba  /workspace/scratch/6daf105415cf/fresh-full-build.log
+38019dcad4cdf48fddcf7a5e7c8e2b5866377f2748548c3df28c52c9d620f4a0  /workspace/scratch/6daf105415cf/native-fresh-controls.log
+ℹ [298/299] Built Tests.Guards.Proofs.OwnerExplicitKeyFreshTransport (1.5s)
+info: Tests/Guards/Proofs/OwnerExplicitKeyFreshTransport.lean:208:0: 'L4YAML.Tests.Guards.OwnerExplicitKeyFreshTransport.scanValue_silent_after_fresh_save' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: Tests/Guards/Proofs/OwnerExplicitKeyFreshTransport.lean:209:0: 'L4YAML.Tests.Guards.OwnerExplicitKeyFreshTransport.preprocess_value_silent_of_col_drop' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: Tests/Guards/Proofs/OwnerExplicitKeyFreshTransport.lean:210:0: 'L4YAML.Tests.Guards.OwnerExplicitKeyFreshTransport.matched_colon_owner_fold_from_transitions' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: Tests/Guards/Proofs/OwnerExplicitKeyFreshTransport.lean:211:0: OWNER_FRESH_NATIVE_STANDARD_AXIOMS_ONLY L4YAML.Tests.Guards.OwnerExplicitKeyFreshTransport.scanValue_silent_after_fresh_save: [propext,
+ Classical.choice,
+ Quot.sound]
+info: Tests/Guards/Proofs/OwnerExplicitKeyFreshTransport.lean:211:0: OWNER_FRESH_NATIVE_STANDARD_AXIOMS_ONLY L4YAML.Tests.Guards.OwnerExplicitKeyFreshTransport.preprocess_value_silent_of_col_drop: [propext,
+ Classical.choice,
+ Quot.sound]
+info: Tests/Guards/Proofs/OwnerExplicitKeyFreshTransport.lean:211:0: OWNER_FRESH_NATIVE_STANDARD_AXIOMS_ONLY L4YAML.Tests.Guards.OwnerExplicitKeyFreshTransport.matched_colon_owner_fold_from_transitions: [propext,
+ Classical.choice,
+ Quot.sound]
+Build completed successfully (299 jobs).
+OWNER_FRESH_TRANSPORT_CONTROLS fresh=99 col_drop=660 failed_hypothesis=0 theorem_refuted=0 negative_control=pass

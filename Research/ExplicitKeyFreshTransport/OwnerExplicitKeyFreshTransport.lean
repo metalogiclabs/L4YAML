@@ -1,5 +1,6 @@
 module
 public import Tests.Guards.Proofs.OwnerExplicitKeyTransport
+import all Tests.Guards.Proofs.OwnerExplicitKeyTransport
 public import L4YAML.Proofs.Scanner.StaleCursorFloor
 public section
 set_option maxHeartbeats 4000000
@@ -91,6 +92,34 @@ lemma scanValue_silent_after_fresh_save {s s' : ScannerState}
         simp only [ScannerState.emit, Array.toList_push, goOut_append]
         simpa [goOut, tokenEvent, hc, r] using hp p
 
+/-- A column decrease forces the actual break branch. Reading that branch
+    directly avoids the owner's native-decide line-counter dependencies. -/
+private lemma skip_col_drop_allowed {s s' : ScannerState}
+    (h : skipToContent s = .ok s') (hf : s.inFlow = false)
+    (hd : s'.col < s.col) : s'.simpleKeyAllowed = true := by
+  unfold skipToContent skipToContentLoop at h
+  split at h
+  · contradiction
+  · rename_i v hws
+    have hc1 := skipToContentWs_col_ge hws
+    have hc2 := skipToContentComment_col_ge v
+    have hfl1 := skipToContentWs_preserves_flowLevel s v hws
+    have hfl2 := skipToContentComment_preserves_flowLevel v
+    dsimp only [] at h
+    split at h
+    · split at h
+      · have hfl3 := consumeNewline_preserves_flowLevel (skipToContentComment v)
+        split at h
+        · exact L4YAML.Proofs.EntryBoundaryLayout.skipToContentLoop_simpleKeyAllowed_mono _ _ _ rfl h
+        · rename_i hflow
+          exfalso
+          apply hflow
+          unfold ScannerState.inFlow at hf ⊢
+          rw [hfl3, hfl2, hfl1]
+          simpa using hf
+      · injection h with heq; subst heq; omega
+    · injection h with heq; subst heq; omega
+
 /-- A decreasing preprocessing column forces a line change, so the scanner
     arms a fresh reservation. No reachability or explicit-key register guard. -/
 lemma preprocess_value_silent_of_col_drop {s p s' : ScannerState}
@@ -115,11 +144,8 @@ lemma preprocess_value_silent_of_col_drop {s p s' : ScannerState}
       intro st hstf hstcol hsta hpeq
       have hpc : p.col = v.col := by
         rw [hpeq, closeStaleExplicitKey_col, L4YAML.Proofs.PreprocessIndentStable.saveSimpleKey_col, hstcol]
-      have hline : v.line ≠ s.line := by
-        intro heq
-        have hg := skipToContent_col_ge_of_line_eq hskip heq
-        omega
-      have ha : st.simpleKeyAllowed = true := hsta.trans (skipToContent_allowed_of_line_ne hskip hf hline)
+      have ha : st.simpleKeyAllowed = true :=
+        hsta.trans (skip_col_drop_allowed hskip hf (by omega))
       rw [hpeq] at hv ⊢
       rw [closeStaleExplicitKey_tokens]
       exact scanValue_silent_after_fresh_save hstf ha hv
@@ -136,7 +162,7 @@ lemma preprocess_value_silent_of_col_drop {s p s' : ScannerState}
             · unfold ScannerState.inFlow at hvf ⊢
               rw [unwindIndents_preserves_flowLevel]; exact hvf
             · exact unwindIndents_col v _
-            · exact unwindIndents_preserves_simpleKeyAllowed v _
+            · exact L4YAML.Proofs.EntryBoundaryLayout.unwindIndents_preserves_simpleKeyAllowed v _
             · exact heq.symm
       · split at hpre
         · contradiction
