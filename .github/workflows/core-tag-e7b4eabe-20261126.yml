@@ -1,8 +1,8 @@
-name: Core TAG exact e7b4eabe native qualification
+name: Core TAG exact cc830190 native qualification
 on:
   push:
     branches:
-      - experiment/core-tag-e7b4eabe-20261126
+      - experiment/core-tag-cc830190-20261126
 permissions:
   contents: read
 jobs:
@@ -18,7 +18,7 @@ jobs:
     env:
       LEAN_NUM_THREADS: 2
       ID: ${{ matrix.id }}
-      UP: e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca
+      UP: cc83019024fb88b7c0d0cdadc4e590bda7a72788
       CORE_HEAD: dc9c881577286e1f27b1c4151f599716fe4c6152
       TAG_HEAD: e851e63003872d57509ed06e84346bd4ff893000
     steps:
@@ -216,7 +216,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.id }}-e7b4eabe-source-derivation
+          name: ${{ matrix.id }}-cc830190-source-derivation
           path: ${{ runner.temp }}/independent-evidence/
           if-no-files-found: warn
       - name: Install exact Lean toolchain
@@ -374,13 +374,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.id }}-e7b4eabe-native-evidence
+          name: ${{ matrix.id }}-cc830190-native-evidence
           path: ${{ runner.temp }}/independent-evidence/
           if-no-files-found: warn
       - name: Retain full native qualification receipts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.id }}-e7b4eabe-native-qualification
+          name: ${{ matrix.id }}-cc830190-native-qualification
           path: qualification-evidence/
           if-no-files-found: warn
