@@ -467,8 +467,9 @@ numeric valuation and of C/Python consumer representations.
 
 ## Group 6 — Round-trip properties  *(closed 2026-07-04)*
 
-`parseYaml ∘ emit` and `parseYaml ∘ dump` recover content-equivalent
-values.
+For grammable values, `parseYaml ∘ emit` recovers content-equivalent values.
+`parseYaml ∘ dump` is checked for concrete instances; this group does not
+establish universal dump, tag or resolved-value preservation.
 
 | # | Theorem | Module | Status |
 | - | ------- | ------ | ------ |
