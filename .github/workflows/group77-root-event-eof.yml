@@ -2597,9 +2597,9 @@ jobs:
           def letterRoot (bom : Bool) (k v : Fin 26) : String :=
             (if bom then "\uFEFF" else "") ++ "? " ++ letter k ++ "\n: " ++ letter v
 
-          /-- Exhaustive admission over the entire predeclared 2*26*26 family. -/
           set_option maxRecDepth 4096 in
           set_option maxHeartbeats 0 in
+          /-- Exhaustive admission over the entire predeclared 2*26*26 family. -/
           theorem letter_family_admitted :
               ∀ (bom : Bool) (k v : Fin 26),
                 Guard (letterRoot bom k v) (route (letterRoot bom k v)) := by
