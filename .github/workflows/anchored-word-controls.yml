@@ -1,0 +1,60 @@
+name: Anchored explicit word prerequisite controls
+on:
+  push:
+    branches: [test/anchored-word-fragment]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: owner377
+            source: 0dbf0c120601fccc1d837025f3bef405cc4f2062
+          - id: current
+            source: e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: ${{ matrix.source }}
+          path: upstream
+          persist-credentials: false
+      - name: Pin exact source and toolchain
+        working-directory: upstream
+        env:
+          SOURCE: ${{ matrix.source }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = "$SOURCE"
+          git rev-parse HEAD HEAD:L4YAML > ../results/source.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          sha256sum lean-toolchain lake-manifest.json ../evidence/Research/AnchoredWordFragment/Controls.lean > ../results/source-sha256.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Execute source-defined anchor controls before any new proof
+        working-directory: upstream
+        run: |
+          set -Eeuo pipefail
+          lake build L4YAML.Parser.Composition L4YAML.Proofs.Serialization.TokenEvents 2>&1 | tee ../results/build.log
+          cp ../evidence/Research/AnchoredWordFragment/Controls.lean Tests/Guards/Proofs/AnchoredWordControls.lean
+          lake env lean Tests/Guards/Proofs/AnchoredWordControls.lean 2>&1 | tee ../results/controls.log
+          git diff --exit-code
+          sha256sum -c ../results/source-sha256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: anchored-word-${{ matrix.id }}-controls
+          path: results/
+          if-no-files-found: error
