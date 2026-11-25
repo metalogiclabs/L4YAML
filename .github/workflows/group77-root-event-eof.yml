@@ -197,7 +197,7 @@ jobs:
                   exact ⟨n + 1, rest, u, e, p, by omega, .step hn hpath, hnone, hs, hcorr', he, hp, hl⟩
           
           /-- Use the actual production initialization including BOM. -/
-          def scanInitial (input : String) : ScannerState :=
+          @[expose] def scanInitial (input : String) : ScannerState :=
             let s := (ScannerState.mk' input).emit .streamStart
             match s.peek? with
             | some '\uFEFF' => s.consumeBOM
@@ -1352,7 +1352,7 @@ jobs:
             simpa using hpush.goOut_at p
           
           /-- Same initialization, including the BOM arm, as native scan. -/
-          def initial (input : String) : ScannerState :=
+          @[expose] def initial (input : String) : ScannerState :=
             let s := (ScannerState.mk' input).emit .streamStart
             match s.peek? with
             | some '\uFEFF' => s.consumeBOM
