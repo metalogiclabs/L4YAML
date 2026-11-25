@@ -1,0 +1,71 @@
+Local qualification on exact owner 0dbf0c120601fccc1d837025f3bef405cc4f2062; Lean 4.36.0.
+L4YAML source tree 0a8d15505cf2520df980bc4af05eca0ad72f86c8.
+Primary theorem colon_then_content_step is conditional; enclosing route/source coupling remain.
+No PushesTrace or cleared-key guard. Actual content_step_park consumed; dedent retained.
+Final composed replay executable build: 472 jobs, exit 0.
+10 axiom profiles; union 45/45 inherited Boolean claims validated; zero rejected.
+True Boolean control accepted; false Boolean and unsupported proposition controls rejected.
+AdversarialInstantiation with added actual-producer controls: 307 jobs, exit 0.
+Bounded actual producer checks: 25 matched colon floor/event passes; 30 total observed colons. Other paths retain failed hypotheses; not universal reachability.
+35a9ff66e85cbe131d5adc4a15a8a9dacf461d4264c69a6e3785007394901025  OwnerExplicitKeyConsume.lean
+337f264b63f32993c0ad4d5abb0b2cb73678b9e0c5d7d37a7e7fe8851f5a95aa  OwnerExplicitKeyFreshTransport.lean
+Fresh transport source copied from fca2d2609e18038147878cf3bf3c1b18629f2b96, Research/ExplicitKeyFreshTransport/OwnerExplicitKeyFreshTransport.lean.
+Initial local consumer draft retained hclear; superseded after fresh source became available. Draft import/body visibility and search-path harness errors were corrected before qualification.
+Independent GitHub replay pending at commit; no production branches changed.
+OWNER_KEY_REPLAY_CONTROLS_PASS
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyPark.question_park_from_scan: raw=0 validated=0 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyPark.explicit_scalar_content_step: raw=39 validated=39 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyPark.retained_key_to_owner_value_park: raw=0 validated=0 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyClosure.key_ready_close_ssl: raw=0 validated=0 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyClosure.key_ready_close_at_eof: raw=0 validated=0 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyClosure.key_ready_close_before_next: raw=0 validated=0 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyContent.explicit_key_content_step: raw=39 validated=39 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyContent.props_empty_key_ready: raw=0 validated=0 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyContent.props_scalar_key_step: raw=39 validated=39 rejected=0
+OWNER_KEY_REPLAY L4YAML.Tests.Guards.OwnerExplicitKeyConsume.colon_then_content_step: raw=45 validated=45 rejected=0
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_1
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlainScalar_not_ws._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_1
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_4
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_5
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.canStartPlain_implies_safe._native.native_decide.ax_1_6
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_4
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_5
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_6
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.headerChar_notWsLbBom._native.native_decide.ax_1_7
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_5
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_6
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_indentDigit._native.native_decide.ax_1_7
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_7
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isDigitNotZero_isBlockHeaderChar._native.native_decide.ax_1_8
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.parseBlockHeaderLoop_offset_preserves._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectAnchorNameLoop_prod._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagHandleLoop_prod._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_2
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectTagSuffixLoop_prod._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_3
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.StructureProduction.0.L4YAML.Proofs.StructureProduction.collectVerbatimTagLoop_prod._native.native_decide.ax_1_4
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_10
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_11
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_6
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_7
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_8
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Scanner.BlockScalarIndentFloor.0.L4YAML.Proofs.BlockScalarIndentFloor.scanBlockScalar_prod_at._native.native_decide.ax_1_9
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_4
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_5
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_6
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_7
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_8
+OWNER_KEY_REPLAY_LEAF _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.scanBlockScalar_prod._native.native_decide.ax_1_9
+OWNER_KEY_REPLAY_UNION raw=45 validated=45 rejected=0
