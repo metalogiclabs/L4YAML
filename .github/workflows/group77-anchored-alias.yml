@@ -1,0 +1,91 @@
+name: Anchored word later alias assurance
+on:
+  push:
+    branches: [fix/anchored-word-alias-assurance]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  anchored-alias:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          path: upstream
+      - name: Verify frozen research and exact owner source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/proof-sources results/research results/workflows
+          cd evidence
+          sha256sum -c Research/AnchoredAliasFragment/source-sha256.txt
+          printf '%s\n' "$GITHUB_SHA" > ../results/evidence-commit.txt
+          cp -r Research/AnchoredAliasFragment ../results/research/
+          cp Research/AnchoredWordAliasProbe/Controls.lean ../results/research/AnchoredWordAliasProbe.lean
+          cp .github/workflows/group77-anchored-alias.yml .github/workflows/group77-owner-key-replay.yml ../results/workflows/
+          cd ../upstream
+          test "$(git rev-parse HEAD)" = cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          test "$(git rev-parse HEAD:L4YAML)" = 0a8d15505cf2520df980bc4af05eca0ad72f86c8
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD:L4YAML HEAD:lean-toolchain HEAD:lake-manifest.json HEAD:Tests/AdversarialInstantiation.lean > ../results/owner-source.txt
+          git diff --exit-code
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - name: Run bounded probe and boundary controls before new proofs
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version | tee ../results/lean-version.txt
+          lean --run ../evidence/Research/AnchoredWordFragment/PrepareParent.lean ../evidence .
+          cp ../evidence/Research/AnchoredWordAliasProbe/Controls.lean Tests/Guards/Proofs/AnchoredWordAliasProbe.lean
+          cp ../evidence/Research/AnchoredAliasFragment/AliasBoundaryControls.lean Tests/Guards/Proofs/
+          sed -i '/^module$/a public import Tests.Guards.Proofs.AliasBoundaryControls\npublic meta import Tests.Guards.Proofs.AliasBoundaryControls' Tests/AdversarialInstantiation.lean
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json lakefile.lean
+          lake build Tests.AdversarialInstantiation 2>&1 | tee ../results/adversarial-before-proof.log
+          grep -Fx 'ANCHOR_ALIAS_PROBE pass=697 deleted_registry_rejected=697 renamed_registry_rejected=697 restored_registry_accepted=697 raw_and_composed_payloads=true ordered_events=true' ../results/adversarial-before-proof.log
+          grep -Fx 'ALIAS_BOUNDARY_CONTROLS pass=24 exact_positions=true fuels=0,1,2,9,10 duplicate_copy_key=true' ../results/adversarial-before-proof.log
+      - name: Prove source scanner grammar raw document and alias composition
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          for source in ExplicitWordPrefix AnchoredWordSource AnchoredWordExecution AnchoredWordGrammar AnchoredWordParser AnchoredWordAssurance; do
+            cp "../evidence/Research/AnchoredWordFragment/$source.lean" Tests/Guards/Proofs/
+          done
+          for source in AnchoredAliasSource AnchoredAliasStates AnchoredAliasExecution AnchoredAliasGrammar AnchoredAliasParser AnchoredAliasAssurance AnchoredAliasAudit; do
+            cp "../evidence/Research/AnchoredAliasFragment/$source.lean" Tests/Guards/Proofs/
+          done
+          cp ../evidence/Research/AnchoredAliasFragment/AnchoredAliasAuditMain.lean tools/
+          cat >> lakefile.lean <<'LAKE'
+
+          lean_exe «anchored-alias-audit» where
+            root := `tools.AnchoredAliasAuditMain
+            supportInterpreter := true
+          LAKE
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+          lake build Tests.Guards.Proofs.AnchoredAliasAssurance anchored-alias-audit 2>&1 | tee ../results/anchored-alias-build.log
+          lake env .lake/build/bin/anchored-alias-audit 2>&1 | tee ../results/anchored-alias-axioms.log
+          test "$(grep -c '^ALIAS_PROFILE ' ../results/anchored-alias-axioms.log)" = 23
+          grep -Fx 'ALIAS_UNION checked=23 nonstandard=0 new_native_axioms=0 inherited_native_axioms=0' ../results/anchored-alias-axioms.log
+          git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json
+          git diff --check
+          git status --short > ../results/owner-status.txt
+          git diff -- Tests/AdversarialInstantiation.lean lakefile.lean > ../results/test-only-changes.patch
+          git ls-files --others --exclude-standard -z Tests/Guards/Proofs | xargs -0 cp -t ../results/proof-sources/
+          cp tools/AnchoredAliasAuditMain.lean ../results/proof-sources/
+          sha256sum ../results/proof-sources/*.lean > ../results/proof-sha256.txt
+          printf '%s\n' 'alias_word_assurance=PASS' 'profile_nonstandard_axioms=0' 'production_source_changed=false' 'native_case_executions=721' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: anchored-alias-evidence-cc830190
+          path: results/
+          if-no-files-found: error
