@@ -60,6 +60,11 @@ def check (k v a : String) : IO Unit := do
 
 def main : IO Unit := do
  let mut count := 0
+ let mut failedHypothesis := 0
+ for (k,v,a) in [("","b","x"),("a","","x"),("a","b","")] do
+  if !k.isEmpty && !v.isEmpty && !a.isEmpty then
+   throw <| IO.userError "excluded empty-word fixture unexpectedly inhabits the fragment"
+  else failedHypothesis := failedHypothesis+1
  for ki in List.range 26 do
   for vi in List.range 26 do
    for ai in List.range 26 do
@@ -87,7 +92,7 @@ def main : IO Unit := do
   | .error _ => throw <| IO.userError "negative-control raw source rejected"
  for wrong in [rawValue "a" "c" "x",rawValue "a" "b" "y",composedValue "a" "b"] do
   if beqYamlValue doc.value wrong then throw <| IO.userError "corrupted raw value accepted"
- IO.println s!"ANCHORED_WORD_CONTROLS pass={count} failed_hypothesis=3 refuted=0 negative_controls=6"
+ IO.println s!"ANCHORED_WORD_CONTROLS pass={count} failed_hypothesis={failedHypothesis} refuted=0 negative_controls=6"
  IO.println "SCOPE: finite executable prerequisites; no unbounded anchored-fragment theorem claimed"
 #eval main
 end L4YAML.Tests.Guards.AnchoredWordControls
