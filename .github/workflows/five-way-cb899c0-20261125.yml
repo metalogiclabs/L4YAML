@@ -42,9 +42,9 @@ jobs:
             git merge-base --is-ancestor "$UP" "$sha"
           done
           git switch --detach "$CORETAG"
-          # The earlier qualified combined tree was built from a separate
-          # lineage. Admit the actual reviewed heads by real merges, never
-          # by an ours strategy or a fabricated ancestry-only commit.
+          # Actual criss-cross merges can have a virtual stage-1 file containing
+          # conflict markers. Archive it; check real parent bytes, not a synthetic
+          # common ancestor as if it were a compilable Lean source.
           for sha in dc9c881577286e1f27b1c4151f599716fe4c6152 e851e63003872d57509ed06e84346bd4ff893000; do
             git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
             if git merge-base --is-ancestor "$sha" HEAD; then
@@ -52,58 +52,91 @@ jobs:
               continue
             fi
             before=$(git rev-parse HEAD)
-            git merge-base HEAD "$sha" | tee "qualification-evidence/reviewed-base-$sha.txt"
+            test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse "$CORETAG^{tree}")"
+            git merge-base --all HEAD "$sha" | tee "qualification-evidence/reviewed-base-$sha.txt"
             if ! git merge --no-ff --no-commit "$sha"; then
               git diff --name-only --diff-filter=U | tee "qualification-evidence/reviewed-conflicts-$sha.txt"
               git ls-files -u > "qualification-evidence/reviewed-index-$sha.txt"
               git diff --cc > "qualification-evidence/reviewed-conflict-diff-$sha.txt"
-              # Only the census file may conflict. Its exact reviewed histories
-              # are already present in the qualified combined source, except
-              # for the superseded upstream roster-description sentence.
-              test "$(git diff --name-only --diff-filter=U)" = "$CENSUS"
-              for stage in 1 2 3; do
-                git show ":$stage:$CENSUS" > "qualification-evidence/reviewed-census-$sha-$stage.lean"
-              done
+              test -s "qualification-evidence/reviewed-conflicts-$sha.txt"
+              while IFS= read -r file; do
+                case "$file" in
+                  "$CENSUS") kind=census ;;
+                  "$ROSTER") kind=roster ;;
+                  *) echo "Unexpected reviewed conflict $file"; exit 1 ;;
+                esac
+                for stage in 1 2 3; do
+                  git show ":$stage:$file" > "qualification-evidence/reviewed-$kind-$sha-$stage.lean"
+                done
+                test "$(git rev-parse ":2:$file")" = "$(git rev-parse "$CORETAG:$file")"
+                test "$(git rev-parse ":3:$file")" = "$(git rev-parse "$sha:$file")"
+              done < "qualification-evidence/reviewed-conflicts-$sha.txt"
               python3 - "$sha" <<'PY'
-          import sys
+          import re,sys,subprocess
           from pathlib import Path
           sha=sys.argv[1]
-          ev=Path("qualification-evidence")
-          base,ours,incoming=[(ev/f"reviewed-census-{sha}-{i}.lean").read_text() for i in (1,2,3)]
-          needle="def expectedDeadCensus : String :=\n"
+          census="Tests/Guards/Proofs/DeadDeclarationCensus.lean"
+          roster="Tests/Guards/Proofs/DeadDeclarationRoster.lean"
+          expected={
+              "dc9c881577286e1f27b1c4151f599716fe4c6152":("e2b4c088a7213dcc55e1498003959316bca764c7","44bb75909618e8e00458bad3e78b16bcaccf5db1"),
+              "e851e63003872d57509ed06e84346bd4ff893000":("ce1190ac3b0f925293450c752b230bf1c8b357ad","a5ccf59597280b6b53650925af637d3f65ee51b8"),
+          }
+          combined="3e6c42eb31f7fca6654f331231f29e5dcd99f150"
+          def git(*args):
+              return subprocess.check_output(["git",*args],text=True)
           def split(t):
+              needle="def expectedDeadCensus : String :=\n"
               assert t.count(needle)==1
               h,rest=t.split(needle)
               p,tail=rest.split("\n",1)
               assert p.startswith('  "population=') and p.endswith('"')
               return h,p,tail
-          bh,bp,bt=split(base)
-          oh,op,ot=split(ours)
-          ih,ip,it=split(incoming)
-          assert bt==ot==it, "Executable census definitions differ"
-          obsolete="  a name leaving it was deleted or reached by a capstone."
           def normalize(h):
-              return [line for line in h.splitlines() if line!=obsolete]
-          # All incoming audit lines must occur in the existing history in order.
-          # The one obsolete prose sentence is superseded by upstream item 530.
-          assert "A-orphan" in oh and "item 530" in oh
+              return [line for line in h.splitlines() if line!="  a name leaving it was deleted or reached by a capstone."]
           def subsequence(a,b):
               it=iter(b)
               return all(any(x==y for y in it) for x in a)
-          assert subsequence(normalize(ih),normalize(oh)), "Missing reviewed history"
-          assert subsequence(normalize(bh),normalize(oh)), "Missing common history"
-          Path("Tests/Guards/Proofs/DeadDeclarationCensus.lean").write_text(ours)
-          print("REVIEWED_HISTORY_ALREADY_PRESERVED",sha)
+          assert git("rev-parse",f"{combined}:{census}").strip()=="490cd4e74167ec4d25375756d6bf05be263582ee"
+          assert git("rev-parse",f"{combined}:{roster}").strip()=="82d142acae661db038704100ba6f3316aa028cd5"
+          for file,blob in zip((census,roster),expected[sha]):
+              assert git("rev-parse",f"{sha}:{file}").strip()==blob
+          ours=git("show",f"{combined}:{census}")
+          incoming=git("show",f"{sha}:{census}")
+          oh,op,ot=split(ours)
+          ih,ip,it=split(incoming)
+          assert ot==it,"Executable census definitions differ"
+          assert "A-orphan" in oh and "item 530" in oh
+          assert subsequence(normalize(ih),normalize(oh)),"Missing reviewed history"
+          def rows(t):
+              m=re.search(r'def expectedDeadRoster : String := r"(.*?)"',t,re.S)
+              assert m
+              a=[x for x in m.group(1).split("\n") if x]
+              assert len(set(a))==len(a)
+              return set(a)
+          r_ours=git("show",f"{combined}:{roster}")
+          r_in=git("show",f"{sha}:{roster}")
+          rr=rows(r_ours)
+          assert rr<=rows(r_in),"Combined roster contains unreviewed name"
+          assert len(rr)==int(re.search(r'B-roster=(\d+)',op).group(1))
+          conflicted=set(git("diff","--name-only","--diff-filter=U").splitlines())
+          for file,t in ((census,ours),(roster,r_ours)):
+              if file in conflicted:
+                  Path(file).write_text(t)
+                  subprocess.check_call(["git","add",file])
+          print("REVIEWED_HISTORY_AND_ROSTER_ALREADY_CONTAINED",sha)
           PY
-              git add "$CENSUS"
               test -z "$(git diff --name-only --diff-filter=U)"
             fi
             git diff --cached --binary > "qualification-evidence/reviewed-delta-$sha.patch"
             git diff --cached --check
-            git commit -m "Merge actual reviewed PR head $sha into separately qualified Core/TAG lineage"
+            # Only accept the actual merge if it reproduces the already-qualified
+            # full combined tree, including every file outside census/roster.
+            test "$(git write-tree)" = "$(git rev-parse "$CORETAG^{tree}")"
+            git commit -m "Reconcile reviewed head $sha with exact qualified Core/TAG source"
             test "$(git rev-parse HEAD^1)" = "$before"
             test "$(git rev-parse HEAD^2)" = "$sha"
             git merge-base --is-ancestor "$sha" HEAD
+            test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse "$CORETAG^{tree}")"
           done
           for sha in "$PYTHON" "$DUMP" "$AXIOM"; do
             before=$(git rev-parse HEAD)
