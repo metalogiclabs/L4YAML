@@ -1,0 +1,65 @@
+name: Five-way merge order audit
+on:
+  push:
+    branches: [experiment/five-way-merge-order-20261125]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Audit exact pinned source permutations
+        shell: bash
+        run: |
+          git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git fix-a-grammar-completeness
+          git fetch --no-tags origin fix/python-core-schema-numerics-pr fix/core-schema-spec-correspondence fix/tag-directive-uniqueness fix/dump-expanded-tags fix/axiom-admission
+          git config user.name 'Merge order experiment'
+          git config user.email 'merge-audit@example.invalid'
+          python - <<'PY'
+          import subprocess as s, itertools, json, collections, pathlib, os
+          base = 'cb899c0fa4529d4b40d701f04f5c494047a6b695'
+          heads = {300:'dcf6ad15503dd3be569fd983e94d8991a3379e00',302:'dc9c881577286e1f27b1c4151f599716fe4c6152',361:'e851e63003872d57509ed06e84346bd4ff893000',370:'e8db9cf2dff3eb4a857c4cfae852749326c021f6',371:'c5e0f0c6b449261d23fef5ddd588c360d5e5d630'}
+          def git(*args, check=True):
+              return s.run(['git',*args],text=True,stdout=s.PIPE,stderr=s.STDOUT,check=check)
+          for sha in [base,*heads.values()]:
+              git('cat-file','-e',sha+'^{commit}')
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'merge-order-evidence'
+          out.mkdir()
+          results=[]
+          # Isolated checkout on ephemeral runner; no pushes or conflict resolutions.
+          for order in itertools.permutations(heads):
+              git('reset','--hard')
+              git('checkout','--detach',base)
+              record={'order':order,'steps':[]}
+              for pr in order:
+                  p=git('-c','commit.gpgsign=false','merge','--no-ff','--no-edit',heads[pr],check=False)
+                  step={'pr':pr,'exit':p.returncode,'log':p.stdout}
+                  record['steps'].append(step)
+                  if p.returncode:
+                      step['unmerged']=git('diff','--name-only','--diff-filter=U').stdout.splitlines()
+                      git('merge','--abort',check=False)
+                      break
+                  step['tree']=git('rev-parse','HEAD^{tree}').stdout.strip()
+              else:
+                  record['tree']=git('rev-parse','HEAD^{tree}').stdout.strip()
+              results.append(record)
+          trees=collections.Counter(r['tree'] for r in results if 'tree' in r)
+          conflicts=collections.Counter(f for r in results for st in r['steps'] for f in st.get('unmerged',[]))
+          summary={'base':base,'heads':heads,'orders':len(results),'successful':sum(trees.values()),'trees':dict(trees),'first_failure_unmerged_files':dict(conflicts),'reference_tree':git('rev-parse','cd6ce9d2ecf2badcfd352f930939f057750e2c44^{tree}').stdout.strip()}
+          (out/'orders.json').write_text(json.dumps(results,indent=2))
+          (out/'summary.json').write_text(json.dumps(summary,indent=2))
+          print(json.dumps(summary,indent=2))
+          assert len(results)==120
+          PY
+          cd "$RUNNER_TEMP/merge-order-evidence"
+          sha256sum orders.json summary.json > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: five-way-merge-order-evidence
+          path: ${{ runner.temp }}/merge-order-evidence/
+          if-no-files-found: error
