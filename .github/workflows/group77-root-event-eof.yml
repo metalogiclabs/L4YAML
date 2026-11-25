@@ -2590,6 +2590,37 @@ jobs:
                 TraceOf "? a\n: b" (tokenEvents filtered) :=
             checked_root_trace _ fixture_guard
           
+          /-- Source-defined finite family, independent of scanner and grammar predicates.
+              Every lowercase ASCII single-letter key/value, with optional BOM.
+              No selection using Guard or TraceOf is performed. -/
+          def letter (n : Fin 26) : String := String.singleton (Char.ofNat (97 + n.val))
+          def letterRoot (bom : Bool) (k v : Fin 26) : String :=
+            (if bom then "\uFEFF" else "") ++ "? " ++ letter k ++ "\n: " ++ letter v
+
+          /-- Exhaustive admission over the entire predeclared 2*26*26 family. -/
+          set_option maxRecDepth 4096 in
+          set_option maxHeartbeats 0 in
+          theorem letter_family_admitted :
+              ∀ (bom : Bool) (k v : Fin 26),
+                Guard (letterRoot bom k v) (route (letterRoot bom k v)) := by
+            native_decide
+
+          theorem letter_family_trace (bom : Bool) (k v : Fin 26) :
+              ∃ filtered, scanFiltered (letterRoot bom k v) = .ok filtered ∧
+                TraceOf (letterRoot bom k v) (tokenEvents filtered) :=
+            checked_root_trace _ (letter_family_admitted bom k v)
+
+          /-- Outside the selected route is not the same as invalid YAML. -/
+          theorem outside_route_controls :
+              ¬ Guard "" (route "") ∧
+              ¬ Guard "a: b" (route "a: b") ∧
+              ¬ Guard "? a\n: b\n? c\n: d" (route "? a\n: b\n? c\n: d") := by
+            native_decide
+
+          #print axioms letter_family_admitted
+          #print axioms letter_family_trace
+          #print axioms outside_route_controls
+
           #print axioms checked_root_trace
           #print axioms fixture_guard
           #print axioms fixture_trace
@@ -2598,7 +2629,7 @@ jobs:
           LEAN
           cp Tests/Guards/Proofs/RootInhabited.lean ../results/
           lake build Tests.Guards.Proofs.RootInhabited 2>&1 | tee ../results/root-inhabited.log
-          for n in checked_root_trace fixture_guard fixture_trace; do
+          for n in checked_root_trace fixture_guard fixture_trace letter_family_admitted letter_family_trace outside_route_controls; do
             grep -F "$n" ../results/root-inhabited.log
           done
           if grep -E 'sorryAx|declaration uses .sorry' ../results/root-inhabited.log; then exit 1; fi
