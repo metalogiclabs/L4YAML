@@ -1,8 +1,8 @@
-name: "Exact reviewed Core TAG documentation qualification"
+name: "Exact cc830190 Core TAG documentation qualification"
 on:
   push:
     branches:
-      - chore/core-tag-docs-qualification
+      - experiment/core-tag-cc830190-docs-20261126
 permissions:
   contents: read
   actions: read
@@ -15,25 +15,25 @@ jobs:
       matrix:
         include:
           - id: core302
-            source: c39f7faae10f4b7008d870536e86c9f4bf21b85d
-            tree: 6d2369b3fd19e809fcf4545e9f4683cc784e6f5b
-            artifact: 15052102197
-            digest: 6d6efad288c72965460fc3b76fc4d3f537261e4885ab6f1123b25d6d3048b89d
+            source: e09400e9716752b271c3f54c230fb1751ee81bb1
+            tree: a540db25f0e6acab522661b93415887b53709eb0
+            artifact: 15067900109
+            digest: d57c6985786640984b154be0a7d633ca8e3e2918a6cfdc5cbf9459415f34a1d4
           - id: tag361
-            source: 36a8aa1143b073d41c1fda43fe35ac4669cd6daa
-            tree: c8f5c1e1b229060e827f0f4efff268a800357a6d
-            artifact: 15053226679
-            digest: 76598c198fd997fb7dc637c8b78246d2aba0530bf294c2e2e71c8590a5c3cb42
+            source: c0a5983a6b0f5f02f53213ea9bc3cead70567f1c
+            tree: 687de8d504c283e1fbb71adead4098d929f78b79
+            artifact: 15065873042
+            digest: 6f19b0a74e400c87cd1580b04b91a8685d9cec50fbbc3104e49de39be9f6b33b
           - id: core-tag
-            source: 1c5166315f214d2fd0c8c0f1624228a8d8b86a6a
-            tree: 6ab7d84f4a368e69457ec1f40b0f279bc57d7f04
-            artifact: 15052841630
-            digest: c310f3e1924ea00dc7f949c825562582b5790a95c09f726f1947d14fd443ab9d
+            source: ddabbd274ca0a9efe72a4f8b4f052a9115bd2d50
+            tree: 2aee7e0891d0c644fdd7782d5e494b7cb7474728
+            artifact: 15066807269
+            digest: 3e19b9abd5a1c46813f67e0f26b04cafa2452faa132eec1f4493ccab9d74a0c7
     env:
       LEAN_NUM_THREADS: 2
       SOURCE_COMMIT: ${{ matrix.source }}
       EXPECTED_TREE: ${{ matrix.tree }}
-      UP: e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca
+      UP: cc83019024fb88b7c0d0cdadc4e590bda7a72788
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout qualification harness
@@ -59,6 +59,7 @@ jobs:
           test -s "$E/candidate.bundle"
           read -r bundle_digest ignored < "$E/bundle.sha256"
           test "$(sha256sum "$E/candidate.bundle" | cut -d' ' -f1)" = "$bundle_digest"
+          git cat-file -e "$UP^{commit}" || git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$UP"
           for sha in "$UP" dc9c881577286e1f27b1c4151f599716fe4c6152 e851e63003872d57509ed06e84346bd4ff893000; do
             git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
           done
@@ -80,7 +81,7 @@ jobs:
           git switch --detach "$SOURCE_COMMIT"
           test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
           test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
-          git merge-base --is-ancestor e7b4eabe764f46f9dfcfd049e77444e6cf0ce6ca HEAD
+          git merge-base --is-ancestor cc83019024fb88b7c0d0cdadc4e590bda7a72788 HEAD
           test "$(cat lean-toolchain)" = "leanprover/lean4:v4.36.0"
           test "$(cat doc/lean-toolchain)" = "leanprover/lean4:v4.36.0"
           printf 'SOURCE=%s\nTREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" | tee docs-evidence/source.txt
@@ -120,7 +121,7 @@ jobs:
       - name: Preserve independently completed pre-API checks before long build
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.id }}-e7b4eabe-docs-pre-api-checkpoint
+          name: ${{ matrix.id }}-cc830190-docs-pre-api-checkpoint
           path: docs-evidence/
           if-no-files-found: error
       - name: Build full API documentation with proven memory provision
@@ -156,6 +157,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.id }}-e7b4eabe-docs-qualification-receipts
+          name: ${{ matrix.id }}-cc830190-docs-qualification-receipts
           path: docs-evidence/
           if-no-files-found: warn
