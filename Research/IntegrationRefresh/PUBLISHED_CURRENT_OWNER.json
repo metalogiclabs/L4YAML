@@ -21,7 +21,11 @@
       "tree_readback_verified": true,
       "reviewed_and_owner_parents_verified": true,
       "mergeable": true,
-      "description_status": "browser_update_running"
+      "description_status": "updated_and_read_back",
+      "description_prefix_verified": true,
+      "historical_substantive_content_preserved": true,
+      "state_at_final_readback": "open",
+      "merged_at_final_readback": false
     },
     {
       "pr": 361,
@@ -40,7 +44,11 @@
       "tree_readback_verified": true,
       "reviewed_and_owner_parents_verified": true,
       "mergeable": true,
-      "description_status": "browser_update_running"
+      "description_status": "updated_and_read_back",
+      "description_prefix_verified": true,
+      "historical_substantive_content_preserved": true,
+      "state_at_final_readback": "open",
+      "merged_at_final_readback": false
     },
     {
       "pr": 370,
@@ -59,7 +67,11 @@
       "tree_readback_verified": true,
       "reviewed_and_owner_parents_verified": true,
       "mergeable": true,
-      "description_status": "updated_and_read_back"
+      "description_status": "updated_and_read_back",
+      "description_prefix_verified": true,
+      "historical_substantive_content_preserved": true,
+      "state_at_final_readback": "open",
+      "merged_at_final_readback": false
     },
     {
       "pr": 371,
@@ -78,7 +90,11 @@
       "tree_readback_verified": true,
       "reviewed_and_owner_parents_verified": true,
       "mergeable": true,
-      "description_status": "updated_and_read_back"
+      "description_status": "updated_and_read_back",
+      "description_prefix_verified": true,
+      "historical_substantive_content_preserved": true,
+      "state_at_final_readback": "open",
+      "merged_at_final_readback": false
     },
     {
       "pr": 384,
@@ -97,7 +113,11 @@
       "tree_readback_verified": true,
       "reviewed_and_owner_parents_verified": true,
       "mergeable": true,
-      "description_status": "updated_and_read_back"
+      "description_status": "updated_and_read_back",
+      "description_prefix_verified": true,
+      "historical_substantive_content_preserved": true,
+      "state_at_final_readback": "open",
+      "merged_at_final_readback": false
     }
   ],
   "proof": {
@@ -114,5 +134,18 @@
     "Local executor disconnected during source publication preparation; hosted restoration replaced local processing.",
     "Upstream PR description PATCH through GitHub connector rejected 403 Resource not accessible by integration; fork ref updates succeeded. Authenticated browser updated descriptions.",
     "Unbounded Core/TAG source logs exceeded connector response handling; aligned source chunks reconstructed original public blobs with exact Git object and complete-tree checks. No qualification builds repeated."
-  ]
+  ],
+  "upstream_380": {
+    "pr": 380,
+    "head": "fa84655578c1de8e0295170d0a1ef4b7dc25318e",
+    "run": 45764519542,
+    "job": 140111583284,
+    "status": "completed",
+    "conclusion": "success",
+    "completed_at": "2026-11-26T22:34:28Z",
+    "mergeable": true,
+    "merged": false,
+    "boundary": "Owner workflow succeeded on the unchanged PR #380 head. This does not establish new owner-CI success for the other five refreshed heads."
+  },
+  "description_boundary": "All five current-head description prefixes and qualification receipts read back through the GitHub API after browser edits. Substantive history preserved; whitespace normalization and removal of a duplicate historical #384 dashboard table are presentation changes only."
 }
