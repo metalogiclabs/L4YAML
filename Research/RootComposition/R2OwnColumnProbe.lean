@@ -6,8 +6,11 @@ namespace L4YAML.Proofs.RegisterWitness
 open L4YAML.Scanner
 open L4YAML.Proofs.PendingKeySound
 
--- CANDIDATE: actual closing branch, not a token-only NotQuestionPark claim.
-theorem r2_closed_value_excludes_column {s s' : ScannerState} {n : Nat}
+-- Capstone chain: these actual scanner facts fund pendingMapValue's slot
+-- through accum_block_pending -> scanNextToken_accum_step ->
+-- scan_content_gives_stream_v2 -> parse_strict_proof. Integration is separate.
+-- Actual closing branch, rather than token-only NotQuestionPark.
+lemma r2_closed_value_excludes_column {s s' : ScannerState} {n : Nat}
     (hok : scanValue s = .ok s') (hs : Sound s)
     (h_nf : s.inFlow = false)
     (h_close : scanValueKeySurvives s (scanValueClearKey s) = false)
@@ -29,10 +32,10 @@ theorem r2_closed_value_excludes_column {s s' : ScannerState} {n : Nat}
   simp only [h_nf, h_close, Bool.false_eq_true, ↓reduceIte] at hi
   have hne := (closeAt_marked _ _ _ _ _ hi).2
   apply hne
-  simpa only [hcn', h_col] using hc
+  simpa only [ScannerState.indentColumns, hcn', h_col] using hc
 
 -- The actual explicit-value discriminator, with the clear's own fields.
-theorem r2_explicit_value_excludes_own_column {s s' : ScannerState} {n : Nat}
+lemma r2_explicit_value_excludes_own_column {s s' : ScannerState} {n : Nat}
     (hok : scanValue s = .ok s') (hs : Sound s)
     (h_nf : s.inFlow = false)
     (h_col : (scanValueClearKey s).explicitKeyCol = (n : Int))
@@ -42,6 +45,15 @@ theorem r2_explicit_value_excludes_own_column {s s' : ScannerState} {n : Nat}
     n ∉ markedCols s' := by
   apply r2_closed_value_excludes_column hok hs h_nf _ h_col
   simp [scanValueKeySurvives, h_nf, h_col, h_cursor, h_live, h_key]
+
+open Lean Elab Command
+run_cmd do
+  for n in [`L4YAML.Proofs.RegisterWitness.r2_closed_value_excludes_column,
+      `L4YAML.Proofs.RegisterWitness.r2_explicit_value_excludes_own_column] do
+    let axs ← liftCoreM (collectAxioms n)
+    for a in axs do
+      unless #[`propext, `Classical.choice, `Quot.sound].contains a do
+        throwError "unexpected axiom {a} in {n}"
 
 #print axioms r2_closed_value_excludes_column
 #print axioms r2_explicit_value_excludes_own_column

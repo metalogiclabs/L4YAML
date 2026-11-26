@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/r2-own-column-probe.yml
       - Research/RootComposition/R2OwnColumnProbe.lean
+      - Research/RootComposition/R2ClosingControls.lean
 permissions:
   contents: read
 jobs:
@@ -45,7 +46,8 @@ jobs:
           cd ../evidence
           git rev-parse HEAD > ../results/evidence-commit.txt
           sha256sum Research/RootComposition/R2OwnColumnProbe.lean > ../results/spec-sha256.txt
-          cp Research/RootComposition/R2OwnColumnProbe.lean ../results/
+          cp Research/RootComposition/R2OwnColumnProbe.lean Research/RootComposition/R2ClosingControls.lean ../results/
+          sha256sum Research/RootComposition/R2ClosingControls.lean >> ../results/spec-sha256.txt
       - uses: actions/cache/restore@v4
         continue-on-error: true
         with:
@@ -61,8 +63,18 @@ jobs:
           test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/RegisterWitness.lean)" = de5d3db1e422d1b5df0962dda230c94a2ebbc5cd
           test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/PendingKeySound.lean)" = 25e4828100763c467ce3c71a768aac9f3060dbd1
           test "$(git rev-parse HEAD:L4YAML/Scanner/SimpleKey.lean)" = df7bf19a8f3e7fd8b6a0766a1ecf0381dc0e3bff
-          lake build L4YAML.Proofs.Scanner.RegisterWitness 2>&1 | tee ../results/scanner-build.txt
-          lake env lean ../evidence/Research/RootComposition/R2OwnColumnProbe.lean 2>&1 | tee ../results/own-column-proof.txt
+          status=0
+          lake build L4YAML.Proofs.Scanner.RegisterWitness L4YAML.Parser.Composition > ../results/scanner-build.txt 2>&1 || status=$?
+          cat ../results/scanner-build.txt
+          test "$status" = 0
+          status=0
+          lake env lean --run ../evidence/Research/RootComposition/R2ClosingControls.lean > ../results/closing-controls.txt 2>&1 || status=$?
+          cat ../results/closing-controls.txt
+          test "$status" = 0
+          status=0
+          lake env lean ../evidence/Research/RootComposition/R2OwnColumnProbe.lean > ../results/own-column-proof.txt 2>&1 || status=$?
+          cat ../results/own-column-proof.txt
+          test "$status" = 0
           test -z "$(git status --porcelain)"
           git rev-parse HEAD HEAD^{tree} > ../results/final-source-identity.txt
           printf '%s\n' 'conditional_scanner_probe_only=true' 'production_integration=NOT_CLAIMED' 'h_src_true_callers=UNRESOLVED' 'optional_slot_retirement=NOT_CLAIMED' > ../results/outcomes.txt
