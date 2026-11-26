@@ -28,5 +28,14 @@
     "state": "UNKNOWN",
     "reason": "process killed under local resource limit; not a mathematical refutation"
   },
-  "harness_first_attempt": "AdversarialProbe needed public meta import Tests.VerifiedResult for interpreter symbols; fixed and locally replayed 792/792."
+  "harness_first_attempt": "AdversarialProbe needed public meta import Tests.VerifiedResult for interpreter symbols; fixed and locally replayed 792/792.",
+  "hosted_attempt_45747051413": {
+    "state": "FAILED before proof change",
+    "reason": "baseline omitted Tests.VerifiedResult required by new interpreter control",
+    "artifact": 15083409018,
+    "archive_sha256": "3f3d9352c790a8388ea1fffa278b0fb0d6040af7ecfefde55db442096e932346",
+    "independent_sha256_crc": "PASS",
+    "baseline_build_jobs": 243,
+    "source_controls": "PASS"
+  }
 }

@@ -53,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           lean --version > ../results/lean-version.txt
-          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath > ../results/baseline-build.txt 2>&1
+          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath Tests.VerifiedResult > ../results/baseline-build.txt 2>&1
           lake env lean --run Research/ContentSlot/Controls.lean > ../results/source-controls.txt 2>&1
           lake env lean --run Research/ContentSlot/AdversarialProbe.lean > ../results/adversarial-controls.txt 2>&1
           lake env lean Research/ContentSlot/StateCorrespondenceProbe.lean > ../results/state-correspondence-proof.txt 2>&1
