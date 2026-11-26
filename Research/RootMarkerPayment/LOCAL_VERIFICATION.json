@@ -70,5 +70,24 @@
     "all_structural_fields_equal": true,
     "archive_sha256": "039f0c9404aba66d90f8d5da7cca77fc20f933fa0416c1b96b01afc0fd77d46f",
     "crc": "PASS"
+  },
+  "full_replay_45733324837": {
+    "status": "REJECTED full qualification pending downstream snapshot size",
+    "remaining_guard": "PuntCoverInputs",
+    "nodes": [
+      125681,
+      125693
+    ],
+    "all_other_summary_fields_equal": true,
+    "archive_sha256": "0a3e78b223220ac0c4673d432849b45317ad7c3f78df7a4521db56b2a5774ea5",
+    "crc": "PASS",
+    "candidate_build_cache_saved": true
+  },
+  "snapshot_updater": {
+    "language": "Lean",
+    "scope": "five allowlisted failed census guards; only compiler-emitted data; no Lean library edits",
+    "real_log_fixture": "exactly one numeric literal changes; other bytes unchanged; idempotent",
+    "annotated_writer_fixture": "exactly one root writer literal changes; all comments and other bytes unchanged",
+    "qualification_integration": "CANDIDATE"
   }
 }

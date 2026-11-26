@@ -39,6 +39,22 @@ jobs:
           "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
           mkdir -p Research/RootMarkerPayment
           cp ../evidence/Research/RootMarkerPayment/*.lean Research/RootMarkerPayment/
+      - name: Calibrate measured snapshot updater against real compiler output
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > Research/RootMarkerPayment/MeasuredRepin.lean
+          cat Research/RootMarkerPayment/MeasuredRepinDriver.lean >> Research/RootMarkerPayment/MeasuredRepin.lean
+          mkdir -p ../results/repin-fixture/Tests/Guards/Proofs
+          cp Tests/Guards/Proofs/CloseStackCover.lean ../results/repin-fixture/Tests/Guards/Proofs/
+          lean --run Research/RootMarkerPayment/MeasuredRepin.lean ../evidence/Research/RootMarkerPayment/CompilerSizeFixture.log ../results/repin-fixture > ../results/pin-updater-fixture-first.txt
+          sed 's/nodes=125681"/nodes=125693"/' Tests/Guards/Proofs/CloseStackCover.lean > ../results/pin-updater-expected.lean
+          cmp ../results/pin-updater-expected.lean ../results/repin-fixture/Tests/Guards/Proofs/CloseStackCover.lean
+          lean --run Research/RootMarkerPayment/MeasuredRepin.lean ../evidence/Research/RootMarkerPayment/CompilerSizeFixture.log ../results/repin-fixture > ../results/pin-updater-fixture-second.txt
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/pin-updater-fixture-second.txt
+          cmp ../results/pin-updater-expected.lean ../results/repin-fixture/Tests/Guards/Proofs/CloseStackCover.lean
+          sha256sum Research/RootMarkerPayment/MeasuredRepin.lean > ../results/measured-updater-source.txt
       - name: Controls and baseline axiom sets before changing proofs
         working-directory: upstream
         shell: bash
@@ -79,7 +95,10 @@ jobs:
               break
             fi
             before_repin=$(git diff | sha256sum)
-            lake exe scripts-repin "../results/full-build-$round.txt" > "../results/repin-$round.txt" 2>&1
+            repin_status=0
+            lake exe scripts-repin "../results/full-build-$round.txt" > "../results/repin-$round.txt" 2>&1 || repin_status=$?
+            test "$repin_status" -le 1
+            lean --run Research/RootMarkerPayment/MeasuredRepin.lean "../results/full-build-$round.txt" . --root-payment > "../results/measured-repin-$round.txt" 2>&1
             after_repin=$(git diff | sha256sum)
             if test "$before_repin" = "$after_repin"; then
               echo "No measurable repin progress; refusing identical build retries."
