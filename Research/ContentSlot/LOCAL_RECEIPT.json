@@ -131,5 +131,16 @@
     "calibration_owner_fixture": "4 edits then 0, including all moved info literals and only the two inline expected numerals",
     "algorithms": "all walkers and comparisons unchanged; one inline data cross-check is repinned",
     "research_lead": "h_vpack derivation through h_mapFV remains optional: PackAlt is True. This is not evidence that an obligation is paid."
+  },
+  "attempt_45759051588": {
+    "state": "CloseStackCover site-count continuation",
+    "artifact": 15088824753,
+    "original_archive_sha256": "f8c036f277943168ae08b61430e3d38f0c44de48a0177b4d0b493ce935924a60",
+    "independent_sha256_crc": "PASS",
+    "retained_files": 38,
+    "retained_archive_sha256": "d272758f02abedae07fbecff29e67a8ad916414f88f001cd7ff9f38e73570eae",
+    "remaining_failure": "inline w.eight.size=8 versus measured 6, following retirement of two watched offcol calls",
+    "calibration_owner_fixture": "3 data edits then 0; comparisons and all walkers unchanged",
+    "format_correction": "the updater includes a column-zero final bracket in a literal span; expectedRows itself is unchanged"
   }
 }

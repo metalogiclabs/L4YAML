@@ -100,7 +100,10 @@ def measuredSpan (ls : Array String) (name : String) : Option Span := do
   let _start ← (List.range ls.size).find? fun i =>
     (defHead? ls[i]!).any (·.name == name)
   let masked := ls.map fun l => if (pyStrip l).startsWith "--" then "  " ++ l else l
-  let sp ← defSpan masked name
+  let raw ← defSpan masked name
+  -- A few old lists put their final bracket at column zero.
+  let sp := if (raw.head.ty == "List String" || raw.head.ty == "List Name") &&
+      (ls[raw.stop]?.map pyStrip) == some "]" then {raw with stop := raw.stop + 1} else raw
   let stop := Id.run do
     let mut j := sp.stop
     while j > sp.start + 1 && ((pyStrip ls[j-1]!).isEmpty ||
@@ -346,6 +349,16 @@ def run (logPath root : String) (annotateRoot : Bool := false) : IO UInt32 := do
         IO.FS.writeFile path (a ++ "unless asked.size == 5 && nBoth == 3 do" ++ b)
         edits := edits + 1
         IO.println "MEASURED_REPIN CloseSplitFrames inline asked/both 6/4 to 5/3"
+      | _ => pure ()
+    if file == "Tests/Guards/Proofs/CloseStackCover.lean" &&
+        body[0]? == some "item 252's eight moved under this pass: eight=6" then
+      let current ← IO.FS.readFile path
+      let old := "unless w.eight.size == 8 do"
+      match current.splitOn old with
+      | [a,b] =>
+        IO.FS.writeFile path (a ++ "unless w.eight.size == 6 do" ++ b)
+        edits := edits + 1
+        IO.println "MEASURED_REPIN CloseStackCover inline site count 8 to 6"
       | _ => pure ()
     -- This guard's expected rows are inline data, not named definitions.
     if file == "Tests/Guards/Proofs/FlipConsumerSurface.lean" &&

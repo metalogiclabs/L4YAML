@@ -88,3 +88,9 @@ those two expected numerals when that exact diagnostic is present. An owner
 fixture replays four total data edits then zero. Walkers are unchanged.
 The possible h_vpack/h_mapFV deduplication still rests on PackAlt=True and
 is a research lead, not a payment of the underlying missing supply.
+
+Run 45759051588 reached CloseStackCover and measured its watched sites 8 to
+6 because the two block-consumer offcol paths are gone. Its inline equality
+now retains the guard and expects that actual six. The owner fixture replays
+three data edits then zero; a column-zero list bracket is now parsed correctly,
+and expectedRows itself is unchanged. All prior source/trust boundaries stand.
