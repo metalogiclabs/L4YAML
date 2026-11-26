@@ -5,6 +5,8 @@ on:
     paths:
       - .github/workflows/r2-own-slot-retirement.yml
       - Research/RootComposition/r2-own-slot-retirement.patch
+      - Research/RootComposition/r2-retirement-measured-pins.patch
+      - Research/RootComposition/r2-retirement-replay-logs.zip
       - Research/RootComposition/R2OwnRetirementAudit.lean
 permissions:
   contents: read
@@ -66,6 +68,21 @@ jobs:
           git apply ../evidence/Research/RootComposition/r2-own-slot-retirement.patch
           git diff --check
           git diff --binary > ../results/attempted-source.patch
+          echo 'ebe0b90a3d5cd7b6bddf71b4441501e6dd18128a1f9da1a55cf34918349e7384  ../evidence/Research/RootComposition/r2-retirement-replay-logs.zip' | sha256sum -c -
+          mkdir -p ../results/prior-r2
+          unzip -q ../evidence/Research/RootComposition/r2-retirement-replay-logs.zip -d ../results/prior-r2
+          sha256sum L4YAML/Proofs/Production/StreamAccum.lean L4YAML/Proofs/Scanner/RegisterWitness.lean > ../results/before-replay-proof-sha256.txt
+          for round in $(seq 1 9); do
+            replay_status=0
+            lake exe scripts-repin "../results/prior-r2/full-build-$round.txt" > "../results/replay-repin-$round.txt" 2>&1 || replay_status=$?
+            test "$replay_status" -le 1
+            lean --run Research/ContentSlot/MeasuredRepin.lean "../results/prior-r2/full-build-$round.txt" . > "../results/replay-measured-$round.txt" 2>&1
+          done
+          sha256sum -c ../results/before-replay-proof-sha256.txt
+          git apply --check ../evidence/Research/RootComposition/r2-retirement-measured-pins.patch
+          git apply ../evidence/Research/RootComposition/r2-retirement-measured-pins.patch
+          git diff --check
+          git diff --binary > ../results/replayed-source.patch
           status=0
           lake build L4YAML.Proofs.Production.DocumentProduction > ../results/proof-build.txt 2>&1 || status=$?
           cat ../results/proof-build.txt
@@ -82,6 +99,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          trap 'git diff --binary > ../results/measured-progress.patch' EXIT
           passed=false
           for round in $(seq 1 24); do
             echo "CENSUS_ROUND $round"
@@ -133,7 +151,7 @@ jobs:
           lake exe eventscore > ../results/eventscore.txt 2>&1
           printf '%s\n' 'own_column_proof=PASS' 'default_build=PASS' 'repository_gates=PASS' 'native_suites=PASS' 'existing_axiom_sets_unchanged=true' 'ancestor_slot_completion=NOT_CLAIMED' > ../results/outcomes.txt
       - uses: actions/cache/save@v4
-        if: success()
+        if: always()
         continue-on-error: true
         with:
           path: source/.lake
