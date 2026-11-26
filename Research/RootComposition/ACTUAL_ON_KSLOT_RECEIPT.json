@@ -1,83 +1,154 @@
 {
-  "state": "WARRANTED diagnostic boundary; strengthened proof INCOMPLETE",
-  "harness": "ed4fdc63c6a1f54485be230329d1424db0d29cb7",
-  "run": 45890492661,
-  "job": 140151669148,
+  "state": "WARRANTED diagnostic frontier only; stronger critical proof INCOMPLETE",
+  "harness": "76c392fbc115851b409ea5311ad98043c7d52990",
+  "run": 45894740733,
+  "job": 140165742997,
   "source": "9f59de2e097d0174f14651d91a88917c026e3acb",
   "source_tree": "eec308182759db30ee036bbd0d845219b2386fcb",
-  "artifact": 15151048263,
-  "artifact_sha256": "ba4d26bbf63134d70a6778bc3d3d5fd27ccfc93d762c62e338388469f1aef194",
+  "spec_sha256": "4c645e7606e0aea48151ef8fa945921b3ce00430ba035acea60ee89235175861",
+  "candidate_stream_sha256": "06199e9de0d36ad1920b938f5197a828c63f18026d36a62a6efdb06aea156ac0",
+  "artifact": 15153760768,
+  "artifact_sha256": "d16350b0aeccd5f4881d539b64e83021873f71352721bde902862ff9cbda017c",
   "CRC_members": 25,
-  "immediate_sites": 6,
-  "immediate_declarations": 2,
-  "total_sites": 8,
-  "total_declarations": 3,
+  "immediate_sites": 3,
+  "immediate_declarations": 1,
+  "total_sites": 5,
+  "total_declarations": 2,
   "downstream_capstone_guards": 2,
   "structural_errors": 0,
-  "remaining_ON_positions": 7,
-  "ON_retirement": false,
+  "qualified_baseline_ON_positions": 7,
+  "candidate_capstone_ON_count": null,
+  "critical_ON_retirement": false,
   "source_restored": true,
   "restored_axioms_byte_identical": true,
+  "axiom_comparison_scope": "Exact qualified source before/after restoration. Incomplete flipped proof not promoted.",
   "goals": [
     {
-      "line": 27659,
+      "line": 27673,
       "declaration": "accum_block_on_closeThenBlock",
-      "error": "Tactic `assumption` failed",
-      "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      "domain": "proper ancestor: h_own_req : nv_req != nv; own route reused"
     },
     {
-      "line": 28297,
+      "line": 28315,
       "declaration": "accum_block_on_closeThenBlock",
-      "error": "Tactic `assumption` failed",
-      "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      "domain": "slot lies right of landing; h_seqFramesV declined"
     },
     {
-      "line": 28300,
+      "line": 28322,
       "declaration": "accum_block_on_closeThenBlock",
-      "error": "Tactic `assumption` failed",
-      "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
-    },
-    {
-      "line": 40500,
-      "declaration": "accum_content_pending",
-      "error": "Tactic `assumption` failed",
-      "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
-    },
-    {
-      "line": 40629,
-      "declaration": "accum_content_pending",
-      "error": "Tactic `assumption` failed",
-      "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
-    },
-    {
-      "line": 40755,
-      "declaration": "accum_content_pending",
-      "error": "Tactic `assumption` failed",
-      "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      "domain": "remaining slot/no-slot alternative; h_seqFramesV declined"
     }
   ],
-  "prior_raw": 45881603636,
-  "parallel_direct_normalization": 45888104536,
-  "prior_structural_failure": 45888398370,
-  "framed_source_probe": {
-    "harness": "4489ec43e711a80fc2bc925db633e9a3106cefa9",
-    "run": 45891614174,
-    "job": 140155405697,
-    "artifact": 15151474260,
-    "artifact_sha256": "e1270b1ecae58f1d29323f9f0f566864846d10ab0d41ada7bbfb370ca920c491",
+  "what_elaborated": "Paired existing property entry-route payload, actual entry producer, both property relays and all three property consumers; compact own-column route at actual membership; two conditional landed KeyFrames.close applications. No new kernel-verified lemma claimed.",
+  "first_pair_failure": {
+    "harness": "f6ec6edb50e6ed8dab70008844c0aa01c523b2f4",
+    "run": 45894014181,
+    "job": 140163325888,
+    "artifact": 15152363963,
+    "artifact_sha256": "14fb7802dc69d04b247a47471efbaaa078206ba981209fda82cf4ab0948b768c",
+    "CRC_members": 25,
+    "immediate_sites": 9,
+    "total_sites": 11,
+    "error": "Invalid tuple pattern in tactic cases; three true continuation goals plus six cascading structural failures. Corrected by a named case binder and obtain.",
+    "archive_git_blob": "7ba71873ae5aa4d24088f6fe59305c2961fcef54"
+  },
+  "prior_six_goal_frontier": {
+    "state": "WARRANTED diagnostic boundary; strengthened proof INCOMPLETE",
+    "harness": "ed4fdc63c6a1f54485be230329d1424db0d29cb7",
+    "run": 45890492661,
+    "job": 140151669148,
+    "source": "9f59de2e097d0174f14651d91a88917c026e3acb",
+    "source_tree": "eec308182759db30ee036bbd0d845219b2386fcb",
+    "artifact": 15151048263,
+    "artifact_sha256": "ba4d26bbf63134d70a6778bc3d3d5fd27ccfc93d762c62e338388469f1aef194",
     "CRC_members": 25,
     "immediate_sites": 6,
     "immediate_declarations": 2,
     "total_sites": 8,
     "total_declarations": 3,
+    "downstream_capstone_guards": 2,
     "structural_errors": 0,
-    "property_framed_applications_elaborated_without_new_errors": 3,
-    "remaining_property_cases_have_both_supplies_declined": true,
+    "remaining_ON_positions": 7,
+    "ON_retirement": false,
     "source_restored": true,
     "restored_axioms_byte_identical": true,
-    "new_kernel_verified_lemma": false,
-    "ON_retirement": false,
-    "interpretation": "Existing source-owned KeyFrames can produce the three property routes when supplied. Their availability is not established; three compact/landed and three doubly-declined property goals remain."
+    "goals": [
+      {
+        "line": 27659,
+        "declaration": "accum_block_on_closeThenBlock",
+        "error": "Tactic `assumption` failed",
+        "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      },
+      {
+        "line": 28297,
+        "declaration": "accum_block_on_closeThenBlock",
+        "error": "Tactic `assumption` failed",
+        "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      },
+      {
+        "line": 28300,
+        "declaration": "accum_block_on_closeThenBlock",
+        "error": "Tactic `assumption` failed",
+        "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      },
+      {
+        "line": 40500,
+        "declaration": "accum_content_pending",
+        "error": "Tactic `assumption` failed",
+        "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      },
+      {
+        "line": 40629,
+        "declaration": "accum_content_pending",
+        "error": "Tactic `assumption` failed",
+        "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      },
+      {
+        "line": 40755,
+        "declaration": "accum_content_pending",
+        "error": "Tactic `assumption` failed",
+        "goal": "⊢ ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv_req] v_req"
+      }
+    ],
+    "prior_raw": 45881603636,
+    "parallel_direct_normalization": 45888104536,
+    "prior_structural_failure": 45888398370,
+    "framed_source_probe": {
+      "harness": "4489ec43e711a80fc2bc925db633e9a3106cefa9",
+      "run": 45891614174,
+      "job": 140155405697,
+      "artifact": 15151474260,
+      "artifact_sha256": "e1270b1ecae58f1d29323f9f0f566864846d10ab0d41ada7bbfb370ca920c491",
+      "CRC_members": 25,
+      "immediate_sites": 6,
+      "immediate_declarations": 2,
+      "total_sites": 8,
+      "total_declarations": 3,
+      "structural_errors": 0,
+      "property_framed_applications_elaborated_without_new_errors": 3,
+      "remaining_property_cases_have_both_supplies_declined": true,
+      "source_restored": true,
+      "restored_axioms_byte_identical": true,
+      "new_kernel_verified_lemma": false,
+      "ON_retirement": false,
+      "interpretation": "Existing source-owned KeyFrames can produce the three property routes when supplied. Their availability is not established; three compact/landed and three doubly-declined property goals remain."
+    },
+    "next_smallest_experiment": "Require the existing ancestor/entry witness on the actual consumed index/domain, price its genuine producer obligations, and preserve the seven-ON baseline. Do not introduce an optional carrier or infer total availability from conditional framed-route elaboration."
   },
-  "next_smallest_experiment": "Require the existing ancestor/entry witness on the actual consumed index/domain, price its genuine producer obligations, and preserve the seven-ON baseline. Do not introduce an optional carrier or infer total availability from conditional framed-route elaboration."
+  "owner_539_reconciliation": {
+    "PR": 383,
+    "files_read": [
+      "DOCS.md",
+      "scripts/flips/item539_block_slot_routes.json"
+    ],
+    "price_source_reported": [
+      96,
+      16
+    ],
+    "price_pinned_source": "2ebc4740",
+    "independently_rerun": false,
+    "boundary": "Owner spec flips twelve broader anchors; our normalized four-ON key-slot probe is a different scope. Counts are not interchangeable. Owner NEXT requests paying existing writers in place."
+  },
+  "next_bounded_work": "Pay h_slotV R1(b) on current statements: use existing informative hkvUp for every actual marked column, preserve the singleton own-route fallback when hkvUp is absent, then complete proof, repository and native gates on qualified source 9f59de2e. Critical ON retirement remains a separate unproved objective.",
+  "owner_integration": "Unqualified against owner a62ac16b; no owner PR mutation."
 }

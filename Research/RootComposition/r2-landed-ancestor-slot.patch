@@ -1,0 +1,45 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -28186,19 +28186,31 @@
+         ∀ sp_end : SurfPos, SCompactSeqTail k sp_mid sp_end →
+         KeyFrames (ExplValueLine sp_start nv) ks sp_end) ∨ PackAlt sc :=
+       match h_vslot with
+-      | Or.inl ⟨nv, _, _, _, _, _, _, _, _, hkv, _⟩ =>
++      | Or.inl ⟨nv, _, _, _, _, _, _, _, _, hkv, hkvUp⟩ =>
+           if hnk : nv ≤ k then
+-            if hms : RegisterWitness.markedCols s' = [nv] then
+-              Or.inl (fun nv' hm => by
+-                have hm_old : nv ∈ RegisterWitness.markedCols sc :=
+-                  (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem
+-                    (by rw [hms]; exact List.mem_singleton.mpr rfl)
+-                rw [hms] at hm; rw [List.mem_singleton.mp hm]
+-                exact ⟨[], fun _ h => absurd h (List.not_mem_nil),
++            match hkvUp with
++            | Or.inl kvU =>
++                -- A supplied ancestor chain routes every actual mark, including
++                -- marks beside the slot's own. The empty frame stack retains
++                -- that value-line bottom; no singleton-domain test is needed.
++                Or.inl (fun nv' hm => ⟨[], fun _ h => absurd h List.not_mem_nil,
+                   fun _ h_indented sp_e h_tail =>
+-                    KeyFrames.bottom sp_e (hkv hm_old sp_e (slotLandedSeq hnk h_ssl
+-                      (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))⟩)
+-            else Or.inr trivial
++                    KeyFrames.bottom sp_e (kvU nv'
++                      ((h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem hm)
++                      sp_e (slotLandedSeq hnk h_ssl
++                        (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))⟩)
++            | Or.inr _ =>
++                if hms : RegisterWitness.markedCols s' = [nv] then
++                  Or.inl (fun nv' hm => by
++                    have hm_old : nv ∈ RegisterWitness.markedCols sc :=
++                      (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem
++                        (by rw [hms]; exact List.mem_singleton.mpr rfl)
++                    rw [hms] at hm; rw [List.mem_singleton.mp hm]
++                    exact ⟨[], fun _ h => absurd h List.not_mem_nil,
++                      fun _ h_indented sp_e h_tail =>
++                        KeyFrames.bottom sp_e (hkv hm_old sp_e (slotLandedSeq hnk h_ssl
++                          (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))⟩)
++                else Or.inr trivial
+           else Or.inr trivial
+       | _ => Or.inr trivial
+     -- ═══ **Item 307: THE SPEND — the closed park's stack, resumed at this landing's

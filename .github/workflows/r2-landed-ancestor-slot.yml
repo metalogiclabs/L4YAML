@@ -1,0 +1,170 @@
+name: Qualify landed slot routing for actual ancestor marks
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths:
+      - .github/workflows/r2-landed-ancestor-slot.yml
+      - Research/RootComposition/r2-landed-ancestor-slot.patch
+      - Research/RootComposition/R2LandedAncestorControls.lean
+permissions:
+  contents: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: c5d6e3f5190d20d5f4bddfe6fb5ce48762407845
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 4c54da7e3716ab0197b126294474bb2868651402
+          submodules: recursive
+          path: source
+      - name: Restore and check both exact qualified bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/price root-archive own-archive
+          git -C harness rev-parse HEAD > results/harness.txt
+          git -C evidence rev-parse HEAD > results/evidence-head.txt
+          test "$(cat results/evidence-head.txt)" = c5d6e3f5190d20d5f4bddfe6fb5ce48762407845
+          echo 'e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c  evidence/Research/RootComposition/qualified-root-evidence.zip' | sha256sum -c -
+          echo '022c53717d61556ab4b9a2a3048dfba6fb593d9904dd473cba136265a42b9c27  evidence/Research/RootComposition/qualified-r2-own-evidence.zip' | sha256sum -c -
+          unzip -t evidence/Research/RootComposition/qualified-root-evidence.zip > results/root-zip-crc.txt
+          unzip -t evidence/Research/RootComposition/qualified-r2-own-evidence.zip > results/own-zip-crc.txt
+          unzip -q evidence/Research/RootComposition/qualified-root-evidence.zip -d root-archive
+          unzip -q evidence/Research/RootComposition/qualified-r2-own-evidence.zip -d own-archive
+          cp evidence/Research/RootComposition/{FINAL_ROOT_RECEIPT,R2_OWN_RECEIPT}.json results/
+          cp harness/Research/RootComposition/{r2-landed-ancestor-slot.patch,R2LandedAncestorControls.lean} results/
+          sha256sum results/r2-landed-ancestor-slot.patch > results/spec-sha256.txt
+          cd source
+          git bundle verify ../root-archive/root-context/source.bundle
+          git fetch ../root-archive/root-context/source.bundle HEAD
+          git checkout --detach 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD^{tree})" = 20e10d2041c66d199d4408b4c37f82b6ec8cddf0
+          mapfile -t bundles < <(find ../own-archive -type f -name source.bundle)
+          test "${#bundles[@]}" = 1
+          git bundle verify "${bundles[0]}"
+          git fetch "${bundles[0]}" HEAD
+          git checkout --detach 9f59de2e097d0174f14651d91a88917c026e3acb
+          test "$(git rev-parse HEAD)" = 9f59de2e097d0174f14651d91a88917c026e3acb
+          test "$(git rev-parse HEAD^{tree})" = eec308182759db30ee036bbd0d845219b2386fcb
+          test "$(git rev-parse HEAD^)" = 967d3503b30dde555078929f118101cba9f95a56
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree} HEAD^ > ../results/source-identity.txt
+          printf '%s\n' 'c9ae3a8aa8e07f617d78eab588205334d5ab4a0cd88e905ec7a3110bce75b6ed  L4YAML/Proofs/Production/StreamAccum.lean' 'd39cfff27b6fad724f60d507eba397cf08dba712ae3dabf423d6d00189e789cd  L4YAML/Proofs/Scanner/RegisterWitness.lean' > ../results/baseline-source-sha256.txt
+          sha256sum -c ../results/baseline-source-sha256.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-landed-ancestor-slot-9f59de2e-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Compile the ancestor routing payment and check capstone axioms
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML scripts-repin > ../results/baseline-build.txt 2>&1
+          lake run capstone-path > ../results/baseline-capstone-path.txt 2>&1
+          grep -E '^CAPSTONE-PATH .* on=7 ' ../results/baseline-capstone-path.txt
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/baseline-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/baseline-root-axioms.txt 2>&1
+          sha256sum -c ../results/baseline-source-sha256.txt
+          git apply --check ../harness/Research/RootComposition/r2-landed-ancestor-slot.patch
+          git apply ../harness/Research/RootComposition/r2-landed-ancestor-slot.patch
+          git diff --check
+          git diff --binary > ../results/attempted-source.patch
+          echo '767c9433f8286e80bcd2bbf3fdc2302993ae7581d2645101ab80fa2d5c9d6dd7  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
+          lake build L4YAML.Proofs.Production.DocumentProduction > ../results/proof-build.txt 2>&1
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/root-axioms.txt 2>&1
+          diff -u ../results/baseline-axioms.txt ../results/axioms.txt
+          diff -u ../results/baseline-root-axioms.txt ../results/root-axioms.txt
+          lake run capstone-path > ../results/paid-capstone-path.txt 2>&1
+          grep -E '^CAPSTONE-PATH .* on=7 ' ../results/paid-capstone-path.txt
+      - name: Remeasure compiler snapshots and complete repository gates
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'git diff --binary > ../results/measured-progress.patch' EXIT
+          passed=false
+          for round in $(seq 1 24); do
+            status=0
+            lake build > "../results/full-build-$round.txt" 2>&1 || status=$?
+            if test "$status" = 0; then
+              passed=true
+              echo "$round" > ../results/successful-build-round.txt
+              break
+            fi
+            before_repin=$(git diff | sha256sum)
+            repin_status=0
+            lake exe scripts-repin "../results/full-build-$round.txt" > "../results/repin-$round.txt" 2>&1 || repin_status=$?
+            test "$repin_status" -le 1
+            lean --run Research/ContentSlot/MeasuredRepin.lean "../results/full-build-$round.txt" . > "../results/measured-repin-$round.txt" 2>&1
+            after_repin=$(git diff | sha256sum)
+            test "$before_repin" != "$after_repin"
+          done
+          test "$passed" = true
+          lake run dead-census -- --write > ../results/dead-census-write.txt 2>&1
+          git diff --check
+          git diff --binary > ../results/measured-source.patch
+          git diff -G '[Cc]eiling' -- Tests/Guards > ../results/ceiling-diff.patch
+          test ! -s ../results/ceiling-diff.patch
+          git -c user.name='Heath Sanchez' -c user.email='heathsanchez@gmail.com' commit -am 'proof: route actual ancestor marks through the landed slot value-line bottom'
+          git rev-parse HEAD HEAD^{tree} HEAD^ > ../results/candidate-identity.txt
+          git bundle create ../results/source.bundle HEAD ^9f59de2e097d0174f14651d91a88917c026e3acb
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
+            lake run "$gate" > "../results/$gate.txt" 2>&1
+          done
+          lake run dead-census -- --check > ../results/dead-census-check.txt 2>&1
+          lake run census-dashboard -- --check > ../results/dashboard-check.txt 2>&1
+          lake run census-dashboard -- --diff 9f59de2e097d0174f14651d91a88917c026e3acb > ../results/dashboard-diff.md
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/final-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/final-root-axioms.txt 2>&1
+          diff -u ../results/baseline-axioms.txt ../results/final-axioms.txt
+          diff -u ../results/baseline-root-axioms.txt ../results/final-root-axioms.txt
+          lake run capstone-path > ../results/final-capstone-path.txt 2>&1
+          grep -E '^CAPSTONE-PATH .* on=7 ' ../results/final-capstone-path.txt
+          test -z "$(git status --porcelain)"
+      - name: Run native suites and directed actual ancestor controls
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean --run ../harness/Research/RootComposition/R2LandedAncestorControls.lean > ../results/landed-ancestor-controls.txt 2>&1
+          lake env lean --run ../harness/Research/RootComposition/R2ClosingControls.lean > ../results/closing-controls.txt 2>&1
+          lake build tests demo limittests suiterunner eventscore > ../results/native-build.txt 2>&1
+          lake run run-all-tests > ../results/run-all-tests.txt 2>&1
+          lake exe suiterunner > ../results/suiterunner.txt 2>&1
+          lake exe eventscore > ../results/eventscore.txt 2>&1
+          printf '%s\n' 'landed_ancestor_routing=PASS' 'default_build=PASS' 'repository_gates=PASS' 'native_suites=PASS' 'existing_axioms_unchanged=true' 'critical_ON_positions=7' 'full_R2=NOT_CLAIMED' > ../results/outcomes.txt
+      - uses: actions/cache/save@v4
+        if: success()
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-landed-ancestor-slot-9f59de2e-lean4360-${{ runner.os }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r2-landed-ancestor-slot
+          path: results/
+          if-no-files-found: error
+
