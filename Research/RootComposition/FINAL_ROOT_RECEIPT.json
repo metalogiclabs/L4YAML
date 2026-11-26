@@ -1,0 +1,79 @@
+{
+  "state": "WARRANTED within declared boundary",
+  "run": 45808759031,
+  "harness": "dd97b749a4af490232fc7c89a8bb0b880db1fe5b",
+  "overall_workflow": "success",
+  "qualified_source_commit": "967d3503b30dde555078929f118101cba9f95a56",
+  "qualified_source_tree": "20e10d2041c66d199d4408b4c37f82b6ec8cddf0",
+  "source_baseline_384": "4c54da7e3716ab0197b126294474bb2868651402",
+  "source_owner": "2ebc4740262ebaa566d7bce748e0a55a5c2f0cd5",
+  "root_proof_source_sha256": "1d58ed6960c25ee9994e4f542ecb21e7d3f8214bb255fbc202be08d9e1fdcbf7",
+  "full_default_build_jobs": 2645,
+  "successful_census_round": 2,
+  "repository_gates": "all passed",
+  "native_verified_cases": {
+    "passed": 65233,
+    "total": 65233
+  },
+  "corpus_matrix": {
+    "passed": 869,
+    "failed": 0,
+    "skipped": 151
+  },
+  "event_score": {
+    "correct": 347,
+    "scored": 358,
+    "event_differences": 11
+  },
+  "distinct_checked_producer_root_capstone_axiom_profiles": 10,
+  "existing_checked_axiom_sets_unchanged": true,
+  "artifact": 15113010561,
+  "artifact_sha256": "e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c",
+  "CRC_members_independently_checked": 277,
+  "archive_git_blob": "b55075afab828e0a1426d82e85be2d35d4d9af6c",
+  "independent_source_checks": [
+    "Git bundle integrity verified",
+    "Bundle restored with required 4c54 parent",
+    "Full source tree matches recorded identity",
+    "Root proof SHA256 matches prior compiled candidate",
+    "Both axiom diff files empty"
+  ],
+  "dashboard_vs_384": {
+    "directed_toward": 3,
+    "directed_away": 0,
+    "RelaySupplyCensus.DECLINE": [
+      235,
+      234
+    ],
+    "ValueLinePacks.punt": [
+      17,
+      16
+    ],
+    "RouteShapes.punt": [
+      70,
+      69
+    ]
+  },
+  "remaining_critical_optional_positions": 7,
+  "optional_slot_retirement": false,
+  "limits": [
+    "No universal YAML correspondence or complete conformance claim",
+    "Event score remains347/358",
+    "No API documentation qualification or complete fresh all-library axiom census claimed for this candidate",
+    "Item53897sites/16decls is an incomplete price floor with restored source, not completed narrowing",
+    "No production PR head changes or upstream merges performed"
+  ],
+  "negative_lineage": [
+    45792775883,
+    45793782884,
+    45801661836,
+    45802559146
+  ],
+  "next_smallest_experiment": "Use preserved paired R2 specs on this qualified source: informative hkvUp versus informative hkvUp with own hkv conjunct deleted; preserve restoration, axiom checks and all negative lineage.",
+  "parser_and_scanner_runtime_source_changed": false,
+  "auxiliary_browser": {
+    "run": "7228ac94-60d5-4596-9a91-92a5343678d0",
+    "status": "completed read-only",
+    "census_round_1_inference": "SUPERSEDED by archive successful-build-round.txt = 2"
+  }
+}
