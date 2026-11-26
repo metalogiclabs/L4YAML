@@ -1,0 +1,91 @@
+name: Price the own-column slot conjunct against the complete marked chain
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths:
+      - .github/workflows/r2-slot-price.yml
+      - Research/RootComposition/r2-*-candidate.json
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 4c54da7e3716ab0197b126294474bb2868651402
+          submodules: recursive
+          path: source
+      - name: Restore the exact qualified root candidate from its retained bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/r2 results/qualified-root
+          echo 'ARTIFACT_ARCHIVE_SHA  evidence/Research/RootComposition/qualified-root-evidence.zip' | sha256sum -c -
+          unzip -q evidence/Research/RootComposition/qualified-root-evidence.zip -d results/qualified-root
+          cd source
+          git fetch ../results/qualified-root/root-context/source.bundle HEAD
+          git checkout --detach SOURCE_HEAD_SHA
+          test "$(git rev-parse HEAD)" = SOURCE_HEAD_SHA
+          test "$(git rev-parse HEAD^{tree})" = SOURCE_TREE_SHA
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree} > ../results/source-identity.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          cd ../evidence
+          git rev-parse HEAD > ../results/evidence-commit.txt
+          sha256sum Research/RootComposition/r2-*-candidate.json > ../results/spec-sha256.txt
+          cp Research/RootComposition/r2-*-candidate.json ../results/
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-slot-price-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            root-domain-2ebc4740-lean4360-${{ runner.os }}-
+      - name: Rebuild and bind the unmodified baseline
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML scripts-flip > ../results/baseline-build.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/baseline-root-axioms.txt 2>&1
+          diff -u ../results/qualified-root/root-context/root-axioms.txt ../results/baseline-root-axioms.txt
+          sha256sum L4YAML/Proofs/Production/StreamAccum.lean > ../results/baseline-source-sha256.txt
+          test -z "$(git status --porcelain)"
+      - name: Compare the informative chain with and without the own-column conjunct
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in ancestor-up-plain own-conjunct; do
+            echo "R2_PRICE_START $mode $(date -u +%FT%TZ)"
+            spec="../evidence/Research/RootComposition/r2-$mode-candidate.json"
+            lake exe scripts-flip "$spec" --rev HEAD --dry > "../results/r2/$mode-dry.txt" 2>&1
+            status=0
+            lake exe scripts-flip "$spec" --rev HEAD > "../results/r2/$mode-report.txt" 2>&1 || status=$?
+            echo "$status" > "../results/r2/$mode-exit.txt"
+            test "$status" = 0 -o "$status" = 3
+            sha256sum -c ../results/baseline-source-sha256.txt
+            test -z "$(git status --porcelain)"
+            lake env lean Research/ContentSlot/RootAudit.lean > "../results/r2/$mode-restored-axioms.txt" 2>&1
+            diff -u ../results/baseline-root-axioms.txt "../results/r2/$mode-restored-axioms.txt"
+            echo "R2_PRICE_RESTORED $mode $(date -u +%FT%TZ)"
+          done
+          printf '%s\n' 'price_only=true' 'source_restored=true' 'restored_axiom_sets_unchanged=true' 'redundancy_proof=NOT_CLAIMED' 'optional_slot_retirement=NOT_CLAIMED' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r2-slot-conjunct-price
+          path: results/
+          if-no-files-found: error

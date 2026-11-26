@@ -1,0 +1,59 @@
+{
+  "state": "CANDIDATE / UNKNOWN for full composition and added root candidate",
+  "active_run": 45793782884,
+  "active_harness": "d8ad31e78fc7514732331313434321f73aac98da",
+  "active_branch": "test/root-domain-qualification",
+  "source384": {
+    "commit": "4c54da7e3716ab0197b126294474bb2868651402",
+    "tree": "3b7506b0f4439102df820b8f26bf8d76ab136402",
+    "owner": "2ebc4740262ebaa566d7bce748e0a55a5c2f0cd5"
+  },
+  "observed_job": 139819115618,
+  "observed_stage": "Measure the combined tree through unchanged census algorithms",
+  "observed_passed_stages": [
+    "Source-initialized controls and baseline axiom checks",
+    "Compile isolated PR380 proof-only composition onto exact PR384",
+    "Compare all 10 distinct checked producer/root/capstone axiom sets"
+  ],
+  "limits": [
+    "Full combined build/census is still running",
+    "Owner item538 reprice has not run yet",
+    "Additional 53-insertion/10-deletion root-context candidate has not compiled yet",
+    "All seven critical optional positions remain; no retirement claimed",
+    "No production PR heads, owner permissions or upstream branches changed"
+  ],
+  "finite_controls": {
+    "accepted_sources": 510,
+    "rejected_source_controls": 30,
+    "empty_initial_root_domains": 510,
+    "nonQuestionPark_with_own_mark_counterexamples": 486,
+    "post_value_slots": 1362,
+    "post_value_own_marked": 0,
+    "post_value_with_ancestor_marks": 912,
+    "dash_landings": 180,
+    "dash_marks_right": 0,
+    "dash_marks_equal": 30,
+    "universal_R1_R2_theorem_proved": false
+  },
+  "failed_run": {
+    "id": 45792775883,
+    "harness": "5ee9b8d0ff4359638e06c2388de0a6c0b7d48cf7",
+    "failure": "Reused AdversarialProbe imported Tests.VerifiedResult before it was built; all new finite probes passed; neither new proof was attempted",
+    "archive_artifact_id": 15103552092,
+    "archive_sha256": "c9cc349cdfe8ada877e9d5d6e1403a1090bcdd29c0d1a6034823cd2d47763998",
+    "verified_CRC_members": 13,
+    "raw_archive_git_blob": "baff4143f8ae42f633238831f439723e7aade817",
+    "raw_archive_git_blob_independently_matched": true
+  },
+  "reuse": "Existing StreamAccum.markedCols_le_of_top already proves the upper-bound projection; do not duplicate it. R1 needs route integration. R2 token-only NotQuestionPark is too weak for own-mark absence; use actual post-value predecessor facts.",
+  "next_experiment": "After terminal root qualification: independently verify artifact digest/CRC/Git bundle identity and exact census changes. Resolve any actual failures, preserving lineage. Only with a qualified baseline, run paired R2 flips: make hkvUp informative, then compare that with deletion of hkv. Fill all template source/archive placeholders with verified receipt values before execution.",
+  "prepared_files": [
+    "r2-ancestor-up-plain-candidate.json",
+    "r2-own-conjunct-candidate.json",
+    "r2-slot-price.template.yml",
+    "root-domain-next.template.yml"
+  ],
+  "trigger_safety": "Templates are data under Research, not runnable .github workflows. Current active branch remains unchanged. Future root and R2 workflows have separate path triggers to prevent duplicate qualification.",
+  "watch_task": "6b03ea68a1248191b242ced5fe1df208",
+  "canonical_continuity": "Research Checkpoints 3e43e523-d7ab-81a5-bbc9-e405e81aba6c; direct Canonical Research State fetch was unavailable."
+}
