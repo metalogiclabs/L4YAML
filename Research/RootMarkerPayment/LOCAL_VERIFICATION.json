@@ -5,7 +5,7 @@
   "proof_source_sha256": "3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05",
   "proof_blob": "9628bd00d32abe85c6bd1d1b8c4ba7cae8e092f8",
   "proof_lineage": "exact baseline.patch independently SHA-256 and CRC verified from run 45715345949; baseline commit 6c3d41a4bbdaa0677bb432bd203f699dfe056625",
-  "guard_patch_sha256": "2070a65a290e98c883fbfb7334e37289aa635b313cdbf1a7613eb2c76eb12490",
+  "guard_patch_sha256": "76b45a0319bc53a70acb6a3a7ce83a18a36295df54a35e82972297331484f1b6",
   "actual_metrics": {
     "direct_relay_declines": [
       237,
@@ -58,5 +58,17 @@
     "All seven critical optional positions remain",
     "scannerDrop, universal scan_trace and corrected Group 7.7 remain open",
     "Complete field retirement first-round price is 12 producer diagnostics, not a fixpoint or refutation"
-  ]
+  ],
+  "full_replay_45730398046": {
+    "status": "REJECTED full build qualification pending one size pin",
+    "proof_and_six_affected_guards": "PASS",
+    "remaining_guard": "CloseStackCover",
+    "nodes": [
+      125681,
+      125693
+    ],
+    "all_structural_fields_equal": true,
+    "archive_sha256": "039f0c9404aba66d90f8d5da7cca77fc20f933fa0416c1b96b01afc0fd77d46f",
+    "crc": "PASS"
+  }
 }

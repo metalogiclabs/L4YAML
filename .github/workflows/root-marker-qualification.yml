@@ -51,6 +51,15 @@ jobs:
           grep -F 'ROOT_PRODUCER executions=42' ../results/root-controls.txt
           grep -Fx 'DOCUMENT_MARKER_CONTROLS sources=126 start_states=252 end_states=210 initialized_from_source=true actual_marked_columns_empty=true' ../results/marker-controls.txt
           lake env lean Research/RootMarkerPayment/AxiomAudit.lean > ../results/axioms-before.txt 2>&1
+      - name: Restore same-owner candidate build cache
+        id: candidate_cache
+        uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: upstream/.lake
+          key: root-payment-cc830190-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            root-payment-cc830190-lean4360-${{ runner.os }}-
       - name: Build the proof and remeasure every affected guard
         working-directory: upstream
         shell: bash
@@ -119,6 +128,13 @@ jobs:
           cp docs/reports/stats.json ../results/stats.json
           cp ../evidence/Research/RootMarkerPayment/*.lean ../results/
           printf '%s\n' 'full_default_build=PASS' 'required_gates=PASS' 'native_tests=PASS' 'axiom_sets_unchanged=true' 'no_directed_regression=true' 'scannerDrop_retired=false' 'upstream_submitted=false' > ../results/outcomes.txt
+      - name: Preserve candidate build cache after diagnostics
+        if: always() && steps.candidate_cache.outcome == 'success' && steps.candidate_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: upstream/.lake
+          key: root-payment-cc830190-lean4360-${{ runner.os }}-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
