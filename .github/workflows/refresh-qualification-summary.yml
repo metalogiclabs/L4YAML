@@ -1,0 +1,47 @@
+name: Read exact refreshed qualification measurements for PR descriptions
+on:
+  push:
+    branches: [test/refresh-source-publication]
+    paths: [.github/workflows/refresh-qualification-summary.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Read already completed source-qualified measurements
+        shell: bash
+        run: |
+          set -euo pipefail
+          for pr in 302 361 370 371 384; do
+            row=""
+            for attempt in $(seq 1 100); do
+              row=$(gh api repos/metalogiclabs/L4YAML/actions/runs/45895329112/artifacts --jq ".artifacts[] | select(.name == \"pr-$pr-refresh-evidence\") | [.id,.digest] | @tsv")
+              test -n "$row" && break
+              sleep 15
+            done
+            test -n "$row"
+            read -r artifact digest <<< "$row"
+            mkdir -p "pr$pr"
+            gh api "repos/metalogiclabs/L4YAML/actions/artifacts/$artifact/zip" > "pr$pr/original.zip"
+            echo "${digest#sha256:}  pr$pr/original.zip" | sha256sum -c -
+            unzip -q "pr$pr/original.zip" -d "pr$pr/result"
+            p="pr$pr/result"
+            test -f "$p/qualified-source.txt"
+            echo "BEGIN-QUAL-SUMMARY $pr $artifact $digest"
+            for name in source.txt qualified-source.txt qualified.sha256 dashboard-diff.log hygiene.log cross-language.log; do
+              echo "BEGIN-QUAL-FILE $name"
+              cat "$p/$name"
+              echo END-QUAL-FILE
+            done
+            grep '^Verified:' "$p/native-suites.log"
+            grep 'Build completed successfully' "$p/final-build.log" | tail -1
+            tail -3 "$p/python-ffi.log"
+            tail -3 "$p/python-package.log"
+            grep '^test result:' "$p/rust-tests.log"
+            echo "END-QUAL-SUMMARY $pr"
+          done
