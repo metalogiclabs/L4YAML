@@ -1,0 +1,185 @@
+name: Complete the compiled content-root candidate qualification
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths: [Research/RootComposition/root-finalization-request.txt]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 4c54da7e3716ab0197b126294474bb2868651402
+          submodules: recursive
+          path: source
+      - name: Restore the exact measured composition and unchanged root proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/prior results/root-context results/combined
+          echo '5d0076a7356c11c1b291abd1d542304db013db6ce9d177cb068258d824ca8351  evidence/Research/RootComposition/compiled-root-evidence.zip' | sha256sum -c -
+          unzip -q evidence/Research/RootComposition/compiled-root-evidence.zip -d results/prior
+          test "$(cat results/prior/evidence-commit.txt)" = 1a768f5104a49e9d43605a1295607b4cc3c5b85b
+          cd source
+          git bundle verify ../results/prior/combined/source.bundle
+          git fetch ../results/prior/combined/source.bundle HEAD
+          git checkout --detach d1a4e2cf87821d8f90fe28190ac0e8e5ed4ae506
+          test "$(git rev-parse HEAD^{tree})" = dfbe7d159101205b794927c7102cc4b2d5d338ee
+          git rev-parse HEAD HEAD^{tree} > ../results/combined/source-identity.txt
+          test -z "$(git status --porcelain)"
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git config user.name 'L4YAML isolated qualification'
+          git config user.email 'qualification@users.noreply.github.com'
+          git apply --check ../results/prior/root-context/attempted-source.patch
+          git apply ../results/prior/root-context/attempted-source.patch
+          sha256sum -c ../results/prior/root-context/source-sha256.txt
+          cp ../evidence/Research/ContentSlot/MeasuredRepinDriver.lean Research/ContentSlot/MeasuredRepinDriver.lean
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          cd ../evidence
+          sha256sum -c Research/RootComposition/finalization-input-sha256.txt
+          git rev-parse HEAD > ../results/evidence-commit.txt
+      - uses: actions/cache/restore@v4
+        id: cache
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: root-domain-2ebc4740-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            root-domain-2ebc4740-lean4360-${{ runner.os }}-
+      - name: Calibrate the exact consumer reading and replay measured root snapshots
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version > ../results/lean-version.txt
+          diff -u ../results/prior/lean-version.txt ../results/lean-version.txt
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > Research/ContentSlot/MeasuredRepin.lean
+          cat Research/ContentSlot/MeasuredRepinDriver.lean >> Research/ContentSlot/MeasuredRepin.lean
+          lake build Scripts.Main.Repin > ../results/repin-build.txt 2>&1
+          mkdir -p ../results/consumer-fixture/Tests/Guards/Proofs
+          cp Tests/Guards/Proofs/OrTrueAudit.lean ../results/consumer-fixture/Tests/Guards/Proofs/
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/prior/root-context/full-build-5.txt ../results/consumer-fixture > ../results/consumer-fixture-first.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/consumer-fixture-first.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/prior/root-context/full-build-5.txt ../results/consumer-fixture > ../results/consumer-fixture-repeat.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/consumer-fixture-repeat.txt
+          for round in $(seq 1 5); do
+            echo "ROOT_REPLAY_ROUND $round $(date -u +%FT%TZ)"
+            status=0
+            lake exe scripts-repin "../results/prior/root-context/full-build-$round.txt" > "../results/replay-repin-$round.txt" 2>&1 || status=$?
+            test "$status" -le 1
+            lean --run Research/ContentSlot/MeasuredRepin.lean "../results/prior/root-context/full-build-$round.txt" . > "../results/replay-measured-$round.txt" 2>&1
+            cat "../results/replay-measured-$round.txt"
+          done
+          sha256sum -c ../results/prior/root-context/source-sha256.txt
+          git diff --check
+          git diff --binary > ../results/replayed-root-source.patch
+      - name: Fresh kernel check and exact existing axiom comparisons
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ROOT_KERNEL_START $(date -u +%FT%TZ)"
+          rm -f .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean
+          lake build L4YAML.Proofs.Production.DocumentProduction > ../results/root-context/proof-build.txt 2>&1
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/root-context/axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/root-context/root-axioms.txt 2>&1
+          diff -u ../results/prior/baseline/axioms.txt ../results/root-context/axioms.txt > ../results/root-context/axiom-diff.txt
+          diff -u ../results/prior/baseline/root-axioms.txt ../results/root-context/root-axioms.txt > ../results/root-context/root-axiom-diff.txt
+          echo "ROOT_KERNEL_PASS $(date -u +%FT%TZ)"
+      - name: Complete the full census through unchanged detector logic
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_with_log() {
+            local build_log="$1"
+            : > "$build_log"
+            lake build > "$build_log" 2>&1 &
+            local build_pid=$!
+            tail --pid="$build_pid" -n +1 -f "$build_log" &
+            local reader_pid=$!
+            local build_status=0
+            wait "$build_pid" || build_status=$?
+            wait "$reader_pid" || true
+            return "$build_status"
+          }
+          passed=false
+          for round in $(seq 1 16); do
+            echo "ROOT_CENSUS_ROUND $round $(date -u +%FT%TZ)"
+            if build_with_log "../results/root-context/full-build-$round.txt"; then
+              passed=true
+              echo "$round" > ../results/root-context/successful-build-round.txt
+              break
+            fi
+            before_repin=$(git diff | sha256sum)
+            status=0
+            lake exe scripts-repin "../results/root-context/full-build-$round.txt" > "../results/root-context/repin-$round.txt" 2>&1 || status=$?
+            test "$status" -le 1
+            lean --run Research/ContentSlot/MeasuredRepin.lean "../results/root-context/full-build-$round.txt" . > "../results/root-context/measured-repin-$round.txt" 2>&1
+            cat "../results/root-context/measured-repin-$round.txt"
+            after_repin=$(git diff | sha256sum)
+            test "$before_repin" != "$after_repin"
+          done
+          test "$passed" = true
+          lake run dead-census -- --write > ../results/root-context/dead-census-write.txt 2>&1
+          git diff --check
+          git diff --binary > ../results/root-context/measured-source.patch
+          sha256sum -c ../results/prior/root-context/source-sha256.txt
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+      - name: Run repository gates and retain the exact source tree
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
+            echo "REPOSITORY_GATE $gate $(date -u +%FT%TZ)"
+            lake run "$gate" > "../results/root-context/$gate.txt" 2>&1
+          done
+          lake build Tests.Guards.Proofs.DeadDeclarationCensus > ../results/root-context/dead-census-guard.txt 2>&1
+          lake run dead-census -- --check > ../results/root-context/dead-census-check.txt 2>&1
+          lake run census-dashboard -- --check > ../results/root-context/dashboard-check.txt 2>&1
+          lake run census-dashboard -- --diff 4c54da7e3716ab0197b126294474bb2868651402 > ../results/root-context/dashboard-diff.md
+          lake env lean Research/ContentSlot/ProofImpact.lean > ../results/root-context/proof-impact.txt 2>&1
+          lake env lean --run Research/ContentSlot/ReachableControls.lean > ../results/root-context/reachable-controls.txt 2>&1
+          diff -u ../results/prior/baseline/reachable-controls.txt ../results/root-context/reachable-controls.txt
+          git diff --name-only > ../results/root-context/changed-paths.txt
+          git diff --binary > ../results/root-context/measured-source.patch
+          git add L4YAML Tests Research/ContentSlot
+          git commit -m 'test: qualified actual empty-domain content-root proof and measured censuses'
+          git rev-parse HEAD HEAD^{tree} > ../results/root-context/source-identity.txt
+          git bundle create ../results/root-context/source.bundle HEAD ^4c54da7e3716ab0197b126294474bb2868651402
+          test -z "$(git status --porcelain)"
+      - name: Build and run the complete native battery
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build tests demo limittests suiterunner eventscore > ../results/root-context/native-build.txt 2>&1
+          lake run run-all-tests > ../results/root-context/run-all-tests.txt 2>&1
+          lake exe suiterunner > ../results/root-context/suiterunner.txt 2>&1
+          lake exe eventscore > ../results/root-context/eventscore.txt 2>&1
+          printf '%s\n' 'root_context_proof=PASS' 'all_guards=PASS' 'all_repository_gates=PASS' 'native_suites=PASS' 'ten_checked_existing_axiom_sets_unchanged=true' 'proof_source_matches_prior_compiled_candidate=true' 'optional_slot_retirement=NOT_CLAIMED' > ../results/outcomes.txt
+      - uses: actions/cache/save@v4
+        if: always() && steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: root-domain-2ebc4740-lean4360-${{ runner.os }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: root-domain-finalization
+          path: results/
+          if-no-files-found: error

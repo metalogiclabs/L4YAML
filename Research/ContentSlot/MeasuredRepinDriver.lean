@@ -270,6 +270,8 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
       some "expectedStateFaces"
     else if file == "Tests/Guards/Proofs/OrTrueAudit.lean" && title == "the ∨-True SUPPLY classes moved." then
       some "expectedSupply"
+    else if file == "Tests/Guards/Proofs/OrTrueAudit.lean" && title == "the ∨-True CONSUMER classes moved." then
+      some "expectedConsumers"
     else if file == "Tests/Guards/Proofs/CapstonePathAudit.lean" && title.startsWith "the capstone-path ON roster moved (shrink-only:" then
       some "expectedOn"
     else if file == "Tests/Guards/Proofs/CapstonePathAudit.lean" && title == "the capstone-path OFF residue moved." then
@@ -298,7 +300,7 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
       let rowHead := if name == "expectedSites" then "L4YAML.Proofs.StreamAccum." else "scanNextToken_"
       let rows := (body.toList.drop 1).takeWhile (fun l => (pyStrip l).startsWith rowHead)
       if rows.isEmpty then none else some (rows.map pyStrip)
-    else if name == "expectedSupply" || file == "Tests/Guards/Proofs/CapstonePathAudit.lean" then do
+    else if name == "expectedSupply" || name == "expectedConsumers" || file == "Tests/Guards/Proofs/CapstonePathAudit.lean" then do
       let i ← (List.range body.size).find? fun i => (combinedCounts? body[i]!).isSome
       let (a,b) ← combinedCounts? body[i]!
       if a != old.length || b != a || i+b+1 > body.size then none else
