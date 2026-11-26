@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: nasa-jpl/L4YAML
-          ref: cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          ref: 2ebc4740262ebaa566d7bce748e0a55a5c2f0cd5
           submodules: recursive
           path: upstream
       - name: Bind exact owner and compiler
@@ -27,7 +27,14 @@ jobs:
           set -euo pipefail
           mkdir -p results
           cd upstream
-          test "$(git rev-parse HEAD)" = cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          test "$(git rev-parse HEAD)" = 2ebc4740262ebaa566d7bce748e0a55a5c2f0cd5
+          # #300 and #381 changed Python/workflow/docs only. Bind every reused
+          # proof, test and gate subtree before reusing the historical fixtures.
+          for binding in L4YAML:0a8d15505cf2520df980bc4af05eca0ad72f86c8 Tests:0e6978c572f66c2c9fc99247ef2c6afde1c5ecab Scripts:fa08da4fceff69bafc2faf99a542a6cf61b285b9 lakefile.lean:6aa97968223d2666edebfb8989ec009bf275b1ad lean-toolchain:00f848359b1cdaf7c12cd6b7acc5b4364752e154 lake-manifest.json:d7b89af6a6b9d42c530698c7eb8fa9a77d0e3a2f; do
+            IFS=: read -r path expected <<< "$binding"
+            test "$(git rev-parse "HEAD:$path")" = "$expected"
+          done
+          git ls-tree HEAD L4YAML Tests Scripts lakefile.lean lean-toolchain lake-manifest.json > ../results/reused-owner-subtrees.txt
           test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
           git rev-parse HEAD HEAD^{tree} > ../results/owner.txt
           curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
@@ -43,8 +50,9 @@ jobs:
         continue-on-error: true
         with:
           path: upstream/.lake
-          key: content-slot-cc830190-lean4360-${{ runner.os }}-${{ github.run_id }}
+          key: content-slot-2ebc4740-lean4360-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
+            content-slot-2ebc4740-lean4360-${{ runner.os }}-
             content-slot-cc830190-lean4360-${{ runner.os }}-
             root-payment-cc830190-lean4360-${{ runner.os }}-
       - name: Replay source controls and retain exact-owner trust profiles
@@ -212,9 +220,10 @@ jobs:
           xargs sha256sum < ../results/changed-paths.txt > ../results/candidate-source-sha256.txt
           git add -- L4YAML Tests
           git write-tree > ../results/candidate-tree.txt
+          test "$(cat ../results/candidate-tree.txt)" = 3b7506b0f4439102df820b8f26bf8d76ab136402
           git reset --quiet HEAD -- L4YAML Tests
           lake run census-dashboard -- --diff HEAD > ../results/dashboard-diff.md
-      - name: Run all repository gates and native suites
+      - name: Run all repository gates
         working-directory: upstream
         shell: bash
         run: |
@@ -227,10 +236,30 @@ jobs:
           done
           lake run dead-census -- --check > ../results/dead-census.txt 2>&1
           lake run census-dashboard -- --check > ../results/dashboard-check.txt 2>&1
+      - name: Build native test executables
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
           lake build tests demo limittests suiterunner eventscore collect-stats > ../results/native-executable-build.txt 2>&1
+      - name: Run the complete native battery
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
           lake run run-all-tests > ../results/run-all-tests.txt 2>&1
+      - name: Run the matrix and event corpus
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
           lake exe suiterunner > ../results/suiterunner.txt 2>&1
           lake exe eventscore > ../results/eventscore.txt 2>&1
+      - name: Check the complete compiled axiom census
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
           lake exe collect-stats > ../results/collect-stats.txt 2>&1
           lake run check-hygiene -- docs/reports/stats.json > ../results/hygiene.txt 2>&1
           cp docs/reports/stats.json ../results/stats.json
@@ -240,7 +269,7 @@ jobs:
         continue-on-error: true
         with:
           path: upstream/.lake
-          key: content-slot-cc830190-lean4360-${{ runner.os }}-${{ github.run_id }}
+          key: content-slot-2ebc4740-lean4360-${{ runner.os }}-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

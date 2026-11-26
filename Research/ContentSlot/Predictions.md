@@ -149,3 +149,12 @@ that makes the off-column wrapper refutable. This candidate addresses that
 consumer-domain correction and the two marker supplies; it does not include
 root-slot PR #380 or claim completion of the R1/R2/R3 sequence, the flow-frame
 PackAltG, full pendingContent retirement, or scannerDrop removal.
+
+
+Current-owner continuation prepared on 2ebc4740: expected source tree
+3b7506b0f4439102df820b8f26bf8d76ab136402. All library and adversarial source
+bytes are unchanged; the two additional remeasured guards CarrierArmPrice and
+DeadDeclarationCensus now carry dated causal notes beside their literals.
+The complete proof/test/gate subtrees, build recipe and dependency/toolchain
+objects are bound against the historical owner before its fixtures are reused.
+Full qualification of this current-owner tree remains pending.
