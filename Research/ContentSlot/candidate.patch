@@ -445,6 +445,91 @@ index f159e178a..2e15aafad 100644
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock[13].h_kslot top ∨ PackAlt on-drop",
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent[15].h_kslot top ∨ PackAlt on-drop",
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent[16].h_vpack top ∨ PackAlt on-relay"]
+diff --git a/Tests/Guards/Proofs/CloseLandingWidth.lean b/Tests/Guards/Proofs/CloseLandingWidth.lean
+index 74395189d..5f6adb58e 100644
+--- a/Tests/Guards/Proofs/CloseLandingWidth.lean
++++ b/Tests/Guards/Proofs/CloseLandingWidth.lean
+@@ -490,21 +490,23 @@ def expectedCloses : List String :=
+ -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
+ -- 2026-10-30 (item 405): `closeThenBlock.h_vslot` is spent twice more — the compact fill and the resume branch now destructure `hkvUp`'s domain beside `hkv` (spends 8 → 10).
+ def expectedSites : List String :=
+-  ["accum_block_pending→accum_block_on_closeThenBlock.h_close_pending → accum_block_on_closeThenBlock.h_close_pending: spends=1 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
+-   "accum_block_pending→accum_block_on_pendingBlock.h_close_pending → accum_block_on_pendingBlock.h_close_pending: spends=4 (node 0) handoffs=1 carries=0 BOTH reach=2 reachJudged=6 reachBoth=false",
+-   "accum_content_on_noPending→keyctx_of_preprocess.h_close → keyctx_of_preprocess.h_close: spends=2 (node 1) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
+-   "accum_flow_open_depth0→flowKeyRoute_of_root.h_close → flowKeyRoute_of_root.h_close: spends=2 (node 2) handoffs=0 carries=0 NEITHER reach=1 reachJudged=0 reachBoth=false",
+   -- Item 415: the h_vslot site row re-read — the two paid closeThenBlock arms (relay + ancestor-list copy) change its spends/handoffs/reach.
+   -- Item 418: re-read again — h_vslot is spent twice more (the h_kslotUp arm and the domained h_explUp_chainD argument) and handed off once more.
+-  "accum_block_pending→accum_block_on_closeThenBlock.h_vslot → accum_block_on_closeThenBlock.h_vslot: spends=14 (node 14) handoffs=6 carries=1 NEITHER reach=3 reachJudged=8 reachBoth=false"]
++  ["accum_block_pending→accum_block_on_closeThenBlock.h_close_pending → accum_block_on_closeThenBlock.h_close_pending: spends=1 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
++   "accum_block_pending→accum_block_on_closeThenBlock.h_vslot → accum_block_on_closeThenBlock.h_vslot: spends=14 (node 14) handoffs=6 carries=1 NEITHER reach=3 reachJudged=8 reachBoth=false",
++   "accum_block_pending→accum_block_on_pendingBlock.h_close_pending → accum_block_on_pendingBlock.h_close_pending: spends=3 (node 0) handoffs=1 carries=0 BOTH reach=2 reachJudged=5 reachBoth=false",
++   "accum_content_on_noPending→keyctx_of_preprocess.h_close → keyctx_of_preprocess.h_close: spends=2 (node 1) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
++   "accum_flow_open_depth0→flowKeyRoute_of_root.h_close → flowKeyRoute_of_root.h_close: spends=2 (node 2) handoffs=0 carries=0 NEITHER reach=1 reachJudged=0 reachBoth=false"]
+ -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
+ -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
+ -- 2026-10-30 (item 405): the two `closeThenBlock` births destructure `hkv` beside `hkvUp` and apply the slot route per chain member (`rcases List.mem_cons`): the node spends are read once per branch (the slot's own head and the ancestors'), with the chain index `cur:nv` only.
+ def expectedSpends : List String :=
+   ["accum_block_on_closeThenBlock spend:comments @sp_mid arg=prem:SSLComments width=ws[ws:hws,col:hcol_mid] index=packed[cur:h_vslot,slot:h_vslot,cur:h_valF,slot:h_valF,slot:h_valFV] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
++   "accum_block_on_closeThenBlock handoff→relay.hP @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv] cmp=yes[hnk:nv ≤ k]",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv] cmp=no",
++   "accum_block_on_closeThenBlock carry→And.intro @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv ≤ k]",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+@@ -514,26 +516,23 @@ def expectedSpends : List String :=
+    "accum_block_on_closeThenBlock spend:node @sp_final arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,SCompactSeqTail.nil)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_end arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
++   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[hxe:¬x = nv]",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
++   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[hxe:¬x = nv]",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp arg=prem:SBlockIndented width=none index=direct[cur:nv,slot:nv] cmp=no",
++   "accum_block_on_closeThenBlock handoff→relay.hP @— arg=— width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_pendingBlock handoff→accum_block_on_closeThenBlock.h_close_pending @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=yes[hkn:¬k = n,_hge:n ≥ k]",
+    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
+    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
+    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
+-   "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
+    "keyctx_of_preprocess spend:comments @sp_mid arg=lemma:left(prem:And) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no",
+    "keyctx_of_preprocess spend:node @sp arg=lemma:white_prepend_SSLComments(prem:GStar,SSLComments.startOfLine(GStar.nil)) width=ind[ws~:h_ws,ind~:h_ind,ind~:h_ind',col:hc0] index=none cmp=no",
+    "flowKeyRoute_of_root spend:node @sp_mid arg=lemma:SSLCommentsFrom_at_park(prem:ScannerSurfCorr,prem:GStar,prem:∀→Not,lemma:left(prem:And),lemma:left(lemma:right(lemma:right(prem:And)))) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no",
+    "flowKeyRoute_of_root spend:node @sp_mid arg=lemma:SSLCommentsFrom_at_park(prem:ScannerSurfCorr,prem:GStar,prem:∀→Not,lemma:left(prem:And),lemma:left(lemma:right(lemma:right(prem:And)))) width=ind[ws:h_ws,ind:h_ind,ind:h_ind'] index=none cmp=no",
+    "slotChainMap spend:node @sp_v arg=SBlockIndented.node(SBlockNode.blockMap(GOpt.none,prem:SSLComments,SBlockMapEntries.single(prem:SIndent,prem:SBlockMapEntry))) width=none index=direct[cur:nv] cmp=no",
+-   "relay untyped @— arg=— width=none index=none cmp=no",
+-   "accum_block_on_closeThenBlock handoff→relay.hP @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv] cmp=yes[hnk:nv ≤ k]",
+-   "accum_block_on_closeThenBlock carry→And.intro @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv ≤ k]",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[hxe:¬x = nv]",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[hxe:¬x = nv]",
+-   "accum_block_on_closeThenBlock handoff→relay.hP @— arg=— width=none index=direct[cur:nv,slot:nv] cmp=no"]
++   "relay untyped @— arg=— width=none index=none cmp=no"]
+ -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
+ def expectedEdges : List String :=
+   ["accum_block_on_closeThenBlock → slotChainMap.up",
+@@ -562,9 +561,10 @@ def expectedEmpties : List String :=
+    "accum_block_on_pendingBlock SBlockIndented.empty n=n @sp_mid width=ind[ws:hws,col:hcol_mid,ind:h_ind] cmp=no",
+    "accum_block_on_pendingBlock SBlockIndented.empty n=n @sp_m width=ind[ind:h_iv] cmp=no",
+    "accum_block_pending SBlockNode.emptyNode n=nmv + 1 @sp_m width=ind[ind:h_ind] cmp=no",
+-   "accum_block_pending SBlockIndented.empty n=nmv @sp_m width=ind[ind:h_ind] cmp=yes[≡nmv]",
+    "accum_block_pending SBlockNode.emptyNode n=nmv + 1 @sp_m width=ind[ind:h_ind] cmp=no",
+    "accum_block_pending SBlockIndented.empty n=nmv @sp_m width=ind[ind:h_ind] cmp=no",
++   "accum_block_pending SBlockIndented.empty n=nmv @sp_m width=ind[ind:h_ind] cmp=yes[heq:nv = nmv]",
++   "accum_block_pending SBlockIndented.empty n=nmv @sp_m width=ind[ind:h_ind] cmp=yes[heq:¬nv = nmv]",
+    "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
+    "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
+    "accum_content_on_pendingBlock_indented SBlockIndented.empty n=n @sp_m width=none cmp=no",
+@@ -603,7 +603,7 @@ def expectedEmpties : List String :=
+ def expectedLine : String :=
+ -- Item 371 (empties=25 → 27, emptyLemmas=6 → 8): the value-line packs end in the one-level
+ -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+-  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=24 spendsC=6 spendsE=0 spendsN=18 handoffs=7 carries=1 untyped=1 edges=3 paramsWalked=7 widthInd=5 widthWs=1 widthNone=0 idxDirect=4 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=4 bothCmp=0 handInd=6 handDirect=7 handCmp=6 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=30 emptyLemmas=9 emptyInd=14 emptyCmp=6 emptySame=2 emptyClose=2 sites=20 pairs=20 pairs21=20 pairs18=18 nonANoDrop=8 reach=38"
++  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=23 spendsC=5 spendsE=0 spendsN=18 handoffs=7 carries=1 untyped=1 edges=3 paramsWalked=7 widthInd=4 widthWs=1 widthNone=0 idxDirect=3 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=3 bothCmp=0 handInd=6 handDirect=7 handCmp=6 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=31 emptyLemmas=9 emptyInd=15 emptyCmp=7 emptySame=1 emptyClose=2 sites=20 pairs=20 pairs21=20 pairs18=18 nonANoDrop=8 reach=37"
+ 
+ /-! ## §5 The reading -/
+ 
 diff --git a/Tests/Guards/Proofs/ConclusionRouteCensus.lean b/Tests/Guards/Proofs/ConclusionRouteCensus.lean
 index ed30045da..2d41f7378 100644
 --- a/Tests/Guards/Proofs/ConclusionRouteCensus.lean
@@ -613,6 +698,19 @@ index ec71f2203..664324ed3 100644
  -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
  -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
  -- grew and the predicate gained its tools.  What is new in kind: `AG` carries
+diff --git a/Tests/Guards/Proofs/OpenEntryRoute.lean b/Tests/Guards/Proofs/OpenEntryRoute.lean
+index 603f7bdc3..4225be5cd 100644
+--- a/Tests/Guards/Proofs/OpenEntryRoute.lean
++++ b/Tests/Guards/Proofs/OpenEntryRoute.lean
+@@ -489,7 +489,7 @@ def expectedFunnel : List String :=
+ def expectedLine : String :=
+ -- Item 371 (t1Pairs=6 → 2, t1Sites=8 → 4, t2Pairs=2 → 6, t2Sites=4 → 8, covered1=6 → 2): the value-line packs end in the one-level
+ -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+-  "aPairs=10 aSites=13 t1Pairs=2 t1Sites=4 t2Pairs=7 t2Sites=8 nPairs=1 nSites=1 multi=0 inline=0 covered1=2 covered2=9 stackedPairs=0 stackedNoDrop=0 nonA=10 nonANoDrop=8 pairs21=20 pairs18=18 sites=20 pairs=20 exhibits=5 closedFirst=1 handedNode=4 avail=13 behindLemmas=5 behindOpeners=0 aheadOpeners=3 funnelApps=4 paid=2 punted=2 other=0 chainApps=4 entryApps=6 qApps=1 cApps=1 reach=38"
++  "aPairs=10 aSites=13 t1Pairs=2 t1Sites=4 t2Pairs=7 t2Sites=8 nPairs=1 nSites=1 multi=0 inline=0 covered1=2 covered2=9 stackedPairs=0 stackedNoDrop=0 nonA=10 nonANoDrop=8 pairs21=20 pairs18=18 sites=20 pairs=20 exhibits=5 closedFirst=1 handedNode=4 avail=13 behindLemmas=5 behindOpeners=0 aheadOpeners=3 funnelApps=4 paid=2 punted=2 other=0 chainApps=4 entryApps=6 qApps=1 cApps=1 reach=37"
+ 
+ /-! ## §6 The reading -/
+ 
 diff --git a/Tests/Guards/Proofs/OrTrueAudit.lean b/Tests/Guards/Proofs/OrTrueAudit.lean
 index fae4ebc7c..036da560d 100644
 --- a/Tests/Guards/Proofs/OrTrueAudit.lean
@@ -636,7 +734,7 @@ index fae4ebc7c..036da560d 100644
    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[20].h_mk paid [DECLINE=10 PAY=1]",
    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[26].h_tail139 paid [DECLINE=8 PAY=3]",
 diff --git a/Tests/Guards/Proofs/ParkGapProduction.lean b/Tests/Guards/Proofs/ParkGapProduction.lean
-index c97a544b1..b7ae45ebb 100644
+index c97a544b1..47f98d7f1 100644
 --- a/Tests/Guards/Proofs/ParkGapProduction.lean
 +++ b/Tests/Guards/Proofs/ParkGapProduction.lean
 @@ -252,38 +252,16 @@ partial def walk (prods : Std.HashSet Name) (decl : Name) (e : Expr) : W Unit :=
@@ -688,6 +786,18 @@ index c97a544b1..b7ae45ebb 100644
  
  /-- **How far a `GLit` is below the stream's own alphabet.**  A stream's right
      endpoint moves by `SLDocumentPrefix`, `SLAnyDocument` or `SLDocumentSuffix`;
+@@ -407,10 +385,7 @@ def expectedEndsLit : List String :=
+ -- 2026-11-14 (item 499, KeyArm): prods 174 → 175, ctors 330 → 336, endsLit 42 → 48, question 2 → 3, colon 21 → 26 —
+ -- `StreamAccum.KeyArm`, six constructors each ending in its indicator literal (`?` once, `:` five times); the park rows unchanged.
+ def expectedLine : String :=
+-  "pop=10 sites=13 spend=6 nospend=7 len1=6 ends=GStar(SSWhite)+SIndent \
+-depth=3 prods=175 ctors=336 \
+-endsLit=48 minus=1 question=3 colon=26 chainEnds=0 blockArms=1 seqArms=10 \
+-mapArms=10 streamArms=4 streamHonest=3"
++  "pop=10 sites=10 spend=3 nospend=7 len1=3 ends=GStar(SSWhite)+SIndent depth=3 prods=175 ctors=336 endsLit=48 minus=1 question=3 colon=26 chainEnds=0 blockArms=1 seqArms=10 mapArms=10 streamArms=4 streamHonest=3"
+ 
+ /-- The non-circularity check items 242, 243 and 244 also carry: a measurement
+     of what the escape costs may not route through the escape.  `glit=true`
 diff --git a/Tests/Guards/Proofs/ParkGapWidth.lean b/Tests/Guards/Proofs/ParkGapWidth.lean
 index c7267075a..b03af94d9 100644
 --- a/Tests/Guards/Proofs/ParkGapWidth.lean
@@ -905,3 +1015,29 @@ index 2af1f549e..aa1524d1a 100644
  
  /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
      enumerated five optional contexts of `content_dispatch_routed` by hand;
+diff --git a/Tests/Guards/Proofs/RouteShapes.lean b/Tests/Guards/Proofs/RouteShapes.lean
+index c07eaf537..f0e2e75d9 100644
+--- a/Tests/Guards/Proofs/RouteShapes.lean
++++ b/Tests/Guards/Proofs/RouteShapes.lean
+@@ -956,7 +956,7 @@ def expectedK : List String :=
+ -- 2026-10-30 (item 405): `compact_open_map` closes `pendingMapValue.h_explUp` with the new `PackAlt` arm instead of carrying an empty chain (carry 192 → 191, closed 10 → 11; the route-argument walk loses that one forwarded edge).
+ def expectedLine : String :=
+   -- Item 372 (2026-10-27): `ImplicitKeyPack`'s route conjunct is an Or (the `SeqTopKey` face): the pack's route slot reads as a guarded alternative, not a bare stream route.
+-  "closures=58 packed=14 optional=42 guarded=17 facts=3 others=4 byHead=6 byFirst=9 bySpine=42 flowRoutes=7 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=280 stream=7 carry=192 fwd=0 punt=70 closed=11 mandatory[stream=4 carry=53 fwd=0 punt=14 closed=1] optional[stream=3 carry=139 fwd=0 punt=56 closed=10] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=35 spinesTouched=40 firstsFromStream=4 headsFromStream=3 streamSites=2 closings=11 closedDistinct=3 closedIn=1 absorbed=4 obtained=2 flowSites=7 flowSlots=49 flow[stream=8 carry=30 fwd=0 punt=10 closed=1] routeArgs=183 routeStream=16 routeCarry=69 routeFwd=55 routeClosed=43 routeToWalked=117 routeStreamToWalked=11 viaObtained=0 viaSites=0 builders=13 builds=170 buildSlots=1185 build[stream=16 carry=308 fwd=749 punt=80 closed=32] buildStreamSlots=16 buildSpines=10 routePairs=7 routeSpines=5 k=14 kHeads=6 streamBuilders=8"
++  "closures=58 packed=14 optional=42 guarded=17 facts=3 others=4 byHead=6 byFirst=9 bySpine=42 flowRoutes=7 flowSpinesNew=6 slots=62 nil=44 parkedCtor=35 closureSlots=280 stream=7 carry=192 fwd=0 punt=70 closed=11 mandatory[stream=4 carry=53 fwd=0 punt=14 closed=1] optional[stream=3 carry=139 fwd=0 punt=56 closed=10] packSlots=104 pack[stream=0 carry=84 fwd=0 punt=0 closed=20] spinesFromStream=5 spinesCarried=35 spinesTouched=40 firstsFromStream=4 headsFromStream=3 streamSites=2 closings=11 closedDistinct=3 closedIn=1 absorbed=4 obtained=2 flowSites=7 flowSlots=49 flow[stream=8 carry=30 fwd=0 punt=10 closed=1] routeArgs=185 routeStream=16 routeCarry=68 routeFwd=58 routeClosed=43 routeToWalked=117 routeStreamToWalked=11 viaObtained=0 viaSites=0 builders=12 builds=170 buildSlots=1185 build[stream=16 carry=308 fwd=749 punt=80 closed=32] buildStreamSlots=16 buildSpines=10 routePairs=7 routeSpines=5 k=14 kHeads=6 streamBuilders=8"
+ 
+ set_option maxHeartbeats 4000000 in
+ run_cmd Lean.Elab.Command.liftTermElabM do
+diff --git a/Tests/Guards/Proofs/StreamCompositions.lean b/Tests/Guards/Proofs/StreamCompositions.lean
+index d035be216..05bb58a06 100644
+--- a/Tests/Guards/Proofs/StreamCompositions.lean
++++ b/Tests/Guards/Proofs/StreamCompositions.lean
+@@ -798,7 +798,7 @@ def expectedLine : String :=
+   -- 2026-11-14 (item 490, the ∀-floor fold): dead 7 → 7, predicted 8 and REFUTED by the build — the fold
+   -- `accum_step_content_pairK` composes `accum_step_content`, but `dead` counts `absurd`/`False.elim` ends on the
+   -- walked segments, and the fold's refutations sit inside the `_in`/`_in_props` twins it calls, not on its own walk.
+-  "sites=20 genuine=20 pairs=20 viaSites=0 segments=40 genuineSegs=39 facts=1 stacked=0 comps=14 byCtor=11 byFull=39 shapes=14 shapeComps=20 shapeCompsNoDrop=18 obtainedSites=8 approxSites=0 prev=16 new=5 missing=1 prevStyle=16 prevStyleOff=0 newVsStyle=5 styleOnly=1 segHops=11 segAbsorb=3 single=0 dropClose=1 directive=1 hops=13 hopMax=4 approx=37 dead=8 opaque=0 unmarked=157 reach=38"
++  "sites=20 genuine=20 pairs=20 viaSites=0 segments=40 genuineSegs=39 facts=1 stacked=0 comps=14 byCtor=11 byFull=39 shapes=14 shapeComps=20 shapeCompsNoDrop=18 obtainedSites=8 approxSites=0 prev=16 new=5 missing=1 prevStyle=16 prevStyleOff=0 newVsStyle=5 styleOnly=1 segHops=11 segAbsorb=3 single=0 dropClose=1 directive=1 hops=13 hopMax=4 approx=37 dead=8 opaque=0 unmarked=156 reach=37"
+ 
+ /-! ## §5 The reading -/
+ 

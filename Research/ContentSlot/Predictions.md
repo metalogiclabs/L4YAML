@@ -72,3 +72,11 @@ reported the same three removed application paths. The next continuation
 seeds those exact paths and calibrates a unique strict-subset update; only
 three rows naming stamp_offcol may disappear. The dashboard preview explicitly
 reports one directed improvement and two AWAY readings requiring owner review.
+
+Run 45757328497 advanced through ParkGapProduction, RouteShapes,
+StreamCompositions and OpenEntryRoute; it stopped at CloseLandingWidth.
+Its complete info-dump format now replays four literal edits then zero.
+CloseSplitFrames uses the same trim-and-compare protocol and is included
+in the updater before its downstream replay. Only top-level files of this
+latest artifact are re-archived; provenance binds their bytes to the verified
+original archive and retains all prior evidence through parent commits.

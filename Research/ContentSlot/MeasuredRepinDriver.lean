@@ -5,7 +5,11 @@ namespace Research.MeasuredRepin
 open Scripts.Pins
 
 def specs : List (String × List (String × String)) :=
-  [("CloseStackCover", [("rows", "expectedRows"), ("trees", "expectedTrees"),
+  [("CloseLandingWidth", [("closes", "expectedCloses"), ("sites", "expectedSites"),
+     ("spends", "expectedSpends"), ("edges", "expectedEdges"), ("empties", "expectedEmpties")]),
+   ("CloseSplitFrames", [("spends", "expectedSpends"), ("decisions", "expectedDecisions"),
+     ("args", "expectedArgs"), ("door", "expectedDoor")]),
+   ("CloseStackCover", [("rows", "expectedRows"), ("trees", "expectedTrees"),
      ("eight", "expectedEight"), ("door", "expectedDoor")]),
    ("PaidLeafDelta", [("trees", "expectedTrees255"), ("payments", "expectedPayments"),
      ("floorlits", "expectedFloorLits"), ("transports", "expectedTransports")]),

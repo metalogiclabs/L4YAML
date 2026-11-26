@@ -105,5 +105,18 @@
       "owner_review_required": true
     },
     "proof_unchanged": true
+  },
+  "attempt_45757328497": {
+    "state": "downstream census continuation; unchanged proof boundary",
+    "run": 45757328497,
+    "artifact": 15087778594,
+    "original_archive_sha256": "e4fe72ef1db75fa0e8fa5f5885af082cebc955d284bf20afd9a765dea5cdcea1",
+    "independent_sha256_crc": "PASS",
+    "original_files": 196,
+    "retained_top_level_files": 40,
+    "retained_archive_sha256": "7a37b94477bcdea14452e4a295f82f2658b2081b9d02daa0dc5496a87d45c9e6",
+    "remaining_failure": "CloseLandingWidth expectedSites, with complete compiler-emitted sites/spends/empties and summary retained",
+    "format_calibration": "4 edits then 0",
+    "proof_source_unchanged": true
   }
 }
