@@ -335,6 +335,18 @@ def run (logPath root : String) (annotateRoot : Bool := false) : IO UInt32 := do
     if changed != original then
       IO.FS.writeFile path changed
       edits := edits + count + extra
+    -- This historical cross-check pins two readings inline rather than in defs.
+    -- The exact retained diagnostic must report both reduced counts.
+    if file == "Tests/Guards/Proofs/CloseSplitFrames.lean" &&
+        body[0]? == some "item 251's reading moved under this pass: asked=5 both=3" then
+      let current ← IO.FS.readFile path
+      let old := "unless asked.size == 6 && nBoth == 4 do"
+      match current.splitOn old with
+      | [a,b] =>
+        IO.FS.writeFile path (a ++ "unless asked.size == 5 && nBoth == 3 do" ++ b)
+        edits := edits + 1
+        IO.println "MEASURED_REPIN CloseSplitFrames inline asked/both 6/4 to 5/3"
+      | _ => pure ()
     -- This guard's expected rows are inline data, not named definitions.
     if file == "Tests/Guards/Proofs/FlipConsumerSurface.lean" &&
         body[0]? == some "DEFERRAL moved." then

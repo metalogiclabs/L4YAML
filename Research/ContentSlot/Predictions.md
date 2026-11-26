@@ -80,3 +80,11 @@ CloseSplitFrames uses the same trim-and-compare protocol and is included
 in the updater before its downstream replay. Only top-level files of this
 latest artifact are re-archived; provenance binds their bytes to the verified
 original archive and retains all prior evidence through parent commits.
+
+Run 45758155269 reached CloseSplitFrames. Its emitted values are asked=5,
+both=3 after one off-column spend disappeared; an older inline cross-check
+expected 6/4. The new calibration preserves the comparison and rewrites only
+those two expected numerals when that exact diagnostic is present. An owner
+fixture replays four total data edits then zero. Walkers are unchanged.
+The possible h_vpack/h_mapFV deduplication still rests on PackAlt=True and
+is a research lead, not a payment of the underlying missing supply.

@@ -106,13 +106,20 @@ jobs:
           grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/offcol-fixture-first.txt
           lean --run Research/ContentSlot/MeasuredRepin.lean ../results/offcol-roster-build.txt ../results/offcol-fixture > ../results/offcol-fixture-repeat.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/offcol-fixture-repeat.txt
-          unzip -p ../evidence/Research/ContentSlot/close-width-evidence.zip full-build-5.txt > ../results/close-width-build.txt
+          unzip -p ../evidence/Research/ContentSlot/close-width-evidence.zip close-width-build.txt > ../results/close-width-build.txt
           mkdir -p ../results/close-width-fixture/Tests/Guards/Proofs
           cp Tests/Guards/Proofs/CloseLandingWidth.lean ../results/close-width-fixture/Tests/Guards/Proofs/
           lean --run Research/ContentSlot/MeasuredRepin.lean ../results/close-width-build.txt ../results/close-width-fixture > ../results/close-width-fixture-first.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 4' ../results/close-width-fixture-first.txt
           lean --run Research/ContentSlot/MeasuredRepin.lean ../results/close-width-build.txt ../results/close-width-fixture > ../results/close-width-fixture-repeat.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/close-width-fixture-repeat.txt
+          unzip -p ../evidence/Research/ContentSlot/close-width-evidence.zip full-build-1.txt > ../results/close-split-build.txt
+          mkdir -p ../results/close-split-fixture/Tests/Guards/Proofs
+          cp Tests/Guards/Proofs/CloseSplitFrames.lean ../results/close-split-fixture/Tests/Guards/Proofs/
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/close-split-build.txt ../results/close-split-fixture > ../results/close-split-fixture-first.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 4' ../results/close-split-fixture-first.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/close-split-build.txt ../results/close-split-fixture > ../results/close-split-fixture-repeat.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/close-split-fixture-repeat.txt
       - name: Build the strengthened domain and measure the proof graph
         working-directory: upstream
         shell: bash

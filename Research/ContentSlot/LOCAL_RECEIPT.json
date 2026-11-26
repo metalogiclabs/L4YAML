@@ -118,5 +118,18 @@
     "remaining_failure": "CloseLandingWidth expectedSites, with complete compiler-emitted sites/spends/empties and summary retained",
     "format_calibration": "4 edits then 0",
     "proof_source_unchanged": true
+  },
+  "attempt_45758155269": {
+    "state": "CloseSplitFrames inline cross-census count remeasured",
+    "artifact": 15088717836,
+    "original_archive_sha256": "5b2fa9b6ead9566121bfcec7b11b84240d35967b55c8979e058ce6b0c035267e",
+    "independent_sha256_crc": "PASS",
+    "original_files": 191,
+    "retained_files": 35,
+    "retained_archive_sha256": "619a6a05deab3a2ca6c4e4240fb8a3bf03e34d2ea5e8245ccdfa9bc010b9e108",
+    "remaining_failure": "inline expected asked=6/both=4, compiler measured asked=5/both=3",
+    "calibration_owner_fixture": "4 edits then 0, including all moved info literals and only the two inline expected numerals",
+    "algorithms": "all walkers and comparisons unchanged; one inline data cross-check is repinned",
+    "research_lead": "h_vpack derivation through h_mapFV remains optional: PackAlt is True. This is not evidence that an obligation is paid."
   }
 }
