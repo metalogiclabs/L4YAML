@@ -145,7 +145,7 @@ lemma r2_value_excludes_top_column {s s' : ScannerState} {n : Nat}
       have hkbound := r2_prepare_key_col_le (by rw [hflow]; exact h_nf) hsk
       have hkcol : ((scanValueClearKey s).simpleKey.pos.col : Int) ≤
           (scanValueClearKey s).explicitKeyCol := by omega
-      simp [scanValueKeySurvives, h_nf, hekl, hek, hsk, hkcol, not_lt_of_ge hkcol]
+      simp [scanValueKeySurvives, h_nf, hekl, hek, hsk, hkcol]
     | false =>
       have hcursor := (L4YAML.Proofs.ExplicitKeyCoupling.scanValue_explicit_at_indent
         hok h_nf hek hsk).2
