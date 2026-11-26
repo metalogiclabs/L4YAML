@@ -90,6 +90,18 @@ jobs:
             lean --run Research/ContentSlot/MeasuredRepin.lean "$prior/combined/full-build-$round.txt" . > "../results/replay-measured-$round.txt" 2>&1
             cat "../results/replay-measured-$round.txt"
           done
+          echo '37099932030343716169b1bd87416b2849eb6e97fdc2eafcfc32906ed051f762  ../evidence/Research/RootComposition/route-sites-evidence.zip' | sha256sum -c -
+          unzip -q ../evidence/Research/RootComposition/route-sites-evidence.zip -d ../results/prior-run-45801661836
+          sites_prior=../results/prior-run-45801661836
+          test "$(cat "$sites_prior/evidence-commit.txt")" = 1c304e710a10a2d57d599f76b36f3e1bc8352524
+          lean --run Research/ContentSlot/MeasuredRepin.lean "$sites_prior/combined/full-build-2.txt" ../results/route-fixture > ../results/site-fixture-first.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/site-fixture-first.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean "$sites_prior/combined/full-build-2.txt" ../results/route-fixture > ../results/site-fixture-repeat.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/site-fixture-repeat.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean "$sites_prior/combined/full-build-2.txt" . > ../results/replay-sites-first.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/replay-sites-first.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean "$sites_prior/combined/full-build-2.txt" . > ../results/replay-sites-repeat.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/replay-sites-repeat.txt
           git diff --check
           git diff --binary > ../results/replayed-snapshot-only.patch
           git diff --exit-code -- L4YAML lean-toolchain lake-manifest.json

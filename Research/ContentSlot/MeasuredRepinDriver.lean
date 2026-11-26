@@ -240,6 +240,15 @@ def retiredOffcolRoster (ls body : Array String) : IO (Array String × Nat) := d
 -- RouteShapes emits the complete actual roster, without an expected/got pair.
 -- Copy only the corresponding literal; for spines, every route and owner must
 -- remain in the same order and only the five measured count columns may change.
+def routeReading (old fresh : String) : String :=
+  let leading := String.ofList (old.toList.takeWhile isAsciiWs)
+  let trailing := String.ofList ((old.toList.reverse.takeWhile isAsciiWs).reverse)
+  leading ++ pyStrip fresh ++ trailing
+
+#guard routeReading "  old " "  fresh" == "  fresh "
+#guard routeReading "  old " (routeReading "  old " "  fresh") == "  fresh "
+#guard routeReading "  old" "  fresh " == "  fresh"
+
 def routeSpineKey (s : String) : String :=
   " ".intercalate (((s.splitOn " ").filter (· != "")).drop 5)
 
@@ -283,9 +292,8 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
   let some old := oldValues? ls sp | return (ls,0)
   let fresh? := if file == "Tests/Guards/Proofs/RouteShapes.lean" then
       let rows := (body.toList.drop 1).takeWhile (fun l => l.startsWith "  " && !(pyStrip l).isEmpty)
-      let indent := String.ofList ((old.headD "").toList.takeWhile isAsciiWs)
       if rows.length != old.length then none else
-        some (rows.map (fun l => indent ++ pyStrip l))
+        some (List.zipWith routeReading old rows)
     else if file == "Tests/Guards/Proofs/ParkGapWidth.lean" then
       let rowHead := if name == "expectedSites" then "L4YAML.Proofs.StreamAccum." else "scanNextToken_"
       let rows := (body.toList.drop 1).takeWhile (fun l => (pyStrip l).startsWith rowHead)

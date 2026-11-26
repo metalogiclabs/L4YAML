@@ -1,1 +1,1 @@
-Continue completed failed run45793782884 after exact RouteShapes format repair. Replay independently verified compiler readings; do not repeat six unchanged full builds. Retain detector logic, source candidate, compiler, source controls and pending root/price stages.
+Continue failed45801661836: preserve each literal row's leading/trailing whitespace, calibrate exact site roster first1/repeat0, and replay its measured row before rebuilding. Proof source and detectors unchanged.
