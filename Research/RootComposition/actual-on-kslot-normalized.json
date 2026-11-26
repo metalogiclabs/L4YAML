@@ -1,6 +1,6 @@
 {
   "item": 538,
-  "tag": "ACTUAL-ON-KSLOT-FRAMED-SOURCE",
+  "tag": "ACTUAL-ON-KSLOT-ENTRY-PAIRED",
   "rev": "HEAD",
   "target": "L4YAML",
   "log": "../results/price/normalized-compiler.log",
@@ -681,12 +681,7 @@
             "                                  sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)",
             "                            | Or.inr _ => by",
             "                              intro nv_req hm_req mid_req bi_req end_req tail_req i_req c_req iv_req lit_req v_req sbi_req",
-            "                              rcases h_closeFEV_k with h_framed | _h_frame_declined",
-            "                              · obtain ⟨ks_req, _h_width_req, h_cont_req⟩ := h_framed nv_req",
-            "                                  (markedCols_mem_of_step_content h_preprocess h_dispatch hm_req)",
-            "                                exact (h_cont_req mid_req (h_nodeAtG mid_req bi_req) end_req tail_req).close",
-            "                                  i_req c_req iv_req lit_req v_req sbi_req",
-            "                              · assumption)"
+            "                              assumption)"
           ],
           "count": 2
         },
@@ -708,12 +703,135 @@
             "                                  sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)",
             "                            | Or.inr _ => by",
             "                              intro nv_req hm_req mid_req bi_req end_req tail_req i_req c_req iv_req lit_req v_req sbi_req",
-            "                              rcases h_closeFEV_k with h_framed | _h_frame_declined",
-            "                              · obtain ⟨ks_req, _h_width_req, h_cont_req⟩ := h_framed nv_req",
-            "                                  (markedCols_mem_of_step_content h_preprocess h_dispatch hm_req)",
-            "                                exact (h_cont_req mid_req (h_nodeAt mid_req bi_req) end_req tail_req).close",
-            "                                  i_req c_req iv_req lit_req v_req sbi_req",
-            "                              · assumption)"
+            "                              assumption)"
+          ],
+          "count": 1
+        },
+        {
+          "name": "entry-route-retains-ancestor-continuation",
+          "old": [
+            "      (h_routeE : (∃ ne : Nat, n = ne + 1 ∧",
+            "        ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →",
+            "        ∀ sp_end : SurfPos, SCompactSeqTail ne sp_m sp_end →",
+            "        SLYamlStream sp_start sp_end) ∨ PackAlt sc)"
+          ],
+          "new": [
+            "      (h_routeE : (∃ ne : Nat, n = ne + 1 ∧",
+            "        (∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →",
+            "        ∀ sp_end : SurfPos, SCompactSeqTail ne sp_m sp_end →",
+            "        SLYamlStream sp_start sp_end) ∧",
+            "        (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "        ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →",
+            "        ∀ sp_e : SurfPos, SCompactSeqTail ne sp_m sp_e →",
+            "        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v)) ∨ PackAlt sc)"
+          ],
+          "count": 1
+        },
+        {
+          "name": "entry-property-producer-pays-both-routes",
+          "old": [
+            "(Or.inl ⟨n, rfl, fun sp_m h_bn sp_end h_tail =>",
+            "               h_close_entry_old sp_m",
+            "                 (SBlockIndented.node n .blockIn sp_scan sp_m h_bn) sp_end h_tail⟩)"
+          ],
+          "new": [
+            "(Or.inl ⟨n, rfl, (fun sp_m h_bn sp_end h_tail =>",
+            "               h_close_entry_old sp_m",
+            "                 (SBlockIndented.node n .blockIn sp_scan sp_m h_bn) sp_end h_tail),",
+            "               fun nv hm sp_m h_bn sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>",
+            "                 h_kslot_old nv (markedCols_mem_of_step_content h_preprocess h_dispatch hm)",
+            "                   sp_m (SBlockIndented.node n .blockIn sp_scan sp_m h_bn)",
+            "                   sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi⟩)"
+          ],
+          "count": 1
+        },
+        {
+          "name": "property-relays-retain-required-pair",
+          "old": [
+            "(h_routeE_p.imp id (PackAlt.step_content h_preprocess h_dispatch))"
+          ],
+          "new": [
+            "(h_routeE_p.imp (fun ⟨ne, hne, r, kr⟩ => ⟨ne, hne, r,",
+            "                     fun nv hm => kr nv (markedCols_mem_of_step_content h_preprocess h_dispatch hm)⟩)",
+            "                     (PackAlt.step_content h_preprocess h_dispatch))"
+          ],
+          "count": 2
+        },
+        {
+          "name": "specialize-the-supplied-entry-pair",
+          "old": [
+            "have h_routeE_k : (∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →",
+            "                  ∀ sp_end : SurfPos, SCompactSeqTail k sp_m sp_end →",
+            "                  SLYamlStream sp_start sp_end) ∨ PackAlt sc := by",
+            "                rcases h_routeE_p with ⟨ne, hne, r⟩ | h_alt",
+            "                · obtain rfl : ne = k := by omega",
+            "                  exact Or.inl r",
+            "                · exact Or.inr h_alt"
+          ],
+          "new": [
+            "have h_routeE_k : ((∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →",
+            "                  ∀ sp_end : SurfPos, SCompactSeqTail k sp_m sp_end →",
+            "                  SLYamlStream sp_start sp_end) ∧",
+            "                  (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "                  ∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →",
+            "                  ∀ sp_e : SurfPos, SCompactSeqTail k sp_m sp_e →",
+            "                  ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "                  ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "                  ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v)) ∨ PackAlt sc := by",
+            "                rcases h_routeE_p with ⟨ne, hne, r, kr⟩ | h_alt",
+            "                · obtain rfl : ne = k := by omega",
+            "                  exact Or.inl ⟨r, kr⟩",
+            "                · exact Or.inr h_alt"
+          ],
+          "count": 1
+        },
+        {
+          "name": "consume-required-entry-pair",
+          "old": [
+            "cases h_routeE_k with",
+            "                | inl routeE =>"
+          ],
+          "new": [
+            "cases h_routeE_k with",
+            "                | inl ⟨routeE, entryKeyRoute⟩ =>"
+          ],
+          "count": 3
+        },
+        {
+          "name": "consume-ancestor-route-at-property-40562",
+          "old": [
+            "(match h_kslotE_k with",
+            "                            | Or.inl kslotE => (fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>",
+            "                                kslotE nv (markedCols_mem_of_step_content h_preprocess h_dispatch hmem) sp_m (h_nodeAtG sp_m h_ssl)",
+            "                                  sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)",
+            "                            | Or.inr _ => by",
+            "                              intro nv_req hm_req mid_req bi_req end_req tail_req i_req c_req iv_req lit_req v_req sbi_req",
+            "                              assumption)"
+          ],
+          "new": [
+            "(fun nv hm sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>",
+            "                                entryKeyRoute nv (markedCols_mem_of_step_content h_preprocess h_dispatch hm)",
+            "                                  sp_m (h_nodeAtG sp_m h_ssl) sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)"
+          ],
+          "count": 2
+        },
+        {
+          "name": "consume-ancestor-route-at-property-40691",
+          "old": [
+            "(match h_kslotE_k with",
+            "                            | Or.inl kslotE => (fun nv hmem sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>",
+            "                                kslotE nv (markedCols_mem_of_step_content h_preprocess h_dispatch hmem) sp_m (h_nodeAt sp_m h_ssl)",
+            "                                  sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)",
+            "                            | Or.inr _ => by",
+            "                              intro nv_req hm_req mid_req bi_req end_req tail_req i_req c_req iv_req lit_req v_req sbi_req",
+            "                              assumption)"
+          ],
+          "new": [
+            "(fun nv hm sp_m h_ssl sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>",
+            "                                entryKeyRoute nv (markedCols_mem_of_step_content h_preprocess h_dispatch hm)",
+            "                                  sp_m (h_nodeAt sp_m h_ssl) sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)"
           ],
           "count": 1
         }
