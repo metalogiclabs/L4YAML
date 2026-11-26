@@ -69,7 +69,14 @@ jobs:
               printf '%s\n' "$round" > ../results/successful-build-round.txt
               break
             fi
+            before_repin=$(git diff | sha256sum)
             lake exe scripts-repin "../results/full-build-$round.txt" > "../results/repin-$round.txt" 2>&1
+            after_repin=$(git diff | sha256sum)
+            if test "$before_repin" = "$after_repin"; then
+              echo "No measurable repin progress; refusing identical build retries."
+              tail -80 "../results/full-build-$round.txt"
+              exit 1
+            fi
           done
           test "$passed" = true
           printf '%s\n' 'ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -

@@ -18,13 +18,34 @@
     "actual_marked_projection_empty": true
   },
   "actual_metrics": {
-    "direct_relay_declines": [237, 234],
-    "direct_relay_pays": [50, 53],
-    "critical_path_direct_declines": [6, 3],
-    "paid_supply_positions": [24, 26],
-    "critical_optional_positions": [7, 7],
-    "split_declined_leaves": [213, 213],
-    "free_declined_leaves": [117, 117],
+    "direct_relay_declines": [
+      237,
+      234
+    ],
+    "direct_relay_pays": [
+      50,
+      53
+    ],
+    "critical_path_direct_declines": [
+      6,
+      3
+    ],
+    "paid_supply_positions": [
+      24,
+      26
+    ],
+    "critical_optional_positions": [
+      7,
+      7
+    ],
+    "split_declined_leaves": [
+      213,
+      213
+    ],
+    "free_declined_leaves": [
+      117,
+      117
+    ],
     "new_library_declarations": 0,
     "runtime_changes": 0
   },
@@ -39,5 +60,13 @@
     "The three remaining direct declines are retained",
     "scannerDrop, universal scan_trace and corrected Group 7.7 remain open",
     "Full repository qualification and exact final axiom-set comparison are pending"
-  ]
+  ],
+  "route_shapes": {
+    "boundary": "compiler-measured full build output in run 45724029329; every expected spine, site and summary matched to the emitted output",
+    "root_key_slot": "punt -> closed",
+    "closure_punts_before": 70,
+    "closure_punts_after": 69,
+    "full_qualification": "pending"
+  },
+  "guard_patch_sha256": "cd44c965c97340a06d2ded7c926c32d11d64fee083f359b83c372c8c08ef7de4"
 }
