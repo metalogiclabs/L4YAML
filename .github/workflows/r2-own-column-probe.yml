@@ -1,0 +1,74 @@
+name: R2 actual scanner closing-column proof probe
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths:
+      - .github/workflows/r2-own-column-probe.yml
+      - Research/RootComposition/R2OwnColumnProbe.lean
+permissions:
+  contents: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 4c54da7e3716ab0197b126294474bb2868651402
+          submodules: recursive
+          path: source
+      - name: Restore the exact qualified root candidate from its retained bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/qualified-root
+          echo 'e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c  evidence/Research/RootComposition/qualified-root-evidence.zip' | sha256sum -c -
+          unzip -q evidence/Research/RootComposition/qualified-root-evidence.zip -d results/qualified-root
+          cd source
+          git bundle verify ../results/qualified-root/root-context/source.bundle
+          git fetch ../results/qualified-root/root-context/source.bundle HEAD
+          git checkout --detach 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD)" = 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD^{tree})" = 20e10d2041c66d199d4408b4c37f82b6ec8cddf0
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree} > ../results/source-identity.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          cd ../evidence
+          git rev-parse HEAD > ../results/evidence-commit.txt
+          sha256sum Research/RootComposition/R2OwnColumnProbe.lean > ../results/spec-sha256.txt
+          cp Research/RootComposition/R2OwnColumnProbe.lean ../results/
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-own-column-probe-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            root-domain-2ebc4740-lean4360-${{ runner.os }}-
+      - name: Check scanner-only theorem against the pinned root tree
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/RegisterWitness.lean)" = de5d3db1e422d1b5df0962dda230c94a2ebbc5cd
+          test "$(git rev-parse HEAD:L4YAML/Proofs/Scanner/PendingKeySound.lean)" = 25e4828100763c467ce3c71a768aac9f3060dbd1
+          test "$(git rev-parse HEAD:L4YAML/Scanner/SimpleKey.lean)" = df7bf19a8f3e7fd8b6a0766a1ecf0381dc0e3bff
+          lake build L4YAML.Proofs.Scanner.RegisterWitness 2>&1 | tee ../results/scanner-build.txt
+          lake env lean ../evidence/Research/RootComposition/R2OwnColumnProbe.lean 2>&1 | tee ../results/own-column-proof.txt
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree} > ../results/final-source-identity.txt
+          printf '%s\n' 'conditional_scanner_probe_only=true' 'production_integration=NOT_CLAIMED' 'h_src_true_callers=UNRESOLVED' 'optional_slot_retirement=NOT_CLAIMED' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r2-own-column-probe
+          path: results/
+          if-no-files-found: error
