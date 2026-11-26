@@ -1,0 +1,74 @@
+[
+  {
+    "name": "L2744.pendingBlockContent.h_kslot",
+    "owner_line": 2744,
+    "combined_line": 2737,
+    "old": "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)"
+  },
+  {
+    "name": "L2968.pendingBlock.h_kslot",
+    "owner_line": 2968,
+    "combined_line": 2961,
+    "old": "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)"
+  },
+  {
+    "name": "L34528.entryKeyPack.h_nodeV",
+    "owner_line": 34528,
+    "combined_line": 34541,
+    "old": "      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)"
+  },
+  {
+    "name": "L34548.h_cp_chain",
+    "owner_line": 34548,
+    "combined_line": 34561,
+    "old": "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)) \u2228 True)"
+  },
+  {
+    "name": "L34569.h_cp_chain",
+    "owner_line": 34569,
+    "combined_line": 34582,
+    "old": "          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)))"
+  },
+  {
+    "name": "L35231.entryPropsKeyPack.h_nodeV",
+    "owner_line": 35231,
+    "combined_line": 35244,
+    "old": "      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)"
+  },
+  {
+    "name": "L35244.h_cp_chain",
+    "owner_line": 35244,
+    "combined_line": 35257,
+    "old": "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)) \u2228 True)"
+  },
+  {
+    "name": "L35332.h_cp_chain",
+    "owner_line": 35332,
+    "combined_line": 35345,
+    "old": "          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc)))"
+  },
+  {
+    "name": "L35813.content_dispatch_routed.h_chainUp",
+    "owner_line": 35813,
+    "combined_line": 35826,
+    "old": "    (h_alt : PackAlt s_prep)"
+  },
+  {
+    "name": "L3208.pendingMapValue.h_expl.inner",
+    "owner_line": 3208,
+    "combined_line": 3201,
+    "old": "          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) \u2228 PackAlt sc)) \u2228 NotQuestionPark sc)"
+  },
+  {
+    "name": "L27340.closeThenBlock.h_vslot.hkv",
+    "owner_line": 27340,
+    "combined_line": 27363,
+    "old": "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) \u2228 PackAlt sc) \u2227"
+  },
+  {
+    "name": "L27347.closeThenBlock.h_vslot.hkvUp",
+    "owner_line": 27347,
+    "combined_line": 27370,
+    "old": "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nvU] sp_v) \u2228 PackAlt sc)) \u2228"
+  }
+]
