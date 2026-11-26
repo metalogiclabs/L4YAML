@@ -103,3 +103,11 @@ their legacy controls remain private in BlockDeferralClasses. Live census
 inventories drop the retired names; no roster exemption is added. This
 changes the library source and requires fresh replay of the seven trust
 profiles and the full gates. The new correspondence lemma body is unchanged.
+
+Run 45763817508 freshly replayed the retired-helper proof and seven unchanged
+trust profiles. Eight census rounds seeded every measured pin but stopped at
+a missing CommentOk namespace in the relocated private test and one obsolete
+wrapper row. Both are corrected from the retained exact diagnostic: the old
+site fixture matches Git blob 08bc367a2ac7f2dcb5d12cf2b9f687cc6266f43b and
+calibrates one row edit then zero. No library proof or adversarial source
+changed. Every touched guard now explains its re-pin in a dated local note.

@@ -155,7 +155,7 @@
     "cleanup": "both definitions moved out of the library; adversarial controls retained as private test witnesses; live census inventories remove retired names; no dead-roster exemption added"
   },
   "current_candidate": {
-    "state": "CANDIDATE pending fresh compilation and full gates",
+    "state": "CANDIDATE; test namespace corrected and all measured census progress retained",
     "proof_source_sha256": "058d260b48f2b230f137e1cfbf7a55f12d0e61bc90d90603c938a606e8f335b1",
     "adversarial_source_sha256": "77e00bc9ca97388596abea09046f03ed96b1878448880ec860b781083cfe340e",
     "new_state_lemma_body": "unchanged from prior fresh proof replay",
@@ -167,6 +167,23 @@
       "BlockDeferralClasses.frameChainOneTest",
       "BlockDeferralClasses.stampOffcolTest"
     ],
-    "proof_impact": "assert new lemma consumed and both retired names absent from library environment"
+    "proof_impact": "assert new lemma consumed and both retired names absent from library environment",
+    "changes": "fully qualify CommentOk in private test witness; delete the one measured obsolete wrapper row; dated causal notes in every touched guard"
+  },
+  "attempt_45763817508": {
+    "state": "WARRANTED fresh proof and trust profiles; whole candidate blocked by two test/roster defects",
+    "artifact": 15091538545,
+    "original_archive_sha256": "b4246137c9c26ad9f88bebdaf4f01ab63b37876c20677fbe04afbe9487b7335b",
+    "independent_sha256_crc": "PASS",
+    "retained_archive_sha256": "e6544a58de115835a01b4766af33eda468e494b5be08e0b60949cc6f3cf15ed3",
+    "retained_files": 59,
+    "measured_progress": "eight rounds retained; all prior new census values seeded",
+    "remaining_failures": [
+      "private test witness lacked qualification for ScannerCoupling.CommentOk",
+      "one expectedSites row still named the retired wrapper"
+    ],
+    "calibration": "exact failed-source blob 08bc367a2ac7f2dcb5d12cf2b9f687cc6266f43b; one row removed then zero; existing three-call removal calibration retained",
+    "source_proof_unchanged": "058d260b48f2b230f137e1cfbf7a55f12d0e61bc90d90603c938a606e8f335b1",
+    "native_suites": "NOT RUN"
   }
 }

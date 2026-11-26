@@ -280,8 +280,11 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
   let keys := fun (xs : List String) => xs.map (fun x => (x.splitOn " ").headD "")
   if file == "Tests/Guards/Proofs/ParkGapWidth.lean" && name == "expectedSites" then
     let removed := old.filter fun x => !fresh.contains x
-    if !(fresh.all old.contains) || removed.length != 3 ||
-        !(removed.all fun x => (x.splitOn "block_dispatch_deferred_stamp_offcol width=1").length == 2) then
+    let calls := removed.length == 3 &&
+      removed.all (fun x => (x.splitOn "block_dispatch_deferred_stamp_offcol width=1").length == 2)
+    let wrapper := removed.length == 1 &&
+      removed.all (fun x => x.startsWith "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred width=UNREACHED ")
+    if !(fresh.all old.contains) || !(calls || wrapper) then
       if fresh != old then return (ls,0)
   else if name == "expectedChainFaces" then
     if fresh.length > old.length || !(fresh.all old.contains) then return (ls,0)

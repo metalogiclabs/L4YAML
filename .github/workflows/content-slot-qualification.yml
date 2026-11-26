@@ -127,6 +127,14 @@ jobs:
           grep -Fx 'MEASURED_REPIN_EDITS 3' ../results/close-stack-fixture-first.txt
           lean --run Research/ContentSlot/MeasuredRepin.lean ../results/close-stack-build.txt ../results/close-stack-fixture > ../results/close-stack-fixture-repeat.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/close-stack-fixture-repeat.txt
+          unzip -p ../evidence/Research/ContentSlot/cleanup-evidence.zip full-build-8.txt > ../results/cleanup-width-build.txt
+          mkdir -p ../results/cleanup-width-fixture/Tests/Guards/Proofs
+          cp ../evidence/Research/ContentSlot/cleanup-width-fixture.lean ../results/cleanup-width-fixture/Tests/Guards/Proofs/ParkGapWidth.lean
+          cp Tests/Guards/Proofs/BlockDeferralClasses.lean ../results/cleanup-width-fixture/Tests/Guards/Proofs/
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/cleanup-width-build.txt ../results/cleanup-width-fixture > ../results/cleanup-width-fixture-first.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/cleanup-width-fixture-first.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/cleanup-width-build.txt ../results/cleanup-width-fixture > ../results/cleanup-width-fixture-repeat.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/cleanup-width-fixture-repeat.txt
       - name: Build the strengthened domain and measure the proof graph
         working-directory: upstream
         shell: bash
@@ -143,6 +151,8 @@ jobs:
           sed -n '/CONTENT_SLOT_AXIOM /p' ../results/axioms-after.txt > ../results/axiom-set-after.txt
           diff -u ../results/axiom-set-before.txt ../results/axiom-set-after.txt
           lake env lean Research/ContentSlot/ProofImpact.lean > ../results/proof-impact.txt 2>&1
+          # Fail promptly on the relocated test witness before census remeasurement.
+          lake build Tests.Guards.Proofs.BlockDeferralClasses > ../results/retired-helper-test-build.txt 2>&1
       - name: Remeasure the complete guard census
         working-directory: upstream
         shell: bash
@@ -158,6 +168,10 @@ jobs:
               passed=true
               printf '%s\n' "$round" > ../results/successful-build-round.txt
               break
+            fi
+            if grep -Eq '^error: .*: (Unknown identifier|Unknown constant|unexpected token|type mismatch|unsolved goals)' "../results/full-build-$round.txt"; then
+              tail -100 "../results/full-build-$round.txt"
+              exit 1
             fi
             before_repin=$(git diff | sha256sum)
             repin_status=0
