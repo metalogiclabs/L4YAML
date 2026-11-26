@@ -1,0 +1,16 @@
+{
+  "status": "WARRANTED selection boundary",
+  "submission": "root key-slot payment only",
+  "frozen_tree": "52624546acd984921a9418ab73af82e6f2a9a519",
+  "semantic_criterion": "The informative root face quantifies over RegisterWitness.markedCols of the actual scanner state; no free existential domain can make it empty.",
+  "excluded_marker_interpretation": "Two PAY labels were genuine supplies of a true statement but did not strengthen the helper contract, which still accepts an arbitrary empty list.",
+  "authority": [
+    "L4YAML/Proofs/Production/StreamAccum.lean: pendingBlock.h_kslot and accum_block_on_closeThenBlock.h_vpack",
+    "Tests/Guards/Proofs/NarrowingWorthCensus.lean: chain_is_unconditional"
+  ],
+  "source_lineage": "marker experiment preserved in evidence commit 26f9115fb54d446e6fe1ebd8a78735c0e9533f78; narrowed root replay at 1db6bd5a9d26285f8c33c4038b138ad2f01fdc66",
+  "larger_residual": "Complete state-linked value-pack retirement: 12 first-round producer diagnostics; all seven critical optional positions remain.",
+  "qualification_run": 45740129722,
+  "qualification_state": "WARRANTED full declared build/gates/native boundary",
+  "production_commit": "81a0240c7ad76cf0621d1dc935b740e796192610"
+}

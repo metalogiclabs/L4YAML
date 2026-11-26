@@ -1,0 +1,66 @@
+{
+  "state": "PRICED_FIRST_ROUND",
+  "base_qualified_run": 45715345949,
+  "owner": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "diagnostic_count": 12,
+  "producer_counts": {
+    "accum_step_flow": 2,
+    "content_dispatch_routed": 2,
+    "accum_content_on_pendingMapValue_indented": 3,
+    "accum_content_pending": 5
+  },
+  "rows": [
+    {
+      "line": 20261,
+      "producer": "accum_step_flow"
+    },
+    {
+      "line": 20494,
+      "producer": "accum_step_flow"
+    },
+    {
+      "line": 36420,
+      "producer": "content_dispatch_routed"
+    },
+    {
+      "line": 36471,
+      "producer": "content_dispatch_routed"
+    },
+    {
+      "line": 38347,
+      "producer": "accum_content_on_pendingMapValue_indented"
+    },
+    {
+      "line": 38548,
+      "producer": "accum_content_on_pendingMapValue_indented"
+    },
+    {
+      "line": 38654,
+      "producer": "accum_content_on_pendingMapValue_indented"
+    },
+    {
+      "line": 40263,
+      "producer": "accum_content_pending"
+    },
+    {
+      "line": 40348,
+      "producer": "accum_content_pending"
+    },
+    {
+      "line": 40634,
+      "producer": "accum_content_pending"
+    },
+    {
+      "line": 40762,
+      "producer": "accum_content_pending"
+    },
+    {
+      "line": 40882,
+      "producer": "accum_content_pending"
+    }
+  ],
+  "exit_code": 1,
+  "source_restored_sha256": "e17428598a780c5bc351b318286803610030a45753f886f85b96dbbcd1636767",
+  "replacement_olean_exists": false,
+  "limits": "A first-round lower bound after one mechanical consumer conversion; not a closure fixpoint, proof or refutation of the stronger invariant."
+}

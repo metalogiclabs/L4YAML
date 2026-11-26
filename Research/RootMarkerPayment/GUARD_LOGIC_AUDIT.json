@@ -1,0 +1,52 @@
+{
+  "state": "WARRANTED",
+  "boundary": "All eleven modified guards have identical code outside expected data literals, comments and whitespace; source compared to exact owner HEAD cc830190",
+  "guard_algorithms_unchanged": true,
+  "guards": [
+    {
+      "path": "Tests/Guards/Proofs/CapstonePathAudit.lean",
+      "algorithm_skeleton_sha256": "7959c8b141711bb1b3c6d3670107a8737df415529bb646e65bfe22ea3f233930"
+    },
+    {
+      "path": "Tests/Guards/Proofs/CloseStackCover.lean",
+      "algorithm_skeleton_sha256": "e230c574b4a9c847061dbc60a385df22b03503508a450b8747b234b376384b43"
+    },
+    {
+      "path": "Tests/Guards/Proofs/HypothesisReaderCensus.lean",
+      "algorithm_skeleton_sha256": "6d7faf7e9a5f15adcbb2852c423a12b1ef13411e37eba2e8e428d8fa78c552d6"
+    },
+    {
+      "path": "Tests/Guards/Proofs/OrTrueAudit.lean",
+      "algorithm_skeleton_sha256": "d735cecd1957e13f78bfc66df1fe220f16183c4220246c5d8ab61fb17dbba341"
+    },
+    {
+      "path": "Tests/Guards/Proofs/PaidLeafDelta.lean",
+      "algorithm_skeleton_sha256": "44eb732ecd574c246be6b8c48df7d5e292d4abf99a86bed4387c5b3c427baf1b"
+    },
+    {
+      "path": "Tests/Guards/Proofs/PremiseNecessityCensus.lean",
+      "algorithm_skeleton_sha256": "df685c7130cd5c00b7da352a24902cca9957b3819d54730858577999d4301858"
+    },
+    {
+      "path": "Tests/Guards/Proofs/PuntCoverInputs.lean",
+      "algorithm_skeleton_sha256": "ea95a2204e0efde2f2e36db7973e46f955cb9bbfd5bac33024c8eb0187319c0a"
+    },
+    {
+      "path": "Tests/Guards/Proofs/RelaySupplyCensus.lean",
+      "algorithm_skeleton_sha256": "262f57d9497e4a0229df79ff2b06b949a3547d78f30c9492ebf390416c411e7d"
+    },
+    {
+      "path": "Tests/Guards/Proofs/RouteShapes.lean",
+      "algorithm_skeleton_sha256": "93afec2495ba23393c9d287865b682d35df135beb5626b49a9c14b22b541e37a"
+    },
+    {
+      "path": "Tests/Guards/Proofs/ValueLineOrigins.lean",
+      "algorithm_skeleton_sha256": "572a7964aee6f38717b4edd85cbbf9fa1f8e75520cc0523b6b6c1b3aef2b0ac2"
+    },
+    {
+      "path": "Tests/Guards/Proofs/ValueLinePacks.lean",
+      "algorithm_skeleton_sha256": "59e52a7c4bc978f890a66b32e1ae1fa13df2a4dde62e20abb9df51262c7a7a18"
+    }
+  ],
+  "qualified_tree": "52624546acd984921a9418ab73af82e6f2a9a519"
+}

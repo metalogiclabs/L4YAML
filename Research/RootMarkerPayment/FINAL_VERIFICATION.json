@@ -1,0 +1,66 @@
+{
+  "state": "WARRANTED",
+  "owner": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "qualified_tree": "52624546acd984921a9418ab73af82e6f2a9a519",
+  "proof_blob": "9628bd00d32abe85c6bd1d1b8c4ba7cae8e092f8",
+  "proof_sha256": "3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05",
+  "evidence_commit": "3dd985bb51e8a521ce5ada9c773b3bdff76f6d70",
+  "run": 45740129722,
+  "job": 139642794471,
+  "artifact": 15081623276,
+  "archive_sha256": "8134bf2bb312671554e130e6b2587fb44eb668fed81bde3b23e2dda3bea37945",
+  "zip_crc": "PASS",
+  "archive_members": 48,
+  "all_twelve_source_hashes_match": true,
+  "build": "PASS",
+  "repository_gates": "PASS",
+  "standalone_native_runner": "PASS",
+  "verified_suites": 17,
+  "verified_cases": 64441,
+  "exact_axiom_sets_unchanged": 4,
+  "printed_declaration_axiom_pairs": 128,
+  "directed_dashboard": {
+    "toward": 3,
+    "away": 0
+  },
+  "critical_path_direct_declines": [
+    6,
+    5
+  ],
+  "direct_relay_declines": [
+    237,
+    236
+  ],
+  "value_line_punts": [
+    19,
+    18
+  ],
+  "route_punts": [
+    70,
+    69
+  ],
+  "critical_optional_positions_remaining": 7,
+  "new_library_declarations": 0,
+  "runtime_changes": 0,
+  "limits": [
+    "One producer handoff paid; all seven critical optional positions remain",
+    "scannerDrop, universal scan_trace, complete field retirement and corrected Group 7.7 remain open",
+    "No upstream PR submitted"
+  ],
+  "lineage": [
+    "Marker PAY labels excluded because the helper permits an arbitrary empty list",
+    "Complete field-retirement probe found 12 first-round producer diagnostics; not a closure fixpoint or refutation",
+    "Intermediate failures were snapshot, cache freshness and missing-executable harness issues; preserved in GitHub run history"
+  ],
+  "production_commit": "81a0240c7ad76cf0621d1dc935b740e796192610",
+  "production_branch": "fix/root-slot-payment",
+  "compiler": "Lean (version 4.36.0, x86_64-unknown-linux-gnu, commit 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9, Release)",
+  "event_stream_conformance": {
+    "correct": 347,
+    "scored": 358,
+    "event_differences": 11,
+    "valid_rejects": 0,
+    "error_misses": 0,
+    "boundary": "Separate corpus score; the verified-case total does not claim complete YAML conformance."
+  }
+}
