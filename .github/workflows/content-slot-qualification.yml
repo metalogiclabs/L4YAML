@@ -120,7 +120,7 @@ jobs:
           grep -Fx 'MEASURED_REPIN_EDITS 4' ../results/close-split-fixture-first.txt
           lean --run Research/ContentSlot/MeasuredRepin.lean ../results/close-split-build.txt ../results/close-split-fixture > ../results/close-split-fixture-repeat.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/close-split-fixture-repeat.txt
-          unzip -p ../evidence/Research/ContentSlot/close-width-evidence.zip full-build-2.txt > ../results/close-stack-build.txt
+          unzip -p ../evidence/Research/ContentSlot/close-width-evidence.zip close-stack-build.txt > ../results/close-stack-build.txt
           mkdir -p ../results/close-stack-fixture/Tests/Guards/Proofs
           cp Tests/Guards/Proofs/CloseStackCover.lean ../results/close-stack-fixture/Tests/Guards/Proofs/
           lean --run Research/ContentSlot/MeasuredRepin.lean ../results/close-stack-build.txt ../results/close-stack-fixture > ../results/close-stack-fixture-first.txt 2>&1
@@ -135,8 +135,8 @@ jobs:
           git apply --check ../evidence/Research/ContentSlot/candidate.patch
           git apply ../evidence/Research/ContentSlot/candidate.patch
           sha256sum -c ../evidence/Research/ContentSlot/candidate-source-sha256.txt
-          # The proof bytes are unchanged from the retained successful fresh replay.
-          # Lake may reuse the exact-source cache; the new work is census data.
+          # Rebuild the exact source after retiring two unused library helpers.
+          # Their legacy adversarial witnesses now live only in the test module.
           lake build L4YAML.Proofs.Production.DocumentProduction > ../results/source-fresh-build.txt 2>&1
           lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms-after.txt 2>&1
           sed -n '/CONTENT_SLOT_AXIOM /p' ../results/axioms-before.txt > ../results/axiom-set-before.txt

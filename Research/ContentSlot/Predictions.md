@@ -94,3 +94,12 @@ Run 45759051588 reached CloseStackCover and measured its watched sites 8 to
 now retains the guard and expects that actual six. The owner fixture replays
 three data edits then zero; a column-zero list bracket is now parsed correctly,
 and expectedRows itself is unchanged. All prior source/trust boundaries stand.
+
+Run 45760102657 passed the full 2645-job default build at round 4. The
+native dead census correctly rejected two newly-unused B-roster entries:
+frameChainOne and block_dispatch_deferred_stamp_offcol. The publication
+candidate is superseded: both library declarations are now retired and
+their legacy controls remain private in BlockDeferralClasses. Live census
+inventories drop the retired names; no roster exemption is added. This
+changes the library source and requires fresh replay of the seven trust
+profiles and the full gates. The new correspondence lemma body is unchanged.

@@ -298,6 +298,22 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
     return (next, if changed then 1 else 0)
 
 def genericRepin (ls : Array String) (body : Array String) : IO (Array String × Nat) := do
+  -- Pretty-printed lists may span lines. The complete old literal must name
+  -- one unique pin; an ambiguous comma inside an old row cannot match it.
+  if let some before := printedList? "expected" body then
+    if let some fresh := printedList? "got" body then
+      let mut names : List String := []
+      for line in ls do
+        let some h := defHead? line | continue
+        if !h.name.startsWith "expected" || h.ty != "List String" then continue
+        let some sp := measuredSpan ls h.name | continue
+        if oldValues? ls sp == some before then names := names ++ [h.name]
+      if names.length == 1 then
+        match replaceMeasured ls names.head! fresh false with
+        | .error e => IO.eprintln s!"MEASURED_REPIN_SKIP {e}"
+        | .ok (next, changed) =>
+          if changed then IO.println s!"MEASURED_REPIN {names.head!} from complete compiler list"
+          return (next, if changed then 1 else 0)
   let pair := (countedPair? body).map (fun (a,b) => (a,b,false)) <|>
     (scalarPair? body).map (fun (a,b) => (a,b,true))
   let some (old, fresh, summary) := pair | return (ls, 0)

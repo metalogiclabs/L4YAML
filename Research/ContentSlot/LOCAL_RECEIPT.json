@@ -142,5 +142,31 @@
     "remaining_failure": "inline w.eight.size=8 versus measured 6, following retirement of two watched offcol calls",
     "calibration_owner_fixture": "3 data edits then 0; comparisons and all walkers unchanged",
     "format_correction": "the updater includes a column-zero final bracket in a literal span; expectedRows itself is unchanged"
+  },
+  "attempt_45760102657": {
+    "state": "WARRANTED full default build; publication candidate superseded by dead-helper cleanup",
+    "default_build": "PASS, 2645 jobs, round 4",
+    "artifact": 15089976914,
+    "original_archive_sha256": "4417b1e476662a8b273c854a3d5e5b3c8af85312bffacf1d02f30f20b66c28e0",
+    "independent_sha256_crc": "PASS",
+    "retained_archive_sha256": "bbb882ab22af6bd4d161b6e49c3d783e948597fa5c6ece5ed61365c650cc1475",
+    "retained_files": 47,
+    "dead_census": "B-roster 3308 to 3310 rejected; frameChainOne and block_dispatch_deferred_stamp_offcol lost their last production consumers",
+    "cleanup": "both definitions moved out of the library; adversarial controls retained as private test witnesses; live census inventories remove retired names; no dead-roster exemption added"
+  },
+  "current_candidate": {
+    "state": "CANDIDATE pending fresh compilation and full gates",
+    "proof_source_sha256": "058d260b48f2b230f137e1cfbf7a55f12d0e61bc90d90603c938a606e8f335b1",
+    "adversarial_source_sha256": "77e00bc9ca97388596abea09046f03ed96b1878448880ec860b781083cfe340e",
+    "new_state_lemma_body": "unchanged from prior fresh proof replay",
+    "retired_library_helpers": [
+      "frameChainOne",
+      "block_dispatch_deferred_stamp_offcol"
+    ],
+    "test_witnesses": [
+      "BlockDeferralClasses.frameChainOneTest",
+      "BlockDeferralClasses.stampOffcolTest"
+    ],
+    "proof_impact": "assert new lemma consumed and both retired names absent from library environment"
   }
 }
