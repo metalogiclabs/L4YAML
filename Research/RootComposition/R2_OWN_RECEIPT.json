@@ -1,0 +1,134 @@
+{
+  "state": "WARRANTED within declared boundary",
+  "workflow": 45879351495,
+  "overall_workflow": "success",
+  "harness": "eacb51a7ff7803ff08dff59455f4cce5832b376d",
+  "qualified_source_commit": "9f59de2e097d0174f14651d91a88917c026e3acb",
+  "qualified_source_tree": "eec308182759db30ee036bbd0d845219b2386fcb",
+  "qualified_source_base": "967d3503b30dde555078929f118101cba9f95a56",
+  "owner_base": "2ebc4740262ebaa566d7bce748e0a55a5c2f0cd5",
+  "toolchain": "Lean4.36.0",
+  "proof_sha256": {
+    "L4YAML/Proofs/Production/StreamAccum.lean": "c9ae3a8aa8e07f617d78eab588205334d5ab4a0cd88e905ec7a3110bce75b6ed",
+    "L4YAML/Proofs/Scanner/RegisterWitness.lean": "d39cfff27b6fad724f60d507eba397cf08dba712ae3dabf423d6d00189e789cd"
+  },
+  "full_default_build_jobs": 2645,
+  "successful_census_round": 1,
+  "repository_gates": "all passed",
+  "native_verified_cases": {
+    "passed": 65233,
+    "total": 65233
+  },
+  "corpus_matrix": {
+    "passed": 869,
+    "failed": 0,
+    "skipped": 151
+  },
+  "event_score": {
+    "correct": 347,
+    "scored": 358,
+    "known_event_differences": 11
+  },
+  "reachable_controls": {
+    "inputs": 720,
+    "accepted": 680,
+    "rejected": 40,
+    "value_steps": 1816,
+    "marked_closures": 1696,
+    "explicit_cases": 1696,
+    "retained_ancestors": 1216
+  },
+  "existing_checked_axiom_profiles_unchanged": true,
+  "new_scanner_fact_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "dashboard_vs_base": {
+    "toward": 7,
+    "away": 0,
+    "OrTrueAudit.positions": [
+      253,
+      252
+    ],
+    "OrTrueAudit.PackAlt": [
+      67,
+      66
+    ],
+    "OrTrueAudit.inrTrivial": [
+      460,
+      459
+    ],
+    "OrTrueAudit.nested": [
+      91,
+      90
+    ],
+    "CapstonePathAudit.off": [
+      179,
+      178
+    ],
+    "RelaySupplyCensus.DECLINE": [
+      214,
+      206
+    ],
+    "RelaySupplyCensus.DECLINE-free": [
+      118,
+      110
+    ]
+  },
+  "retired_clause": "accum_block_on_closeThenBlock.h_vslot.hkv PackAlt alternative; replaced by required route on actual marked-column membership",
+  "critical_ON_positions": [
+    7,
+    7
+  ],
+  "critical_ON_retirement": false,
+  "OFF_roster_entries": [
+    246,
+    245
+  ],
+  "accum_block_pending_trivial_writers": [
+    41,
+    40
+  ],
+  "guard_algorithms_and_non_snapshot_declarations_unchanged": true,
+  "ceilings_unchanged": true,
+  "parser_and_scanner_runtime_source_changed": false,
+  "artifact": 15145503499,
+  "artifact_sha256": "8e36c9d08aa1f67641fa4db84cabdabf47cd263b737394cd3019675be2e9a187",
+  "CRC_members_independently_checked": 320,
+  "independent_source_checks": [
+    "Git bundle integrity and prerequisite verified",
+    "Bundle restored into independent local Git object store",
+    "Qualified tree identity exact",
+    "Both proof hashes exact",
+    "Four axiom comparisons byte-identical",
+    "Non-snapshot guard code and all ceiling declarations unchanged"
+  ],
+  "durable_archive": {
+    "path": "Research/RootComposition/qualified-r2-own-evidence.zip",
+    "sha256": "022c53717d61556ab4b9a2a3048dfba6fb593d9904dd473cba136265a42b9c27",
+    "novel_entries": 43,
+    "omitted_prefix": "qualified-root/",
+    "omitted_parent_entries_verified_byte_for_byte": 277,
+    "parent_archive_git_blob": "b55075afab828e0a1426d82e85be2d35d4d9af6c",
+    "parent_archive_sha256": "e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c"
+  },
+  "negative_lineage": [
+    45867286191,
+    45868660602,
+    45869716943,
+    45870421696,
+    45871361897,
+    45876253099,
+    45879277628
+  ],
+  "limits": [
+    "All seven critical ON positions remain; no critical-path retirement claimed",
+    "Ancestor continuation remains optional; full R2 not complete",
+    "No universal YAML correspondence or complete conformance claim",
+    "No new API documentation qualification or independent local Lean replay claimed",
+    "No production PR head, upstream merge or approval changes"
+  ],
+  "next_smallest_experiment": "Price only the seven actual CapstonePathAudit ON positions on this exact tree, before more OFF-only strengthening; retain compiler goals, restoration and unchanged axiom checks. Start with the critical h_vpack/h_kslot family, not h_vslot.hkvUp solely because it is syntactically reached.",
+  "ci_reuse_note": "For future candidates apply the qualified source before building; compare baseline axioms from retained exact-source evidence, so a base-tree DocProduction build does not invalidate the saved candidate cache."
+}
