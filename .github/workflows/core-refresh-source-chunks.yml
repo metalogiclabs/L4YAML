@@ -1,0 +1,86 @@
+name: Restore Core refresh source in bounded log chunks
+on:
+  push:
+    branches: [test/refresh-source-publication]
+    paths: [.github/workflows/core-refresh-source-chunks.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [0, 1, 2, 3]
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OWNER: a62ac16b92d6487bc58405043bca79d39bae30d0
+      GROUP: ${{ matrix.group }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: a62ac16b92d6487bc58405043bca79d39bae30d0
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Restore exact Core source and emit bounded source chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          row=$(gh api repos/metalogiclabs/L4YAML/actions/runs/45895329112/artifacts --jq '.artifacts[] | select(.name == "pr-302-refresh-evidence") | [.id,.digest] | @tsv')
+          read -r artifact digest <<< "$row"
+          gh api "repos/metalogiclabs/L4YAML/actions/artifacts/$artifact/zip" > original.zip
+          echo "${digest#sha256:}  original.zip" | sha256sum -c -
+          unzip -q original.zip -d receipt
+          expected_bundle=$(awk '$2 ~ /qualified.bundle$/ {print $1}' receipt/qualified.sha256)
+          echo "$expected_bundle  receipt/qualified.bundle" | sha256sum -c -
+          old=$(sed -n 's/^OLD=//p' receipt/source.txt)
+          git fetch --no-tags https://github.com/metalogiclabs/L4YAML.git "$old"
+          git bundle verify receipt/qualified.bundle
+          git fetch receipt/qualified.bundle HEAD
+          qualified=$(sed -n '1p' receipt/qualified-source.txt)
+          tree=$(sed -n '2p' receipt/qualified-source.txt)
+          test "$(git rev-parse "$qualified^{tree}")" = "$tree"
+          git merge-base --is-ancestor "$OWNER" "$qualified"
+          git merge-base --is-ancestor "$old" "$qualified"
+          git diff --exit-code "$OWNER" "$qualified" -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          echo "BEGIN-SOURCE 302 $old $qualified $tree $artifact $digest"
+          git diff --name-only "$OWNER" "$qualified" | while IFS= read -r path; do
+            mode=$(git ls-tree --format='%(objectmode)' "$qualified" -- "$path")
+            blob=$(git ls-tree --format='%(objectname)' "$qualified" -- "$path")
+            test "$mode" = 100644 -o "$mode" = 100755
+            prev=$(git rev-parse "$old:$path" 2>/dev/null || true)
+            upstream=$(git rev-parse "$OWNER:$path" 2>/dev/null || true)
+            if test "$blob" = "$prev" -o "$blob" = "$upstream"; then
+              printf 'EXISTING-BLOB %s %s %s\n' "$mode" "$blob" "$path"
+            else
+              size=$(git cat-file -s "$blob")
+              parts=$(((size+49151)/49152))
+              printf 'NOVEL-BLOB %s %s %s %s\n' "$mode" "$blob" "$size" "$path"
+              git show "$qualified:$path" > blob.tmp
+              for part in $(seq 0 $((parts-1))); do
+                if test "$((part%4))" = "$GROUP"; then
+                  echo "BEGIN-CHUNK $blob $part $parts"
+                  dd if=blob.tmp bs=49152 skip="$part" count=1 status=none | base64 -w 76
+                  echo END-CHUNK
+                fi
+              done
+            fi
+          done
+          echo END-SOURCE
+          if test "$GROUP" = 0; then
+            echo "BEGIN-QUAL-SUMMARY 302 $artifact $digest"
+            for name in source.txt qualified-source.txt qualified.sha256 dashboard-diff.log hygiene.log cross-language.log; do
+              echo "BEGIN-QUAL-FILE $name"
+              cat "receipt/$name"
+              echo END-QUAL-FILE
+            done
+            grep '^Verified:' receipt/native-suites.log
+            grep 'Build completed successfully' receipt/final-build.log | tail -1
+            tail -3 receipt/python-ffi.log
+            tail -3 receipt/python-package.log
+            grep '^test result:' receipt/rust-tests.log
+            echo END-QUAL-SUMMARY
+          fi
