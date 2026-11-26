@@ -59,6 +59,8 @@ jobs:
           git apply --check ../evidence/Research/RootMarkerPayment/root-marker-proof.patch
           git apply ../evidence/Research/RootMarkerPayment/root-marker-proof.patch
           printf '%s\n' 'ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
+          git apply --check ../evidence/Research/RootMarkerPayment/candidate-guard-pins.patch
+          git apply ../evidence/Research/RootMarkerPayment/candidate-guard-pins.patch
           lake build Scripts.Main.Repin
           passed=false
           for round in $(seq 1 12); do

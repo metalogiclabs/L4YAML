@@ -1,0 +1,43 @@
+{
+  "status": "WARRANTED_BOUNDED local proof and strict affected censuses; full hosted qualification pending",
+  "owner": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "compiler": "Lean 4.36.0, 611c117b",
+  "proof_source_sha256": "ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890",
+  "proof_blob": "1680f5ddcbdbf1c95dc5b6df80c0be4f91a851b5",
+  "proof_module": "L4YAML.Proofs.Production.StreamAccum",
+  "proof_compile_exit": 0,
+  "document_consumer_compile_exit": 0,
+  "strict_relay_guard_exit": 0,
+  "strict_ortrue_guard_exit": 0,
+  "strict_capstone_path_guard_exit": 0,
+  "native_marker_controls": {
+    "sources": 126,
+    "document_start_states": 252,
+    "document_end_states": 210,
+    "initialized_from_source": true,
+    "actual_marked_projection_empty": true
+  },
+  "actual_metrics": {
+    "direct_relay_declines": [237, 234],
+    "direct_relay_pays": [50, 53],
+    "critical_path_direct_declines": [6, 3],
+    "paid_supply_positions": [24, 26],
+    "critical_optional_positions": [7, 7],
+    "split_declined_leaves": [213, 213],
+    "free_declined_leaves": [117, 117],
+    "new_library_declarations": 0,
+    "runtime_changes": 0
+  },
+  "failed_attempts_preserved": [
+    "Local default build interrupted for disk relocation, no proof result",
+    "Local concurrent linking and first proof attempt killed by memory pressure",
+    "One local compiler invocation used a directory-prefixed module name; its private-name census diagnostic is superseded by the correctly named recompile and all three strict guard passes",
+    "Direct execution of the imported Pins module lacked its native implementation; unchanged owner Pins and Repin sources were assembled locally for the diagnostic, then final pins were independently checked by the strict guards"
+  ],
+  "limits": [
+    "Complete field retirement is not established",
+    "The three remaining direct declines are retained",
+    "scannerDrop, universal scan_trace and corrected Group 7.7 remain open",
+    "Full repository qualification and exact final axiom-set comparison are pending"
+  ]
+}
