@@ -1,0 +1,161 @@
+name: Qualify refreshed L4YAML PR candidates
+on:
+  push:
+    branches: [test/pr-refresh-qualification]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        pr: [302, 361, 370, 371, 384]
+    env:
+      LEAN_NUM_THREADS: 2
+      PR: ${{ matrix.pr }}
+      OWNER: a62ac16b92d6487bc58405043bca79d39bae30d0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: a62ac16b92d6487bc58405043bca79d39bae30d0
+          path: source
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Restore exact candidate and bind preserved ancestry
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ../results
+          sha256sum -c ../evidence/Research/IntegrationRefresh/bundles.sha256
+          read -r old candidate tree < <(awk -v pr="$PR" '$1 == pr {print $2, $3, $4}' ../evidence/Research/IntegrationRefresh/candidates.tsv)
+          test -n "$old" && test -n "$candidate" && test -n "$tree"
+          git fetch --no-tags https://github.com/metalogiclabs/L4YAML.git "$old"
+          git bundle verify "../evidence/Research/IntegrationRefresh/pr$PR.bundle" 2>&1 | tee ../results/restoration.log
+          git fetch "../evidence/Research/IntegrationRefresh/pr$PR.bundle" HEAD
+          git switch --detach "$candidate"
+          test "$(git rev-parse HEAD^{tree})" = "$tree"
+          git merge-base --is-ancestor "$old" HEAD
+          git merge-base --is-ancestor "$OWNER" HEAD
+          git diff --exit-code "$OWNER" HEAD -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          git submodule update --init --recursive
+          printf 'OLD=%s\nINITIAL_SOURCE=%s\nINITIAL_TREE=%s\nOWNER=%s\n' "$old" "$candidate" "$tree" "$OWNER" | tee ../results/source.txt
+          echo "OLD=$old" >> "$GITHUB_ENV"
+          echo "INITIAL_SOURCE=$candidate" >> "$GITHUB_ENV"
+          git config user.name 'Heath Sanchez'
+          git config user.email 'heathsanchez@gmail.com'
+          cp Tests/Guards/Proofs/DeadDeclarationRoster.lean ../results/initial-roster.lean
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        with:
+          path: source/.lake
+          key: pr-refresh-436-${{ matrix.pr }}-${{ github.run_id }}
+          restore-keys: |
+            pr-refresh-436-${{ matrix.pr }}-
+      - name: Build and remeasure only compiler-reported snapshots
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee ../results/lean-version.txt
+          lake build scripts-repin scripts-dead-census > ../results/instruments-build.log 2>&1
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > ../results/MeasuredRepin.lean
+          cat ../evidence/Research/IntegrationRefresh/MeasuredRepinDriver.lean >> ../results/MeasuredRepin.lean
+          passed=false
+          for round in $(seq 1 12); do
+            echo "BUILD_ROUND $round"
+            if lake build > "../results/build-$round.log" 2>&1; then passed=true; break; fi
+            tail -100 "../results/build-$round.log"
+            lean --run ../results/MeasuredRepin.lean "../results/build-$round.log" . > "../results/repin-$round.log" 2>&1
+            cat "../results/repin-$round.log"
+            grep -Eq '^MEASURED_REPIN_EDITS [1-9][0-9]*$' "../results/repin-$round.log"
+          done
+          test "$passed" = true
+          lake build tests demo limittests > ../results/extra-build.log 2>&1
+          lake run dead-census -- --write > ../results/census-write.log 2>&1
+          lake build > ../results/final-build.log 2>&1
+          lake run dead-census -- --check > ../results/census-check.log 2>&1
+          cmp ../results/initial-roster.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          git diff --check
+          git diff --binary > ../results/measured-snapshots.patch
+      - name: Run native suites and all repository gates
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs/reports
+          lake exe adversarialinstantiation > ../results/adversarial.log 2>&1
+          lake run run-all-tests -- docs/reports > ../results/native-suites.log 2>&1
+          lake exe eventscore --suite yaml-test-suite > ../results/eventscore.log 2>&1
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" > "../results/$gate.log" 2>&1
+          done
+          lake run census-dashboard -- --check --md ../results/dashboard.md > ../results/dashboard-check.log 2>&1
+          lake run census-dashboard -- --diff "$OWNER" > ../results/dashboard-diff.log 2>&1
+          lake exe collect-stats > ../results/collect-stats.log 2>&1
+          lake run check-hygiene -- docs/reports/stats.json > ../results/hygiene.log 2>&1
+          cp docs/reports/stats.json ../results/stats.json
+      - name: Build and test language bindings
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev python3-venv
+          python3 -m venv "$RUNNER_TEMP/bindings-venv"
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pip install --quiet pytest
+          export PYTHONNOUSERSITE=1
+          mkdir -p "$RUNNER_TEMP/bindings-venv/empty"
+          export PYTHONPATH="$RUNNER_TEMP/bindings-venv/empty"
+          export L4YAML_LIB="$PWD/ffi/out/libl4yaml.so"
+          export LD_LIBRARY_PATH="$PWD/ffi/out:$(lean --print-prefix)/lib/lean:${LD_LIBRARY_PATH:-}"
+          cmake -B ffi/out -S ffi > ../results/cmake-config.log 2>&1
+          cmake --build ffi/out --parallel 2 > ../results/cmake-build.log 2>&1
+          test -f ffi/out/libl4yaml.so && test -x ffi/out/tryparse_c
+          cargo build --manifest-path rust/l4yaml/Cargo.toml --release --example tryparse --jobs 2 > ../results/rust-build.log 2>&1
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 > ../results/rust-tests.log 2>&1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pytest Tests/test_python_ffi.py -q > ../results/python-ffi.log 2>&1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pytest python/tests/ -q > ../results/python-package.log 2>&1
+          export PATH="$RUNNER_TEMP/bindings-venv/bin:$PATH"
+          lake run cross-lang-compare -- docs/reports > ../results/cross-language.log 2>&1
+      - name: Freeze verified source and preserve exact candidate bundle
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code -- . ':(exclude)Tests/Guards/Proofs/*.lean'
+          git diff --check
+          git add Tests/Guards/Proofs
+          if ! git diff --cached --quiet; then git commit -m "test(guards): measure PR $PR on exact current owner"; fi
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git merge-base --is-ancestor "$OLD" HEAD
+          git merge-base --is-ancestor "$OWNER" HEAD
+          git rev-parse HEAD HEAD^{tree} > ../results/qualified-source.txt
+          git diff --binary "$INITIAL_SOURCE" HEAD > ../results/final-snapshot.patch
+          git bundle create ../results/qualified.bundle HEAD ^"$OLD" ^"$OWNER"
+          git bundle verify ../results/qualified.bundle > ../results/bundle-verify.log 2>&1
+          sha256sum ../results/qualified.bundle ../results/final-snapshot.patch > ../results/qualified.sha256
+          printf 'NATIVE_QUALIFIED PR=%s SOURCE=%s TREE=%s\n' "$PR" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})"
+      - uses: actions/cache/save@v4
+        if: success()
+        with:
+          path: source/.lake
+          key: pr-refresh-436-${{ matrix.pr }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-${{ matrix.pr }}-refresh-evidence
+          path: results/
+          if-no-files-found: error
