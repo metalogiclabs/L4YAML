@@ -1,0 +1,1 @@
+Continue completed failed run45793782884 after exact RouteShapes format repair. Replay independently verified compiler readings; do not repeat six unchanged full builds. Retain detector logic, source candidate, compiler, source controls and pending root/price stages.

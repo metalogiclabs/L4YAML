@@ -237,6 +237,17 @@ def retiredOffcolRoster (ls body : Array String) : IO (Array String × Nat) := d
     if changed then IO.println s!"MEASURED_REPIN {names.head!} after exactly three retired offcol applications"
     return (next, if changed then 1 else 0)
 
+-- RouteShapes emits the complete actual roster, without an expected/got pair.
+-- Copy only the corresponding literal; for spines, every route and owner must
+-- remain in the same order and only the five measured count columns may change.
+def routeSpineKey (s : String) : String :=
+  " ".intercalate (((s.splitOn " ").filter (· != "")).drop 5)
+
+#guard routeSpineKey "  stream=0 carry=12 fwd=0 punt=2 closed=0 shape ← owner"
+  == routeSpineKey "  stream=0 carry=12 fwd=0 punt=1 closed=1 shape ← owner"
+#guard routeSpineKey "  stream=0 carry=12 fwd=0 punt=2 closed=0 shape ← owner"
+  != routeSpineKey "  stream=0 carry=12 fwd=0 punt=1 closed=1 other ← owner"
+
 def knownListFormats (file : String) (ls body : Array String) : IO (Array String × Nat) := do
   let title := body[0]?.getD ""
   let name :=
@@ -260,11 +271,22 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
       some "expectedSites"
     else if file == "Tests/Guards/Proofs/ParkGapWidth.lean" && title == "the ladder moved:" then
       some "expectedLadder"
+    else if file == "Tests/Guards/Proofs/RouteShapes.lean" && title == "a spine's sites moved:" then
+      some "expectedSpines"
+    else if file == "Tests/Guards/Proofs/RouteShapes.lean" && title == "an exit's hand-off moved:" then
+      some "expectedSites"
+    else if file == "Tests/Guards/Proofs/RouteShapes.lean" && title == "the spines first built from the stream moved:" then
+      some "expectedK"
     else none
   let some name := name | return (ls,0)
   let some sp := measuredSpan ls name | return (ls,0)
   let some old := oldValues? ls sp | return (ls,0)
-  let fresh? := if file == "Tests/Guards/Proofs/ParkGapWidth.lean" then
+  let fresh? := if file == "Tests/Guards/Proofs/RouteShapes.lean" then
+      let rows := (body.toList.drop 1).takeWhile (fun l => l.startsWith "  " && !(pyStrip l).isEmpty)
+      let indent := String.ofList ((old.headD "").toList.takeWhile isAsciiWs)
+      if rows.length != old.length then none else
+        some (rows.map (fun l => indent ++ pyStrip l))
+    else if file == "Tests/Guards/Proofs/ParkGapWidth.lean" then
       let rowHead := if name == "expectedSites" then "L4YAML.Proofs.StreamAccum." else "scanNextToken_"
       let rows := (body.toList.drop 1).takeWhile (fun l => (pyStrip l).startsWith rowHead)
       if rows.isEmpty then none else some (rows.map pyStrip)
@@ -286,6 +308,8 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
       removed.all (fun x => x.startsWith "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred width=UNREACHED ")
     if !(fresh.all old.contains) || !(calls || wrapper) then
       if fresh != old then return (ls,0)
+  else if file == "Tests/Guards/Proofs/RouteShapes.lean" && name == "expectedSpines" then
+    if fresh.length != old.length || fresh.map routeSpineKey != old.map routeSpineKey then return (ls,0)
   else if name == "expectedChainFaces" then
     if fresh.length > old.length || !(fresh.all old.contains) then return (ls,0)
   else if name == "expectedStateFaces" then
