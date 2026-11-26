@@ -39,11 +39,13 @@ def walk (input : String) (rs : IO.Ref Counts) : Nat → ScannerState → IO Uni
             throw <| IO.userError s!"EXPLICIT_COLUMN_REFUTED {repr input} n={n} marks={marks}"
           if 0 ≤ out.currentIndent && out.currentIndent.toNat ∈ marks then
             throw <| IO.userError s!"POST_VALUE_OWN_REFUTED {repr input} marks={marks}"
-          rs.modify fun r => {r with values := r.values + 1,
-            closing := r.closing + (if closes then 1 else 0),
-            closingMarkedBefore := r.closingMarkedBefore + (if closes && n ∈ markedCols dis then 1 else 0),
-            explicit := r.explicit + (if expl then 1 else 0),
-            ancestors := r.ancestors + (if marks.isEmpty then 0 else 1)}
+          rs.modify fun r =>
+            { r with
+              values := r.values + 1
+              closing := r.closing + (if closes then 1 else 0)
+              closingMarkedBefore := r.closingMarkedBefore + (if closes && n ∈ markedCols dis then 1 else 0)
+              explicit := r.explicit + (if expl then 1 else 0)
+              ancestors := r.ancestors + (if marks.isEmpty then 0 else 1) }
         | _ => pure ()
       walk input rs fuel out
     | _, .error e => throw <| IO.userError s!"accepted source failed scan: {e} {repr input}"
