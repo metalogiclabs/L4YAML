@@ -104,11 +104,30 @@
   "qualified_parent_archive_git_blob": "fdd634537f91b0fffbd26c39447a945f2f01cea6",
   "qualified_parent_archive_sha256": "6f571018f26451b78cef15c6dacac03084633fc3fbb71f45650b6b6ff32cef00",
   "stronger_probe": {
-    "run": 45894740733,
-    "harness": "76c392fbc115851b409ea5311ad98043c7d52990",
-    "immediate_goals": 3,
-    "declarations": 1,
-    "status": "INCOMPLETE; its statement-strengthening and paired property-route changes are not included in this qualified source."
+    "latest": {
+      "run": 45899137353,
+      "job": 140180325877,
+      "harness": "08a98ec37c354ae87cd6b4cfd97201513336fa37",
+      "anchors": 44,
+      "source": "9f59de2e097d0174f14651d91a88917c026e3acb",
+      "immediate_goals": 4,
+      "declarations": 2,
+      "total_sites": 6,
+      "total_declarations": 3,
+      "exit": 3,
+      "scope": "Two landed sequence goals in accum_block_on_closeThenBlock and two actual question/value producer goals in accum_block_pending. Compact consumer gap disappears. Actual completed job log independently read; no duplicate run.",
+      "artifact": 15155217329,
+      "artifact_sha256": "e9c1cd57746b05432b74d673180ed3b568093a172b72744f7b09803e7d639abb",
+      "CRC_members_checked_by_canonical_reconciliation": 25,
+      "status": "INCOMPLETE; statement-strengthening changes not included in the qualified compact source."
+    },
+    "prior_four_keyslot_scope": {
+      "run": 45894740733,
+      "harness": "76c392fbc115851b409ea5311ad98043c7d52990",
+      "immediate_goals": 3,
+      "declarations": 1,
+      "scope": "Different narrower normalized four-key-slot scope; not a directly comparable proof price."
+    }
   },
   "limits": [
     "All seven critical ON positions remain. This is an additional paid branch on existing statements, not global critical-position retirement.",
@@ -116,10 +135,18 @@
     "Integration with owner snapshot a62ac16b and production PR qualification not attempted.",
     "No universal YAML correspondence, complete conformance or independent local Lean replay claimed."
   ],
-  "next_smallest_experiment": "Retain the source-owned full entry/value-line witness across colon_open_map_explicit before its close projection on the actual surviving-ancestor domain. Preserve own-cleared, ancestor-survives and non-question-slot controls. Do not rerun this qualified candidate or the unchanged three-goal diagnostic.",
+  "next_smallest_experiment": "Use qualified source f472ce46. Pay the actual declined-question ancestor payload and value park's surviving-proper-ancestor payload in accum_block_pending, preserving the full entry/value-line witness before close projections. Treat the two landed sequence h_seqFramesV availability goals separately. Preserve own-cleared, ancestor-survives and non-question-slot controls. Reuse the existing measured producer frontier; do not rerun unchanged qualification or diagnostics.",
   "durable_archive": {
     "path": "Research/RootComposition/qualified-r2-compact-own-evidence.zip",
-    "copy_status": "PENDING archive-only workflow; qualification already complete"
+    "copy_status": "VERIFIED and committed",
+    "git_blob": "7065d1b99a11aae1d90a1575322013a8e2aa1718",
+    "archive_commit": "f452f6847aaabb1276a10ce9e3b250b8c5149716",
+    "archive_only_workflow": 45900992923,
+    "archive_only_job": 140186433186,
+    "archive_only_conclusion": "success",
+    "archive_SHA256_rechecked": true,
+    "archive_CRCs_rechecked": 65,
+    "no_proof_or_native_rebuild": true
   },
   "workspace_note": "Local workspace disconnected after independent archive, source-blob and commit-header verification. Archive persistence uses a separate GitHub download/hash/CRC/commit job; no Lean or native rebuild."
 }
