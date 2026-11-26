@@ -1,0 +1,103 @@
+name: R2 value-slot origin integration and exact residual
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths:
+      - .github/workflows/r2-slot-origin-integration.yml
+      - Research/RootComposition/r2-slot-origin-candidate.patch
+      - Research/RootComposition/r2-slot-origin-normalized.json
+      - Research/RootComposition/R2IntegratedAudit.lean
+permissions:
+  contents: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 4c54da7e3716ab0197b126294474bb2868651402
+          submodules: recursive
+          path: source
+      - name: Restore the exact qualified root candidate from its retained bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/qualified-root
+          echo 'e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c  evidence/Research/RootComposition/qualified-root-evidence.zip' | sha256sum -c -
+          unzip -q evidence/Research/RootComposition/qualified-root-evidence.zip -d results/qualified-root
+          cd source
+          git bundle verify ../results/qualified-root/root-context/source.bundle
+          git fetch ../results/qualified-root/root-context/source.bundle HEAD
+          git checkout --detach 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD)" = 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD^{tree})" = 20e10d2041c66d199d4408b4c37f82b6ec8cddf0
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree} > ../results/source-identity.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          cd ../evidence
+          git rev-parse HEAD > ../results/evidence-commit.txt
+          sha256sum Research/RootComposition/r2-slot-origin-candidate.patch Research/RootComposition/r2-slot-origin-normalized.json Research/RootComposition/R2IntegratedAudit.lean > ../results/spec-sha256.txt
+          cp Research/RootComposition/r2-slot-origin-candidate.patch Research/RootComposition/r2-slot-origin-normalized.json Research/RootComposition/R2IntegratedAudit.lean ../results/
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-slot-origin-integration-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            root-domain-2ebc4740-lean4360-${{ runner.os }}-
+      - name: Compile the real producer integration and preserve the exact residual
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          lake build L4YAML.Proofs.Production.DocumentProduction scripts-flip > ../results/baseline-build.txt 2>&1 || status=$?
+          cat ../results/baseline-build.txt
+          test "$status" = 0
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/baseline-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/baseline-root-axioms.txt 2>&1
+          git apply --check ../evidence/Research/RootComposition/r2-slot-origin-candidate.patch
+          git apply ../evidence/Research/RootComposition/r2-slot-origin-candidate.patch
+          git diff --check
+          git diff --binary > ../results/integrated-source.patch
+          status=0
+          lake build L4YAML.Proofs.Production.DocumentProduction > ../results/integrated-build.txt 2>&1 || status=$?
+          cat ../results/integrated-build.txt
+          echo "$status" > ../results/integrated-build-exit.txt
+          test "$status" = 0
+          lake env lean ../evidence/Research/RootComposition/R2IntegratedAudit.lean > ../results/new-lemma-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/integrated-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/integrated-root-axioms.txt 2>&1
+          diff -u ../results/baseline-axioms.txt ../results/integrated-axioms.txt
+          diff -u ../results/baseline-root-axioms.txt ../results/integrated-root-axioms.txt
+          git -c user.name='Heath Sanchez' -c user.email='heathsanchez@gmail.com' commit -am 'proof: retain actual value-slot own-column exclusion for R2'
+          git rev-parse HEAD HEAD^{tree} > ../results/integrated-source-identity.txt
+          git bundle create ../results/integrated-source.bundle HEAD ^967d3503b30dde555078929f118101cba9f95a56
+          sha256sum L4YAML/Proofs/Production/StreamAccum.lean L4YAML/Proofs/Scanner/RegisterWitness.lean > ../results/integrated-source-sha256.txt
+          status=0
+          lake exe scripts-flip ../evidence/Research/RootComposition/r2-slot-origin-normalized.json --rev HEAD > ../results/normalized-price.txt 2>&1 || status=$?
+          cat ../results/normalized-price.txt
+          echo "$status" > ../results/normalized-price-exit.txt
+          test "$status" = 0 -o "$status" = 3
+          sha256sum -c ../results/integrated-source-sha256.txt
+          test -z "$(git status --porcelain)"
+          lake build L4YAML > ../results/restored-build.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/restored-root-axioms.txt 2>&1
+          diff -u ../results/integrated-root-axioms.txt ../results/restored-root-axioms.txt
+          printf '%s\n' 'producer_integration=COMPILED' 'full_repository_qualification=NOT_CLAIMED' 'R2_completion=NOT_CLAIMED' 'optional_slot_retirement=NOT_CLAIMED' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r2-slot-origin-integration
+          path: results/
+          if-no-files-found: error
