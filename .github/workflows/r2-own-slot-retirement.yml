@@ -4,7 +4,7 @@ on:
     branches: [test/root-domain-qualification]
     paths:
       - .github/workflows/r2-own-slot-retirement.yml
-      - Research/RootComposition/r2-own-slot-retirement.patch
+      - Research/RootComposition/r2-own-retirement-final-candidate.patch
       - Research/RootComposition/r2-retirement-measured-pins.patch
       - Research/RootComposition/r2-retirement-replay-logs.zip
       - Research/RootComposition/R2OwnRetirementAudit.lean
@@ -47,14 +47,15 @@ jobs:
           "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
           cd ../evidence
           git rev-parse HEAD > ../results/evidence-commit.txt
-          sha256sum Research/RootComposition/r2-own-slot-retirement.patch Research/RootComposition/R2OwnRetirementAudit.lean Research/RootComposition/R2ClosingControls.lean > ../results/spec-sha256.txt
-          cp Research/RootComposition/r2-own-slot-retirement.patch Research/RootComposition/R2OwnRetirementAudit.lean Research/RootComposition/R2ClosingControls.lean ../results/
+          sha256sum Research/RootComposition/r2-own-retirement-final-candidate.patch Research/RootComposition/R2OwnRetirementAudit.lean Research/RootComposition/R2ClosingControls.lean > ../results/spec-sha256.txt
+          cp Research/RootComposition/r2-own-retirement-final-candidate.patch Research/RootComposition/R2OwnRetirementAudit.lean Research/RootComposition/R2ClosingControls.lean ../results/
       - uses: actions/cache/restore@v4
         continue-on-error: true
         with:
           path: source/.lake
           key: r2-slot-origin-integration-lean4360-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
+            r2-own-retirement-lean4360-${{ runner.os }}-
             root-domain-2ebc4740-lean4360-${{ runner.os }}-
       - name: Compile the own-column retirement against the qualified root
         working-directory: source
@@ -64,25 +65,12 @@ jobs:
           lake build L4YAML.Proofs.Production.DocumentProduction scripts-repin > ../results/baseline-build.txt 2>&1
           lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/baseline-axioms.txt 2>&1
           lake env lean Research/ContentSlot/RootAudit.lean > ../results/baseline-root-axioms.txt 2>&1
-          git apply --check ../evidence/Research/RootComposition/r2-own-slot-retirement.patch
-          git apply ../evidence/Research/RootComposition/r2-own-slot-retirement.patch
+          git apply --check ../evidence/Research/RootComposition/r2-own-retirement-final-candidate.patch
+          git apply ../evidence/Research/RootComposition/r2-own-retirement-final-candidate.patch
           git diff --check
           git diff --binary > ../results/attempted-source.patch
-          echo 'ebe0b90a3d5cd7b6bddf71b4441501e6dd18128a1f9da1a55cf34918349e7384  ../evidence/Research/RootComposition/r2-retirement-replay-logs.zip' | sha256sum -c -
-          mkdir -p ../results/prior-r2
-          unzip -q ../evidence/Research/RootComposition/r2-retirement-replay-logs.zip -d ../results/prior-r2
-          sha256sum L4YAML/Proofs/Production/StreamAccum.lean L4YAML/Proofs/Scanner/RegisterWitness.lean > ../results/before-replay-proof-sha256.txt
-          for round in $(seq 1 9); do
-            replay_status=0
-            lake exe scripts-repin "../results/prior-r2/full-build-$round.txt" > "../results/replay-repin-$round.txt" 2>&1 || replay_status=$?
-            test "$replay_status" -le 1
-            lean --run Research/ContentSlot/MeasuredRepin.lean "../results/prior-r2/full-build-$round.txt" . > "../results/replay-measured-$round.txt" 2>&1
-          done
-          sha256sum -c ../results/before-replay-proof-sha256.txt
-          git apply --check ../evidence/Research/RootComposition/r2-retirement-measured-pins.patch
-          git apply ../evidence/Research/RootComposition/r2-retirement-measured-pins.patch
-          git diff --check
-          git diff --binary > ../results/replayed-source.patch
+          echo 'c9ae3a8aa8e07f617d78eab588205334d5ab4a0cd88e905ec7a3110bce75b6ed  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
+          echo 'd39cfff27b6fad724f60d507eba397cf08dba712ae3dabf423d6d00189e789cd  L4YAML/Proofs/Scanner/RegisterWitness.lean' | sha256sum -c -
           status=0
           lake build L4YAML.Proofs.Production.DocumentProduction > ../results/proof-build.txt 2>&1 || status=$?
           cat ../results/proof-build.txt
