@@ -1,0 +1,32 @@
+{
+  "state": "CANDIDATE whole change; bounded component checks passed",
+  "owner": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
+  "core_lemma_kernel_check": "PASS",
+  "core_lemma_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "source_controls": {
+    "sources": 396,
+    "steps": 6102,
+    "marked_content": 1830,
+    "multi_mark_content": 1410,
+    "marked_flow_closes": 72,
+    "max_marks": 10,
+    "explicit_values": 1686,
+    "dedent_values": 1614,
+    "empty_cover_negative_controls": 1686,
+    "singleton_negative_controls": 1290
+  },
+  "permanent_adversarial_probe": {
+    "passed": 792,
+    "failed": 0
+  },
+  "local_whole_source_build": {
+    "exit": 137,
+    "state": "UNKNOWN",
+    "reason": "process killed under local resource limit; not a mathematical refutation"
+  },
+  "harness_first_attempt": "AdversarialProbe needed public meta import Tests.VerifiedResult for interpreter symbols; fixed and locally replayed 792/792."
+}

@@ -1,5 +1,6 @@
 module
 public import Tests.VerifiedResult
+public meta import Tests.VerifiedResult
 public import L4YAML.Parser.Composition
 public import L4YAML.Proofs.Scanner.RegisterWitness
 public meta import L4YAML.Parser.Composition
