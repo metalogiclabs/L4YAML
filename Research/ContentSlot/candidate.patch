@@ -1,5 +1,5 @@
 diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
-index b6379bb4e..88a7a74bb 100644
+index b6379bb4e..839a72e4e 100644
 --- a/L4YAML/Proofs/Production/StreamAccum.lean
 +++ b/L4YAML/Proofs/Production/StreamAccum.lean
 @@ -24111,7 +24111,7 @@ lemma scanValue_stamp_of_src {s s' : ScannerState}
@@ -215,7 +215,31 @@ index b6379bb4e..88a7a74bb 100644
            · -- Item 185: the park carries NO pack.
              exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
                (h_close_pending h_nd_land h_ui_land _ h_ssl)
-@@ -31098,7 +31125,7 @@ lemma accum_block_pending (sc : ScannerState)
+@@ -31036,7 +31063,10 @@ lemma accum_block_pending (sc : ScannerState)
+     -- own slot. ═══
+     exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+       h_close_pending
+-      (Or.inr (PackAlt.ofRefused h_noekE)) (Or.inr (fun h_res _ => (docEnd_refutes_inline_residue h_line
++      (Or.inl ⟨[], RegisterWitness.MarkedColsIn.of_explicitKeyLine_none h_sound
++        (by simpa [ScannerState.inFlow] using (sc_noflow_of_prep h_preprocess h_noflow))
++        h_noekE, fun _ hm => absurd hm List.not_mem_nil⟩)
++      (Or.inr (fun h_res _ => (docEnd_refutes_inline_residue h_line
+         (block_indicator_char h_dispatch) h_res).elim)) hcorr_prep hcorr_result h_corr h_noflow
+       h_arm77
+       h_preprocess h_dispatch
+@@ -31062,7 +31092,10 @@ lemma accum_block_pending (sc : ScannerState)
+     -- inline residue is EMPTY and only the landed close remains. ═══
+     exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+       h_close_pending
+-      (Or.inr (PackAlt.ofRefused h_noekS)) (Or.inr (fun _ h_pay =>
++      (Or.inl ⟨[], RegisterWitness.MarkedColsIn.of_explicitKeyLine_none h_sound
++        (by simpa [ScannerState.inFlow] using (sc_noflow_of_prep h_preprocess h_noflow))
++        h_noekS, fun _ hm => absurd hm List.not_mem_nil⟩)
++      (Or.inr (fun _ h_pay =>
+         (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inr (Or.inl h_docline48))
+           (preprocess_preserves_implicitValueLine sc s_prep c h_preprocess)
+           (preprocess_preserves_docStartLine sc s_prep c h_preprocess)
+@@ -31098,7 +31131,7 @@ lemma accum_block_pending (sc : ScannerState)
      -- punts its own, the recorded residue).
      exact accum_block_on_pendingContent (h_sound := h_sound) sc sp_start sp_block sp_scan s_prep s' c
        sp_prep sp_scan' sp_gramO h_stream_block h_runO h_gateO
@@ -224,7 +248,7 @@ index b6379bb4e..88a7a74bb 100644
        h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_mono
        h_tail139 h_seqF168
        (h_framesS109.imp (fun ⟨ks, _, fS⟩ => ⟨ks, fS⟩) id)
-@@ -31143,7 +31170,7 @@ lemma accum_block_pending (sc : ScannerState)
+@@ -31143,7 +31176,7 @@ lemma accum_block_pending (sc : ScannerState)
            -- closes as `propsEmpty` into the `?`'s key, and the pack routes
            -- the rest (`? &p⏎: - w`).
            (match h_kslot91 with
@@ -233,7 +257,7 @@ index b6379bb4e..88a7a74bb 100644
                 (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                   kslot nv hmem sp_m (flowInBlock_blockNode h_sep_p
                     (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
-@@ -31175,7 +31202,7 @@ lemma accum_block_pending (sc : ScannerState)
+@@ -31175,7 +31208,7 @@ lemma accum_block_pending (sc : ScannerState)
        exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
          h_close_pending
          (match h_kslot91 with
@@ -242,7 +266,7 @@ index b6379bb4e..88a7a74bb 100644
               (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                 kslot nv hmem sp_m (flowInBlock_blockNode h_sep_p
                   (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
-@@ -31237,7 +31264,7 @@ lemma accum_block_pending (sc : ScannerState)
+@@ -31237,7 +31270,7 @@ lemma accum_block_pending (sc : ScannerState)
          -- Item 196: the field is a chain, so the empty-node crossing — which
          -- is the same term for every ancestor — carries all of it.
          (match h_kslot93 with
@@ -251,7 +275,7 @@ index b6379bb4e..88a7a74bb 100644
               (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
                 kslot nv hmem sp_m
                   (SBlockNode.emptyNode (nmv + 1) .blockIn sp_scan sp_m h_ssl)
-@@ -31304,35 +31331,40 @@ lemma accum_block_pending (sc : ScannerState)
+@@ -31304,35 +31337,40 @@ lemma accum_block_pending (sc : ScannerState)
          -- the slot lane already spends `h_explUp` through, with the KEY empty
          -- on the landing's comments instead of filled — the entry never got
          -- its value, and the ancestor's `:` line follows. ═══
@@ -387,3 +411,88 @@ index f4f2466bf..04b7b62f4 100644
    testColZeroParks state
    testKslotDomain state
    testFlowCarrier state
+diff --git a/Tests/Guards/Proofs/DispatchPrice.lean b/Tests/Guards/Proofs/DispatchPrice.lean
+index 7f7e8e311..57c6b48ac 100644
+--- a/Tests/Guards/Proofs/DispatchPrice.lean
++++ b/Tests/Guards/Proofs/DispatchPrice.lean
+@@ -412,7 +412,7 @@ def expectedSteps : String :=
+ -- content dispatch's `.ok` with one `ScannerSurfCorr` end as a hypothesis (the other is its conclusion's).
+ -- 2026-11-24 (item 535): stepHolders 2116 → 2108, dispHolders 437 → 429 — the eight unreferenced dispatcher-arm corollaries of `ScannerShape`
+ -- (`dispatchStructural_*_trace` ×3, `dispatchFlowIndicators_*_trace` ×5) are deleted; each held a dispatcher's `.ok`.
+-  "stepHolders=2108 dispHolders=429 dispTwoCorr=42 fns=75 fnsIx=26"  -- 2026-11-15 (item 517): +1/+1, `content_km_transport_any` (ContentBridge) holds `h_pre` / `hok`, the T mask's content-step transport; (item 512): +1/+1, `marks_step_content` holds `h_preprocess` / `h_dispatch`; 2026-11-14: `Proofs.Scanner.StructDepth` deleted (owner's ruling on items 446–452): its (γ1) `DInv` readers leave, stepHolders 2120 → 2103, dispHolders 422 → 418; `ScannerShape.scanFiltered_noComment` (item 451's holder) deleted with it: 2103 → 2102; `DocStartLiveInv.scanFiltered_liveF` too: 2102 → 2101  -- 2026-11-13 (item 489): +1/+1, `accum_step_content_pairB` holds `h_dispatch`; 2026-11-14 (item 490): +1/+1, `accum_step_content_pairK` holds it too
++  "stepHolders=2109 dispHolders=429 dispTwoCorr=42 fns=75 fnsIx=26"  -- 2026-11-15 (item 517): +1/+1, `content_km_transport_any` (ContentBridge) holds `h_pre` / `hok`, the T mask's content-step transport; (item 512): +1/+1, `marks_step_content` holds `h_preprocess` / `h_dispatch`; 2026-11-14: `Proofs.Scanner.StructDepth` deleted (owner's ruling on items 446–452): its (γ1) `DInv` readers leave, stepHolders 2120 → 2103, dispHolders 422 → 418; `ScannerShape.scanFiltered_noComment` (item 451's holder) deleted with it: 2103 → 2102; `DocStartLiveInv.scanFiltered_liveF` too: 2102 → 2101  -- 2026-11-13 (item 489): +1/+1, `accum_step_content_pairB` holds `h_dispatch`; 2026-11-14 (item 490): +1/+1, `accum_step_content_pairK` holds it too
+ 
+ /-- **The ladder, at each population.**  `edge` is a production whose right
+     endpoint is the step's output; `chain` requires a path to it from another
+diff --git a/Tests/Guards/Proofs/FlipConsumerSurface.lean b/Tests/Guards/Proofs/FlipConsumerSurface.lean
+index e6991a3e5..4093fe5b9 100644
+--- a/Tests/Guards/Proofs/FlipConsumerSurface.lean
++++ b/Tests/Guards/Proofs/FlipConsumerSurface.lean
+@@ -467,9 +467,9 @@ All three lanes, in one walk of the module. -/
+        "flowKeyRoute_of_root: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1",
+        "question_open_map: rootMapRoute_or_refused=1 rootMapRouteF_or_refused=1"]⟩,
+     ⟨⟨"DEFERRAL", deferral, deferral.map (ns ++ ·)⟩,
+-      ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1",
+-       "accum_block_on_pendingBlock: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1",
+-       "accum_block_on_pendingBlockContent: block_dispatch_deferred_stamp_offcol=1 block_dispatch_deferred_stamp_nopack=1",
++      ["accum_block_on_closeThenBlock: block_dispatch_deferred_stamp_nopack=1",
++       "accum_block_on_pendingBlock: block_dispatch_deferred_stamp_nopack=1",
++       "accum_block_on_pendingBlockContent: block_dispatch_deferred_stamp_nopack=1",
+        -- Item 288: the value park's frameless arm is refuted; the dead
+        -- `pendingFlow` arm's application is the one left here.
+        "accum_block_pending: block_dispatch_deferred_inline=1",
+diff --git a/Tests/Guards/Proofs/IndexCensus.lean b/Tests/Guards/Proofs/IndexCensus.lean
+index 4898272eb..85fa2933d 100644
+--- a/Tests/Guards/Proofs/IndexCensus.lean
++++ b/Tests/Guards/Proofs/IndexCensus.lean
+@@ -280,19 +280,19 @@ def surfaceControl : CommandElabM (Array String) := do
+ -- times in its position (Floor, Covered, the resume route) instead of once — two
+ -- stream/frames positions move occ=1 → occ=3 (×5 → ×3, ×7 → ×9).
+ def expected : List String :=
++  -- 2026-10-29 (item 394): `FlowBaseRoutes.valueF` and its two close relays read `ResumeFrames (SLYamlStream sp_start) ks` once each (×3 → ×5).
++  -- 2026-10-30 (item 405, Rule 8 fix): `pendingBlock.h_kslot`/`pendingBlockContent.h_kslot` re-indexed by the projection `markedCols sc` (no `∃ ns` binder): the ten `⟨nv0 :: ns, …⟩` relays into the `∃ ns` faces now pass `markedCols sc`, so the stream-class binders read twice fall 26 → 16.
++  -- Item 519: two `∃ ns : List Nat` stream-lane occurrences gone with `FlowBaseRoutes.vslot`'s restatement (6 → 4).
+   ["seq/bottom/occ=1  ×9",
+    "seq/frames/occ=2  ×9",
+    "seq/other/occ=2  ×3",
+-  -- 2026-10-29 (item 394): `FlowBaseRoutes.valueF` and its two close relays read `ResumeFrames (SLYamlStream sp_start) ks` once each (×3 → ×5).
+    "stream/frames/occ=1  ×3",
+    "stream/frames/occ=2  ×16",
+    "stream/frames/occ=3  ×9",
+    "stream/frames/occ=4  ×6",
+    "stream/frames/occ=5  ×6",
+-  -- 2026-10-30 (item 405, Rule 8 fix): `pendingBlock.h_kslot`/`pendingBlockContent.h_kslot` re-indexed by the projection `markedCols sc` (no `∃ ns` binder): the ten `⟨nv0 :: ns, …⟩` relays into the `∃ ns` faces now pass `markedCols sc`, so the stream-class binders read twice fall 26 → 16.
+--- Item 519: two `∃ ns : List Nat` stream-lane occurrences gone with `FlowBaseRoutes.vslot`'s restatement (6 → 4).
+-   "stream/other/occ=1  ×4",
+-   "stream/other/occ=2  ×29",
++   "stream/other/occ=1  ×2",
++   "stream/other/occ=2  ×31",
+    "stream/other/occ=3  ×1",
+    "stream/other/occ=4  ×4",
+    "stream/other/occ=6  ×1",
+diff --git a/Tests/Guards/Proofs/RelaySupplyCensus.lean b/Tests/Guards/Proofs/RelaySupplyCensus.lean
+index 2af1f549e..9f3287514 100644
+--- a/Tests/Guards/Proofs/RelaySupplyCensus.lean
++++ b/Tests/Guards/Proofs/RelaySupplyCensus.lean
+@@ -971,8 +971,7 @@ def expectedTally : String :=
+   -- 2026-10-26 (item 369): edges 664 → 665, DECLINE 256 → 255, FIELD 55 → 56, SPLIT 160 → 161 —
+   -- `pendingBlock.h_closeF` threaded into `accum_block_on_pendingBlock` (one FIELD edge) and the
+   -- `:`/`?` landing's `h_res_land` there read off those frames instead of `Or.inr trivial`.
+-  "edges=640 skipped=41 [DECLINE=237, FIELD=60, LOCAL=26, PAY=50, RELAY=64, \
+-SPLIT=175, VIA=28]"
++  "edges=636 skipped=41 [DECLINE=237, FIELD=60, LOCAL=26, PAY=48, RELAY=64, SPLIT=175, VIA=26]"
+ 
+ /-- **The row item 211 read off the compiler's error text and got wrong.**  All
+     eight of these print `h_keyctx` when the premise is narrowed; six of them
+@@ -1016,10 +1015,9 @@ def expectedSeed : List String :=
+   -- are read arm by arm — 12 whose arms agree (collapsed, one DECLINE each) and 5 that disagree (SPLIT).
+ -- 2026-10-29 (item 394): `FlowBaseRoutes.valueF` relayed VIA at both flow closes into `pendingContent.h_framesS` (producers 10 → 11).
+ def expectedProducers : List String :=
++  -- Item 519: the depth-0 open's three `frameChainUnion` ladders are gone (`vslot` every-mark) — 5 → 2.
+   ["2 VIA FlowBaseRoutes.key",
+    "2 VIA FlowBaseRoutes.valueF",
+-   -- Item 519: the depth-0 open's three `frameChainUnion` ladders are gone (`vslot` every-mark) — 5 → 2.
+-   "2 VIA frameChainUnion",
+    "2 VIA markerctx_of_landing",
+    "2 VIA nodocctx_of_preprocess",
+    "2 VIA suffixctx_of_landing",

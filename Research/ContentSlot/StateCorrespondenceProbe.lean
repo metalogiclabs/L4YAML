@@ -48,3 +48,13 @@ lemma marked_col_of_explicit_source {sc s_prep : ScannerState} {c : Char}
       (RegisterWitness.MarkedColsIn.self sc)).mem hm
 #print axioms marked_col_of_explicit_source
 end L4YAML.Proofs.StreamAccum
+
+namespace L4YAML.Proofs.StreamAccum
+open L4YAML.Scanner
+example {sc : ScannerState} {P : Nat → Prop}
+    (h_sound : PendingKeySound.Sound sc) (h_fl : sc.flowLevel = 0)
+    (h_dead : sc.explicitKeyLine = none) :
+    ∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns, P nv :=
+  ⟨[], RegisterWitness.MarkedColsIn.of_explicitKeyLine_none h_sound h_fl h_dead,
+    fun _ hm => absurd hm List.not_mem_nil⟩
+end L4YAML.Proofs.StreamAccum

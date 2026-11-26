@@ -15,6 +15,14 @@ value source. The preceding state-linked experiment is reused only for this
 consumer correction; its pendingContent re-indexing and root payment are not
 part of this candidate.
 
+The restored consumer domain also makes the earlier marker payments meaningful.
+Both marker parks carry a dead explicit-key register and the loop's Sound
+invariant. Pay the helper with an empty list AND a proof that it covers the
+actual scanner domain. This replaces the superseded free-list marker
+interpretation, rather than claiming that its old PAY label was sufficient.
+The 126 source-initialized marker controls were replayed before this edit:
+252 start-marker states and 210 end-marker states, all with empty actual marks.
+
 Before proof construction, the source-initialized control passed 396 accepted
 sources and 6102 steps: 1830 marked content steps, 1410 with multiple marks,
 72 marked flow closes, maximum 10 simultaneous marks, 1686 explicit values
@@ -36,4 +44,7 @@ Predictions before full qualification:
    explain those readings rather than treating all smaller counts as truth.
 6. Complete pendingContent field retirement, scannerDrop deletion and universal
    scan_trace remain UNKNOWN. No claim of a numerical tenfold improvement.
+7. The two document-marker h_vpack supplies are genuinely paid: the shared
+   helper's direct declines fall 3 to 1, and critical-path direct declines
+   fall 6 to 4 on this owner without incorporating root-slot PR #380.
 

@@ -37,5 +37,26 @@
     "independent_sha256_crc": "PASS",
     "baseline_build_jobs": 243,
     "source_controls": "PASS"
+  },
+  "attempt_45747692461": {
+    "proof_source_sha256": "48bc90964ae2e35d66e533b99712cf27a24b235c3d6ef6b4acf1352172c77904",
+    "fresh_library_build": "PASS",
+    "new_state_lemma_consumed": true,
+    "offcol_escape_on_capstone": false,
+    "existing_axiom_sets_unchanged": 7,
+    "printed_axiom_pairs": 159,
+    "full_build": "blocked by stale census literals",
+    "artifact": 15084079689,
+    "independently_rehashed_zip_crc": "PASS",
+    "archive_sha256": "debc7e8743d1b7d1b2863fd20670f5813582e9ed7502f37b87ea877db1264a71"
+  },
+  "marker_reuse": {
+    "state": "CANDIDATE with stronger helper contract",
+    "local_source_controls": {
+      "sources": 126,
+      "starts": 252,
+      "ends": 210
+    },
+    "kernel_checked_generic_covered_empty_domain": true
   }
 }
