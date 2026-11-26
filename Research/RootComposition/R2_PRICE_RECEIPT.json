@@ -1,0 +1,43 @@
+{
+  "run": 45822961631,
+  "job": 139919677846,
+  "harness": "370b0825e6986471dfd53fdf242a1260ee9d708e",
+  "source": "967d3503b30dde555078929f118101cba9f95a56",
+  "tree": "20e10d2041c66d199d4408b4c37f82b6ec8cddf0",
+  "artifact": {
+    "id": 15120210369,
+    "bytes": 1021551,
+    "sha256": "ab5213c52846df0ef7f27283f062a664b6f4251ecc08d49cae8a7bddba717af3",
+    "crc_members": 301,
+    "local_git_blob": "6fc1509b968d6003f264ce02b091ab97a3d7174b",
+    "independently_rehashed": true,
+    "permanent_raw_archive_published": false
+  },
+  "workflow": "success",
+  "prices": [
+    {
+      "mode": "ancestor-up-plain",
+      "exit": 3,
+      "first_round_sites": 12,
+      "first_round_declarations": 2,
+      "all_sites": 14,
+      "all_declarations": 3,
+      "dependent_capstone_guards": 2,
+      "status": "INCOMPLETE_FLOOR"
+    },
+    {
+      "mode": "own-conjunct",
+      "exit": 3,
+      "first_round_sites": 2,
+      "first_round_declarations": 2,
+      "all_sites": 4,
+      "all_declarations": 3,
+      "dependent_capstone_guards": 2,
+      "status": "INCOMPLETE_FLOOR"
+    }
+  ],
+  "restored_source_sha256": "1d58ed6960c25ee9994e4f542ecb21e7d3f8214bb255fbc202be08d9e1fdcbf7",
+  "restored_axioms_byte_equal": true,
+  "restored_build_jobs": 564,
+  "interpretation": "Two initial structural failures hide downstream consumer bodies in own-conjunct price. Counts cannot establish redundancy. New diagnostic normalizes all nine consumer sites, derives the two own-column consumers via actual survivor-membership pullback, and uses held own and ancestor entry routes in producer. Three explicit assumption attempts expose unresolved obligations; no proof or retirement claimed."
+}
