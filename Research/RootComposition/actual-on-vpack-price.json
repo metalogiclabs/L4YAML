@@ -1,0 +1,55 @@
+{
+  "item": 538,
+  "tag": "ACTUAL-ON-VPACK-PRICE",
+  "rev": "HEAD",
+  "target": "L4YAML",
+  "log": "../results/price/vpack-compiler.log",
+  "msgWidth": 110,
+  "rounds": 6,
+  "report": "bodies",
+  "files": [
+    {
+      "file": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patches": [
+        {
+          "name": "actual-ON-vpack-1",
+          "old": [
+            "      (h_vpack : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,",
+            "        ∀ sp_mid sp_i sp_c : SurfPos,",
+            "          SSLComments sp_gram sp_mid → SIndent nv sp_mid sp_i →",
+            "          GLit ':' sp_i sp_c →",
+            "          ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)"
+          ],
+          "new": [
+            "      (h_vpack : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,",
+            "        ∀ sp_mid sp_i sp_c : SurfPos,",
+            "          SSLComments sp_gram sp_mid → SIndent nv sp_mid sp_i →",
+            "          GLit ':' sp_i sp_c →",
+            "          ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v))"
+          ],
+          "count": 1
+        },
+        {
+          "name": "actual-ON-vpack-2",
+          "old": [
+            "    (h_vpack : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,",
+            "      ∀ sp_m sp_i sp_c : SurfPos,",
+            "        SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)"
+          ],
+          "new": [
+            "    (h_vpack : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,",
+            "      ∀ sp_m sp_i sp_c : SurfPos,",
+            "        SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v))"
+          ],
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "item": 538,
+  "tag": "ACTUAL-ON-KSLOT-PRICE",
+  "rev": "HEAD",
+  "target": "L4YAML",
+  "log": "../results/price/kslot-compiler.log",
+  "msgWidth": 110,
+  "rounds": 6,
+  "report": "bodies",
+  "files": [
+    {
+      "file": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patches": [
+        {
+          "name": "actual-ON-kslot-1",
+          "old": [
+            "      (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "        ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →",
+            "        ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)"
+          ],
+          "new": [
+            "      (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "        ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →",
+            "        ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v))"
+          ],
+          "count": 1
+        },
+        {
+          "name": "actual-ON-kslot-2",
+          "old": [
+            "      (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "        ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →",
+            "        ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)"
+          ],
+          "new": [
+            "      (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "        ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →",
+            "        ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v))"
+          ],
+          "count": 1
+        },
+        {
+          "name": "actual-ON-kslot-3",
+          "old": [
+            "    (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "      ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →",
+            "      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)"
+          ],
+          "new": [
+            "    (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "      ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →",
+            "      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v))"
+          ],
+          "count": 1
+        },
+        {
+          "name": "actual-ON-kslot-4",
+          "old": [
+            "    (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "      ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →",
+            "      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)"
+          ],
+          "new": [
+            "    (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,",
+            "      ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →",
+            "      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →",
+            "      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v))"
+          ],
+          "count": 1
+        }
+      ]
+    }
+  ]
+}
