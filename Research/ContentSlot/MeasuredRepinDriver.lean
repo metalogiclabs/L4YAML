@@ -224,11 +224,19 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
       some "expectedOff"
     else if file == "Tests/Guards/Proofs/CapstonePathAudit.lean" && title == "the capstone-path FAMILIES moved." then
       some "expectedFamilies"
+    else if file == "Tests/Guards/Proofs/ParkGapWidth.lean" && title == "the sites moved:" then
+      some "expectedSites"
+    else if file == "Tests/Guards/Proofs/ParkGapWidth.lean" && title == "the ladder moved:" then
+      some "expectedLadder"
     else none
   let some name := name | return (ls,0)
   let some sp := measuredSpan ls name | return (ls,0)
   let some old := oldValues? ls sp | return (ls,0)
-  let fresh? := if name == "expectedSupply" || file == "Tests/Guards/Proofs/CapstonePathAudit.lean" then do
+  let fresh? := if file == "Tests/Guards/Proofs/ParkGapWidth.lean" then
+      let rowHead := if name == "expectedSites" then "L4YAML.Proofs.StreamAccum." else "scanNextToken_"
+      let rows := (body.toList.drop 1).takeWhile (fun l => (pyStrip l).startsWith rowHead)
+      if rows.isEmpty then none else some (rows.map pyStrip)
+    else if name == "expectedSupply" || file == "Tests/Guards/Proofs/CapstonePathAudit.lean" then do
       let i ← (List.range body.size).find? fun i => (combinedCounts? body[i]!).isSome
       let (a,b) ← combinedCounts? body[i]!
       if a != old.length || b != a || i+b+1 > body.size then none else
@@ -238,7 +246,12 @@ def knownListFormats (file : String) (ls body : Array String) : IO (Array String
       if before != old then none else printedList? "got" body
   let some fresh := fresh? | return (ls,0)
   let keys := fun (xs : List String) => xs.map (fun x => (x.splitOn " ").headD "")
-  if name == "expectedChainFaces" then
+  if file == "Tests/Guards/Proofs/ParkGapWidth.lean" && name == "expectedSites" then
+    let removed := old.filter fun x => !fresh.contains x
+    if !(fresh.all old.contains) || removed.length != 3 ||
+        !(removed.all fun x => (x.splitOn "block_dispatch_deferred_stamp_offcol width=1").length == 2) then
+      if fresh != old then return (ls,0)
+  else if name == "expectedChainFaces" then
     if fresh.length > old.length || !(fresh.all old.contains) then return (ls,0)
   else if name == "expectedStateFaces" then
     let added := fresh.filter fun x => !old.contains x

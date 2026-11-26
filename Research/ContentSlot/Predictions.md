@@ -57,3 +57,11 @@ unsupported snapshot formats, not a proof failure. Those exact diagnostics are
 retained in expanded-evidence.zip, independently rehashed and CRC checked.
 The next run seeds all measured snapshots and calibrates the new formats with
 three edits followed by zero; library proof and adversarial source are unchanged.
+
+Run 45755617535 measured P7 HELD: critical direct declines 6 to 4, all seven
+positions retained; the helper direct supplies are PAY=2, DECLINE=1. The
+rung-1 free-chain faces also fell 6 to 4. Its full build stopped only at the
+ParkGapWidth site roster, whose ten reported sites omit exactly the three
+retired off-column applications. That exact diagnostic now calibrates one
+edit followed by zero; the retained progress patch seeds every measured pin.
+No library proof or adversarial source changed. Full native gates remain pending.

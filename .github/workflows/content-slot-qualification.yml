@@ -59,7 +59,7 @@ jobs:
           test "$(cat ../results/prerequisite-evidence/evidence-commit.txt)" = 8d94871fbcd552add04519e6f302c24541c44989
           cp ../results/prerequisite-evidence/axioms-before.txt ../results/axioms-before.txt
           unzip -q ../evidence/Research/ContentSlot/expanded-evidence.zip -d ../results/expanded-evidence
-          test "$(cat ../results/expanded-evidence/evidence-commit.txt)" = 7a6a84d56bc88504ced24ebe50278acdf10bf738
+          test "$(cat ../results/expanded-evidence/evidence-commit.txt)" = 50eff543014d55f14f85c7a0622f94aa40d8115d
           test "$(sed -n '1p' ../results/expanded-evidence/owner.txt)" = cc83019024fb88b7c0d0cdadc4e590bda7a72788
           lake build L4YAML.Proofs.Scanner.RegisterWitness L4YAML.Parser.Composition Scripts.Path.CapstonePath Tests.VerifiedResult > ../results/baseline-build.txt 2>&1
           lake env lean --run Research/ContentSlot/Controls.lean > ../results/source-controls.txt 2>&1
@@ -89,10 +89,16 @@ jobs:
           for name in DispatchPrice NarrowingWorthCensus OrTrueAudit; do
             cp "Tests/Guards/Proofs/$name.lean" ../results/format-fixture/Tests/Guards/Proofs/
           done
-          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/expanded-evidence/full-build-11.txt ../results/format-fixture > ../results/format-fixture-first.txt 2>&1
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/expanded-evidence/expanded-evidence/full-build-11.txt ../results/format-fixture > ../results/format-fixture-first.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 3' ../results/format-fixture-first.txt
-          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/expanded-evidence/full-build-11.txt ../results/format-fixture > ../results/format-fixture-repeat.txt 2>&1
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/expanded-evidence/expanded-evidence/full-build-11.txt ../results/format-fixture > ../results/format-fixture-repeat.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/format-fixture-repeat.txt
+          mkdir -p ../results/park-fixture/Tests/Guards/Proofs
+          cp Tests/Guards/Proofs/ParkGapWidth.lean ../results/park-fixture/Tests/Guards/Proofs/
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/expanded-evidence/full-build-3.txt ../results/park-fixture > ../results/park-fixture-first.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/park-fixture-first.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/expanded-evidence/full-build-3.txt ../results/park-fixture > ../results/park-fixture-repeat.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/park-fixture-repeat.txt
       - name: Build the strengthened domain and measure the proof graph
         working-directory: upstream
         shell: bash

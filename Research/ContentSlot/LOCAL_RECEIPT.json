@@ -74,5 +74,21 @@
     "split_decline_leaves_owner": 213,
     "snapshot_format_fix": "three exact-format lists; actual diagnostics calibration edits 3 then 0; source restored and eleven prior rounds replayed",
     "proof_source_sha256": "7d97423150dc4271f9a4b7ce19caa9e0a99c4fb1434cfea4b207fec5d4320c6d"
+  },
+  "attempt_45755617535": {
+    "state": "WARRANTED measured capstone and anti-vacuity improvement; full qualification pending",
+    "artifact": 15088375000,
+    "archive_sha256": "68cb740c8fd1b9e97e896d5c8e20174e793e2285c9d8eec42073e4c4094be917",
+    "independent_sha256_crc": "PASS",
+    "files": 128,
+    "critical_direct_declines_owner": 6,
+    "critical_direct_declines_candidate": 4,
+    "critical_optional_positions": 7,
+    "free_chain_faces_owner": 6,
+    "free_chain_faces_candidate": 4,
+    "census_rounds": 3,
+    "remaining_failure": "ParkGapWidth expectedSites: three retired off-column application sites",
+    "format_calibration": "one edit then zero; the ten actual rows are a strict subset of the thirteen old rows; every removed row is stamp_offcol width=1",
+    "unchanged_library_proof_sha256": "7d97423150dc4271f9a4b7ce19caa9e0a99c4fb1434cfea4b207fec5d4320c6d"
   }
 }
