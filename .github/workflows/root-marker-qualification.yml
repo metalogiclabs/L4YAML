@@ -86,6 +86,10 @@ jobs:
           printf '%s\n' '3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
           git apply --check ../evidence/Research/RootMarkerPayment/candidate-guard-pins.patch
           git apply ../evidence/Research/RootMarkerPayment/candidate-guard-pins.patch
+          # The births gate requires a freshly built source module by mtime.
+          # Recompile it canonically after restoring the content-matched cache.
+          rm -f .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.trace
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/source-fresh-library-build.txt 2>&1
           lake build Scripts.Main.Repin
           passed=false
           for round in $(seq 1 12); do

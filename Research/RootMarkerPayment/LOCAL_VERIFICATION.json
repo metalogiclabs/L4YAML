@@ -5,7 +5,7 @@
   "proof_source_sha256": "3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05",
   "proof_blob": "9628bd00d32abe85c6bd1d1b8c4ba7cae8e092f8",
   "proof_lineage": "exact baseline.patch independently SHA-256 and CRC verified from run 45715345949; baseline commit 6c3d41a4bbdaa0677bb432bd203f699dfe056625",
-  "guard_patch_sha256": "76b45a0319bc53a70acb6a3a7ce83a18a36295df54a35e82972297331484f1b6",
+  "guard_patch_sha256": "ea3485e4cf594d84d78ea8370800cb35a67ecb3d231e86d454c6cf971b875f0a",
   "actual_metrics": {
     "direct_relay_declines": [
       237,
@@ -89,5 +89,19 @@
     "real_log_fixture": "exactly one numeric literal changes; other bytes unchanged; idempotent",
     "annotated_writer_fixture": "exactly one root writer literal changes; all comments and other bytes unchanged",
     "qualification_integration": "CANDIDATE"
+  },
+  "full_replay_45736410988": {
+    "build": "PASS round 4",
+    "qualified_tree": "52624546acd984921a9418ab73af82e6f2a9a519",
+    "archive_sha256": "ae147e262410f08a499058b5f2bae7aa828f35c42242af5965bbfdbaba1a3f9d",
+    "crc": "PASS",
+    "directed_dashboard_moves": {
+      "toward": 3,
+      "away": 0
+    },
+    "all_four_axiom_sets_unchanged": true,
+    "repository_gates": "seven passed; check-pack-births rejected older cache timestamp",
+    "native_tests": "not reached",
+    "next": "canonical recompile of source module; keep freshness gate unchanged"
   }
 }
