@@ -11,7 +11,7 @@ run_cmd do
   let vpack := es.filter fun e => e.callee == ns ++ `accum_block_on_closeThenBlock && e.idx == 10
   let directDeclines := vpack.filter (fun e => e.how.startsWith "DECLINE") |>.size
   let directPays := vpack.filter (fun e => e.how.startsWith "PAY") |>.size
-  unless directDeclines == 1 && directPays == 2 do
+  unless directDeclines == 3 && directPays == 0 do
     throwError "unexpected value-pack supply boundary: PAY={directPays}, DECLINE={directDeclines}"
   logInfo m!"ROOT_MARKER_PAYMENT root=PAY marker_pays={directPays} vpack_direct_declines={directDeclines}"
   logInfo m!"ROOT_MARKER_RELAY {expectedTally}"

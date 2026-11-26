@@ -1,38 +1,23 @@
 {
-  "status": "WARRANTED_BOUNDED local proof and strict affected censuses; full hosted qualification pending",
+  "status": "CANDIDATE full repository replay of previously qualified root proof",
   "owner": "cc83019024fb88b7c0d0cdadc4e590bda7a72788",
   "compiler": "Lean 4.36.0, 611c117b",
-  "proof_source_sha256": "ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890",
-  "proof_blob": "1680f5ddcbdbf1c95dc5b6df80c0be4f91a851b5",
-  "proof_module": "L4YAML.Proofs.Production.StreamAccum",
-  "proof_compile_exit": 0,
-  "document_consumer_compile_exit": 0,
-  "strict_relay_guard_exit": 0,
-  "strict_ortrue_guard_exit": 0,
-  "strict_capstone_path_guard_exit": 0,
-  "native_marker_controls": {
-    "sources": 126,
-    "document_start_states": 252,
-    "document_end_states": 210,
-    "initialized_from_source": true,
-    "actual_marked_projection_empty": true
-  },
+  "proof_source_sha256": "3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05",
+  "proof_blob": "9628bd00d32abe85c6bd1d1b8c4ba7cae8e092f8",
+  "proof_lineage": "exact baseline.patch independently SHA-256 and CRC verified from run 45715345949; baseline commit 6c3d41a4bbdaa0677bb432bd203f699dfe056625",
+  "guard_patch_sha256": "2070a65a290e98c883fbfb7334e37289aa635b313cdbf1a7613eb2c76eb12490",
   "actual_metrics": {
     "direct_relay_declines": [
       237,
-      234
-    ],
-    "direct_relay_pays": [
-      50,
-      53
+      236
     ],
     "critical_path_direct_declines": [
       6,
-      3
+      5
     ],
-    "paid_supply_positions": [
-      24,
-      26
+    "route_punts": [
+      70,
+      69
     ],
     "critical_optional_positions": [
       7,
@@ -49,24 +34,29 @@
     "new_library_declarations": 0,
     "runtime_changes": 0
   },
-  "failed_attempts_preserved": [
-    "Local default build interrupted for disk relocation, no proof result",
-    "Local concurrent linking and first proof attempt killed by memory pressure",
-    "One local compiler invocation used a directory-prefixed module name; its private-name census diagnostic is superseded by the correctly named recompile and all three strict guard passes",
-    "Direct execution of the imported Pins module lacked its native implementation; unchanged owner Pins and Repin sources were assembled locally for the diagnostic, then final pins were independently checked by the strict guards"
-  ],
-  "limits": [
-    "Complete field retirement is not established",
-    "The three remaining direct declines are retained",
-    "scannerDrop, universal scan_trace and corrected Group 7.7 remain open",
-    "Full repository qualification and exact final axiom-set comparison are pending"
-  ],
-  "route_shapes": {
-    "boundary": "compiler-measured full build output in run 45724029329; every expected spine, site and summary matched to the emitted output",
-    "root_key_slot": "punt -> closed",
-    "closure_punts_before": 70,
-    "closure_punts_after": 69,
-    "full_qualification": "pending"
+  "additional_measured_snapshots": {
+    "run": 45725628552,
+    "archive_sha256": "26250b6230ca33ce02d86502dd62f3c804a93bee708900e2818477e252f1c01f",
+    "HypothesisReaderCensus.RELAY": [
+      2913,
+      2914
+    ],
+    "PremiseNecessityCensus.RELAY": [
+      2705,
+      2706
+    ],
+    "cause": "existing h_sound invariant forwarded to root helper; no declaration or UNUSED count changes"
   },
-  "guard_patch_sha256": "cd44c965c97340a06d2ded7c926c32d11d64fee083f359b83c372c8c08ef7de4"
+  "superseded_marker_candidate": {
+    "source_sha256": "ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890",
+    "candidate_tree": "210924c0df9c6bd38a5ef202f43ac13b9971c846",
+    "state": "SUPERSEDED for submission",
+    "reason": "marker helper left face is still an unlinked existential list; its two new PAY labels do not strengthen its contract. Preserve as supply-provenance research, exclude from production."
+  },
+  "limits": [
+    "Full repository qualification pending",
+    "All seven critical optional positions remain",
+    "scannerDrop, universal scan_trace and corrected Group 7.7 remain open",
+    "Complete field retirement first-round price is 12 producer diagnostics, not a fixpoint or refutation"
+  ]
 }

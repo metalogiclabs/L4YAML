@@ -1,4 +1,4 @@
-name: Root and document-marker proof qualification
+name: Root scanner-slot proof qualification
 on:
   push:
     branches: [test/root-marker-qualification]
@@ -58,7 +58,7 @@ jobs:
           set -euo pipefail
           git apply --check ../evidence/Research/RootMarkerPayment/root-marker-proof.patch
           git apply ../evidence/Research/RootMarkerPayment/root-marker-proof.patch
-          printf '%s\n' 'ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
+          printf '%s\n' '3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
           git apply --check ../evidence/Research/RootMarkerPayment/candidate-guard-pins.patch
           git apply ../evidence/Research/RootMarkerPayment/candidate-guard-pins.patch
           lake build Scripts.Main.Repin
@@ -79,7 +79,7 @@ jobs:
             fi
           done
           test "$passed" = true
-          printf '%s\n' 'ee134db983c2280d9426e8817634f5016a7649cd29ac5035aa7a48973dd1f890  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
+          printf '%s\n' '3de711073d4c51545ae40f8ecf1ffa0c362bad8b25cfb9aaf0c1c470d02c7c05  L4YAML/Proofs/Production/StreamAccum.lean' | sha256sum -c -
           git diff --exit-code -- lean-toolchain lake-manifest.json
           git diff --check
           git diff --name-only > ../results/changed-paths.txt

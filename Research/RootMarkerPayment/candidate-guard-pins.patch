@@ -1,51 +1,60 @@
 diff --git a/Tests/Guards/Proofs/CapstonePathAudit.lean b/Tests/Guards/Proofs/CapstonePathAudit.lean
-index f159e178a..efe138365 100644
+index f159e178a..051db1afb 100644
 --- a/Tests/Guards/Proofs/CapstonePathAudit.lean
 +++ b/Tests/Guards/Proofs/CapstonePathAudit.lean
-@@ -41,18 +41,20 @@ open Scripts.Path.CapstonePath
- -- `scanValue_km_transport` join the walk; `KeyArm.colonQuestion.h_lead` loses its `∨ sp_prep = sp_flow` disjunct.
- -- 2026-11-17 (item 524, the deletion): the StreamAccum-reached totals shrink by the three `StreamAccum` preservation lemmas
- -- (`allowDirectives_update_implicitValueLine`, `ad_implicitValueLine`, `ad_docStartLine`) deleted on the owner's ruling; positions / on / off unmoved.
-+-- 2026-11-26: root and document-marker payments remove three direct
-+-- capstone-path declines (6 -> 3); all seven optional positions remain.
- def expectedSummary : String :=
+@@ -45,13 +45,13 @@ def expectedSummary : String :=
  -- Item 519: off-honest 92 → 91, off-unread 55 → 56, on 8 → 6, off 43 → 41, unrooted-arms 89 → 93, arms 238 → 237 —
  -- the four flow-close `Classical.em` splits are gone (PAID from `vslot`), the open's three ladders with them; shrink-only.
  -- Item 519 (review round): arms 237 → 239 (the two fallback `match`es at the `vslot` writers), off-honest 91 → 92 / off-unread 56 → 55 (`pendingBlock.h_kslotUp` read again at the open).
 -  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=6 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=235 relays=138 drop-set=8/8"
-+  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=3 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=235 relays=138 drop-set=8/8"
++  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=5 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=235 relays=138 drop-set=8/8"
  
  def expectedOn : List String :=
    -- Item 519: the four flow-close splits are PAID from `vslot` (shrink: `pendingContent.h_vpack` on-relay DECLINE 4 → 2).
    ["L4YAML.Proofs.StreamAccum.PendingNode.pendingContent[9].h_vpack top ∨ PackAlt on-relay DECLINE=2",
     "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent[12].h_kslot top ∨ PackAlt on-relay",
 -   "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[10].h_kslot top ∨ PackAlt on-relay DECLINE=1",
--   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack top ∨ PackAlt on-drop DECLINE=3",
 +   "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[10].h_kslot top ∨ PackAlt on-relay",
-+   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack top ∨ PackAlt on-drop DECLINE=1",
+    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack top ∨ PackAlt on-drop DECLINE=3",
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock[13].h_kslot top ∨ PackAlt on-drop",
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent[15].h_kslot top ∨ PackAlt on-drop",
-    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent[16].h_vpack top ∨ PackAlt on-relay"]
+diff --git a/Tests/Guards/Proofs/HypothesisReaderCensus.lean b/Tests/Guards/Proofs/HypothesisReaderCensus.lean
+index f20775b7a..00addb04b 100644
+--- a/Tests/Guards/Proofs/HypothesisReaderCensus.lean
++++ b/Tests/Guards/Proofs/HypothesisReaderCensus.lean
+@@ -644,6 +644,9 @@ adds.**   `constants` counts the module's non-internal constants, generated ones
+ -- `scanValue_km_transport` join the walk; `KeyArm.colonQuestion.h_lead` loses its `∨ sp_prep = sp_flow` disjunct.
+ -- 2026-11-17 (item 524, the deletion): constants 1763 → 1760, decls 1393 → 1391, RELAY 2917 → 2913 — the three `StreamAccum`
+ -- preservation lemmas deleted on the owner's ruling (item 520's roster); eta / FIELD / READ unmoved.
++-- 2026-11-26: RELAY +1 measured by the compiler: the existing h_sound
++-- invariant is passed from accum_block_pending to accum_block_on_noPending
++-- to pay the root key-slot supply. No declaration or UNUSED count changes.
+ def expectedModuleTally : String :=
+   -- 2026-10-26 (item 365): RELAY 2830 → 2836 — `h_sound` ×3, `h_fl0` ×2 and `h_alt` ×1 passed whole from
+   -- `accum_step_content`/`accum_content_pending`/the `_indented` pair to the content lane's payers.
+@@ -655,7 +658,7 @@ def expectedModuleTally : String :=
+   -- 2026-11-22 (Lean v4.36.0): constants 1760 → 1747 and nothing else. The thirteen are generated equation lemmas
+   -- v4.35.0 realized in this module and v4.36.0 does not: `FrameTail.leadFree.match_1.eq_1..4`,
+   -- `propertyScanFollowerOk.match_1.eq_1..2`, `SNbDoubleText.match_1.eq_1..6`, `propsBlockLineCrossLoop.eq_def`.
+-  "constants=1747 decls=1391 eta=611 FIELD=175 READ=1422 RELAY=2913 RETURN=56 \
++  "constants=1747 decls=1391 eta=611 FIELD=175 READ=1422 RELAY=2914 RETURN=56 \
+ UNUSED=27"
+ -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); the two transport helpers and `h_pk'` go (constants 1683 → 1681, decls 1322 → 1320, READ 1325 → 1323, RELAY 2838 → 2830); `Mono sc` stays on `accum_step_flow`.
+ -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): the five deleted `match` auxiliaries: constants 1681 → 1676, decls 1320 → 1315, READ 1323 → 1306.
 diff --git a/Tests/Guards/Proofs/OrTrueAudit.lean b/Tests/Guards/Proofs/OrTrueAudit.lean
-index fae4ebc7c..882ceefca 100644
+index fae4ebc7c..26ad95bec 100644
 --- a/Tests/Guards/Proofs/OrTrueAudit.lean
 +++ b/Tests/Guards/Proofs/OrTrueAudit.lean
-@@ -257,11 +257,13 @@ def posLine (p : Pos) : String := s!"{p.decl}{p.site} {p.kind} ∨ {p.alt}"
- -- `km_push_at_open` ×2, `close_col_of_base` ×2, `flowKeyPack_of_close.h_base` ×2, `flowOpen_stamp` / `flowOpen_marker` ×4),
- -- inrTrivial 484 → 460, writers 39 → 37, paid 26 → 24, conclusions 11 → 9, spent 104 → 102 — the base slot's stamp /
- -- marker `∨ True` conjuncts deleted; the close decides both on its own state.
-+-- 2026-11-26: the root slot and the shared marker value-pack position gain
-+-- informative supplies: paid 24 -> 26; no optional position is retired.
- def expectedSummary : String :=
+@@ -261,7 +261,7 @@ def expectedSummary : String :=
  -- Item 519: inrTrivial 497 → 495 — the two flow-close `h_vpack` `Or.inr trivial` arms are PAID from `vslot`
  -- (the `h_framesV` arms keep their `[]` cover decline); shrink-only.
  -- Item 519 (review round): inrTrivial 495 → 496, see the writers' row for `accum_flow_open_depth0`.
 -  "positions=253 top=162 nested=91 True=177 PackAlt=67 PackAltG=9 modules=2 supply: paid=24 relayed=119 declined-only=0 never-supplied=0 unresolved=8 conclusions=9 consumers: spent=102 relayed=13 unused=0 unreadable=36 writers=37 inrTrivial=460"
-+  "positions=253 top=162 nested=91 True=177 PackAlt=67 PackAltG=9 modules=2 supply: paid=26 relayed=117 declined-only=0 never-supplied=0 unresolved=8 conclusions=9 consumers: spent=102 relayed=13 unused=0 unreadable=36 writers=37 inrTrivial=460"
++  "positions=253 top=162 nested=91 True=177 PackAlt=67 PackAltG=9 modules=2 supply: paid=25 relayed=118 declined-only=0 never-supplied=0 unresolved=8 conclusions=9 consumers: spent=102 relayed=13 unused=0 unreadable=36 writers=37 inrTrivial=460"
  
  -- Item 508 (2026-11-14): `entryKeyPack_of_dispatch` took the `h_dead` premise after `h_preprocess`,
  -- so its `h_nodeS` / `h_nodeSF` positions read [31] / [32] (were [30] / [31]) — an index shift, not a
-@@ -548,7 +550,7 @@ def expectedSupply : List String :=
+@@ -548,7 +548,7 @@ def expectedSupply : List String :=
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent[16].h_seqF relayed [DECLINE=3 SPLIT=3]",
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent[17].h_kslotUp relayed [SPLIT=6]",
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent[18].h_closeFV relayed [SPLIT=6]",
@@ -54,37 +63,43 @@ index fae4ebc7c..882ceefca 100644
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[11].h_closeF paid [PAY=5 SPLIT=2]",
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[13].h_seqF paid [DECLINE=5 PAY=2]",
    "L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock[14].h_kslotUp relayed [DECLINE=1 SPLIT=6]",
-@@ -560,7 +562,7 @@ def expectedSupply : List String :=
-   "L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue[19].h_closeFV relayed [DECLINE=2 SPLIT=4]",
-   "L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue[20].h_framesV relayed [DECLINE=2 SPLIT=4]",
-   "L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue[22].h_seqF relayed [DECLINE=5 SPLIT=1]",
--  "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack relayed [DECLINE=3 RELAY=1 SPLIT=6 VIA=1]",
-+  "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack paid [DECLINE=1 PAY=2 RELAY=1 SPLIT=6 VIA=1]",
-   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[19].h_sfx paid [DECLINE=10 PAY=1]",
-   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[20].h_mk paid [DECLINE=10 PAY=1]",
-   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[26].h_tail139 paid [DECLINE=8 PAY=3]",
+diff --git a/Tests/Guards/Proofs/PremiseNecessityCensus.lean b/Tests/Guards/Proofs/PremiseNecessityCensus.lean
+index b4ad58f6d..acfa1d7c5 100644
+--- a/Tests/Guards/Proofs/PremiseNecessityCensus.lean
++++ b/Tests/Guards/Proofs/PremiseNecessityCensus.lean
+@@ -386,6 +386,9 @@ declarations' own binders and not by a rescoring of an existing one.
+ -- `scanValue_km_transport` join the walk; `KeyArm.colonQuestion.h_lead` loses its `∨ sp_prep = sp_flow` disjunct.
+ -- 2026-11-17 (item 524, the deletion): constants 1763 → 1760, decls 1393 → 1391, RELAY 2709 → 2705 — the three `StreamAccum`
+ -- preservation lemmas (`allowDirectives_update_implicitValueLine`, `ad_implicitValueLine`, `ad_docStartLine`) deleted on the owner's ruling.
++-- 2026-11-26: RELAY +1 measured by the compiler: the existing h_sound
++-- invariant is passed from accum_block_pending to accum_block_on_noPending
++-- to pay the root key-slot supply. No declaration or UNUSED count changes.
+ def expectedModuleTallyP : String :=
+   -- 2026-10-24 (item 350): constants 1424 → 1430, decls 1132 → 1137, READ 1207 → 1209, RELAY 2233 → 2237,
+   -- RETURN 139 → 140 — `NotQuestionPark` and its three lemmas; `explFrameValueLine`'s split alternative.
+@@ -411,7 +414,7 @@ def expectedModuleTallyP : String :=
+ -- Item 519 (review round): constants / decls +2 (the two `vslot` fallback `match` auxiliaries), READ +8 (the ancestors' covers and `h_expl`'s route / third conjunct read again at the open).
+   -- 2026-11-22 (Lean v4.36.0): constants 1760 → 1747 and nothing else — the thirteen generated equation lemmas
+   -- `HypothesisReaderCensus.expectedModuleTally` names, seen through this peel.
+-  "constants=1747 decls=1391 eta=611 FIELD=201 READ=1485 RELAY=2705 RETURN=175 UNUSED=27"
++  "constants=1747 decls=1391 eta=611 FIELD=201 READ=1485 RELAY=2706 RETURN=175 UNUSED=27"
+ 
+ -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
+ -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
 diff --git a/Tests/Guards/Proofs/RelaySupplyCensus.lean b/Tests/Guards/Proofs/RelaySupplyCensus.lean
-index 2af1f549e..fb12cac36 100644
+index 2af1f549e..48dd8d3e1 100644
 --- a/Tests/Guards/Proofs/RelaySupplyCensus.lean
 +++ b/Tests/Guards/Proofs/RelaySupplyCensus.lean
-@@ -965,13 +965,15 @@ def hopName (env : Environment) (e : Edge) : String :=
- -- deleted; round 1's +2 (the stamped arms relayed into the mask witness) is gone with them; the pipe landing
- -- (piped 103 → 101, Or.imp⇒FIELD 40 → 38) and the decline reach (accounted 646 → 640, nodes 159 → 157, fieldEdges /
- -- fieldResolved 62 → 60) read the same edges.
-+-- 2026-11-26: the root sequence and both document markers pay from the
-+-- maintained register invariant: direct DECLINE 237 -> 234, PAY 50 -> 53.
- def expectedTally : String :=
-   -- 2026-10-26 (item 366): DECLINE 258 → 256, VIA 47 → 49 — the two `h_outer` arguments of
-   -- `accum_block_on_closeThenBlock` (compact and explicit `:`) pay under `Classical.em (MarkedColsIn sc [col])`.
+@@ -971,7 +971,7 @@ def expectedTally : String :=
    -- 2026-10-26 (item 369): edges 664 → 665, DECLINE 256 → 255, FIELD 55 → 56, SPLIT 160 → 161 —
    -- `pendingBlock.h_closeF` threaded into `accum_block_on_pendingBlock` (one FIELD edge) and the
    -- `:`/`?` landing's `h_res_land` there read off those frames instead of `Or.inr trivial`.
 -  "edges=640 skipped=41 [DECLINE=237, FIELD=60, LOCAL=26, PAY=50, RELAY=64, \
-+  "edges=640 skipped=41 [DECLINE=234, FIELD=60, LOCAL=26, PAY=53, RELAY=64, \
++  "edges=640 skipped=41 [DECLINE=236, FIELD=60, LOCAL=26, PAY=51, RELAY=64, \
  SPLIT=175, VIA=28]"
  
  /-- **The row item 211 read off the compiler's error text and got wrong.**  All
-@@ -1453,7 +1455,7 @@ def expectedBranchSupply : List String :=
+@@ -1453,7 +1453,7 @@ def expectedBranchSupply : List String :=
     "h_cov :: indicator_open_map#27 :: splits=3 sup=4 [DECLINE=1,SPLIT=3] ⇐ - ⇒ DECLINE+brDECLINE+brPAY",
     "h_explUp_chainD :: colon_open_map#28 :: splits=1 sup=1 [RELAY=1] ⇐ h_explUp_chainD@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
     "h_explUp_chainD :: question_open_map#29 :: splits=1 sup=1 [RELAY=1] ⇐ h_explUp_chainD@indicator_open_map ⇒ DECLINE+brDECLINE+brPAY",
@@ -93,7 +108,7 @@ index 2af1f549e..fb12cac36 100644
     "h_kslot :: accum_block_on_pendingBlockContent#15 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_kslot ⇒ brDECLINE+brPAY",
     "h_kslot :: accum_content_on_pendingMapValue_indented#17 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingMapValue.h_kslot ⇒ DECLINE+brDECLINE+brPAY",
     "h_kslotD :: colon_open_map_implicit#29 :: splits=1 sup=1 [FIELD=1] ⇐ And.intro.left ⇒ ORPHAN",
-@@ -1461,7 +1463,7 @@ def expectedBranchSupply : List String :=
+@@ -1461,7 +1461,7 @@ def expectedBranchSupply : List String :=
     "h_kslotUp :: accum_block_on_pendingBlock#30 :: splits=4 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
     "h_kslotUp :: accum_block_on_pendingBlockContent#35 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlockContent.h_kslotUp ⇒ brDECLINE+brPAY",
     "h_kslotUp_old :: accum_content_on_pendingBlock_indented#32 :: splits=3 sup=1 [FIELD=1] ⇐ PendingNode.pendingBlock.h_kslotUp ⇒ DECLINE+brDECLINE+brPAY",
@@ -102,7 +117,7 @@ index 2af1f549e..fb12cac36 100644
     "h_mapF :: accum_block_on_closeThenBlock#29 :: splits=1 sup=11 [DECLINE=7,FIELD=2,RELAY=2] ⇐ h_mapF109@accum_block_on_pendingContent,-,PendingNode.pendingMapValue.h_frames ⇒ DECLINE+PAY+VIA+brDECLINE+brPAY",
     "h_mapFV :: accum_block_on_closeThenBlock#31 :: splits=1 sup=11 [DECLINE=3,FIELD=4,RELAY=2,SPLIT=2] ⇐ h_mapFV108@accum_block_on_pendingContent,PendingNode.pendingProps.h_closeFV,-,PendingNode.pendingMapValue.h_framesV ⇒ CYCLE+DECLINE+brDECLINE+brPAY",
     "h_mapFV108 :: accum_block_on_pendingContent#35 :: splits=1 sup=1 [FIELD=1] ⇐ PendingNode.pendingContent.h_framesV ⇒ DECLINE+brDECLINE+brPAY",
-@@ -1517,7 +1519,7 @@ def expectedBranchSupply : List String :=
+@@ -1517,7 +1517,7 @@ def expectedBranchSupply : List String :=
  def expectedDeclineWriters : List String :=
    ["10 colon_open_map_implicit",
     "10 colon_open_map_props",
