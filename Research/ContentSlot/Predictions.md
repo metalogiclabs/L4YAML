@@ -48,3 +48,12 @@ Predictions before full qualification:
    helper's direct declines fall 3 to 1, and critical-path direct declines
    fall 6 to 4 on this owner without incorporating root-slot PR #380.
 
+
+The expanded proof compiled in 45751021152 and retained all trust boundaries.
+Eleven full census rounds measured direct relay declines 237 to 235 and split
+decline leaves 213 to 214. The latter exposes the previously free-list path
+and is retained as an adverse reading. Full qualification stopped at three
+unsupported snapshot formats, not a proof failure. Those exact diagnostics are
+retained in expanded-evidence.zip, independently rehashed and CRC checked.
+The next run seeds all measured snapshots and calibrates the new formats with
+three edits followed by zero; library proof and adversarial source are unchanged.

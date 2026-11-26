@@ -58,5 +58,21 @@
       "ends": 210
     },
     "kernel_checked_generic_covered_empty_domain": true
+  },
+  "attempt_45751021152": {
+    "state": "WARRANTED expanded proof boundary; full qualification blocked by snapshot formats",
+    "fresh_proof_build": "PASS",
+    "offcol_escape_on_capstone": false,
+    "existing_axiom_sets_unchanged": 7,
+    "artifact": 15087376668,
+    "archive_sha256": "04010076af6284d2bf4ca97ff11894afe8ba2144ad5c20a42a118b56e3a6f57d",
+    "independent_sha256_crc": "PASS",
+    "retained_files": 73,
+    "census_rounds": 11,
+    "direct_relay_declines": 235,
+    "split_decline_leaves": 214,
+    "split_decline_leaves_owner": 213,
+    "snapshot_format_fix": "three exact-format lists; actual diagnostics calibration edits 3 then 0; source restored and eleven prior rounds replayed",
+    "proof_source_sha256": "7d97423150dc4271f9a4b7ce19caa9e0a99c4fb1434cfea4b207fec5d4320c6d"
   }
 }

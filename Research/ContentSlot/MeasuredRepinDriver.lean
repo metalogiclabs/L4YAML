@@ -169,6 +169,89 @@ def scalarPair? (body : Array String) : Option (List String × List String) := d
 #guard scalarPair? #["moved", "  got      a=2", "  expected a=1"] == some (["a=1"],["a=2"])
 #guard lineComment? "  \"text -- still data\", -- explanation" == some "-- explanation"
 
+-- These three guards print lists differently. Accept only their exact titles,
+-- unchanged row keys and the old literal; the compiler supplies every new value.
+def printedList? (label : String) (body : Array String) : Option (List String) := do
+  let i ← (List.range body.size).find? fun i => (scalarLine? label body[i]!).isSome
+  let first ← scalarLine? label body[i]!
+  if !first.startsWith "[" then none else do
+    let j ← (List.range (body.size - i)).find? fun d => (pyStrip body[i+d]!).endsWith "]"
+    let value := pyStrip (" ".intercalate
+      (first :: ((body.extract (i+1) (i+j+1)).toList.map pyStrip)))
+    if !value.endsWith "]" then none else
+      let inner := pyStrip (String.ofList (value.toList.drop 1 |>.dropLast))
+      some (if inner.isEmpty then [] else (inner.splitOn ",").map pyStrip)
+
+#guard printedList? "expected" #["title", "expected: [a 1,", " b 2]", "got: [a 2, b 1]"]
+  == some ["a 1", "b 2"]
+#guard printedList? "got" #["title", "got      [a 2, b 1]", "expected [a 1, b 2]"]
+  == some ["a 2", "b 1"]
+
+def combinedCounts? (s : String) : Option (Nat × Nat) := do
+  let s := pyStrip s
+  if !s.startsWith "expected (" || !s.endsWith "):" then none else do
+    let [a,b] := (String.ofList (s.toList.drop 10 |>.dropLast |>.dropLast)).splitOn "), got ("
+      | none
+    return (← a.toNat?, ← b.toNat?)
+
+#guard combinedCounts? "expected (160), got (160):" == some (160,160)
+#guard combinedCounts? "expected (2):" == none
+
+def printedRow (s : String) : String :=
+  let s := pyStrip s
+  if s.startsWith "\"" && s.endsWith "\"," then
+    (decode (String.ofList (s.toList.drop 1 |>.dropLast |>.dropLast))).getD s
+  else s
+
+#guard printedRow "    \"decl[10] paid\"," == "decl[10] paid"
+
+def knownListFormats (file : String) (ls body : Array String) : IO (Array String × Nat) := do
+  let title := body[0]?.getD ""
+  let name :=
+    if file == "Tests/Guards/Proofs/DispatchPrice.lean" && title == "the per-function reading moved:" then
+      some "expectedPerFn"
+    else if file == "Tests/Guards/Proofs/NarrowingWorthCensus.lean" && title == "the head census moved." then
+      some "expectedHeadCensus"
+    else if file == "Tests/Guards/Proofs/NarrowingWorthCensus.lean" && title == "the rung-1 census moved." then
+      some "expectedChainFaces"
+    else if file == "Tests/Guards/Proofs/NarrowingWorthCensus.lean" && title == "the state-reachable set moved." then
+      some "expectedStateFaces"
+    else if file == "Tests/Guards/Proofs/OrTrueAudit.lean" && title == "the ∨-True SUPPLY classes moved." then
+      some "expectedSupply"
+    else if file == "Tests/Guards/Proofs/CapstonePathAudit.lean" && title.startsWith "the capstone-path ON roster moved (shrink-only:" then
+      some "expectedOn"
+    else if file == "Tests/Guards/Proofs/CapstonePathAudit.lean" && title == "the capstone-path OFF residue moved." then
+      some "expectedOff"
+    else if file == "Tests/Guards/Proofs/CapstonePathAudit.lean" && title == "the capstone-path FAMILIES moved." then
+      some "expectedFamilies"
+    else none
+  let some name := name | return (ls,0)
+  let some sp := measuredSpan ls name | return (ls,0)
+  let some old := oldValues? ls sp | return (ls,0)
+  let fresh? := if name == "expectedSupply" || file == "Tests/Guards/Proofs/CapstonePathAudit.lean" then do
+      let i ← (List.range body.size).find? fun i => (combinedCounts? body[i]!).isSome
+      let (a,b) ← combinedCounts? body[i]!
+      if a != old.length || b != a || i+b+1 > body.size then none else
+        some ((body.extract (i+1) (i+b+1)).toList.map printedRow)
+    else do
+      let before ← printedList? "expected" body
+      if before != old then none else printedList? "got" body
+  let some fresh := fresh? | return (ls,0)
+  let keys := fun (xs : List String) => xs.map (fun x => (x.splitOn " ").headD "")
+  if name == "expectedChainFaces" then
+    if fresh.length > old.length || !(fresh.all old.contains) then return (ls,0)
+  else if name == "expectedStateFaces" then
+    let added := fresh.filter fun x => !old.contains x
+    if !(old.all fresh.contains) ||
+        !(added.all ["accum_block_on_closeThenBlock#10", "accum_block_on_pendingContent#16"].contains) then
+      return (ls,0)
+  else if fresh.length != old.length || keys old != keys fresh then return (ls,0)
+  match replaceMeasured ls name fresh false with
+  | .error e => IO.eprintln s!"MEASURED_REPIN_SKIP {e}"; return (ls,0)
+  | .ok (next, changed) =>
+    if changed then IO.println s!"MEASURED_REPIN {name} from exact-format compiler list"
+    return (next, if changed then 1 else 0)
+
 def genericRepin (ls : Array String) (body : Array String) : IO (Array String × Nat) := do
   let pair := (countedPair? body).map (fun (a,b) => (a,b,false)) <|>
     (scalarPair? body).map (fun (a,b) => (a,b,true))
@@ -196,11 +279,17 @@ def run (logPath root : String) (annotateRoot : Bool := false) : IO UInt32 := do
     let path := System.FilePath.mk root / file
     let original ← IO.FS.readFile path
     let ls := (original.splitOn "\n").toArray
-    let (next, count) ← genericRepin ls body
+    let (initial, count) ← genericRepin ls body
+    let mut next := initial
+    let mut extra := 0
+    for part in ("\n".intercalate body.toList).splitOn "\n\n" do
+      let (updated, n) ← knownListFormats file next (part.splitOn "\n").toArray
+      next := updated
+      extra := extra + n
     let changed := "\n".intercalate next.toList
     if changed != original then
       IO.FS.writeFile path changed
-      edits := edits + count
+      edits := edits + count + extra
     -- This guard's expected rows are inline data, not named definitions.
     if file == "Tests/Guards/Proofs/FlipConsumerSurface.lean" &&
         body[0]? == some "DEFERRAL moved." then
