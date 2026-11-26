@@ -143,6 +143,7 @@ jobs:
           done
           lake run dead-census -- --check > ../results/dead-census.txt 2>&1
           lake run census-dashboard -- --check > ../results/dashboard-check.txt 2>&1
+          lake build tests demo limittests suiterunner eventscore collect-stats > ../results/native-executable-build.txt 2>&1
           lake run run-all-tests > ../results/run-all-tests.txt 2>&1
           lake exe suiterunner > ../results/suiterunner.txt 2>&1
           lake exe eventscore > ../results/eventscore.txt 2>&1

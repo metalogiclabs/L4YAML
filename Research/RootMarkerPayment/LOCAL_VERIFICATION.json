@@ -103,5 +103,16 @@
     "repository_gates": "seven passed; check-pack-births rejected older cache timestamp",
     "native_tests": "not reached",
     "next": "canonical recompile of source module; keep freshness gate unchanged"
+  },
+  "full_replay_45738248285": {
+    "proof_build": "PASS",
+    "qualified_tree": "52624546acd984921a9418ab73af82e6f2a9a519",
+    "all_repository_gates": "PASS including pack births, dead census and dashboard",
+    "report_verified_suites": "17/17",
+    "report_verified_cases": "64441/64441",
+    "standalone_runner": "three executables absent: tests, demo, limittests",
+    "archive_sha256": "0619c2205670995757c75644e9bacfef25c70349e84e059a8d78a3d81d998bca",
+    "crc": "PASS",
+    "next": "explicitly build the three optional standalone executables and complete native/hygiene checks"
   }
 }
