@@ -1,0 +1,76 @@
+name: Restore qualified refresh sources for exact connector publication
+on:
+  push:
+    branches: [test/refresh-source-publication]
+    paths: [.github/workflows/refresh-source-publication.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OWNER: a62ac16b92d6487bc58405043bca79d39bae30d0
+      QUAL_RUN: "45895329112"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: a62ac16b92d6487bc58405043bca79d39bae30d0
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Restore exact qualified trees and emit source objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p receipt
+          for attempt in $(seq 1 100); do
+            done_count=0
+            for pr in 302 361 370 371 384; do
+              if test -f "receipt/pr$pr.done"; then done_count=$((done_count+1)); continue; fi
+              row=$(gh api "repos/metalogiclabs/L4YAML/actions/runs/$QUAL_RUN/artifacts" --jq ".artifacts[] | select(.name == \"pr-$pr-refresh-evidence\") | [.id,.digest] | @tsv")
+              test -n "$row" || continue
+              read -r artifact digest <<< "$row"
+              mkdir -p "receipt/pr$pr"
+              gh api "repos/metalogiclabs/L4YAML/actions/artifacts/$artifact/zip" > "receipt/pr$pr/original.zip"
+              echo "${digest#sha256:}  receipt/pr$pr/original.zip" | sha256sum -c -
+              unzip -t "receipt/pr$pr/original.zip" > "receipt/pr$pr/crc.txt"
+              unzip -oq "receipt/pr$pr/original.zip" -d "receipt/pr$pr/source"
+              src="receipt/pr$pr/source"
+              test -f "$src/qualified-source.txt" || continue
+              expected_bundle=$(awk '$2 ~ /qualified.bundle$/ {print $1}' "$src/qualified.sha256")
+              echo "$expected_bundle  $src/qualified.bundle" | sha256sum -c -
+              old=$(sed -n 's/^OLD=//p' "$src/source.txt")
+              git fetch --no-tags https://github.com/metalogiclabs/L4YAML.git "$old"
+              git bundle verify "$src/qualified.bundle"
+              git fetch "$src/qualified.bundle" HEAD
+              qualified=$(sed -n '1p' "$src/qualified-source.txt")
+              tree=$(sed -n '2p' "$src/qualified-source.txt")
+              test "$(git rev-parse "$qualified^{tree}")" = "$tree"
+              git merge-base --is-ancestor "$OWNER" "$qualified"
+              git merge-base --is-ancestor "$old" "$qualified"
+              git diff --exit-code "$OWNER" "$qualified" -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+              echo "BEGIN-SOURCE $pr $old $qualified $tree $artifact $digest"
+              git diff --name-only "$OWNER" "$qualified" | while IFS= read -r path; do
+                mode=$(git ls-tree --format='%(objectmode)' "$qualified" -- "$path")
+                blob=$(git ls-tree --format='%(objectname)' "$qualified" -- "$path")
+                test "$mode" = 100644 -o "$mode" = 100755
+                printf 'BEGIN-BLOB %s %s %s\n' "$mode" "$blob" "$path"
+                git show "$qualified:$path" | base64 -w 76
+                echo END-BLOB
+              done
+              echo "END-SOURCE $pr"
+              touch "receipt/pr$pr.done"
+              done_count=$((done_count+1))
+            done
+            test "$done_count" = 5 && break
+            sleep 15
+          done
+          test "$(find receipt -maxdepth 1 -name 'pr*.done' | wc -l)" = 5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: refresh-publication-restoration
+          path: receipt/
