@@ -111,3 +111,16 @@ wrapper row. Both are corrected from the retained exact diagnostic: the old
 site fixture matches Git blob 08bc367a2ac7f2dcb5d12cf2b9f687cc6266f43b and
 calibrates one row edit then zero. No library proof or adversarial source
 changed. Every touched guard now explains its re-pin in a dated local note.
+
+
+Run 45766320242 completed the strengthened proof/impact and source-control
+stages, then failed at ParkGapProduction.expectedPaths. The exact retained
+nine-row compiler roster matches the new expected paths after removing the
+retired off-column wrapper's NOSPEND row. This is a literal snapshot repair;
+the library, adversarial cases and guard algorithms are unchanged.
+
+Predictions before the next compiler run: paths 10 -> 9; population 10 -> 9;
+sites 10 -> 9; NOSPEND 7 -> 6; spending sites remain 3. The remaining production
+universe and dependency readings remain unchanged. These are predictions,
+not fresh measured totals, until the guard recompiles. All final gates and
+native suites must pass before the whole candidate is promoted.

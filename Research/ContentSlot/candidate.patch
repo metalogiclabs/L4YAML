@@ -1339,7 +1339,7 @@ index 618f39ed4..41d2756d0 100644
  /-- Names the park in a PROOF TERM — builders and case splits together, which
      no syntactic reading separates (item 240).  **Seven of the nine break and
 diff --git a/Tests/Guards/Proofs/ParkGapProduction.lean b/Tests/Guards/Proofs/ParkGapProduction.lean
-index c97a544b1..b993400a8 100644
+index c97a544b1..4bb307ce1 100644
 --- a/Tests/Guards/Proofs/ParkGapProduction.lean
 +++ b/Tests/Guards/Proofs/ParkGapProduction.lean
 @@ -251,39 +251,19 @@ partial def walk (prods : Std.HashSet Name) (decl : Name) (e : Expr) : W Unit :=
@@ -1347,7 +1347,8 @@ index c97a544b1..b993400a8 100644
      `accum_block_on_*` inline sites for `accum_block_pending`'s and the two `:`
      consumers'; `ParkGapWidth` reads the same trade.) -/
 +-- 2026-11-26 (actual marked-column correspondence):
-+-- The three off-column application paths and retired wrapper leave the producer thread; the remaining escape paths stay visible.
++-- The three off-column application paths and the retired wrapper's own
++-- NOSPEND row leave the producer thread; the remaining escape paths stay visible.
  def expectedPaths : List String :=
 -  ["L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock <- \
 -L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack \
@@ -1388,7 +1389,6 @@ index c97a544b1..b993400a8 100644
 +   "L4YAML.Proofs.StreamAccum.accum_content_pending <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
 +   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
 +   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
-+   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
 +   "L4YAML.Proofs.StreamAccum.colon_fires_implicit_key <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND",
 +   "L4YAML.Proofs.StreamAccum.colon_fires_props_key <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND"]
  
@@ -1402,7 +1402,7 @@ index c97a544b1..b993400a8 100644
 -depth=3 prods=175 ctors=336 \
 -endsLit=48 minus=1 question=3 colon=26 chainEnds=0 blockArms=1 seqArms=10 \
 -mapArms=10 streamArms=4 streamHonest=3"
-+  "pop=10 sites=10 spend=3 nospend=7 len1=3 ends=GStar(SSWhite)+SIndent depth=3 prods=175 ctors=336 endsLit=48 minus=1 question=3 colon=26 chainEnds=0 blockArms=1 seqArms=10 mapArms=10 streamArms=4 streamHonest=3"
++  "pop=9 sites=9 spend=3 nospend=6 len1=3 ends=GStar(SSWhite)+SIndent depth=3 prods=175 ctors=336 endsLit=48 minus=1 question=3 colon=26 chainEnds=0 blockArms=1 seqArms=10 mapArms=10 streamArms=4 streamHonest=3"
  
  /-- The non-circularity check items 242, 243 and 244 also carry: a measurement
      of what the escape costs may not route through the escape.  `glit=true`

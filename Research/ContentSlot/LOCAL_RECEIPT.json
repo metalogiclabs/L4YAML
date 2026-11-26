@@ -185,5 +185,29 @@
     "calibration": "exact failed-source blob 08bc367a2ac7f2dcb5d12cf2b9f687cc6266f43b; one row removed then zero; existing three-call removal calibration retained",
     "source_proof_unchanged": "058d260b48f2b230f137e1cfbf7a55f12d0e61bc90d90603c938a606e8f335b1",
     "native_suites": "NOT RUN"
+  },
+  "attempt_45766320242": {
+    "state": "FAILED in stale retired-wrapper snapshot; final repository/native gates skipped",
+    "artifact": 15092446944,
+    "archive_sha256": "8dec46898a8fe31219f77bbaaa0f606080d54f7ec9edb88cd2cd4c838a9504f0",
+    "independent_sha256_crc": "PASS",
+    "files": 202,
+    "remaining_failure": "ParkGapProduction.expectedPaths retained the NOSPEND row for the deleted off-column wrapper",
+    "observed_paths": 9,
+    "stale_expected_paths": 10,
+    "proof_and_source_control_stages": "PASS"
+  },
+  "retired_wrapper_snapshot_repair": {
+    "state": "CANDIDATE awaiting hosted compiler and complete gate result",
+    "changed_candidate_file": "Tests/Guards/Proofs/ParkGapProduction.lean",
+    "library_and_adversarial_bytes_changed": false,
+    "retained_compiler_paths_match": true,
+    "summary_prediction": {
+      "pop": 9,
+      "sites": 9,
+      "spend": 3,
+      "nospend": 6
+    },
+    "guard_algorithms_changed": false
   }
 }
