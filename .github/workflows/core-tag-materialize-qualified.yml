@@ -1,0 +1,81 @@
+name: "Materialize already qualified cc830190 candidate commits"
+on:
+  push:
+    branches:
+      - experiment/core-tag-cc830190-materialize-20261126
+permissions:
+  contents: write
+  actions: read
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify and restore three immutable bundles without recompilation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/recovery" evidence
+          UP=cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          CORE=dc9c881577286e1f27b1c4151f599716fe4c6152
+          TAG=e851e63003872d57509ed06e84346bd4ff893000
+          check_live() {
+            test "$(git ls-remote https://github.com/nasa-jpl/L4YAML.git refs/heads/fix-a-grammar-completeness | cut -f1)" = "$UP"
+            test "$(git ls-remote origin refs/heads/fix/core-schema-spec-correspondence | cut -f1)" = "$CORE"
+            test "$(git ls-remote origin refs/heads/fix/tag-directive-uniqueness | cut -f1)" = "$TAG"
+          }
+          check_live
+          git cat-file -e "$UP^{commit}" || git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$UP"
+          for sha in "$CORE" "$TAG"; do
+            git cat-file -e "$sha^{commit}" || git fetch --no-tags origin "$sha"
+          done
+          restore() {
+            local id="$1" source="$2" tree="$3" artifact="$4" digest="$5"
+            local d="$RUNNER_TEMP/recovery/$id"
+            mkdir -p "$d"
+            gh api "repos/metalogiclabs/L4YAML/actions/artifacts/$artifact/zip" > "$d/archive.zip"
+            printf '%s  %s\n' "$digest" "$d/archive.zip" | sha256sum -c -
+            unzip -tq "$d/archive.zip"
+            unzip -q "$d/archive.zip" -d "$d"
+            read -r bundle_digest ignored < "$d/bundle.sha256"
+            test "$(sha256sum "$d/candidate.bundle" | cut -d' ' -f1)" = "$bundle_digest"
+            git bundle verify "$d/candidate.bundle" 2>&1 | tee "evidence/$id-bundle.log"
+            git fetch "$d/candidate.bundle" HEAD
+            test "$(git rev-parse "$source^{tree}")" = "$tree"
+            git merge-base --is-ancestor "$UP" "$source"
+            if test "$id" != tag361; then git merge-base --is-ancestor "$CORE" "$source"; fi
+            if test "$id" != core302; then git merge-base --is-ancestor "$TAG" "$source"; fi
+            git show -s --format=raw "$source" | tee "evidence/$id-commit.txt"
+            git log --format='%H %P %s' "$UP..$source" > "evidence/$id-lineage.txt"
+            git diff --stat "$UP" "$source" > "evidence/$id-diff-stat.txt"
+            cp "$d/source-lineage.json" "evidence/$id-native-lineage.json"
+            printf '%s %s %s %s %s\n' "$id" "$source" "$tree" "$artifact" "$digest" >> evidence/restored.tsv
+          }
+          restore core302 e09400e9716752b271c3f54c230fb1751ee81bb1 a540db25f0e6acab522661b93415887b53709eb0 15067900109 d57c6985786640984b154be0a7d633ca8e3e2918a6cfdc5cbf9459415f34a1d4
+          restore tag361 c0a5983a6b0f5f02f53213ea9bc3cead70567f1c 687de8d504c283e1fbb71adead4098d929f78b79 15065873042 6f19b0a74e400c87cd1580b04b91a8685d9cec50fbbc3104e49de39be9f6b33b
+          restore core-tag ddabbd274ca0a9efe72a4f8b4f052a9115bd2d50 2aee7e0891d0c644fdd7782d5e494b7cb7474728 15066807269 3e19b9abd5a1c46813f67e0f26b04cafa2452faa132eec1f4493ccab9d74a0c7
+          check_live
+          while read -r id sha tree artifact digest; do
+            ref="refs/heads/experiment/$id-cc830190-qualified-20261126"
+            existing="$(git ls-remote origin "$ref" | cut -f1)"
+            test -z "$existing" || test "$existing" = "$sha"
+          done < evidence/restored.tsv
+          git push --atomic origin             e09400e9716752b271c3f54c230fb1751ee81bb1:refs/heads/experiment/core302-cc830190-qualified-20261126             c0a5983a6b0f5f02f53213ea9bc3cead70567f1c:refs/heads/experiment/tag361-cc830190-qualified-20261126             ddabbd274ca0a9efe72a4f8b4f052a9115bd2d50:refs/heads/experiment/core-tag-cc830190-qualified-20261126
+          while read -r id sha tree artifact digest; do
+            ref="refs/heads/experiment/$id-cc830190-qualified-20261126"
+            test "$(git ls-remote origin "$ref" | cut -f1)" = "$sha"
+            printf '%s %s\n' "$ref" "$sha" >> evidence/published.tsv
+          done < evidence/restored.tsv
+          check_live
+      - name: Retain restoration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc830190-candidate-materialization-receipts
+          path: evidence/
+          if-no-files-found: warn
