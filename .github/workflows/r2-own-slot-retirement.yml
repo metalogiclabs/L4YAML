@@ -1,0 +1,146 @@
+name: R2 own-column retirement qualification
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths:
+      - .github/workflows/r2-own-slot-retirement.yml
+      - Research/RootComposition/r2-own-slot-retirement.patch
+      - Research/RootComposition/R2OwnRetirementAudit.lean
+permissions:
+  contents: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 4c54da7e3716ab0197b126294474bb2868651402
+          submodules: recursive
+          path: source
+      - name: Restore the exact qualified root candidate from its retained bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/qualified-root
+          echo 'e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c  evidence/Research/RootComposition/qualified-root-evidence.zip' | sha256sum -c -
+          unzip -q evidence/Research/RootComposition/qualified-root-evidence.zip -d results/qualified-root
+          cd source
+          git bundle verify ../results/qualified-root/root-context/source.bundle
+          git fetch ../results/qualified-root/root-context/source.bundle HEAD
+          git checkout --detach 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD)" = 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD^{tree})" = 20e10d2041c66d199d4408b4c37f82b6ec8cddf0
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree} > ../results/source-identity.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          cd ../evidence
+          git rev-parse HEAD > ../results/evidence-commit.txt
+          sha256sum Research/RootComposition/r2-own-slot-retirement.patch Research/RootComposition/R2OwnRetirementAudit.lean Research/RootComposition/R2ClosingControls.lean > ../results/spec-sha256.txt
+          cp Research/RootComposition/r2-own-slot-retirement.patch Research/RootComposition/R2OwnRetirementAudit.lean Research/RootComposition/R2ClosingControls.lean ../results/
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-slot-origin-integration-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            root-domain-2ebc4740-lean4360-${{ runner.os }}-
+      - name: Compile the own-column retirement against the qualified root
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML.Proofs.Production.DocumentProduction scripts-repin > ../results/baseline-build.txt 2>&1
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/baseline-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/baseline-root-axioms.txt 2>&1
+          git apply --check ../evidence/Research/RootComposition/r2-own-slot-retirement.patch
+          git apply ../evidence/Research/RootComposition/r2-own-slot-retirement.patch
+          git diff --check
+          git diff --binary > ../results/attempted-source.patch
+          status=0
+          lake build L4YAML.Proofs.Production.DocumentProduction > ../results/proof-build.txt 2>&1 || status=$?
+          cat ../results/proof-build.txt
+          echo "$status" > ../results/proof-build-exit.txt
+          test "$status" = 0
+          lake env lean ../evidence/Research/RootComposition/R2OwnRetirementAudit.lean > ../results/new-lemma-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/root-axioms.txt 2>&1
+          diff -u ../results/baseline-axioms.txt ../results/axioms.txt
+          diff -u ../results/baseline-root-axioms.txt ../results/root-axioms.txt
+          lake env lean Research/ContentSlot/ProofImpact.lean > ../results/proof-impact.txt 2>&1
+      - name: Measure only compiler-derived census changes and complete repository gates
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          passed=false
+          for round in $(seq 1 24); do
+            echo "CENSUS_ROUND $round"
+            status=0
+            lake build > "../results/full-build-$round.txt" 2>&1 || status=$?
+            cat "../results/full-build-$round.txt"
+            if test "$status" = 0; then
+              passed=true
+              echo "$round" > ../results/successful-build-round.txt
+              break
+            fi
+            before_repin=$(git diff | sha256sum)
+            repin_status=0
+            lake exe scripts-repin "../results/full-build-$round.txt" > "../results/repin-$round.txt" 2>&1 || repin_status=$?
+            test "$repin_status" -le 1
+            lean --run Research/ContentSlot/MeasuredRepin.lean "../results/full-build-$round.txt" . > "../results/measured-repin-$round.txt" 2>&1
+            cat "../results/measured-repin-$round.txt"
+            after_repin=$(git diff | sha256sum)
+            test "$before_repin" != "$after_repin"
+          done
+          test "$passed" = true
+          lake run dead-census -- --write > ../results/dead-census-write.txt 2>&1
+          git diff --check
+          git diff --binary > ../results/measured-source.patch
+          git -c user.name='Heath Sanchez' -c user.email='heathsanchez@gmail.com' commit -am 'proof: qualify actual marked own-column route without optional escape'
+          git rev-parse HEAD HEAD^{tree} > ../results/source-identity.txt
+          git bundle create ../results/source.bundle HEAD ^967d3503b30dde555078929f118101cba9f95a56
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
+            lake run "$gate" > "../results/$gate.txt" 2>&1
+          done
+          lake run dead-census -- --check > ../results/dead-census-check.txt 2>&1
+          lake run census-dashboard -- --check > ../results/dashboard-check.txt 2>&1
+          lake run census-dashboard -- --diff 967d3503b30dde555078929f118101cba9f95a56 > ../results/dashboard-diff.md
+          lake env lean Research/ContentSlot/ProofImpact.lean > ../results/final-proof-impact.txt 2>&1
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/final-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/final-root-axioms.txt 2>&1
+          diff -u ../results/baseline-axioms.txt ../results/final-axioms.txt
+          diff -u ../results/baseline-root-axioms.txt ../results/final-root-axioms.txt
+          test -z "$(git status --porcelain)"
+      - name: Run native suites and reachable closure controls
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean --run ../evidence/Research/RootComposition/R2ClosingControls.lean > ../results/closing-controls.txt 2>&1
+          lake build tests demo limittests suiterunner eventscore > ../results/native-build.txt 2>&1
+          lake run run-all-tests > ../results/run-all-tests.txt 2>&1
+          lake exe suiterunner > ../results/suiterunner.txt 2>&1
+          lake exe eventscore > ../results/eventscore.txt 2>&1
+          printf '%s\n' 'own_column_proof=PASS' 'default_build=PASS' 'repository_gates=PASS' 'native_suites=PASS' 'existing_axiom_sets_unchanged=true' 'ancestor_slot_completion=NOT_CLAIMED' > ../results/outcomes.txt
+      - uses: actions/cache/save@v4
+        if: success()
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-own-retirement-lean4360-${{ runner.os }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r2-own-column-retirement
+          path: results/
+          if-no-files-found: error
