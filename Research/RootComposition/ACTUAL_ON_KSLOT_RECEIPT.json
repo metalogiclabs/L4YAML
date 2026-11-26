@@ -58,5 +58,26 @@
   ],
   "prior_raw": 45881603636,
   "parallel_direct_normalization": 45888104536,
-  "prior_structural_failure": 45888398370
+  "prior_structural_failure": 45888398370,
+  "framed_source_probe": {
+    "harness": "4489ec43e711a80fc2bc925db633e9a3106cefa9",
+    "run": 45891614174,
+    "job": 140155405697,
+    "artifact": 15151474260,
+    "artifact_sha256": "e1270b1ecae58f1d29323f9f0f566864846d10ab0d41ada7bbfb370ca920c491",
+    "CRC_members": 25,
+    "immediate_sites": 6,
+    "immediate_declarations": 2,
+    "total_sites": 8,
+    "total_declarations": 3,
+    "structural_errors": 0,
+    "property_framed_applications_elaborated_without_new_errors": 3,
+    "remaining_property_cases_have_both_supplies_declined": true,
+    "source_restored": true,
+    "restored_axioms_byte_identical": true,
+    "new_kernel_verified_lemma": false,
+    "ON_retirement": false,
+    "interpretation": "Existing source-owned KeyFrames can produce the three property routes when supplied. Their availability is not established; three compact/landed and three doubly-declined property goals remain."
+  },
+  "next_smallest_experiment": "Require the existing ancestor/entry witness on the actual consumed index/domain, price its genuine producer obligations, and preserve the seven-ON baseline. Do not introduce an optional carrier or infer total availability from conditional framed-route elaboration."
 }
