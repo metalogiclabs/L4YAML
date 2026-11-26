@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           lean --version > ../results/lean-version.txt
-          lake build L4YAML.Parser.Composition L4YAML.Proofs.Scanner.RegisterWitness > ../results/baseline/control-build.txt 2>&1
+          lake build L4YAML.Parser.Composition L4YAML.Proofs.Scanner.RegisterWitness Tests.VerifiedResult > ../results/baseline/control-build.txt 2>&1
           lake env lean --run Research/ContentSlot/ReachableControls.lean > ../results/baseline/reachable-controls.txt 2>&1
           cat ../results/baseline/reachable-controls.txt
           lake env lean --run Research/ContentSlot/Controls.lean > ../results/baseline/source-controls.txt 2>&1

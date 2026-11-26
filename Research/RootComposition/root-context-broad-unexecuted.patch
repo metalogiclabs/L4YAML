@@ -1,0 +1,519 @@
+diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
+index 8421ea62..122012c8 100644
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -35770,7 +35770,8 @@ lemma content_dispatch_routed
+         sp_land.col = 0 ∧ GStar SLDocumentPrefix sp_start sp_land ∧
+         SIndent k sp_land sp_prep) ∧
+       s_prep.simpleKey.possible = true ∧
+-      s_prep.simpleKey.pos = s_prep.currentPos) ∨ True)
++      s_prep.simpleKey.pos = s_prep.currentPos ∧
++      RegisterWitness.MarkedColsIn s_prep []) ∨ True)
+     -- Item 137: the same landing read at the `---` MARKER's own content slot,
+     -- when the park that dispatches here is a document-start park.  Preferred
+     -- over `h_keyctx` for the fourth time and the same reason: the two agree
+@@ -35832,6 +35833,8 @@ lemma content_dispatch_routed
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  -- The root context keeps the actual empty marked-column domain.
++  have h_rootctx := h_nodocctx
+   have hpeek_disp : (if s_prep.allowDirectives then
+       { s_prep with allowDirectives := false, documentEverStarted := true }
+     else s_prep).peek? = some c := by
+@@ -35911,7 +35914,18 @@ lemma content_dispatch_routed
+         refine Or.inl ⟨⟨k, h_route_k, h_kcol,
+           -- Item 94: the run heads a landed key, and no `?` fits to its
+           -- left on either branch, so no value line twins the route.
+-          (if hk : k = 0 then Or.inl ⟨[], RegisterWitness.dispatchContent_markedCols h_dispatch ((h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)).2.transport (by split <;> rfl) (by split <;> rfl)), fun _ h => absurd h List.not_mem_nil⟩ else Or.inr (PackAlt.step_dispatch h_dispatch h_alt)), h_resF.imp_right (fun _ => trivial), h_resFV⟩, h_props, ?_,
++          (by
++            rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++            · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++              first
++              | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++              | exact Or.inl (by
++                  intro nv hm
++                  exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++              | exact (if hk : k = 0 then Or.inl ⟨[], RegisterWitness.dispatchContent_markedCols h_dispatch ((h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)).2.transport (by split <;> rfl) (by split <;> rfl)), fun _ h => absurd h List.not_mem_nil⟩ else Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++            · exact (if hk : k = 0 then Or.inl ⟨[], RegisterWitness.dispatchContent_markedCols h_dispatch ((h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)).2.transport (by split <;> rfl) (by split <;> rfl)), fun _ h => absurd h List.not_mem_nil⟩ else Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++          ), h_resF.imp_right (fun _ => trivial), h_resFV⟩, h_props, ?_,
+           by rw [h_sk, allowDirectives_update_simpleKey]; exact h_sk_poss⟩
+         rw [h_sk, allowDirectives_update_simpleKey, h_sk_pos,
+             h_line', allowDirectives_update_line]
+@@ -35965,7 +35979,18 @@ lemma content_dispatch_routed
+               -- producers, which is where `Mono` rides.
+               Or.inr trivial,
+               ResumeFrames.one_of_route (suffixMapRouteF hcol0 h_sfx_land h_ind)⟩)
+-            (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++            (by
++              rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++              · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                  (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                first
++                | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                | exact Or.inl (by
++                    intro nv hm
++                    exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++              · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++            )
+         | inr _ =>
+           cases h_nodocctx with
+           -- Item 136: the HEAD context next — the park that dispatches here
+@@ -35973,14 +35998,25 @@ lemma content_dispatch_routed
+           -- FIRST one (`&p b: 2`, `# c⏎&p b: 2`).  `ks = []` as at the root,
+           -- and no explicit frame stands over a first document.
+           | inl hnd =>
+-            obtain ⟨⟨k, sp_land, hcol0, h_nodoc_land, h_ind⟩, h_sk_poss, h_sk_pos⟩ := hnd
++            obtain ⟨⟨k, sp_land, hcol0, h_nodoc_land, h_ind⟩, h_sk_poss, h_sk_pos, _h_root_dom⟩ := hnd
+             exact h_buildP k sp_land hcol0 h_ind h_sk_poss h_sk_pos
+               (nodocMapRoute hcol0 h_nodoc_land h_ind)
+               (Or.inl ⟨[FrameLevel.map k], fun _ h => (List.eq_of_mem_singleton h) ▸ Nat.le_refl _,
+                 -- Item 148: no park to inherit from, as at the suffix arm above.
+                 Or.inr trivial,
+                 ResumeFrames.one_of_route (nodocMapRouteF hcol0 h_nodoc_land h_ind)⟩)
+-              (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++              (by
++                rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                    (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                  first
++                  | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                  | exact Or.inl (by
++                      intro nv hm
++                      exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                  | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++              )
+           | inr _ =>
+             cases h_markerctx with
+             -- Item 137: the MARKER context next — the park that dispatches
+@@ -35995,7 +36031,18 @@ lemma content_dispatch_routed
+                   -- Item 148: no park to inherit from, as at the suffix arm above.
+                   Or.inr trivial,
+                   ResumeFrames.one_of_route (markerMapRouteF h_mk_land h_ind)⟩)
+-                (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                (by
++                  rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                  · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                      (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                    first
++                    | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                    | exact Or.inl (by
++                        intro nv hm
++                        exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                    | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                  · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                )
+             | inr _ =>
+             cases h_keyctx with
+             -- Item 102: the caller's own reason, named — a landed dispatch whose
+@@ -36029,7 +36076,18 @@ lemma content_dispatch_routed
+                   -- Item 148: no park to inherit from, as at the suffix arm above.
+                   Or.inr trivial,
+                   ResumeFrames.one_of_route (rootMapRouteF_or_refused h_ref hcol0 h_stream_land h_ind)⟩)
+-                (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                (by
++                  rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                  · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                      (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                    first
++                    | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                    | exact Or.inl (by
++                        intro nv hm
++                        exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                    | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                  · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                )
+     cases hprops with
+     | inl h =>
+       subst h
+@@ -36060,17 +36118,72 @@ lemma content_dispatch_routed
+                -- Item 68: a `[96]` run is at least one character wide, and this
+                -- route closes at index 0.
+                (by have := anchorProperty_col_lt ha_ev; omega) (Or.inl (Nat.zero_le _))
+-               (dispatchContent_anchor_simpleKey h_dispatch).2 (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               (dispatchContent_anchor_simpleKey h_dispatch).2 (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               )
+                -- Item 114: a LANDED run heads a key or nothing — its
+                -- decorated VALUE at column 0 is `§9.2`-refused (`k:⏎  a: 1⏎&p b`
+                -- is bare-document content), so all five faces punt for free.
+-               (Or.inr (PackAlt.step_dispatch h_dispatch h_alt)) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt)) (Or.inr trivial)
+-               (Or.inr trivial) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               ) (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               ) (Or.inr trivial)
++               (Or.inr trivial) (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               )
+                (nodir_of_content_dispatch h_dispatch)
+                -- Item 199: a sentinel-level props park stands under no entry, so it has
+                -- no ENTRY face to bottom — `h_closeFE` is punted here for the same
+                -- reason and by the same producer.
+-               (Or.inr (PackAlt.step_dispatch h_dispatch h_alt)),
++               (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               ),
+              hcorr_result⟩
+     | inr h =>
+       subst h
+@@ -36098,16 +36211,71 @@ lemma content_dispatch_routed
+                -- Item 68: a `[96]` run is at least one character wide, and this
+                -- route closes at index 0.
+                (by have := tagProperty_col_lt ht_ev; omega) (Or.inl (Nat.zero_le _))
+-               (dispatchContent_tag_simpleKey h_dispatch).2 (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               (dispatchContent_tag_simpleKey h_dispatch).2 (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               )
+                -- Item 114: as at the `&` arm — the landed run's decorated
+                -- VALUE is `§9.2`-refused, so the faces punt for free.
+-               (Or.inr (PackAlt.step_dispatch h_dispatch h_alt)) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt)) (Or.inr trivial)
+-               (Or.inr trivial) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               ) (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               ) (Or.inr trivial)
++               (Or.inr trivial) (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               )
+                (nodir_of_content_dispatch h_dispatch)
+                -- Item 199: a sentinel-level props park stands under no entry, so it has
+                -- no ENTRY face to bottom — `h_closeFE` is punted here for the same
+                -- reason and by the same producer.
+-               (Or.inr (PackAlt.step_dispatch h_dispatch h_alt)),
++               (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               ),
+              hcorr_result⟩
+   · have hna : c ≠ '&' := fun h => hprops (Or.inl h)
+     have hnt : c ≠ '!' := fun h => hprops (Or.inr h)
+@@ -36189,7 +36357,18 @@ lemma content_dispatch_routed
+                               { s_prep with allowDirectives := false, documentEverStarted := true }
+                             else s_prep).indents = s_prep.indents from by split <;> rfl])
+                         (by rw [h_pp, allowDirectives_update_simpleKey]) h_seq),
+-                      h_ol, h_tws2, h_kcol_of h_pp, (if hk : k = 0 then Or.inl ⟨[], RegisterWitness.dispatchContent_markedCols h_dispatch ((h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)).2.transport (by split <;> rfl) (by split <;> rfl)), fun _ h => absurd h List.not_mem_nil⟩ else Or.inr (PackAlt.step_dispatch h_dispatch h_alt)),
++                      h_ol, h_tws2, h_kcol_of h_pp, (by
++            rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++            · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++              first
++              | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++              | exact Or.inl (by
++                  intro nv hm
++                  exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++              | exact (if hk : k = 0 then Or.inl ⟨[], RegisterWitness.dispatchContent_markedCols h_dispatch ((h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)).2.transport (by split <;> rfl) (by split <;> rfl)), fun _ h => absurd h List.not_mem_nil⟩ else Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++            · exact (if hk : k = 0 then Or.inl ⟨[], RegisterWitness.dispatchContent_markedCols h_dispatch ((h_dead (by rw [← hcorr_prep.col_eq]; have := SIndent_col h_ind; rw [hcol0] at this; omega)).2.transport (by split <;> rfl) (by split <;> rfl)), fun _ h => absurd h List.not_mem_nil⟩ else Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++          ),
+                       h_resF.imp_right (fun _ => trivial), h_resFV, h_resQ⟩
+       -- Item 109: the RESUMING context first.  It is the honest reading where
+       -- it exists, and it exists exactly when the park that closed here kept
+@@ -36250,7 +36429,18 @@ lemma content_dispatch_routed
+               -- Item 148: no park to inherit from, as at the suffix arm above.
+               Or.inr trivial,
+               ResumeFrames.one_of_route (suffixMapRouteF hcol0 h_sfx_land h_ind)⟩)
+-            (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++            (by
++              rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++              · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                  (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                first
++                | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                | exact Or.inl (by
++                    intro nv hm
++                    exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++              · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++            )
+             -- Item 168: no sequence entry encloses this context's document.
+             (Or.inr trivial)
+         | inr _ =>
+@@ -36261,14 +36451,25 @@ lemma content_dispatch_routed
+           -- of continuing a stream that has none.  `ks = []` as at the root,
+           -- and no explicit frame stands over a first document.
+           | inl hnd =>
+-            obtain ⟨⟨k, sp_land, hcol0, h_nodoc_land, h_ind⟩, _h_sk_poss, h_sk_pos⟩ := hnd
++            obtain ⟨⟨k, sp_land, hcol0, h_nodoc_land, h_ind⟩, _h_sk_poss, h_sk_pos, _h_root_dom⟩ := hnd
+             exact h_build k sp_land hcol0 h_ind h_sk_pos
+               (Or.inl (nodocMapRoute hcol0 h_nodoc_land h_ind))
+               (Or.inl ⟨[FrameLevel.map k], fun _ h => (List.eq_of_mem_singleton h) ▸ Nat.le_refl _,
+                 -- Item 148: no park to inherit from, as at the suffix arm above.
+                 Or.inr trivial,
+                 ResumeFrames.one_of_route (nodocMapRouteF hcol0 h_nodoc_land h_ind)⟩)
+-              (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++              (by
++                rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                    (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                  first
++                  | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                  | exact Or.inl (by
++                      intro nv hm
++                      exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                  | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++              )
+               -- Item 168: no sequence entry encloses this context's document.
+               (Or.inr trivial)
+           | inr _ =>
+@@ -36283,7 +36484,18 @@ lemma content_dispatch_routed
+                   -- Item 148: no park to inherit from, as at the suffix arm above.
+                   Or.inr trivial,
+                   ResumeFrames.one_of_route (markerMapRouteF h_mk_land h_ind)⟩)
+-                (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                (by
++                  rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                  · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                      (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                    first
++                    | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                    | exact Or.inl (by
++                        intro nv hm
++                        exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                    | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                  · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                )
+                 -- Item 168: no sequence entry encloses this context's document.
+                 (Or.inr trivial)
+             | inr _ =>
+@@ -36301,7 +36513,18 @@ lemma content_dispatch_routed
+                   -- Item 148: no park to inherit from, as at the suffix arm above.
+                   Or.inr trivial,
+                   ResumeFrames.one_of_route (propsMapRouteF (PropsRideRoute.toNodeRoute h_pr_land) h_ind)⟩)
+-                (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                (by
++                  rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                  · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                      (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                    first
++                    | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                    | exact Or.inl (by
++                        intro nv hm
++                        exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                    | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                  · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                )
+                 -- Item 168: no sequence entry encloses this context's document.
+                 (Or.inr trivial)
+             | inr _ =>
+@@ -36341,7 +36564,18 @@ lemma content_dispatch_routed
+                   ResumeFrames.one_of_route (rootMapRouteF_or_refused h_ref hcol0 h_stream_land h_ind)⟩)
+                 -- Item 108: no explicit frame stands over the root, so the
+                 -- value-line-bottomed stack has nothing to bottom at.
+-                (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                (by
++                  rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                  · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                      (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                    first
++                    | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                    | exact Or.inl (by
++                        intro nv hm
++                        exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                    | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                  · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                )
+                 -- Item 168: no sequence entry encloses this context's document.
+                 (Or.inr trivial)
+     obtain ⟨sp_gram, sp_ev, h_ev, h_trailing_ws, h_gate_ev, hcorr_ev⟩ :=
+@@ -36373,10 +36607,32 @@ lemma content_dispatch_routed
+                h_key
+                (stale_of_dispatch h_dispatch hna hnt
+                  (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
+-                 hcorr_result) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 hcorr_result) (by
++                   rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                   · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                       (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                     first
++                     | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                     | exact Or.inl (by
++                         intro nv hm
++                         exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                     | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                   · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 )
+                  (content_park_arm hpeek
+                    h_flow_disp h_not_doc h_dispatch hcorr_result)
+-               (Or.inr trivial) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               (Or.inr trivial) (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               )
+                (nodir_of_content_dispatch h_dispatch)
+                (completedTail_of_dispatch h_dispatch hna hnt)
+                -- **Item 207: and the park's own indent check.**  `content_park_nic_any` is
+@@ -36424,10 +36680,32 @@ lemma content_dispatch_routed
+                h_key
+                (stale_of_dispatch h_dispatch hna hnt
+                  (by split <;> show s_prep.needIndentCheck = false <;> exact h_nic_prep)
+-                 hcorr_result) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 hcorr_result) (by
++                   rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                   · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                       (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                     first
++                     | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                     | exact Or.inl (by
++                         intro nv hm
++                         exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                     | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                   · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 )
+                  (content_park_arm hpeek
+                    h_flow_disp h_not_doc h_dispatch hcorr_result)
+-               (Or.inr trivial) (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               (Or.inr trivial) (by
++                 rcases h_rootctx with ⟨_, _, _, h_root_empty⟩ | _
++                 · have h_root_dom := RegisterWitness.dispatchContent_markedCols h_dispatch
++                     (h_root_empty.transport (by split <;> rfl) (by split <;> rfl))
++                   first
++                   | exact Or.inl ⟨[], h_root_dom, fun _ hm => absurd hm List.not_mem_nil⟩
++                   | exact Or.inl (by
++                       intro nv hm
++                       exact (List.not_mem_nil (h_root_dom.mem hm)).elim)
++                   | exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++                 · exact (Or.inr (PackAlt.step_dispatch h_dispatch h_alt))
++               )
+                (nodir_of_content_dispatch h_dispatch)
+                (completedTail_of_dispatch h_dispatch hna hnt)
+                -- **Item 154: and the park's own indent check.**  `[170]`/`[174]`'s body
+@@ -36550,6 +36828,8 @@ lemma accum_content_on_noPending
+     -- half), and the routed content reads the fresh save off it.
+     (h_park : sc.simpleKeyAllowed = true)
+     (h_colN : sp_block.col = 0)
++    -- Actual scanner projection, supplied from maintained soundness at the caller.
++    (h_empty : RegisterWitness.MarkedColsIn sc [])
+     -- Item 340: the park's dead register (noPending's `h_noek`), the flip's premise.
+     (h_alt : PackAlt sc)
+     (h_not_doc : (if s_prep.allowDirectives then
+@@ -36599,8 +36879,16 @@ lemma accum_content_on_noPending
+   -- Item 136: and the same landing read at the stream's HEAD — the entry a
+   -- landed key would open belongs to the first document too, so `a: 1` and
+   -- `# c⏎a: 1` route their `[187]` through `single` as well.
+-  have h_nodocctx := nodocctx_of_preprocess sc sp_block sp_prep s_prep c h_corr hcorr_prep
+-    h_nodoc h_colN h_preprocess
++  have h_nodocctx : ((∃ (k : Nat) (sp_land : SurfPos),
++        sp_land.col = 0 ∧ GStar SLDocumentPrefix sp_start sp_land ∧
++        SIndent k sp_land sp_prep) ∧
++      s_prep.simpleKey.possible = true ∧
++      s_prep.simpleKey.pos = s_prep.currentPos ∧
++      RegisterWitness.MarkedColsIn s_prep []) ∨ True :=
++    (nodocctx_of_preprocess sc sp_block sp_prep s_prep c h_corr hcorr_prep
++      h_nodoc h_colN h_preprocess).imp
++      (fun ⟨a, b, c⟩ => ⟨a, b, c,
++        RegisterWitness.preprocess_markedCols h_preprocess h_empty⟩) id
+   by_cases hcol : sp_block.col = 0
+   · obtain ⟨sp_sep, h_sep, hcorr_sep⟩ :=
+       preprocess_some_separate_lines_0 sc sp_block s_prep c h_corr hcol h_preprocess
+@@ -39237,7 +39525,7 @@ lemma accum_content_pending (sc : ScannerState)
+     -- dispatch starts is the stream's FIRST document, so it lands in
+     -- `single`'s own `l-any-document?` slot instead of the implicit
+     -- continuation of a stream that has started nothing. ═══
+-    exact accum_content_on_noPending (h_dead := h_dead) (h_colN := h_col76.resolve_right (by simp [noflow_of_fl0 h_fl0])) (h_alt := PackAlt.ofRefused (h_noek76 h_scflow)) (h_src := slotGateAt_of_noPending h_base h_mono (h_ntop76 h_scflow) h_preprocess) sc sp_start sp_block s_prep s' c sp_prep sp_scan'
++    exact accum_content_on_noPending (h_empty := RegisterWitness.MarkedColsIn.of_explicitKeyLine_none h_sound h_fl0 (h_noek76 h_scflow)) (h_dead := h_dead) (h_colN := h_col76.resolve_right (by simp [noflow_of_fl0 h_fl0])) (h_alt := PackAlt.ofRefused (h_noek76 h_scflow)) (h_src := slotGateAt_of_noPending h_base h_mono (h_ntop76 h_scflow) h_preprocess) sc sp_start sp_block s_prep s' c sp_prep sp_scan'
+       h_stream_block hcorr_prep hcorr_result h_corr h_preprocess h_dn h_fv
+       (h_arm76.resolve_right (by rw [h_scflow]; simp)).left
+       h_not_doc h_flow_disp h_dispatch
