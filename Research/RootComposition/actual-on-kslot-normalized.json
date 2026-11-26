@@ -1,6 +1,6 @@
 {
   "item": 538,
-  "tag": "ACTUAL-ON-KSLOT-NORMALIZED",
+  "tag": "ACTUAL-ON-KSLOT-FRAMED-SOURCE",
   "rev": "HEAD",
   "target": "L4YAML",
   "log": "../results/price/normalized-compiler.log",
@@ -681,7 +681,12 @@
             "                                  sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)",
             "                            | Or.inr _ => by",
             "                              intro nv_req hm_req mid_req bi_req end_req tail_req i_req c_req iv_req lit_req v_req sbi_req",
-            "                              assumption)"
+            "                              rcases h_closeFEV_k with h_framed | _h_frame_declined",
+            "                              · obtain ⟨ks_req, _h_width_req, h_cont_req⟩ := h_framed nv_req",
+            "                                  (markedCols_mem_of_step_content h_preprocess h_dispatch hm_req)",
+            "                                exact (h_cont_req mid_req (h_nodeAtG mid_req bi_req) end_req tail_req).close",
+            "                                  i_req c_req iv_req lit_req v_req sbi_req",
+            "                              · assumption)"
           ],
           "count": 2
         },
@@ -703,7 +708,12 @@
             "                                  sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi)",
             "                            | Or.inr _ => by",
             "                              intro nv_req hm_req mid_req bi_req end_req tail_req i_req c_req iv_req lit_req v_req sbi_req",
-            "                              assumption)"
+            "                              rcases h_closeFEV_k with h_framed | _h_frame_declined",
+            "                              · obtain ⟨ks_req, _h_width_req, h_cont_req⟩ := h_framed nv_req",
+            "                                  (markedCols_mem_of_step_content h_preprocess h_dispatch hm_req)",
+            "                                exact (h_cont_req mid_req (h_nodeAt mid_req bi_req) end_req tail_req).close",
+            "                                  i_req c_req iv_req lit_req v_req sbi_req",
+            "                              · assumption)"
           ],
           "count": 1
         }
