@@ -143,9 +143,15 @@ jobs:
           git apply --check ../evidence/Research/ContentSlot/candidate.patch
           git apply ../evidence/Research/ContentSlot/candidate.patch
           sha256sum -c ../evidence/Research/ContentSlot/candidate-source-sha256.txt
+          # A content-valid cached object can predate this checkout. The births
+          # gate also checks timestamp freshness of its declaration ranges.
+          # Recompile the object; preserve the gate and the source timestamps.
+          stat L4YAML/Proofs/Production/StreamAccum.lean .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean > ../results/stream-accum-freshness-before.txt
+          rm -f .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean
           # Rebuild the exact source after retiring two unused library helpers.
           # Their legacy adversarial witnesses now live only in the test module.
           lake build L4YAML.Proofs.Production.DocumentProduction > ../results/source-fresh-build.txt 2>&1
+          stat L4YAML/Proofs/Production/StreamAccum.lean .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean > ../results/stream-accum-freshness-after.txt
           lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms-after.txt 2>&1
           sed -n '/CONTENT_SLOT_AXIOM /p' ../results/axioms-before.txt > ../results/axiom-set-before.txt
           sed -n '/CONTENT_SLOT_AXIOM /p' ../results/axioms-after.txt > ../results/axiom-set-after.txt
@@ -214,7 +220,10 @@ jobs:
         run: |
           set -euo pipefail
           for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
-            lake run "$gate" > "../results/$gate.txt" 2>&1
+            if ! lake run "$gate" > "../results/$gate.txt" 2>&1; then
+              cat "../results/$gate.txt"
+              exit 1
+            fi
           done
           lake run dead-census -- --check > ../results/dead-census.txt 2>&1
           lake run census-dashboard -- --check > ../results/dashboard-check.txt 2>&1

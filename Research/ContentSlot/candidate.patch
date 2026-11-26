@@ -1,5 +1,5 @@
 diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
-index b6379bb4e..6df0b851f 100644
+index b6379bb..6df0b85 100644
 --- a/L4YAML/Proofs/Production/StreamAccum.lean
 +++ b/L4YAML/Proofs/Production/StreamAccum.lean
 @@ -1678,13 +1678,6 @@ lemma flowKeyPack_of_close {sc : ScannerState} {g : Option ScannerState} {n kc :
@@ -420,7 +420,7 @@ index b6379bb4e..6df0b851f 100644
           | Or.inl hvs => Or.inl ⟨nmv, sp_block, h_stream_block,
               -- Item 209: the slot's own stack top, handed across — the park
 diff --git a/Tests/AdversarialInstantiation.lean b/Tests/AdversarialInstantiation.lean
-index f4f2466bf..04b7b62f4 100644
+index f4f2466..04b7b62 100644
 --- a/Tests/AdversarialInstantiation.lean
 +++ b/Tests/AdversarialInstantiation.lean
 @@ -20022,6 +20022,53 @@ def testKeyFoldShadow (state : IO.Ref TestCollector) : IO Unit := do
@@ -486,7 +486,7 @@ index f4f2466bf..04b7b62f4 100644
    testKslotDomain state
    testFlowCarrier state
 diff --git a/Tests/Guards/Proofs/ArmSpendCensus.lean b/Tests/Guards/Proofs/ArmSpendCensus.lean
-index a4396336f..3063619ba 100644
+index a439633..3063619 100644
 --- a/Tests/Guards/Proofs/ArmSpendCensus.lean
 +++ b/Tests/Guards/Proofs/ArmSpendCensus.lean
 @@ -42,7 +42,6 @@ weakened lemmas which feed each other cannot mask one another — it reads:
@@ -565,7 +565,7 @@ index a4396336f..3063619ba 100644
  run_cmd do
    let env ← getEnv
 diff --git a/Tests/Guards/Proofs/BlockDeferralClasses.lean b/Tests/Guards/Proofs/BlockDeferralClasses.lean
-index 7f873f4c8..2ca844a4d 100644
+index 7f873f4..2ca844a 100644
 --- a/Tests/Guards/Proofs/BlockDeferralClasses.lean
 +++ b/Tests/Guards/Proofs/BlockDeferralClasses.lean
 @@ -15,6 +15,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
@@ -664,7 +664,7 @@ index 7f873f4c8..2ca844a4d 100644
  example {P : Nat → Prop} {a : Nat} (h : ∀ x ∈ [a], P x) : P a := h a (List.Mem.head [])
  
 diff --git a/Tests/Guards/Proofs/CapstonePathAudit.lean b/Tests/Guards/Proofs/CapstonePathAudit.lean
-index f159e178a..34c9a2068 100644
+index f159e17..34c9a20 100644
 --- a/Tests/Guards/Proofs/CapstonePathAudit.lean
 +++ b/Tests/Guards/Proofs/CapstonePathAudit.lean
 @@ -41,18 +41,20 @@ open Scripts.Path.CapstonePath
@@ -690,8 +690,21 @@ index f159e178a..34c9a2068 100644
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock[13].h_kslot top ∨ PackAlt on-drop",
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent[15].h_kslot top ∨ PackAlt on-drop",
     "L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent[16].h_vpack top ∨ PackAlt on-relay"]
+diff --git a/Tests/Guards/Proofs/CarrierArmPrice.lean b/Tests/Guards/Proofs/CarrierArmPrice.lean
+index dd4c055..596b9a7 100644
+--- a/Tests/Guards/Proofs/CarrierArmPrice.lean
++++ b/Tests/Guards/Proofs/CarrierArmPrice.lean
+@@ -320,7 +320,7 @@ def expectedLine : String :=
+   -- all anchored (surface positions and floor-read obligations); mentions 43 unmoved (no lemma names the arm yet).
+   -- 2026-11-14 (item 490, the ∀-floor fold): mentions 42 → 43 (`accum_step_content_pairK` reads the arm in its
+   -- proof); prods and arm classes unchanged — §10's nine lemmas add no production.
+-  "prods=175 ctors=336 same=27 direct=308 anchoredOnly=25 broken=3 surfArms=184 surfDirect=183 candidate=direct candidateNil=direct readers=3 libReaders=2 guardReaders=1 mentions=45 producers=21 absorbReaders=5 absorbPlainReaders=0"
++  "prods=175 ctors=336 same=27 direct=308 anchoredOnly=25 broken=3 surfArms=184 surfDirect=183 candidate=direct candidateNil=direct readers=3 libReaders=2 guardReaders=1 mentions=44 producers=21 absorbReaders=5 absorbPlainReaders=0"
+ 
+ /-- Non-circularity, items 242–245's check: the closing lemma spends item 244's
+     span (`glit`), lands in the candidate arm (`arm`), and routes through no
 diff --git a/Tests/Guards/Proofs/CloseLandingWidth.lean b/Tests/Guards/Proofs/CloseLandingWidth.lean
-index 74395189d..9b60a1f82 100644
+index 7439518..9b60a1f 100644
 --- a/Tests/Guards/Proofs/CloseLandingWidth.lean
 +++ b/Tests/Guards/Proofs/CloseLandingWidth.lean
 @@ -477,6 +477,8 @@ def emptiesOf (c : Name) : MetaM (Array Empty) := do
@@ -785,7 +798,7 @@ index 74395189d..9b60a1f82 100644
  /-! ## §5 The reading -/
  
 diff --git a/Tests/Guards/Proofs/CloseSplitFrames.lean b/Tests/Guards/Proofs/CloseSplitFrames.lean
-index c40438a6e..60ab0df84 100644
+index c40438a..60ab0df 100644
 --- a/Tests/Guards/Proofs/CloseSplitFrames.lean
 +++ b/Tests/Guards/Proofs/CloseSplitFrames.lean
 @@ -649,21 +649,21 @@ def doorOf (lem : Name) (parks : List Name) : MetaM (Array String) := do
@@ -889,7 +902,7 @@ index c40438a6e..60ab0df84 100644
    let check (name : String) (gotL : Array String) (exp : List String) : MetaM Unit := do
      let gotL := gotL.map (·.trimAscii.toString)
 diff --git a/Tests/Guards/Proofs/CloseStackCover.lean b/Tests/Guards/Proofs/CloseStackCover.lean
-index 922b2d68d..ad4394447 100644
+index 922b2d6..ad43944 100644
 --- a/Tests/Guards/Proofs/CloseStackCover.lean
 +++ b/Tests/Guards/Proofs/CloseStackCover.lean
 @@ -832,6 +832,8 @@ sixth component (`nodes` 95163 → 96024). -/
@@ -941,7 +954,7 @@ index 922b2d68d..ad4394447 100644
    check "expectedTrees" treeLines expectedTrees
    check "expectedEight" eightLines expectedEight
 diff --git a/Tests/Guards/Proofs/ConclusionRouteCensus.lean b/Tests/Guards/Proofs/ConclusionRouteCensus.lean
-index ed30045da..3397c529e 100644
+index ed30045..3397c52 100644
 --- a/Tests/Guards/Proofs/ConclusionRouteCensus.lean
 +++ b/Tests/Guards/Proofs/ConclusionRouteCensus.lean
 @@ -408,6 +408,8 @@ namespace L4YAML.Tests.Guards.ConclusionRouteCensus
@@ -962,8 +975,21 @@ index ed30045da..3397c529e 100644
  
  end L4YAML.Tests.Guards.ConclusionRouteCensus
  
+diff --git a/Tests/Guards/Proofs/DeadDeclarationCensus.lean b/Tests/Guards/Proofs/DeadDeclarationCensus.lean
+index fa3d990..82968f5 100644
+--- a/Tests/Guards/Proofs/DeadDeclarationCensus.lean
++++ b/Tests/Guards/Proofs/DeadDeclarationCensus.lean
+@@ -85,7 +85,7 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
+ -- (thm 4287 → 4244), A-campaign 1173 → 1124, A-orphan 142 → 103 — 49 campaign declarations nothing referenced are deleted
+ -- (46 of the list before item 534, and 3 of the 10 the deletion freed); roster and cluster-roots unmoved.
+ def expectedDeadCensus : String :=
+-  "population=14050 thm=10170 def=2513 roots=capstone:27+export:37+blueprint:223(unresolved=5) unreached=5948 thm=4244 A-campaign=1124 A-orphan=103 C-api=1244 D-test-only=272 B-roster=3308 thm=2961 cluster-roots=1459"
++  "population=14049 thm=10169 def=2513 roots=capstone:27+export:37+blueprint:223(unresolved=5) unreached=5948 thm=4244 A-campaign=1124 A-orphan=103 C-api=1244 D-test-only=272 B-roster=3308 thm=2961 cluster-roots=1459"
+ 
+ /-- `B-roster=N` out of the summary. -/
+ def rosterCount (summary : String) : Option Nat := do
 diff --git a/Tests/Guards/Proofs/DispatchPrice.lean b/Tests/Guards/Proofs/DispatchPrice.lean
-index 7f7e8e311..50d345165 100644
+index 7f7e8e3..50d3451 100644
 --- a/Tests/Guards/Proofs/DispatchPrice.lean
 +++ b/Tests/Guards/Proofs/DispatchPrice.lean
 @@ -249,6 +249,8 @@ def readDecl (prods : Std.HashSet Name) (n : Name) : MetaM R := do
@@ -994,7 +1020,7 @@ index 7f7e8e311..50d345165 100644
  /-- **The one worked precedent is outside the work.**  It is not in item 238's
      transitive set and not on either repair thread, so β.5 neither pays for it
 diff --git a/Tests/Guards/Proofs/FlipConsumerSurface.lean b/Tests/Guards/Proofs/FlipConsumerSurface.lean
-index e6991a3e5..2e207202f 100644
+index e6991a3..2e20720 100644
 --- a/Tests/Guards/Proofs/FlipConsumerSurface.lean
 +++ b/Tests/Guards/Proofs/FlipConsumerSurface.lean
 @@ -135,9 +135,10 @@ def guards : List Name :=
@@ -1023,7 +1049,7 @@ index e6991a3e5..2e207202f 100644
         -- `pendingFlow` arm's application is the one left here.
         "accum_block_pending: block_dispatch_deferred_inline=1",
 diff --git a/Tests/Guards/Proofs/FreeSurfaceCensus.lean b/Tests/Guards/Proofs/FreeSurfaceCensus.lean
-index 7c84cc1df..ecb571e49 100644
+index 7c84cc1..ecb571e 100644
 --- a/Tests/Guards/Proofs/FreeSurfaceCensus.lean
 +++ b/Tests/Guards/Proofs/FreeSurfaceCensus.lean
 @@ -81,6 +81,8 @@ them typechecks, and it survives β.5 when `stream_refl` alone does it. -/
@@ -1045,7 +1071,7 @@ index 7c84cc1df..ecb571e49 100644
  
  /-- Every free theorem, with the route that closes it.  A count alone would not
 diff --git a/Tests/Guards/Proofs/HypothesisReaderCensus.lean b/Tests/Guards/Proofs/HypothesisReaderCensus.lean
-index f20775b7a..b30c5b8c0 100644
+index f20775b..b30c5b8 100644
 --- a/Tests/Guards/Proofs/HypothesisReaderCensus.lean
 +++ b/Tests/Guards/Proofs/HypothesisReaderCensus.lean
 @@ -298,9 +298,11 @@ is `colon_fires_implicit_key` alone.  Disjoint readers, from the term. -/
@@ -1139,7 +1165,7 @@ index f20775b7a..b30c5b8c0 100644
  run_cmd do
    let env ← getEnv
 diff --git a/Tests/Guards/Proofs/IndexCensus.lean b/Tests/Guards/Proofs/IndexCensus.lean
-index 4898272eb..dd170a2cf 100644
+index 4898272..dd170a2 100644
 --- a/Tests/Guards/Proofs/IndexCensus.lean
 +++ b/Tests/Guards/Proofs/IndexCensus.lean
 @@ -279,7 +279,12 @@ def surfaceControl : CommandElabM (Array String) := do
@@ -1167,7 +1193,7 @@ index 4898272eb..dd170a2cf 100644
     "stream/other/occ=4  ×4",
     "stream/other/occ=6  ×1",
 diff --git a/Tests/Guards/Proofs/NarrowingWorthCensus.lean b/Tests/Guards/Proofs/NarrowingWorthCensus.lean
-index ec71f2203..375f9f89b 100644
+index ec71f22..375f9f8 100644
 --- a/Tests/Guards/Proofs/NarrowingWorthCensus.lean
 +++ b/Tests/Guards/Proofs/NarrowingWorthCensus.lean
 @@ -300,7 +300,9 @@ def isSurfFace (env : Environment) (lhs : Expr) : MetaM Bool := do
@@ -1236,7 +1262,7 @@ index ec71f2203..375f9f89b 100644
  -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
  -- grew and the predicate gained its tools.  What is new in kind: `AG` carries
 diff --git a/Tests/Guards/Proofs/OpenEntryRoute.lean b/Tests/Guards/Proofs/OpenEntryRoute.lean
-index 603f7bdc3..09d849924 100644
+index 603f7bd..09d8499 100644
 --- a/Tests/Guards/Proofs/OpenEntryRoute.lean
 +++ b/Tests/Guards/Proofs/OpenEntryRoute.lean
 @@ -428,6 +428,8 @@ def exhibits : List Name :=
@@ -1258,7 +1284,7 @@ index 603f7bdc3..09d849924 100644
  /-! ## §6 The reading -/
  
 diff --git a/Tests/Guards/Proofs/OrTrueAudit.lean b/Tests/Guards/Proofs/OrTrueAudit.lean
-index fae4ebc7c..d0481cf7c 100644
+index fae4ebc..d0481cf 100644
 --- a/Tests/Guards/Proofs/OrTrueAudit.lean
 +++ b/Tests/Guards/Proofs/OrTrueAudit.lean
 @@ -257,11 +257,13 @@ def posLine (p : Pos) : String := s!"{p.decl}{p.site} {p.kind} ∨ {p.alt}"
@@ -1286,7 +1312,7 @@ index fae4ebc7c..d0481cf7c 100644
    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[20].h_mk paid [DECLINE=10 PAY=1]",
    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[26].h_tail139 paid [DECLINE=8 PAY=3]",
 diff --git a/Tests/Guards/Proofs/PaidLeafDelta.lean b/Tests/Guards/Proofs/PaidLeafDelta.lean
-index 192bea694..f6671c743 100644
+index 192bea6..f6671c7 100644
 --- a/Tests/Guards/Proofs/PaidLeafDelta.lean
 +++ b/Tests/Guards/Proofs/PaidLeafDelta.lean
 @@ -217,6 +217,8 @@ partial def scanFloors (st : IO.Ref FS) (lem : Name) (stk : Stack) (e : Expr) :
@@ -1317,7 +1343,7 @@ index 192bea694..f6671c743 100644
      let some idx := ci.type.getForallBinderNames.toArray.findIdx? (· == p) | throwError "{l}.{p}: missing"
      cd := { cd with funnels := cd.funnels.insert l (idx, p), consts := cd.consts.insert l }
 diff --git a/Tests/Guards/Proofs/ParkBill.lean b/Tests/Guards/Proofs/ParkBill.lean
-index 618f39ed4..41d2756d0 100644
+index 618f39e..41d2756 100644
 --- a/Tests/Guards/Proofs/ParkBill.lean
 +++ b/Tests/Guards/Proofs/ParkBill.lean
 @@ -148,6 +148,8 @@ capstonesInTp={b.capstonesInTrans.size}"
@@ -1339,7 +1365,7 @@ index 618f39ed4..41d2756d0 100644
  /-- Names the park in a PROOF TERM — builders and case splits together, which
      no syntactic reading separates (item 240).  **Seven of the nine break and
 diff --git a/Tests/Guards/Proofs/ParkGapProduction.lean b/Tests/Guards/Proofs/ParkGapProduction.lean
-index c97a544b1..4bb307ce1 100644
+index c97a544..4bb307c 100644
 --- a/Tests/Guards/Proofs/ParkGapProduction.lean
 +++ b/Tests/Guards/Proofs/ParkGapProduction.lean
 @@ -251,39 +251,19 @@ partial def walk (prods : Std.HashSet Name) (decl : Name) (e : Expr) : W Unit :=
@@ -1407,7 +1433,7 @@ index c97a544b1..4bb307ce1 100644
  /-- The non-circularity check items 242, 243 and 244 also carry: a measurement
      of what the escape costs may not route through the escape.  `glit=true`
 diff --git a/Tests/Guards/Proofs/ParkGapWidth.lean b/Tests/Guards/Proofs/ParkGapWidth.lean
-index c7267075a..92bcccbb7 100644
+index c726707..92bcccb 100644
 --- a/Tests/Guards/Proofs/ParkGapWidth.lean
 +++ b/Tests/Guards/Proofs/ParkGapWidth.lean
 @@ -281,7 +281,7 @@ def wrapOffcol : Name := `L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stam
@@ -1524,7 +1550,7 @@ index c7267075a..92bcccbb7 100644
  /-- **What §1's proofs spend.**  `drop=false` is the non-circularity check
      items 242 and 243 also carry: a measurement of what the escape costs may
 diff --git a/Tests/Guards/Proofs/PremiseNecessityCensus.lean b/Tests/Guards/Proofs/PremiseNecessityCensus.lean
-index b4ad58f6d..5ffa47d5a 100644
+index b4ad58f..5ffa47d 100644
 --- a/Tests/Guards/Proofs/PremiseNecessityCensus.lean
 +++ b/Tests/Guards/Proofs/PremiseNecessityCensus.lean
 @@ -180,7 +180,7 @@ def chaseP (env : Environment) (fuel : Nat) (c : Name) (i : Nat) : Std.HashSet S
@@ -1603,7 +1629,7 @@ index b4ad58f6d..5ffa47d5a 100644
  run_cmd do
    let env ← getEnv
 diff --git a/Tests/Guards/Proofs/ProducerDerivation.lean b/Tests/Guards/Proofs/ProducerDerivation.lean
-index 0264d07b5..c90260382 100644
+index 0264d07..c902603 100644
 --- a/Tests/Guards/Proofs/ProducerDerivation.lean
 +++ b/Tests/Guards/Proofs/ProducerDerivation.lean
 @@ -262,6 +262,8 @@ def readDecl (n : Name) : MetaM Readings := do
@@ -1661,7 +1687,7 @@ index 0264d07b5..c90260382 100644
     `L4YAML.Proofs.StreamAccum.colon_fires_props_key]
  
 diff --git a/Tests/Guards/Proofs/PuntCoverInputs.lean b/Tests/Guards/Proofs/PuntCoverInputs.lean
-index 4e4d26c6d..f74532349 100644
+index 4e4d26c..f745323 100644
 --- a/Tests/Guards/Proofs/PuntCoverInputs.lean
 +++ b/Tests/Guards/Proofs/PuntCoverInputs.lean
 @@ -684,6 +684,8 @@ partial def relaySrcs : Cls → Array String
@@ -1692,7 +1718,7 @@ index 4e4d26c6d..f74532349 100644
      let some idx := ci.type.getForallBinderNames.toArray.findIdx? (· == p) | throwError "{l}.{p}: missing"
      cd := { cd with funnels := cd.funnels.insert l (idx, p), consts := cd.consts.insert l }
 diff --git a/Tests/Guards/Proofs/RelaySupplyCensus.lean b/Tests/Guards/Proofs/RelaySupplyCensus.lean
-index 2af1f549e..824334a07 100644
+index 2af1f54..824334a 100644
 --- a/Tests/Guards/Proofs/RelaySupplyCensus.lean
 +++ b/Tests/Guards/Proofs/RelaySupplyCensus.lean
 @@ -965,14 +965,16 @@ def hopName (env : Environment) (e : Edge) : String :=
@@ -1783,7 +1809,7 @@ index 2af1f549e..824334a07 100644
  /-- **Read off the TYPE, not off a list.**  Item 211's falsification script
      enumerated five optional contexts of `content_dispatch_routed` by hand;
 diff --git a/Tests/Guards/Proofs/RepairChoice.lean b/Tests/Guards/Proofs/RepairChoice.lean
-index 5d78133ef..f26f9ae0e 100644
+index 5d78133..f26f9ae 100644
 --- a/Tests/Guards/Proofs/RepairChoice.lean
 +++ b/Tests/Guards/Proofs/RepairChoice.lean
 @@ -238,10 +238,12 @@ def holdsScanStream (n : Name) : MetaM (Nat × Nat × Bool) := do
@@ -1801,7 +1827,7 @@ index 5d78133ef..f26f9ae0e 100644
  /-- The first ring: the five library consumers item 238 named, and item 239's
      own exhibit, which rides the arm on purpose and goes with it. -/
 diff --git a/Tests/Guards/Proofs/RouteShapes.lean b/Tests/Guards/Proofs/RouteShapes.lean
-index c07eaf537..2cbefbf63 100644
+index c07eaf5..2cbefbf 100644
 --- a/Tests/Guards/Proofs/RouteShapes.lean
 +++ b/Tests/Guards/Proofs/RouteShapes.lean
 @@ -676,6 +676,8 @@ def walk (table : Std.HashMap Name (Array Closure)) (c : Name) :
@@ -1823,7 +1849,7 @@ index c07eaf537..2cbefbf63 100644
  set_option maxHeartbeats 4000000 in
  run_cmd Lean.Elab.Command.liftTermElabM do
 diff --git a/Tests/Guards/Proofs/StreamCompositions.lean b/Tests/Guards/Proofs/StreamCompositions.lean
-index d035be216..d3bb39a1b 100644
+index d035be2..d3bb39a 100644
 --- a/Tests/Guards/Proofs/StreamCompositions.lean
 +++ b/Tests/Guards/Proofs/StreamCompositions.lean
 @@ -629,6 +629,8 @@ perturbed by `perturb.sh`, and each perturbation must throw. -/
@@ -1845,7 +1871,7 @@ index d035be216..d3bb39a1b 100644
  /-! ## §5 The reading -/
  
 diff --git a/Tests/Guards/Proofs/ValueLineOrigins.lean b/Tests/Guards/Proofs/ValueLineOrigins.lean
-index 5552a888d..91818f4d3 100644
+index 5552a88..91818f4 100644
 --- a/Tests/Guards/Proofs/ValueLineOrigins.lean
 +++ b/Tests/Guards/Proofs/ValueLineOrigins.lean
 @@ -318,7 +318,7 @@ partial def lvlOf (env : Environment) (st : Stack) (t : Expr) : Option String :=
@@ -2276,7 +2302,7 @@ index 5552a888d..91818f4d3 100644
  /-! ## §4 The reading -/
  
 diff --git a/Tests/Guards/Proofs/ValueLinePacks.lean b/Tests/Guards/Proofs/ValueLinePacks.lean
-index 001a1afe2..f5602331c 100644
+index 001a1af..f560233 100644
 --- a/Tests/Guards/Proofs/ValueLinePacks.lean
 +++ b/Tests/Guards/Proofs/ValueLinePacks.lean
 @@ -728,6 +728,8 @@ def pinned : Bool := true

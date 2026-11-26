@@ -124,3 +124,28 @@ sites 10 -> 9; NOSPEND 7 -> 6; spending sites remain 3. The remaining production
 universe and dependency readings remain unchanged. These are predictions,
 not fresh measured totals, until the guard recompiles. All final gates and
 native suites must pass before the whole candidate is promoted.
+
+
+Run 45769110127 discharged the stale path-roster residual: the full default
+build passed at round 2 (2645 jobs), and the guard/dead-census/dashboard stages
+passed. Independently rehashed artifact 15093881083 is
+36857e6f02a4cb57d5d55f2ef805cd4a71b69a41b325857b467a8b0dc63f0609;
+all 221 ZIP members passed CRC. Its qualified patch and file hashes seed this
+continuation exactly: candidate tree ef05cf4367faf23ca30759f2fe8876b00c85a294.
+The production proof and adversarial code have not changed.
+
+The final stage stopped at check-pack-births because the cached StreamAccum
+object predated its freshly patched source. Lake's content cache reuse and
+the births instrument's timestamp requirement are separate checks. Remove
+only that compiled object and rebuild it from the unchanged candidate before
+replaying the intact gate; retain before/after metadata. This continuation
+predicts the measured source/tree and proof impact remain identical, the
+freshness check passes, and the native battery finally executes. Those last
+gates remain UNKNOWN until their fresh terminal results.
+
+Owner audit #383 at 13368acd prices the block-side slot routes (96/16) and
+separates in-place R3, R2 and R1 writer payments from the domain correction
+that makes the off-column wrapper refutable. This candidate addresses that
+consumer-domain correction and the two marker supplies; it does not include
+root-slot PR #380 or claim completion of the R1/R2/R3 sequence, the flow-frame
+PackAltG, full pendingContent retirement, or scannerDrop removal.
