@@ -1,0 +1,32 @@
+name: Verify and retain ancestor producer diagnostic evidence
+on:
+  push:
+    branches: [test/proper-ancestor-producer-price]
+    paths: [.github/workflows/ancestor-producer-evidence.yml]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify original artifact and display exact residuals
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15155217329/zip > ancestor-producer-original.zip
+          echo 'e9c1cd57746b05432b74d673180ed3b568093a172b72744f7b09803e7d639abb  ancestor-producer-original.zip' | sha256sum -c -
+          unzip -t ancestor-producer-original.zip
+          unzip -q ancestor-producer-original.zip -d original
+          diff -u original/baseline-axioms.txt original/price/normalized-restored-axioms.txt
+          diff -u original/baseline-root-axioms.txt original/price/normalized-restored-root-axioms.txt
+          cat original/spec-sha256.txt original/source-identity.txt original/outcomes.txt
+          echo BEGIN-ANCESTOR-REPORT
+          cat original/price/normalized-report.txt
+          echo END-ANCESTOR-REPORT
+          echo BEGIN-ANCESTOR-ARCHIVE
+          base64 -w 76 ancestor-producer-original.zip
+          echo END-ANCESTOR-ARCHIVE
