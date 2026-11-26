@@ -1,0 +1,42 @@
+name: Preserve verified compact slot qualification archive
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths:
+      - .github/workflows/persist-r2-slot-evidence.yml
+permissions:
+  contents: write
+  actions: read
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Copy the exact verified artifact and commit only its archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R2_EXPECTED_HEAD: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          R2_ARCHIVE=Research/RootComposition/qualified-r2-compact-own-evidence.zip
+          curl --fail --location --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/metalogiclabs/L4YAML/actions/artifacts/15156035618/zip \
+            --output "$R2_ARCHIVE"
+          echo '8e9d2f83679a28b4e588422c01789a5f0405e70e88b88dd892c8706d46b1fc46  Research/RootComposition/qualified-r2-compact-own-evidence.zip' | sha256sum -c -
+          unzip -t "$R2_ARCHIVE"
+          test "$(unzip -Z1 "$R2_ARCHIVE" | wc -l)" = 65
+          R2_ARCHIVE_BLOB=$(git hash-object "$R2_ARCHIVE")
+          git add "$R2_ARCHIVE"
+          test "$(git rev-parse ":$R2_ARCHIVE")" = "$R2_ARCHIVE_BLOB"
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'evidence: preserve verified compact own-slot qualification archive'
+          R2_CURRENT_HEAD=$(git ls-remote origin refs/heads/test/root-domain-qualification | cut -f1)
+          test "$R2_CURRENT_HEAD" = "$R2_EXPECTED_HEAD"
+          git push origin HEAD:refs/heads/test/root-domain-qualification
+          printf 'ARCHIVE_GIT_BLOB=%s\nARCHIVE_COMMIT=%s\n' "$R2_ARCHIVE_BLOB" "$(git rev-parse HEAD)"

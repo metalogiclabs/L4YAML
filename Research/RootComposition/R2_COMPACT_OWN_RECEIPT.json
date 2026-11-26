@@ -1,0 +1,125 @@
+{
+  "state": "WARRANTED bounded compact own-column writer payment; full R2 OPEN",
+  "harness": "a230a368673253e706a7e6f08a4276a42e377c13",
+  "run": 45898012881,
+  "job": 140176612849,
+  "workflow_conclusion": "success",
+  "qualified_source_commit": "f472ce463b3a4c80e675f08bc1ee4ebcb502ac77",
+  "qualified_source_tree": "c5b769ae96bdb8015a2148f9f274826126c0f114",
+  "qualified_source_base": "2c00e38e677a3924b6db204f7c8d8f6331899173",
+  "toolchain": "Lean 4.36.0",
+  "stream_sha256": "46a1e85d8714960a822d503cb9367c8b137aede0d53a7e125f2aaa8bd984385d",
+  "stream_git_blob": "7f731ef53f93aebc969b9790ad03bc14b7cd029e",
+  "change": "The compact PendingNode.pendingBlock.h_kslot writer supplies Or.inl from the required hkv when every actual post-state mark is the slot own column. The proper-ancestor alternative is retained. Parent 2c00e38e supplies landed ancestor value-line KeyFrames from hkvUp, preserving its singleton own-route fallback.",
+  "statements_unchanged": true,
+  "new_optional_carriers": 0,
+  "new_lemmas": 0,
+  "runtime_source_changed": false,
+  "proof_build_jobs": 241,
+  "full_default_build_jobs": 2645,
+  "successful_census_round": 5,
+  "repository_gates": "all passed",
+  "native_verified_cases": {
+    "passed": 65233,
+    "total": 65233
+  },
+  "directed_controls": {
+    "cases": 8,
+    "accepted": 8,
+    "multi_mark_dash_steps": 4,
+    "own_mark_dash_steps": 4,
+    "source_initialized": true
+  },
+  "closing_controls": {
+    "inputs": 720,
+    "accepted": 680,
+    "rejected": 40,
+    "value_steps": 1816,
+    "closing_marked_before": 1696,
+    "retained_ancestors": 1216
+  },
+  "corpus": {
+    "passed": 869,
+    "failed": 0,
+    "skipped": 151
+  },
+  "event_score": {
+    "correct": 347,
+    "scored": 358,
+    "known_differences": 11
+  },
+  "existing_checked_axiom_profiles_byte_identical": true,
+  "new_custom_axioms": false,
+  "axiom_scope": "Existing qualified capstone/root profiles, including their existing native_decide dependencies, are unchanged; no blanket three-axiom claim.",
+  "guard_algorithms_unchanged": true,
+  "ceilings_unchanged": true,
+  "guard_snapshot_files": [
+    "CloseLandingWidth",
+    "CloseSplitFrames",
+    "RelaySupplyCensus",
+    "ValueLineOrigins",
+    "ValueLinePacks"
+  ],
+  "critical_ON_positions": [
+    7,
+    7
+  ],
+  "optional_positions": [
+    252,
+    252
+  ],
+  "critical_ON_retirement": false,
+  "dashboard_directed_moves": 0,
+  "dashboard_population_moves": 14,
+  "measured_paid_leaf_change": {
+    "PAY": [
+      195,
+      196
+    ],
+    "PAY_free": [
+      195,
+      196
+    ],
+    "DECLINE": [
+      206,
+      206
+    ]
+  },
+  "artifact": 15156035618,
+  "artifact_sha256": "8e9d2f83679a28b4e588422c01789a5f0405e70e88b88dd892c8706d46b1fc46",
+  "artifact_bytes": 233830,
+  "artifact_CRC_members": 65,
+  "independent_verification": {
+    "archive_SHA256": true,
+    "all_archive_CRCs": true,
+    "bundle_pack_SHA1": true,
+    "packed_new_StreamAccum_blob_reconstructed": true,
+    "stream_blob_SHA256_matches_pinned_candidate": true,
+    "commit_header_tree_parent_verified": true,
+    "full_local_git_tree_replay": false,
+    "local_Lean_replay": false
+  },
+  "qualified_parent_receipt": "Research/RootComposition/R2_LANDED_RECEIPT.json",
+  "qualified_parent_archive": "Research/RootComposition/qualified-r2-landed-evidence.zip",
+  "qualified_parent_archive_git_blob": "fdd634537f91b0fffbd26c39447a945f2f01cea6",
+  "qualified_parent_archive_sha256": "6f571018f26451b78cef15c6dacac03084633fc3fbb71f45650b6b6ff32cef00",
+  "stronger_probe": {
+    "run": 45894740733,
+    "harness": "76c392fbc115851b409ea5311ad98043c7d52990",
+    "immediate_goals": 3,
+    "declarations": 1,
+    "status": "INCOMPLETE; its statement-strengthening and paired property-route changes are not included in this qualified source."
+  },
+  "limits": [
+    "All seven critical ON positions remain. This is an additional paid branch on existing statements, not global critical-position retirement.",
+    "Surviving-ancestor continuation across explicit-colon value slots remains optional.",
+    "Integration with owner snapshot a62ac16b and production PR qualification not attempted.",
+    "No universal YAML correspondence, complete conformance or independent local Lean replay claimed."
+  ],
+  "next_smallest_experiment": "Retain the source-owned full entry/value-line witness across colon_open_map_explicit before its close projection on the actual surviving-ancestor domain. Preserve own-cleared, ancestor-survives and non-question-slot controls. Do not rerun this qualified candidate or the unchanged three-goal diagnostic.",
+  "durable_archive": {
+    "path": "Research/RootComposition/qualified-r2-compact-own-evidence.zip",
+    "copy_status": "PENDING archive-only workflow; qualification already complete"
+  },
+  "workspace_note": "Local workspace disconnected after independent archive, source-blob and commit-header verification. Archive persistence uses a separate GitHub download/hash/CRC/commit job; no Lean or native rebuild."
+}
