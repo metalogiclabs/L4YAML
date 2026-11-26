@@ -90,5 +90,20 @@
     "remaining_failure": "ParkGapWidth expectedSites: three retired off-column application sites",
     "format_calibration": "one edit then zero; the ten actual rows are a strict subset of the thirteen old rows; every removed row is stamp_offcol width=1",
     "unchanged_library_proof_sha256": "7d97423150dc4271f9a4b7ce19caa9e0a99c4fb1434cfea4b207fec5d4320c6d"
+  },
+  "attempt_45756523630": {
+    "state": "census continuation; unchanged proof boundary retained",
+    "artifact": 15087732481,
+    "archive_sha256": "7f18ee01335df4ec035530e41da7ea1ccebce9258954dc76e630e0dbb0d93e50",
+    "independent_sha256_crc": "PASS",
+    "files": 183,
+    "remaining_failure": "downstream ParkGapProduction expectedPaths omits the same three retired offcol calls",
+    "calibration": "unique old literal, ten actual rows form strict subset of thirteen; exactly three removed rows name stamp_offcol; one edit then zero",
+    "dashboard_preview": {
+      "directed_toward": 1,
+      "directed_away": 2,
+      "owner_review_required": true
+    },
+    "proof_unchanged": true
   }
 }

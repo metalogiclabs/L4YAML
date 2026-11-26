@@ -99,6 +99,13 @@ jobs:
           grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/park-fixture-first.txt
           lean --run Research/ContentSlot/MeasuredRepin.lean ../results/expanded-evidence/full-build-3.txt ../results/park-fixture > ../results/park-fixture-repeat.txt 2>&1
           grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/park-fixture-repeat.txt
+          unzip -p ../evidence/Research/ContentSlot/park-production-evidence.zip full-build-2.txt > ../results/offcol-roster-build.txt
+          mkdir -p ../results/offcol-fixture/Tests/Guards/Proofs
+          cp Tests/Guards/Proofs/ParkGapProduction.lean ../results/offcol-fixture/Tests/Guards/Proofs/
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/offcol-roster-build.txt ../results/offcol-fixture > ../results/offcol-fixture-first.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 1' ../results/offcol-fixture-first.txt
+          lean --run Research/ContentSlot/MeasuredRepin.lean ../results/offcol-roster-build.txt ../results/offcol-fixture > ../results/offcol-fixture-repeat.txt 2>&1
+          grep -Fx 'MEASURED_REPIN_EDITS 0' ../results/offcol-fixture-repeat.txt
       - name: Build the strengthened domain and measure the proof graph
         working-directory: upstream
         shell: bash

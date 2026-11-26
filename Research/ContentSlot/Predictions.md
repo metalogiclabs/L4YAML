@@ -65,3 +65,10 @@ ParkGapWidth site roster, whose ten reported sites omit exactly the three
 retired off-column applications. That exact diagnostic now calibrates one
 edit followed by zero; the retained progress patch seeds every measured pin.
 No library proof or adversarial source changed. Full native gates remain pending.
+
+Run 45756523630 compiled ParkGapWidth after measuring its preprocessing
+holder increase 261 to 262. Its downstream ParkGapProduction guard then
+reported the same three removed application paths. The next continuation
+seeds those exact paths and calibrates a unique strict-subset update; only
+three rows naming stamp_offcol may disappear. The dashboard preview explicitly
+reports one directed improvement and two AWAY readings requiring owner review.

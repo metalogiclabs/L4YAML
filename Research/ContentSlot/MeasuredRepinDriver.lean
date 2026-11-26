@@ -205,6 +205,31 @@ def printedRow (s : String) : String :=
 
 #guard printedRow "    \"decl[10] paid\"," == "decl[10] paid"
 
+-- Some site guards emit only their actual rows. A strict subset can be copied
+-- only when one old literal matches and exactly the three retired offcol calls
+-- disappear; the remaining wrapper declaration must stay on that roster.
+def retiredOffcolRoster (ls body : Array String) : IO (Array String × Nat) := do
+  let fresh := ((body.toList.drop 1).takeWhile fun l =>
+    (pyStrip l).startsWith "L4YAML.Proofs.StreamAccum.").map pyStrip
+  if fresh.isEmpty then return (ls,0)
+  let mut names : List String := []
+  for line in ls do
+    let some h := defHead? line | continue
+    if !h.name.startsWith "expected" || h.ty != "List String" then continue
+    let some sp := measuredSpan ls h.name | continue
+    let some old := oldValues? ls sp | continue
+    let removed := old.filter fun x => !fresh.contains x
+    if fresh.length + 3 == old.length && fresh.all old.contains &&
+        removed.length == 3 && removed.all (fun x =>
+          (x.splitOn "block_dispatch_deferred_stamp_offcol").length == 2) then
+      names := names ++ [h.name]
+  if names.length != 1 then return (ls,0)
+  match replaceMeasured ls names.head! fresh false with
+  | .error e => IO.eprintln s!"MEASURED_REPIN_SKIP {e}"; return (ls,0)
+  | .ok (next, changed) =>
+    if changed then IO.println s!"MEASURED_REPIN {names.head!} after exactly three retired offcol applications"
+    return (next, if changed then 1 else 0)
+
 def knownListFormats (file : String) (ls body : Array String) : IO (Array String × Nat) := do
   let title := body[0]?.getD ""
   let name :=
@@ -297,6 +322,9 @@ def run (logPath root : String) (annotateRoot : Bool := false) : IO UInt32 := do
     let mut extra := 0
     for part in ("\n".intercalate body.toList).splitOn "\n\n" do
       let (updated, n) ← knownListFormats file next (part.splitOn "\n").toArray
+      next := updated
+      extra := extra + n
+      let (updated, n) ← retiredOffcolRoster next (part.splitOn "\n").toArray
       next := updated
       extra := extra + n
     let changed := "\n".intercalate next.toList

@@ -635,8 +635,61 @@ index fae4ebc7c..036da560d 100644
    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[19].h_sfx paid [DECLINE=10 PAY=1]",
    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[20].h_mk paid [DECLINE=10 PAY=1]",
    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[26].h_tail139 paid [DECLINE=8 PAY=3]",
+diff --git a/Tests/Guards/Proofs/ParkGapProduction.lean b/Tests/Guards/Proofs/ParkGapProduction.lean
+index c97a544b1..b7ae45ebb 100644
+--- a/Tests/Guards/Proofs/ParkGapProduction.lean
++++ b/Tests/Guards/Proofs/ParkGapProduction.lean
+@@ -252,38 +252,16 @@ partial def walk (prods : Std.HashSet Name) (decl : Name) (e : Expr) : W Unit :=
+     `accum_block_on_*` inline sites for `accum_block_pending`'s and the two `:`
+     consumers'; `ParkGapWidth` reads the same trade.) -/
+ def expectedPaths : List String :=
+-  ["L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack \
+-step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
+-   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol \
+-step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
+-   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack \
+-step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
+-   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol \
+-step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
+-   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack \
+-step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
+-   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol \
+-step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
+-   "L4YAML.Proofs.StreamAccum.accum_block_pending <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND",
+-   "L4YAML.Proofs.StreamAccum.accum_content_pending <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
+-   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
+-   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
+-   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
+-   "L4YAML.Proofs.StreamAccum.colon_fires_implicit_key <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND",
+-   "L4YAML.Proofs.StreamAccum.colon_fires_props_key <- \
+-L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND"]
++  ["L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
++   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
++   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack step=scanNextToken_dispatchBlockIndicators len=1 ends=GStar(SSWhite)+SIndent",
++   "L4YAML.Proofs.StreamAccum.accum_block_pending <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND",
++   "L4YAML.Proofs.StreamAccum.accum_content_pending <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
++   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
++   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
++   "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred NOSPEND",
++   "L4YAML.Proofs.StreamAccum.colon_fires_implicit_key <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND",
++   "L4YAML.Proofs.StreamAccum.colon_fires_props_key <- L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline NOSPEND"]
+ 
+ /-- **How far a `GLit` is below the stream's own alphabet.**  A stream's right
+     endpoint moves by `SLDocumentPrefix`, `SLAnyDocument` or `SLDocumentSuffix`;
 diff --git a/Tests/Guards/Proofs/ParkGapWidth.lean b/Tests/Guards/Proofs/ParkGapWidth.lean
-index c7267075a..5e37b6470 100644
+index c7267075a..b03af94d9 100644
 --- a/Tests/Guards/Proofs/ParkGapWidth.lean
 +++ b/Tests/Guards/Proofs/ParkGapWidth.lean
 @@ -436,7 +436,7 @@ via={String.intercalate "," (s.via.map (·.getString!)).toList}"
@@ -709,6 +762,53 @@ index c7267075a..5e37b6470 100644
  
  /-- **The ladder, for the three functions these sites cross**, re-derived in
      THIS module's import closure so the numbers are the ones the census above
+@@ -576,27 +547,26 @@ def expectedLadder : List String :=
+   -- Item 372 (2026-10-27): `seqTopKey_refuted_at_colon` holds the `:` dispatch (+1 holder).
+   -- Item 387 (2026-10-29): `seqTop_refuted_at_indicator_le` holds the `:`/`?` dispatch (+1 holder).
+   -- Item 409 (2026-10-30): `MarkedColsIn.step_value` holds the `:` dispatch and its preprocess (+1, +1).
+-  [
+-   -- 2026-11-12 (item 487, S3 slice (4) PR 2): dispatchBlockIndicators holders 140 → 142 — `contentLead_of_interior`, `accum_step_content_traceK` read `h_blk_none`.
+-   -- 2026-11-13 (item 489, the landing agreement): 142 → 143 — `accum_step_content_pairB` holds `h_blk_none`.
+-   -- 2026-11-14 (item 490): 143 → 144 — `accum_step_content_pairK` holds `h_blk_none`.
+-   "scanNextToken_dispatchBlockIndicators holders=147 edge=1 chain=0",
+-   -- 2026-11-08 (item 459, review): dispatchContent holders 170 → 173 — `ScannerShape.dispatchContent_{anchor,alias,tag}_trace`.
+-   -- 2026-11-08 (item 464, S3 slice (3) first PR): dispatchContent holders 173 → 175 — `ScannerShape.dispatchContent_{doubleQuoted,singleQuoted}_trace`.
+-   -- 2026-11-12 (item 486, S3 slice (4) PR 1): dispatchContent holders 175 → 180 — `TraceOf/ContentBridge`'s three twins
+-   -- (`h_dispatch`) and its two `dispatchContent_{plain,blockScalar}_tokens` helpers.
+-   -- 2026-11-12 (item 487, S3 slice (4) PR 2): dispatchContent holders 180 → 183 — `contentLead_of_interior`, `content_prop_tail_kept`, `accum_step_content_traceK`.
+-   -- 2026-11-13 (item 489): 183 → 184 — `accum_step_content_pairB` holds `h_dispatch`.
+-   -- 2026-11-14 (item 490): 184 → 185 — `accum_step_content_pairK` holds `h_dispatch`.
+-   -- 2026-11-15 (item 517): dispatchContent 185 → 186, preprocess 256 → 257 — `content_km_transport_any`
+-   -- (`TraceOf/ContentBridge`) holds `hok` / `h_pre`: the T mask's content-step transport, route (μ).
++  -- 2026-11-12 (item 487, S3 slice (4) PR 2): dispatchBlockIndicators holders 140 → 142 — `contentLead_of_interior`, `accum_step_content_traceK` read `h_blk_none`.
++  -- 2026-11-13 (item 489, the landing agreement): 142 → 143 — `accum_step_content_pairB` holds `h_blk_none`.
++  -- 2026-11-14 (item 490): 143 → 144 — `accum_step_content_pairK` holds `h_blk_none`.
++  -- 2026-11-08 (item 459, review): dispatchContent holders 170 → 173 — `ScannerShape.dispatchContent_{anchor,alias,tag}_trace`.
++  -- 2026-11-08 (item 464, S3 slice (3) first PR): dispatchContent holders 173 → 175 — `ScannerShape.dispatchContent_{doubleQuoted,singleQuoted}_trace`.
++  -- 2026-11-12 (item 486, S3 slice (4) PR 1): dispatchContent holders 175 → 180 — `TraceOf/ContentBridge`'s three twins
++  -- (`h_dispatch`) and its two `dispatchContent_{plain,blockScalar}_tokens` helpers.
++  -- 2026-11-12 (item 487, S3 slice (4) PR 2): dispatchContent holders 180 → 183 — `contentLead_of_interior`, `content_prop_tail_kept`, `accum_step_content_traceK`.
++  -- 2026-11-13 (item 489): 183 → 184 — `accum_step_content_pairB` holds `h_dispatch`.
++  -- 2026-11-14 (item 490): 184 → 185 — `accum_step_content_pairK` holds `h_dispatch`.
++  -- 2026-11-15 (item 517): dispatchContent 185 → 186, preprocess 256 → 257 — `content_km_transport_any`
++  -- (`TraceOf/ContentBridge`) holds `hok` / `h_pre`: the T mask's content-step transport, route (μ).
++  -- 2026-11-12 (item 487, S3 slice (4) PR 2): preprocess holders 251 → 254 — `tailOf_preprocess_eq`, `contentLead_of_interior`, `accum_step_content_traceK`.
++  -- 2026-11-13 (item 489): 254 → 255 — `accum_step_content_pairB` holds `h_preprocess`.
++  -- 2026-11-14 (item 490): 255 → 256 — `accum_step_content_pairK` holds `h_preprocess`.
++  -- 2026-11-15 (item 520): preprocess 257 → 259 — `accum_step_flow_pairK` and `dispatchFlow_km_faces` hold
++  -- `h_preprocess` (the flow fold's two steps); dispatchContent / dispatchBlockIndicators unmoved.
++  ["scanNextToken_dispatchBlockIndicators holders=147 edge=1 chain=0",
+    "scanNextToken_dispatchContent holders=197 edge=3 chain=1",
+-   -- 2026-11-12 (item 487, S3 slice (4) PR 2): preprocess holders 251 → 254 — `tailOf_preprocess_eq`, `contentLead_of_interior`, `accum_step_content_traceK`.
+-   -- 2026-11-13 (item 489): 254 → 255 — `accum_step_content_pairB` holds `h_preprocess`.
+-   -- 2026-11-14 (item 490): 255 → 256 — `accum_step_content_pairK` holds `h_preprocess`.
+-   -- 2026-11-15 (item 520): preprocess 257 → 259 — `accum_step_flow_pairK` and `dispatchFlow_km_faces` hold
+-   -- `h_preprocess` (the flow fold's two steps); dispatchContent / dispatchBlockIndicators unmoved.
+-   "scanNextToken_preprocess holders=261 edge=18 chain=4"]
++   "scanNextToken_preprocess holders=262 edge=18 chain=4"]
+ 
+ /-- **What §1's proofs spend.**  `drop=false` is the non-circularity check
+     items 242 and 243 also carry: a measurement of what the escape costs may
 diff --git a/Tests/Guards/Proofs/PremiseNecessityCensus.lean b/Tests/Guards/Proofs/PremiseNecessityCensus.lean
 index b4ad58f6d..5f48aafff 100644
 --- a/Tests/Guards/Proofs/PremiseNecessityCensus.lean
