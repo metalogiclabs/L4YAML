@@ -1,1 +1,1258 @@
-cat: RootComposition/r2-own-retirement-final-candidate.patch: No such file or directory
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -3225,9 +3225,11 @@
+       -- frameless arm: a same-line indicator on a stamped line is §8.2.2's
+       -- refusal, which `dispatch_refutes_sameLine` reads.
+       (h_vslot : (sc.currentIndent ≤ (n : Int) ∧ sp_scan.col = n + 1 ∧
+-        ∀ sp_v : SurfPos,
++        (∀ sp_v : SurfPos,
+         SBlockIndented n .blockOut sp_scan sp_v →
+-        SLYamlStream sp_start sp_v) ∨ sc.implicitValueLine = some sc.line)
++        SLYamlStream sp_start sp_v) ∧
++        (NotQuestionPark sc → n ∉ RegisterWitness.markedCols sc)) ∨
++        sc.implicitValueLine = some sc.line)
+       -- Item 58 (LAST, same reason): the `?`/`:` scan that parked this pending
+       -- re-armed fresh saves, so a key recorded at the NEXT indicator sits AT
+       -- that indicator — which is the coordinate `tab_refutes_dispatch_inline`
+@@ -6270,6 +6272,20 @@
+     | (injection h with h; subst h
+        simp only [ScannerCorrectness.advance_preserves_tokens, ScannerState.emit]
+        exact offerPred_push_top (by nofun) rfl)
++
++/-- An actual `?` scan ends at a question park. The token-only alternative is impossible. -/
++lemma scanKey_questionPark {s s' : ScannerState} (h : scanKey s = .ok s') :
++    ¬ NotQuestionPark s' := by
++  unfold scanKey at h
++  simp only [bind, Except.bind] at h
++  repeat' split at h
++  all_goals first
++    | contradiction
++    | (injection h with h; subst h
++       simp only [NotQuestionPark, ScannerCorrectness.advance_preserves_tokens, ScannerState.emit]
++       intro hn
++       exact hn _ (by rw [Array.size_push]; exact prevRealIdx?_push_top (by nofun))
++         (by rw [push_getElem!_top]))
+ 
+ lemma scanValue_notQuestion {s s' : ScannerState} (h : scanValue s = .ok s') :
+     NotQuestionPark s' := by
+@@ -14617,7 +14633,7 @@
+                -- compact map this key opens IS the `?`'s key content, and the
+                -- landed `:` closes the `[188]` entry `h_expl` routes
+                -- (`? [1]: b⏎: - w`).
+-               (RegisterWitness.markedCols_congr h_pk' h_ind') ▸ flowKeyRoute_of_open (fun sp h => h_close sp (SBlockNode_blockIn_to_blockOut h)) (h_vslot.imp (fun h => ⟨h.2.2, h.2.1⟩) (fun _ => trivial))
++               (RegisterWitness.markedCols_congr h_pk' h_ind') ▸ flowKeyRoute_of_open (fun sp h => h_close sp (SBlockNode_blockIn_to_blockOut h)) (h_vslot.imp (fun h => ⟨h.2.2.1, h.2.1⟩) (fun _ => trivial))
+                  (match h_expl with
+                   -- Item 408: the pair is owed for EVERY marked column; this arm holds the `?` entry's own
+                   -- route only (a fabricated singleton under any enclosing mark, Priority 70) — DECLINED.
+@@ -24825,9 +24841,10 @@
+              | Or.inr _ => Or.inr trivial⟩)
+            -- Item 209: and the slot's own stack top, the caller's measurement.
+            (Or.inl ⟨h_top_in, park_col_of_indicator hcol_land h_ind h_lit,
+-             fun sp_v h_sbi =>
++             (fun sp_v h_sbi =>
+                h_route51 sp_v
+-                 (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit h_sbi)⟩)
++                 (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit h_sbi)),
++             fun hn => (scanKey_questionPark (dispatchBlock_question_scanKey h_dispatch) hn).elim⟩)
+            (scanKey_simpleKeyAllowed (dispatchBlock_question_scanKey h_dispatch))
+            -- Item 68: the same column the slot above carries, stated on its own.
+            (by have := park_col_of_indicator hcol_land h_ind h_lit; omega)
+@@ -24996,6 +25013,8 @@
+     derivations, and the invariant only asks for one of each. -/
+ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : Nat)
+     (s_prep s' : ScannerState) (sp_scan' : SurfPos)
++    {h_sound_in : PendingKeySound.Sound s_prep}
++    {h_mono_in : IndentStackMono.Mono s_prep}
+     (h_stream_mid : SLYamlStream sp_start sp_mid)
+     (hvp : ∀ sp_m sp_i sp_c : SurfPos,
+       SSLComments sp_scan sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+@@ -25057,6 +25076,13 @@
+   have h_slot : ∀ sp_v, SBlockIndented nv .blockOut sp_scan' sp_v →
+       SLYamlStream sp_start sp_v :=
+     fun sp_v h_sbi => (hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit sp_v h_sbi).close
++  have h_top_eq : s'.currentIndent = (nv : Int) := by
++    have h_lo := h_floor_in.2
++    unfold minContentIndentOf at h_lo
++    omega
++  have h_noOwn : nv ∉ RegisterWitness.markedCols s' :=
++    RegisterWitness.r2_value_excludes_top_column (dispatchBlock_colon_scanValue h_dispatch)
++      (h_sound_in.of_eq (by split <;> rfl) (by split <;> rfl) (by split <;> rfl) (by split <;> rfl) (by split <;> rfl) (by split <;> rfl)) (h_mono_in.of_indents_eq (by split <;> rfl)) h_noflow_disp h_top_eq
+   exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_mid,
+          BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
+          PendingNode.pendingMapValue (h_next := fun _ => dispatchBlock_colon_next h_noflow_disp hpeek_disp h_dispatch) (h_offer := dispatchBlock_colon_offerPred h_dispatch) sp_start sp_mid sp_scan' nv
+@@ -25069,7 +25095,7 @@
+            (Or.inr ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
+            (Or.inr (dispatchBlock_colon_notQuestion h_dispatch))
+            -- Item 209: and the slot's own stack top, the caller's measurement.
+-           (Or.inl ⟨h_top_in, park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
++           (Or.inl ⟨h_top_in, park_col_of_indicator hcol_mid h_ind h_lit, h_slot, fun _ => h_noOwn⟩)
+            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
+            -- Item 68: the same column the slot above carries, stated on its own.
+            (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)
+@@ -25435,9 +25461,11 @@
+                 sp_i sp_c h_iv h_clit sp_w h_sbi)
+         | Or.inr _ => Or.inr trivial⟩
+   have h_vslot105 : (s'.currentIndent ≤ ((n + 1 + m : Nat) : Int) ∧
+-      sp_scan'.col = (n + 1 + m) + 1 ∧ ∀ sp_v : SurfPos,
++      sp_scan'.col = (n + 1 + m) + 1 ∧ (∀ sp_v : SurfPos,
+       SBlockIndented (n + 1 + m) .blockOut sp_scan' sp_v →
+-        SLYamlStream sp_start sp_v) ∨ s'.implicitValueLine = some s'.line :=
++        SLYamlStream sp_start sp_v) ∧
++      (NotQuestionPark s' → n + 1 + m ∉ RegisterWitness.markedCols s')) ∨
++      s'.implicitValueLine = some s'.line :=
+     match hc with
+     | Or.inl h => Or.inr (by
+         subst h
+@@ -25446,7 +25474,9 @@
+     | Or.inr h =>
+       -- Item 209: and the slot's own stack top, the caller's measurement.
+       Or.inl ⟨h_top_in, h_park_col',
+-        (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).2⟩
++        (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).2,
++        fun hn => (scanKey_questionPark
++          (dispatchBlock_question_scanKey (h ▸ h_dispatch)) hn).elim⟩
+   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+          PendingNode.pendingMapValue (h_next := fun _ => by
+@@ -27357,10 +27387,11 @@
+       sc.simpleKeyAllowed = true ∧ sp_gram = sp_scan ∧ sp_scan.col = nv + 1 ∧
+       (∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_gram sp_v →
+         SLYamlStream sp_start sp_v) ∧
+-      ((∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_gram sp_m →
++      (nv ∈ RegisterWitness.markedCols sc →
++        ∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_gram sp_m →
+         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc) ∧
++        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
+       -- **Item 191: a LIST of ancestors** — the park may stand inside several
+       -- open `?` frames at once and the landing names one of them.
+       ((∀ nvU ∈ RegisterWitness.markedCols sc,
+@@ -27627,27 +27658,16 @@
+                  -- Item 405: the slot's own route heads the chain, the ancestors'
+                  -- (`hkvUp`) follow it, and the DOMAIN is the slot's, unchanged by
+                  -- a `-` (`h_mcstep_ne`); an undomained ancestor chain DECLINES.
+-                 (match hkv, hkvUp with
+-                  -- Item 521: `hkvUp` ranges over EVERY mark of `sc` (the slot's own route `kv` for the slot's mark).
+-                  | Or.inl kv, Or.inl kvU => Or.inl (RegisterWitness.MarkedColsIn.relay
+-                      (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by
+-                      rintro x hx
+-                      by_cases hxe : x = nv
+-                      · rw [hxe]
+-                        intro sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi
+-                        exact kv sp_e
+-                          (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
+-                            (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
+-                              h_dash2 h_gnot2 h_bi h_tail))
+-                          sp_i sp_c h_iv h_lit sp_v h_sbi
+-                      · intro sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi
+-                        exact kvU x hx sp_e
+-                          (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
+-                            (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
+-                              h_dash2 h_gnot2 h_bi h_tail))
+-                          sp_i sp_c h_iv h_lit sp_v h_sbi)
+-                  | Or.inl _, Or.inr h_altUp => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_altUp)
+-                  | Or.inr h_alt, _ => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++                 (match hkvUp with
++                  | Or.inl kvU => (Or.inl (RegisterWitness.MarkedColsIn.relay
++                   (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by
++                   intro x hx sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi
++                   exact kvU x hx sp_e
++                     (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
++                       (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
++                         h_dash2 h_gnot2 h_bi h_tail))
++                     sp_i sp_c h_iv h_lit sp_v h_sbi))
++                  | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
+                  -- ═══ **Item 257: the compact fill's resume frames, PAID, from
+                  -- the SLOT's own top.**  No break was crossed, so the stack this
+                  -- `-` pushes onto is the slot's, and `h_top_slot` bounds its top
+@@ -27689,26 +27709,14 @@
+                  -- Item 191: and the whole list rides it — the fill term is
+                  -- the same for every ancestor.
+                  (match hkvUp with
+-                  | Or.inl kvU =>
+-                      -- Item 415: the whole list rides the fill term, as the `∀` face above (item 405) — the
+-                      -- slot's own route heads it, the ancestors follow, the domain is the slot's.
+-                      -- Item 521: the list is the projection `markedCols sc` itself.
+-                      (match hkv with
+-                       | Or.inl kv => Or.inl ⟨RegisterWitness.markedCols sc, h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by
+-                           rintro x hx
+-                           by_cases hxe : x = nv
+-                           · rw [hxe]
+-                             intro sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi
+-                             exact kv sp_e
+-                               (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
+-                                 (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e h_dash2 h_gnot2 h_bi h_tail))
+-                               sp_i sp_c h_iv h_lit sp_v h_sbi
+-                           · intro sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi
+-                             exact kvU x hx sp_e
+-                               (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
+-                                 (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e h_dash2 h_gnot2 h_bi h_tail))
+-                               sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+-                       | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++                  | Or.inl kvU => (Or.inl ⟨RegisterWitness.markedCols sc,
++                   h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by
++                   intro x hx sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi
++                   exact kvU x hx sp_e
++                     (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
++                       (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
++                         h_dash2 h_gnot2 h_bi h_tail))
++                     sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
+                   | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
+                  -- ═══ **Item 198: the COMPACT fill (`? - a`) does not close the
+                  -- park, so the relay this field is paid from — the closed park's
+@@ -27735,8 +27743,10 @@
+                  -- about the stack as handed to the two doors; the base of a pushed
+                  -- stack is handed to neither.  The term is `h_kslot`'s, under
+                  -- `KeyFrames.bottom`. ═══
+-                 (match hkv with
+-                  | Or.inl kv => if hms : RegisterWitness.markedCols s' = [nv] then Or.inl (fun nv' hm => by
++                 (if hms : RegisterWitness.markedCols s' = [nv] then Or.inl (fun nv' hm => by
++                      have hm_old : nv ∈ RegisterWitness.markedCols sc :=
++                        (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem
++                          (by rw [hms]; exact List.mem_singleton.mpr rfl)
+                       rw [hms] at hm; rw [List.mem_singleton.mp hm]
+                       exact ⟨[], fun _ h => absurd h (List.not_mem_nil),
+                       -- Item 364: K1-fresh PAID on the compact fill — `h_closeF`'s literal cover
+@@ -27750,11 +27760,10 @@
+                               (IndentStackCover.covered_nil_of_top_le h_mono h_top_slot)).of_indents_eq
+                             (by split <;> rfl))⟩,
+                       fun sp_m h_bi sp_e h_tail =>
+-                        KeyFrames.bottom sp_e (kv sp_e
++                        KeyFrames.bottom sp_e (hkv hm_old sp_e
+                           (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
+                             (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
+-                              h_dash2 h_gnot2 h_bi h_tail)))⟩) else Or.inr trivial
+-                  | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++                              h_dash2 h_gnot2 h_bi h_tail)))⟩) else Or.inr trivial)
+                  -- ═══ ~~**Item 208: ring 1's SEVENTH producer, and the one this
+                  -- item does not pay.**~~  **Item 209 pays it**, and the reading
+                  -- item 208 named is the one that pays: the compact fill of an
+@@ -27835,14 +27844,10 @@
+               -- Item 413: the chain one frame up over the SLOT's content — its own route (`hkv`)
+               -- heads it, the ancestors' (`hkvUp`) follow, on the slot's domain `nv :: nsU`; a
+               -- declined half is RELAYED, not re-written.
+-              (match hkv, hkvUp with
+-               | Or.inl kv, Or.inl kvU => Or.inl (RegisterWitness.MarkedColsIn.relay (RegisterWitness.MarkedColsIn.self sc) <| by
+-                   rintro x hx
+-                   by_cases hxe : x = nv
+-                   · subst hxe; exact kv
+-                   · exact kvU x hx)
+-               | Or.inl _, Or.inr h => Or.inr h
+-               | Or.inr h, _ => Or.inr h)
++              (match hkvUp with
++               | Or.inl kvU => Or.inl (RegisterWitness.MarkedColsIn.relay
++                   (RegisterWitness.MarkedColsIn.self sc) (fun x hx => kvU x hx))
++               | Or.inr h_alt => Or.inr h_alt)
+               h_mcstep
+           -- Item 125: the compact `:` decides its own stamp source; the one
+           -- undecided shape (a live register at the `:`'s own column) stays
+@@ -28181,19 +28186,20 @@
+         ∀ sp_end : SurfPos, SCompactSeqTail k sp_mid sp_end →
+         KeyFrames (ExplValueLine sp_start nv) ks sp_end) ∨ PackAlt sc :=
+       match h_vslot with
+-      | Or.inl ⟨nv, _, _, _, _, _, _, _, _, Or.inl hkv, _⟩ =>
++      | Or.inl ⟨nv, _, _, _, _, _, _, _, _, hkv, _⟩ =>
+           if hnk : nv ≤ k then
+             if hms : RegisterWitness.markedCols s' = [nv] then
+               Or.inl (fun nv' hm => by
++                have hm_old : nv ∈ RegisterWitness.markedCols sc :=
++                  (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem
++                    (by rw [hms]; exact List.mem_singleton.mpr rfl)
+                 rw [hms] at hm; rw [List.mem_singleton.mp hm]
+                 exact ⟨[], fun _ h => absurd h (List.not_mem_nil),
+                   fun _ h_indented sp_e h_tail =>
+-                    KeyFrames.bottom sp_e (hkv sp_e (slotLandedSeq hnk h_ssl
++                    KeyFrames.bottom sp_e (hkv hm_old sp_e (slotLandedSeq hnk h_ssl
+                       (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))⟩)
+             else Or.inr trivial
+           else Or.inr trivial
+-      -- Item 320: the slot's own alternative, handed on (the catch-all below keeps the residue arm).
+-      | Or.inl ⟨_, _, _, _, _, _, _, _, _, Or.inr h_alt, _⟩ => Or.inr h_alt
+       | _ => Or.inr trivial
+     -- ═══ **Item 307: THE SPEND — the closed park's stack, resumed at this landing's
+     -- width in its SEQUENCE case.**  The dedent routes hand this lemma their stack as
+@@ -28290,19 +28296,14 @@
+              -- A slot with no inner pack, or a landing LEFT of the frame,
+              -- keeps the deferral. ═══
+              (match h_vslot with
+-              | Or.inl ⟨nv, _, _, _, _, _, _, _, _, Or.inl hkv, Or.inl kvU⟩ =>
++              | Or.inl ⟨nv, _, _, _, _, _, _, _, _, _, Or.inl kvU⟩ =>
+                   if hnk : nv ≤ k then
+-                    Or.inl (RegisterWitness.MarkedColsIn.relay (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by
+-                      rintro x hx _ h_indented sp_e h_tail
+-                      by_cases hxe : x = nv
+-                      · subst hxe; exact hkv sp_e (slotLandedSeq hnk h_ssl
+-                          (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail))
+-                      · exact kvU x hx sp_e (slotLandedSeq hnk h_ssl
+-                          (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))
+-                  -- Item 307/405: behind the slot, the resumed stack's slot route
+-                  -- (`h_resKslot`) is a singleton with no domain — DECLINED (ruling (a)).
++                    Or.inl (RegisterWitness.MarkedColsIn.relay
++                      (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by
++                      intro x hx _ h_indented sp_e h_tail
++                      exact kvU x hx sp_e (slotLandedSeq hnk h_ssl
++                        (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))
+                   else Or.inr trivial
+-              -- Item 405: no slot route, or an undomained ancestor chain — DECLINED.
+               | _ => Or.inr trivial)
+              -- Item 99: the resume frames — the entry and the tail close the
+              -- root sequence over the same closed prefix.
+@@ -28323,27 +28324,14 @@
+              -- stands inside.  Same carrier, same bound — what differs is only
+              -- which `:` is owed. ═══
+              (match h_vslot with
+-              | Or.inl ⟨nv, _, _, _, _, _, _, _, _, hkv, Or.inl kvU⟩ =>
++              | Or.inl ⟨nv, _, _, _, _, _, _, _, _, _, Or.inl kvU⟩ =>
+                   if hnk : nv ≤ k then
+-                    -- Item 191: the crossing is indifferent to WHICH ancestor's
+-                    -- line follows, so the whole list rides one term.  Item 418: the
+-                    -- term is `h_kslot`'s above, less the relay — the held list IS the
+-                    -- domain (`h_mcstep_ne` carries it across the `-`); where the slot's
+-                    -- own line was declined upstream, that alternative is carried.
+-                    match hkv with
+-                    | Or.inl hkv =>
+-                        Or.inl ⟨RegisterWitness.markedCols sc, h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by
+-                          rintro x hx _ h_indented sp_e h_tail
+-                          by_cases hxe : x = nv
+-                          · subst hxe; exact hkv sp_e (slotLandedSeq hnk h_ssl
+-                              (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail))
+-                          · exact kvU x hx sp_e (slotLandedSeq hnk h_ssl
+-                              (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail))⟩
+-                    | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt)
++                    Or.inl ⟨RegisterWitness.markedCols sc,
++                      h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by
++                      intro x hx _ h_indented sp_e h_tail
++                      exact kvU x hx sp_e (slotLandedSeq hnk h_ssl
++                        (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail))⟩
+                   else Or.inr trivial
+-              -- Item 320: the frame-above alternative, carried across the `-` (the catch-all keeps the residue arm).
+-              | Or.inl ⟨_, _, _, _, _, _, _, _, _, _, Or.inr h_alt⟩ =>
+-                  Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt)
+               | _ => Or.inr trivial)
+              -- **Item 198: the value-line stack, across the same step.**  Built above
+              -- from `h_valFV`, exactly as `h_closeF` is built from `h_valF`.
+@@ -28415,22 +28403,17 @@
+           (match h_vslot with
+            | Or.inl ⟨nv, _, _, _, _, _, _, _, _, hkv, hkvUp⟩ =>
+                if hnk : nv + 1 ≤ k then
+-                 match hkv, hkvUp with
+-                 | Or.inl kv, Or.inl kvU =>
+-                     Or.inl ⟨RegisterWitness.markedCols sc, slotChainMap hnk h_ssl h_ind (by
+-                       rintro nvX hmem
+-                       by_cases hxe : nvX = nv
+-                       · subst hxe; exact kv
+-                       · exact kvU nvX hmem)⟩
+-                 | Or.inl kv, Or.inr _ =>
+-                     Or.inl ⟨[nv], slotChainMap hnk h_ssl h_ind (by
+-                       rintro nvX hmem
+-                       rcases List.mem_cons.mp hmem with rfl | hmem'
+-                       · exact kv
+-                       · exact absurd hmem' (List.not_mem_nil))⟩
+-                 | Or.inr _, Or.inl kvU =>
++                 match hkvUp with
++                 | Or.inl kvU =>
+                      Or.inl ⟨RegisterWitness.markedCols sc, slotChainMap hnk h_ssl h_ind kvU⟩
+-                 | Or.inr h_alt, Or.inr _ => Or.inr h_alt
++                 | Or.inr _ =>
++                     Or.inl ⟨(RegisterWitness.markedCols sc).filter (fun x => decide (x = nv)),
++                       slotChainMap hnk h_ssl h_ind (by
++                         intro nvX hmem
++                         obtain ⟨hm, heq⟩ := List.mem_filter.mp hmem
++                         have hxe : nvX = nv := of_decide_eq_true heq
++                         subst nvX
++                         exact hkv hm)⟩
+                else Or.inr trivial
+            | _ => Or.inr trivial)
+           -- Item 197: the landing's value-line resume, read above at this
+@@ -28443,17 +28426,14 @@
+           -- `slotChainMap` term, with the held list's cover (`hdomU`) kept instead of
+           -- dropped; a declined slot line or ancestor list carries its alternative.
+           (match h_vslot with
+-           | Or.inl ⟨nv, _, _, _, _, _, _, _, _, hkv, hkvUp⟩ =>
++           | Or.inl ⟨nv, _, _, _, _, _, _, _, _, _, hkvUp⟩ =>
+                if hnk : nv + 1 ≤ k then
+-                 match hkv, hkvUp with
+-                 | Or.inl kv, Or.inl kvU =>
+-                     Or.inl ⟨RegisterWitness.markedCols sc, (by have h1 := (RegisterWitness.AtCol.of_corr hcorr_prep).1; have h2 := SIndent_col h_ind; have h := h_mcstep _ (RegisterWitness.MarkedColsIn.self sc); rw [Int.toNat_natCast] at h; rwa [show ((s_prep.col : Nat) : Nat) = k by omega] at h), (fun hne => h_mcstep_ne hne _ (RegisterWitness.MarkedColsIn.self sc)), slotChainMap hnk h_ssl h_ind (by
+-                       rintro nvX hmem
+-                       by_cases hxe : nvX = nv
+-                       · subst hxe; exact kv
+-                       · exact kvU nvX hmem)⟩
+-                 | Or.inl _, Or.inr h_alt => Or.inr h_alt
+-                 | Or.inr h_alt, _ => Or.inr h_alt
++                 match hkvUp with
++                 | Or.inl kvU => Or.inl ⟨RegisterWitness.markedCols sc,
++                   (by have h1 := (RegisterWitness.AtCol.of_corr hcorr_prep).1; have h2 := SIndent_col h_ind; have h := h_mcstep _ (RegisterWitness.MarkedColsIn.self sc); rw [Int.toNat_natCast] at h; rwa [show ((s_prep.col : Nat) : Nat) = k by omega] at h),
++                   (fun hne => h_mcstep_ne hne _ (RegisterWitness.MarkedColsIn.self sc)),
++                   slotChainMap hnk h_ssl h_ind kvU⟩
++                 | Or.inr h_alt => Or.inr h_alt
+                else if hnil : RegisterWitness.markedCols s' = [] then
+                  -- Item 498: no mark survives the landing — the chain's domain on `s'` is empty and the
+                  -- `else` pays with the empty list; a surviving ancestor's chain is item (2)'s premise.
+@@ -28486,7 +28466,9 @@
+             SSLComments sp_gram sp_m → SIndent k sp_m sp_i → GLit ':' sp_i sp_c →
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-          colon_open_map_explicit sp_start sp_gram sp_mid _ k s_prep s'
++          colon_open_map_explicit
++            (h_sound_in := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
++            (h_mono_in := IndentStackMono.preprocess_mono h_preprocess h_mono) sp_start sp_gram sp_mid _ k s_prep s'
+             sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+             -- Item 76: the explicit VALUE line measures on the same datum the
+             -- keyless opener does — `h_vpack` carries no flag, and the
+@@ -29793,7 +29775,9 @@
+               ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+               ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-            colon_open_map_explicit sp_start sp_gram sp_mid _ k s_prep s'
++            colon_open_map_explicit
++            (h_sound_in := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
++            (h_mono_in := IndentStackMono.preprocess_mono h_preprocess h_mono) sp_start sp_gram sp_mid _ k s_prep s'
+               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+               (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+                 kslot sp_m h_ssl_m sp_m (SCompactSeqTail.nil n sp_m)
+@@ -30585,7 +30569,9 @@
+             ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-          colon_open_map_explicit sp_start sp_scan sp_mid _ k s_prep s'
++          colon_open_map_explicit
++            (h_sound_in := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
++            (h_mono_in := IndentStackMono.preprocess_mono h_preprocess h_mono) sp_start sp_scan sp_mid _ k s_prep s'
+             sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+             (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+               kslot sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl_m)
+@@ -31351,16 +31337,15 @@
+              -- Item 209: the slot's own stack top, handed across — the park
+              -- states where the stack it was opened over stops, and the compact
+              -- fill on the far side of this door measures its push against it.
+-             hvs.1, h_nic48, h_sk58, rfl, hvs.2.1, hvs.2.2,
+-             -- Item 92: the frame's value-line pack rides the slot into the
+-             -- compact fill — the completed KEY node closes the `?` entry
+-             -- through `[188]`'s explicit constructor (`? - a⏎: - w`).
+-             (match h_expl51 with
+-              | Or.inl ⟨sp_q, h_qlit, route, _⟩ => Or.inl
+-                  (fun sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi =>
+-                    ResumeFrames.one (route sp_v (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c
+-                      sp_v h_qlit h_bo h_iv h_lit h_sbi)))
+-              | Or.inr _ => Or.inr trivial),
++             hvs.1, h_nic48, h_sk58, rfl, hvs.2.1, hvs.2.2.1,
++             -- The own-column route is required only for an actual mark.
++             -- A question pays from its entry; a value's own mark was cleared by scanValue.
++             (fun hm sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi => by
++               rcases h_expl51 with ⟨sp_q, h_qlit, route, _⟩ | h_notQ
++               · exact ResumeFrames.one (route sp_v
++                   (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v
++                     h_qlit h_bo h_iv h_lit h_sbi))
++               · exact (hvs.2.2.2 h_notQ hm).elim),
+              -- ═══ **Item 190: and the frame ONE LEVEL UP, composed the same
+              -- way.**  `h_explUp` carries the outer entry's value line against
+              -- THIS `?`'s entry route, so the compact fill closes this frame's
+@@ -40943,7 +40928,7 @@
+       -- Item 209: the content lane reads the SLOT and not the top beside it,
+       -- so the top is projected away here rather than restated downstream — a
+       -- lemma that asks for more than it reads is a lemma nobody can call.
+-      h_ncol_old h_expl51 (h_vslot51.imp (fun h => ⟨h.2.1, h.2.2⟩) (fun _ => trivial))
++      h_ncol_old h_expl51 (h_vslot51.imp (fun h => ⟨h.2.1, h.2.2.1⟩) (fun _ => trivial))
+       h_kslot93 (h_closeF99.imp (fun ⟨ks, hlt, hcov, f⟩ => ⟨ks, fun fr h => by have := hlt fr h; omega, hcov, fun sp h => f sp (SBlockNode_blockIn_to_blockOut h)⟩) id) h_frames99
+       h_closeFV108 h_framesV108 h_sk58
+       h_ivl101 h_nic101 h_real101 h_mono h_base
+--- a/L4YAML/Proofs/Scanner/RegisterWitness.lean
++++ b/L4YAML/Proofs/Scanner/RegisterWitness.lean
+@@ -1277,6 +1277,138 @@
+                         simp only [Except.ok.injEq, Option.some.injEq] at hok; subst hok
+                         exact dispatchContent_witness h_dc h_pw2
+ 
++-- Actual closing branch, rather than token-only NotQuestionPark.
++lemma r2_closed_value_excludes_column {s s' : ScannerState} {n : Nat}
++    (hok : scanValue s = .ok s') (hs : Sound s)
++    (h_nf : s.inFlow = false)
++    (h_close : scanValueKeySurvives s (scanValueClearKey s) = false)
++    (h_col : (scanValueClearKey s).explicitKeyCol = (n : Int)) :
++    n ∉ markedCols s' := by
++  have hs' := scanValue_sound hok hs
++  intro hm
++  obtain ⟨i, l, c, hi, hc, hcn⟩ := markedCols_mem.mp hm
++  obtain ⟨c', hc', hnn⟩ := hs'.slots.2 i l hi
++  have hcc : c = c' := Option.some.inj (hc.symm.trans hc')
++  have hcn' : c = (n : Int) := by omega
++  unfold scanValue at hok
++  simp only [bind, Except.bind] at hok
++  split at hok <;> try contradiction
++  split at hok <;> try contradiction
++  split at hok <;> try contradiction
++  simp only [Except.ok.injEq] at hok
++  subst hok
++  simp only [h_nf, h_close, Bool.false_eq_true, ↓reduceIte] at hi
++  have hne := (closeAt_marked _ _ _ _ _ hi).2
++  apply hne
++  simpa only [ScannerState.indentColumns, hcn', h_col] using hc
++
++-- Every successful block value leaves its own mapping column unmarked.
++-- This includes implicit sources; a token-only discriminator is insufficient.
++lemma r2_prepare_currentIndent_ge (s : ScannerState) :
++    s.currentIndent ≤ (scanValuePrepare s).currentIndent := by
++  unfold scanValuePrepare
++  split
++  · split
++    · split
++      · simpa [ScannerState.currentIndent] using (Int.le_of_lt (by assumption))
++      · exact Int.le_refl _
++    · exact Int.le_refl _
++  · split
++    · exact Int.le_refl _
++    · split
++      · unfold pushMappingIndent
++        split
++        · simpa [ScannerState.currentIndent, ScannerState.emit] using
++            (Int.le_of_lt (by assumption))
++        · exact Int.le_refl _
++      · exact Int.le_refl _
++
++lemma r2_prepare_key_col_le {s : ScannerState}
++    (h_nf : s.inFlow = false) (h_key : s.simpleKey.possible = true) :
++    (s.simpleKey.pos.col : Int) ≤ (scanValuePrepare s).currentIndent := by
++  unfold scanValuePrepare
++  simp only [h_key, h_nf, Bool.not_false, ↓reduceIte]
++  split
++  · simp [ScannerState.currentIndent]
++  · rename_i hle
++    change (s.simpleKey.pos.col : Int) ≤ s.currentIndent
++    omega
++
++lemma r2_value_currentIndent {s s' : ScannerState}
++    (hok : scanValue s = .ok s') :
++    s'.currentIndent = (scanValuePrepare (scanValueClearKey s)).currentIndent := by
++  unfold scanValue at hok
++  simp only [bind, Except.bind] at hok
++  split at hok <;> try contradiction
++  split at hok <;> try contradiction
++  split at hok <;> try contradiction
++  simp only [Except.ok.injEq] at hok
++  subst hok
++  change (((scanValuePrepare (scanValueClearKey s)).emit .value).advance).currentIndent = _
++  apply L4YAML.Proofs.PreprocessIndentStable.currentIndent_of_indents_eq
++  rw [L4YAML.Proofs.EmitterScannability.advance_preserves_indents]
++  rfl
++
++lemma r2_value_excludes_top_column {s s' : ScannerState} {n : Nat}
++    (hok : scanValue s = .ok s') (hs : Sound s)
++    (hm : L4YAML.Proofs.IndentStackMono.Mono s)
++    (h_nf : s.inFlow = false) (h_top : s'.currentIndent = (n : Int)) :
++    n ∉ markedCols s' := by
++  intro hn
++  have hnold := (scanValue_markedCols hok (MarkedColsIn.self s) hs.slots).mem hn
++  obtain ⟨i, l, c, hi, hc, hcn⟩ := markedCols_mem.mp hnold
++  obtain ⟨c', hc', hc0⟩ := hs.slots.2 i l hi
++  have hcc : c = c' := Option.some.inj (hc.symm.trans hc')
++  have hcn' : c = (n : Int) := by omega
++  have hfl : s.flowLevel = 0 := (inFlow_false_iff s).1 h_nf
++  have hr := hs.reg hfl
++  have hle := marked_le_innermost hs.slots hm i l hi
++  rw [hc, Option.getD_some, ← hr] at hle
++  have hlive : ∃ ek, s.explicitKeyLine = some ek := by
++    cases hek : s.explicitKeyLine with
++    | some ek => exact ⟨ek, rfl⟩
++    | none =>
++      have hf : (PendingKeys.innermost s.indentColumns s.pendingKeys).1 = none := by
++        rw [← innermostPendingKey_eq, ← hr, hek]
++      have hd := innermost_none_snd s.indentColumns s.pendingKeys hf
++      rw [← innermostPendingKey_eq, ← hr] at hd
++      omega
++  obtain ⟨ek, hek⟩ := hlive
++  have hrTop : s.explicitKeyCol ≤ s.currentIndent := by
++    have hinn : PendingKeys.innermost s.indentColumns s.pendingKeys =
++        (some ek, s.explicitKeyCol) := by
++      rw [← innermostPendingKey_eq, ← hr, hek]
++    obtain ⟨j, _, hj, hcolj⟩ := innermost_some_mem _ _ _ _ hinn
++    obtain ⟨cj, hcj, _⟩ := hs.slots.2 j ek hj
++    rw [hcj, Option.getD_some] at hcolj
++    simp only [ScannerState.indentColumns, Array.getElem?_map, Option.map_eq_some_iff] at hcj
++    obtain ⟨e, he, hec⟩ := hcj
++    have hbound := hm.le_currentIndent e (Array.mem_of_getElem? he)
++    omega
++  obtain ⟨hcol, hind, hflow, _, hekl, hline, _⟩ :=
++    L4YAML.Proofs.PreprocessIndentStable.scanValueClearKey_fields s
++  have hci : (scanValueClearKey s).currentIndent = s.currentIndent :=
++    L4YAML.Proofs.PreprocessIndentStable.currentIndent_of_indents_eq hind
++  have hge := r2_prepare_currentIndent_ge (scanValueClearKey s)
++  have htop' := r2_value_currentIndent hok
++  have heq : s.explicitKeyCol = (n : Int) := by omega
++  have holdtop : s.currentIndent = (n : Int) := by omega
++  have hkc : (scanValueClearKey s).explicitKeyCol = s.explicitKeyCol :=
++    L4YAML.Proofs.ExplicitKeyCoupling.scanValueClearKey_preserves_explicitKeyCol s
++  have hclose : scanValueKeySurvives s (scanValueClearKey s) = false := by
++    cases hsk : (scanValueClearKey s).simpleKey.possible with
++    | true =>
++      have hkbound := r2_prepare_key_col_le (by rw [hflow]; exact h_nf) hsk
++      have hkcol : ((scanValueClearKey s).simpleKey.pos.col : Int) ≤
++          (scanValueClearKey s).explicitKeyCol := by omega
++      simp [scanValueKeySurvives, h_nf, hekl, hek, hsk, hkcol]
++    | false =>
++      have hcursor := (L4YAML.Proofs.ExplicitKeyCoupling.scanValue_explicit_at_indent
++        hok h_nf hek hsk).2
++      have hcur : (s.col : Int) = (scanValueClearKey s).explicitKeyCol := by omega
++      simp [scanValueKeySurvives, h_nf, hekl, hek, hsk, hcur]
++  exact r2_closed_value_excludes_column hok hs h_nf hclose (hkc.trans heq) hn
++
+ end L4YAML.Proofs.RegisterWitness
+ 
+ end Blanket
+--- a/Tests/Guards/Proofs/CapstonePathAudit.lean
++++ b/Tests/Guards/Proofs/CapstonePathAudit.lean
+@@ -47,7 +47,7 @@
+ -- Item 519: off-honest 92 → 91, off-unread 55 → 56, on 8 → 6, off 43 → 41, unrooted-arms 89 → 93, arms 238 → 237 —
+ -- the four flow-close `Classical.em` splits are gone (PAID from `vslot`), the open's three ladders with them; shrink-only.
+ -- Item 519 (review round): arms 237 → 239 (the two fallback `match`es at the `vslot` writers), off-honest 91 → 92 / off-unread 56 → 55 (`pendingBlock.h_kslotUp` read again at the open).
+-  "positions=253 on=7 off=179 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=15 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=50 PackAltG=7 pack-declines: on=3 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1151/1261 unrooted-arms=94 arms=239 relays=138 drop-set=7/8"
++  "positions=252 on=7 off=178 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=14 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=49 PackAltG=7 pack-declines: on=3 off=41 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1263 unrooted-arms=94 arms=229 relays=138 drop-set=7/8"
+ 
+ def expectedOn : List String :=
+   -- Item 519: the four flow-close splits are PAID from `vslot` (shrink: `pendingContent.h_vpack` on-relay DECLINE 4 → 2).
+@@ -61,6 +61,9 @@
+ 
+ -- Item 508 (2026-11-14): `entryKeyPack_of_dispatch` took the `h_dead` premise after `h_preprocess`, so its
+ -- `h_nodeS` / `h_nodeSF` OFF rows read [31] / [32] (were [30] / [31]) — an index shift; 262 unchanged.
++-- 2026-11-27: OFF residue 246 → 245. The own-slot marked-column route no longer
++-- has a PackAlt escape. All seven critical ON positions remain; the ancestor
++-- chain is still open. No detector or ceiling change.
+ def expectedOff : List String :=
+   -- Item 519: `FlowBaseRoutes.mk[9].vslot` off-unread DECLINE=5 (the `ofValue` arms); the closes` own declines are gone.
+   ["L4YAML.Proofs.PreprocessIndentStable.IndentFloor.transport[3].h_floor top ∨ True off-unread",
+@@ -133,7 +136,6 @@
+    "L4YAML.Proofs.StreamAccum.ResumeKeyCtxbody nested ∨ PackAlt nested-unresolved",
+    "L4YAML.Proofs.StreamAccum.ResumeKeyCtxbody nested ∨ True nested-unresolved",
+    "L4YAML.Proofs.StreamAccum.ResumeKeyCtxbody nested ∨ True nested-unresolved",
+-   "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[11].h_vslot nested ∨ PackAlt off-honest-nested",
+    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[11].h_vslot nested ∨ PackAlt off-honest-nested",
+    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[19].h_sfx top ∨ True off-honest DECLINE=10",
+    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[20].h_mk top ∨ True off-honest DECLINE=10",
+--- a/Tests/Guards/Proofs/CloseLandingWidth.lean
++++ b/Tests/Guards/Proofs/CloseLandingWidth.lean
+@@ -494,39 +494,32 @@
+ def expectedSites : List String :=
+   -- Item 415: the h_vslot site row re-read — the two paid closeThenBlock arms (relay + ancestor-list copy) change its spends/handoffs/reach.
+   -- Item 418: re-read again — h_vslot is spent twice more (the h_kslotUp arm and the domained h_explUp_chainD argument) and handed off once more.
++  -- Item 415: the h_vslot site row re-read — the two paid closeThenBlock arms (relay + ancestor-list copy) change its spends/handoffs/reach.
++  -- Item 418: re-read again — h_vslot is spent twice more (the h_kslotUp arm and the domained h_explUp_chainD argument) and handed off once more.
+   ["accum_block_pending→accum_block_on_closeThenBlock.h_close_pending → accum_block_on_closeThenBlock.h_close_pending: spends=1 (node 0) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
+-   "accum_block_pending→accum_block_on_closeThenBlock.h_vslot → accum_block_on_closeThenBlock.h_vslot: spends=14 (node 14) handoffs=6 carries=1 NEITHER reach=3 reachJudged=8 reachBoth=false",
++   "accum_block_pending→accum_block_on_closeThenBlock.h_vslot → accum_block_on_closeThenBlock.h_vslot: spends=10 (node 10) handoffs=4 carries=0 NEITHER reach=3 reachJudged=5 reachBoth=false",
+    "accum_block_pending→accum_block_on_pendingBlock.h_close_pending → accum_block_on_pendingBlock.h_close_pending: spends=3 (node 0) handoffs=1 carries=0 BOTH reach=2 reachJudged=5 reachBoth=false",
+    "accum_content_on_noPending→keyctx_of_preprocess.h_close → keyctx_of_preprocess.h_close: spends=2 (node 1) handoffs=0 carries=0 WIDTH reach=1 reachJudged=1 reachBoth=false",
+-  -- Item 415: the h_vslot site row re-read — the two paid closeThenBlock arms (relay + ancestor-list copy) change its spends/handoffs/reach.
+-  -- Item 418: re-read again — h_vslot is spent twice more (the h_kslotUp arm and the domained h_explUp_chainD argument) and handed off once more.
+-  "accum_flow_open_depth0→flowKeyRoute_of_root.h_close → flowKeyRoute_of_root.h_close: spends=2 (node 2) handoffs=0 carries=0 NEITHER reach=1 reachJudged=0 reachBoth=false"]
++   "accum_flow_open_depth0→flowKeyRoute_of_root.h_close → flowKeyRoute_of_root.h_close: spends=2 (node 2) handoffs=0 carries=0 NEITHER reach=1 reachJudged=0 reachBoth=false"]
+ -- 2026-10-24 (B3 [66] col-0 threading): follows StreamCompositions — the content/block parks close from `sp_gram` (run + gate).
+ -- 2026-10-24 (B3 [66] col-0 threading): re-read on the item-355 base.
+ -- 2026-10-30 (item 405): the two `closeThenBlock` births destructure `hkv` beside `hkvUp` and apply the slot route per chain member (`rcases List.mem_cons`): the node spends are read once per branch (the slot's own head and the ancestors'), with the chain index `cur:nv` only.
+ def expectedSpends : List String :=
+   ["accum_block_on_closeThenBlock spend:comments @sp_mid arg=prem:SSLComments width=ws[ws:hws,col:hcol_mid] index=packed[cur:h_vslot,slot:h_vslot,cur:h_valF,slot:h_valF,slot:h_valFV] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+-   "accum_block_on_closeThenBlock handoff→relay.hP @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv] cmp=yes[hnk:nv ≤ k]",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv] cmp=no",
+-   "accum_block_on_closeThenBlock carry→And.intro @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv ≤ k]",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.node(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail))) width=none index=direct[cur:nv,slot:nv] cmp=no",
+-   "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+    "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+    "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+    "accum_block_on_closeThenBlock handoff→slotChainMap.up @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[cur:nv,slot:nv] cmp=yes[hnk:nv + 1 ≤ k]",
+    "accum_block_on_closeThenBlock spend:node @sp_final arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,SCompactSeqTail.nil)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_end arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[hxe:¬x = nv]",
++   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[≡nv]",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=yes[hxe:¬x = nv]",
+-   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv] cmp=no",
++   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=ind[ind:h_iv] index=direct[cur:nv] cmp=no",
++   "accum_block_on_closeThenBlock spend:node @sp_e arg=SBlockIndented.compactSeq(prem:SIndent,SCompactSeq.mk(prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)) width=none index=direct[cur:nv,slot:nv] cmp=no",
+    "accum_block_on_closeThenBlock spend:node @sp arg=prem:SBlockIndented width=none index=direct[cur:nv,slot:nv] cmp=no",
+-   "accum_block_on_closeThenBlock handoff→relay.hP @— arg=— width=none index=direct[cur:nv,slot:nv] cmp=no",
++   "accum_block_on_closeThenBlock handoff→relay.hP @— arg=— width=none index=direct[cur:nv] cmp=no",
+    "accum_block_on_pendingBlock handoff→accum_block_on_closeThenBlock.h_close_pending @sp_mid arg=— width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=yes[hkn:¬k = n,_hge:n ≥ k]",
+    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
+    "accum_block_on_pendingBlock spend:comments @sp_mid arg=prem:SSLComments width=ind[ws:hws,col:hcol_mid,ind:h_ind] index=direct[slot:n,tail:n,col:n,cur:n] cmp=no",
+@@ -607,7 +600,7 @@
+ def expectedLine : String :=
+ -- Item 371 (empties=25 → 27, emptyLemmas=6 → 8): the value-line packs end in the one-level
+ -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+-  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=23 spendsC=5 spendsE=0 spendsN=18 handoffs=7 carries=1 untyped=1 edges=3 paramsWalked=7 widthInd=4 widthWs=1 widthNone=0 idxDirect=3 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=3 bothCmp=0 handInd=6 handDirect=7 handCmp=6 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=31 emptyLemmas=9 emptyInd=15 emptyCmp=7 emptySame=1 emptyClose=2 sites=20 pairs=20 pairs21=20 pairs18=18 nonANoDrop=8 reach=37"
++  "closeSites=5 closePairs=6 closePairsD=8 viaClose=3 params=5 spends=19 spendsC=5 spendsE=0 spendsN=14 handoffs=5 carries=0 untyped=1 edges=3 paramsWalked=7 widthInd=4 widthWs=1 widthNone=0 idxDirect=3 idxPacked=1 idxNone=1 cmp=0 cmpSame=0 both=3 bothCmp=0 handInd=4 handDirect=5 handCmp=4 sitesBoth=1 sitesWidth=2 sitesNeither=2 sitesBothAll=0 empties=31 emptyLemmas=9 emptyInd=15 emptyCmp=7 emptySame=1 emptyClose=2 sites=20 pairs=20 pairs21=20 pairs18=18 nonANoDrop=8 reach=37"
+ 
+ /-! ## §5 The reading -/
+ 
+--- a/Tests/Guards/Proofs/CloseSplitFrames.lean
++++ b/Tests/Guards/Proofs/CloseSplitFrames.lean
+@@ -701,10 +701,10 @@
+    "accum_block_on_closeThenBlock dite kn [nv ≤ k] → paid,E:empty,E:other(SBlockNode.blockSeq(GOpt.none,prem:SSLComments,lemma:SBlockSeqEntries_of_compactTail(prem:SIndent,prem:GLit,prem:GNot,prem:SBlockIndented,prem:SCompactSeqTail)))×2|paid pos=—",
+    "accum_block_on_closeThenBlock dite kn [nv ≤ k] → E:node|punt pos=—",
+    "accum_block_on_closeThenBlock dite kn [nn < k] → paid|— pos=—",
+-   "accum_block_on_closeThenBlock dite kn [nv ≤ k] → paid,E:pass,E:node×2|punt pos=—",
+-   "accum_block_on_closeThenBlock dite kn [nv ≤ k] → E:carry,E:node×2|punt pos=—",
+-   "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass×4|punt pos=—",
+-   "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass×2|— pos=—",
++   "accum_block_on_closeThenBlock dite kn [nv ≤ k] → paid,E:node|punt pos=—",
++   "accum_block_on_closeThenBlock dite kn [nv ≤ k] → paid,E:node|punt pos=—",
++   "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass×3|punt pos=—",
++   "accum_block_on_closeThenBlock dite kn [nv + 1 ≤ k] → E:pass|— pos=—",
+    "accum_block_on_closeThenBlock dite kmem [k ∈ ns] → E:pass|— pos=—",
+    "accum_block_on_pendingBlock Or.elim other [h_land:SSLComments sp_scan sp_mid ∧ sp_mid.col = 0 ∧ (sp_scan.col ≠ 0 → s_prep.…] → E:empty×8,E:pass×16,E:node×4,P:hand,P:spend×3,E:carry|E:prem×2,E:node×5,E:pass pos=above#3,above#4,above#5",
+    "accum_block_on_pendingBlock Or.elim other [(∃ k, SIndent k sp_mid sp_sc) ∨ ∃ sa sb, GStar SSWhite sp_mid sa ∧ SSWhi…] → E:empty×8,E:pass×16,E:node×4,P:hand,P:spend×3,E:carry|— pos=above#3,above#4,above#5",
+@@ -808,7 +808,7 @@
+   -- `accum_block_on_closeThenBlock`'s explicit `:` face; no frame row moved.
+ -- Item 371 (kslot=4 → 0, kslotUp=4 → 0): the value-line packs end in the one-level
+ -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+-  "asked=5 both=3 lemmas=1 walked=4 feedFunnel=1 feedExplicit=1 feedDeferred=1 feedTuple=0 entry=3 entrySBI=3 kslot=0 kslotUp=0 closeF=3 closeFV=3 seqF=0 top=3 floor=0 cover=3 cover2=3 floorB=3 aboveKN=0 aboveKMem=0 aboveKNv=0 aboveKEx=0 hands=1 besideKN=1 besideKMem=1 besideKNv=0 puntKN=1 puntKMem=0 besideNone=0 decisions=155 decOnK=20 decKN=14 decKMem=6 decKNv=0 apps=60 funnelArgs=1 doorDropped=4/1 closeSites=5 params=5"
++  "asked=5 both=3 lemmas=1 walked=4 feedFunnel=1 feedExplicit=1 feedDeferred=1 feedTuple=0 entry=3 entrySBI=3 kslot=0 kslotUp=0 closeF=3 closeFV=3 seqF=0 top=3 floor=0 cover=3 cover2=3 floorB=3 aboveKN=0 aboveKMem=0 aboveKNv=0 aboveKEx=0 hands=1 besideKN=1 besideKMem=1 besideKNv=0 puntKN=1 puntKMem=0 besideNone=0 decisions=144 decOnK=20 decKN=14 decKMem=6 decKNv=0 apps=59 funnelArgs=1 doorDropped=4/1 closeSites=5 params=5"
+ 
+ /-! ## §5 The reading -/
+ 
+--- a/Tests/Guards/Proofs/CloseStackCover.lean
++++ b/Tests/Guards/Proofs/CloseStackCover.lean
+@@ -1169,7 +1169,7 @@
+   -- `closeThenBlock`'s `ResumeFrames.strict` read off the empty-value close; no row of this guard moved.
+ -- Item 519: `nodes` 124487 → 124358 (123677 before the review round: the `pendingBlock` / `pendingMapValue` writers keep the ancestors' covers and `h_expl` as fallback funders, read in order) — the depth-0 open's three `frameChainUnion` ladders are gone
+ -- (`FlowBaseRoutes.vslot` every-mark); no row, door or leaf moved.
+-  "positions=24 ctorFields=7 lemParams=23 lemmas=19 walked=26 doors=9 rows=125 ctorRows=49 lemRows=47 localRows=4 fnRows=19 fnpRows=4 valRows=2 coverTypes=5 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=0 pmvCoverPunt=1 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=13 contentCoverPunt=4 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=13 entryCoverPunt=4 entryLemma=0 entryOpen=2 entryPos=17 eight=6 eightPB=3 eightPBC=3 eightIndents=0 eightTop=3 eightFloor=0 eightMinCI=0 eightNic=6 eightPrep=6 eightCover=6 doorUses=49 doorKept=9 doorForgotten=17 doorDropped=23 doorsOther=5 nodes=126564"
++  "positions=24 ctorFields=7 lemParams=23 lemmas=19 walked=26 doors=9 rows=125 ctorRows=49 lemRows=47 localRows=4 fnRows=19 fnpRows=4 valRows=2 coverTypes=5 mentions=0 pbc=6 pbcRelay=6 pbcPaid=0 pbcPunt=0 pbcCoverPunt=0 pb=7 pbRelay=3 pbPaid=4 pbPunt=0 pbCoverPunt=0 pmv=6 pmvRelay=4 pmvPaid=1 pmvPunt=0 pmvCoverPunt=1 valF=11 valFRelay=2 valFPaid=0 valFPunt=9 contentPaid=6 contentPunt=13 contentCoverPunt=4 contentLemma=0 contentOpen=2 contentPos=17 entryPaid=6 entryPunt=13 entryCoverPunt=4 entryLemma=0 entryOpen=2 entryPos=17 eight=6 eightPB=3 eightPBC=3 eightIndents=0 eightTop=3 eightFloor=0 eightMinCI=0 eightNic=6 eightPrep=6 eightCover=6 doorUses=49 doorKept=9 doorForgotten=17 doorDropped=23 doorsOther=5 nodes=127027"
+ 
+ /-! ## §6 The reading -/
+ 
+--- a/Tests/Guards/Proofs/ConclusionRouteCensus.lean
++++ b/Tests/Guards/Proofs/ConclusionRouteCensus.lean
+@@ -506,7 +506,7 @@
+   -- five whose arms disagree land as splits, the twelve whose arms agree are collapsed edges and are counted nowhere here.
+   -- 2026-10-29 (item 394): `FlowBaseRoutes.valueF` is a new producer relayed VIA at both flow closes (producers 32/10 → 34/11, landed 69 → 71, landed-producers 0 → 2).
+ -- Item 519: producers 31 → 28, total 134 → 131 — the depth-0 open's three `frameChainUnion` ladders are gone.
+-  "pipes=0/0 producers=26/9 landed=102 landed-producers=12 total=128"
++  "pipes=0/0 producers=26/9 landed=103 landed-producers=12 total=129"
+ 
+ end L4YAML.Tests.Guards.ConclusionRouteCensus
+ 
+--- a/Tests/Guards/Proofs/DispatchPrice.lean
++++ b/Tests/Guards/Proofs/DispatchPrice.lean
+@@ -414,7 +414,7 @@
+ -- content dispatch's `.ok` with one `ScannerSurfCorr` end as a hypothesis (the other is its conclusion's).
+ -- 2026-11-24 (item 535): stepHolders 2116 → 2108, dispHolders 437 → 429 — the eight unreferenced dispatcher-arm corollaries of `ScannerShape`
+ -- (`dispatchStructural_*_trace` ×3, `dispatchFlowIndicators_*_trace` ×5) are deleted; each held a dispatcher's `.ok`.
+-  "stepHolders=2109 dispHolders=429 dispTwoCorr=42 fns=75 fnsIx=26"  -- 2026-11-15 (item 517): +1/+1, `content_km_transport_any` (ContentBridge) holds `h_pre` / `hok`, the T mask's content-step transport; (item 512): +1/+1, `marks_step_content` holds `h_preprocess` / `h_dispatch`; 2026-11-14: `Proofs.Scanner.StructDepth` deleted (owner's ruling on items 446–452): its (γ1) `DInv` readers leave, stepHolders 2120 → 2103, dispHolders 422 → 418; `ScannerShape.scanFiltered_noComment` (item 451's holder) deleted with it: 2103 → 2102; `DocStartLiveInv.scanFiltered_liveF` too: 2102 → 2101  -- 2026-11-13 (item 489): +1/+1, `accum_step_content_pairB` holds `h_dispatch`; 2026-11-14 (item 490): +1/+1, `accum_step_content_pairK` holds it too
++  "stepHolders=2113 dispHolders=429 dispTwoCorr=42 fns=75 fnsIx=26"  -- 2026-11-15 (item 517): +1/+1, `content_km_transport_any` (ContentBridge) holds `h_pre` / `hok`, the T mask's content-step transport; (item 512): +1/+1, `marks_step_content` holds `h_preprocess` / `h_dispatch`; 2026-11-14: `Proofs.Scanner.StructDepth` deleted (owner's ruling on items 446–452): its (γ1) `DInv` readers leave, stepHolders 2120 → 2103, dispHolders 422 → 418; `ScannerShape.scanFiltered_noComment` (item 451's holder) deleted with it: 2103 → 2102; `DocStartLiveInv.scanFiltered_liveF` too: 2102 → 2101  -- 2026-11-13 (item 489): +1/+1, `accum_step_content_pairB` holds `h_dispatch`; 2026-11-14 (item 490): +1/+1, `accum_step_content_pairK` holds it too
+ 
+ /-- **The ladder, at each population.**  `edge` is a production whose right
+     endpoint is the step's output; `chain` requires a path to it from another
+--- a/Tests/Guards/Proofs/GhostIndexCensus.lean
++++ b/Tests/Guards/Proofs/GhostIndexCensus.lean
+@@ -303,6 +303,8 @@
+ -- scalar 63 → 62) — the cover is now `Floor lo n ks` at the park's own level.
+ -- 2026-10-30 (item 407, flow carrier `pendingKeys` conjunct): FlowStackK prop 5 → 6 — the carrier gains `(0 < fl → sc.pendingKeys = s0.pendingKeys)`, an implication whose body is a STATE equality (classed `prop` like its indents twin); ghost 3 → 3, no proof-side list.
+ -- 2026-11-17 (item 520, review round 2): the `KmSound`-bearing carrier rows lose the two `∨ True` stamp conjuncts.
++-- 2026-11-27: the value slot carries its proved non-question own-mark exclusion.
++-- PendingNode prop 298 → 299; snapshot=0, ghost=24 and or=66 are unchanged.
+ def expectedTally : List String :=
+   ["BareLandingFacts: surface=0 state=2 prop=0 scalar=1 snapshot=0 ghost=0 or=0",
+    "BlockStack: surface=2 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
+@@ -347,7 +349,7 @@
+    "ParkCore: surface=0 state=2 prop=5 scalar=6 snapshot=0 ghost=1 or=0",
+    "ParkFloor: surface=0 state=2 prop=4 scalar=4 snapshot=0 ghost=0 or=0",
+    "ParkSlot: surface=0 state=2 prop=3 scalar=7 snapshot=0 ghost=0 or=1",
+-   "PendingNode: surface=141 state=1 prop=298 scalar=66 snapshot=0 ghost=24 or=66",
++   "PendingNode: surface=141 state=1 prop=299 scalar=66 snapshot=0 ghost=24 or=66",
+    "PropsKeyPack: surface=13 state=1 prop=14 scalar=7 snapshot=0 ghost=3 or=5",
+    "PropsNodeRoute: surface=6 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0",
+    "PropsRideRoute: surface=7 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0",
+--- a/Tests/Guards/Proofs/HypothesisReaderCensus.lean
++++ b/Tests/Guards/Proofs/HypothesisReaderCensus.lean
+@@ -656,7 +656,7 @@
+   -- 2026-11-22 (Lean v4.36.0): constants 1760 → 1747 and nothing else. The thirteen are generated equation lemmas
+   -- v4.35.0 realized in this module and v4.36.0 does not: `FrameTail.leadFree.match_1.eq_1..4`,
+   -- `propertyScanFollowerOk.match_1.eq_1..2`, `SNbDoubleText.match_1.eq_1..6`, `propsBlockLineCrossLoop.eq_def`.
+-  "constants=1746 decls=1390 eta=611 FIELD=175 READ=1423 RELAY=2910 RETURN=56 \
++  "constants=1745 decls=1388 eta=611 FIELD=173 READ=1402 RELAY=2914 RETURN=56 \
+ UNUSED=24"
+ -- 2026-10-25 (#112 review): the `FlowStackK` `MarkedColsIn` carrier reverted (Rule 8: a projection of the closed state is decided at the close by `Classical.em`); the two transport helpers and `h_pk'` go (constants 1683 → 1681, decls 1322 → 1320, READ 1325 → 1323, RELAY 2838 → 2830); `Mono sc` stays on `accum_step_flow`.
+ -- 2026-10-25 (item 363): the flow OPEN lane read off the block state (`h_refused`, one `Classical.em`; five `match` blocks deleted): the five deleted `match` auxiliaries: constants 1681 → 1676, decls 1320 → 1315, READ 1323 → 1306.
+--- a/Tests/Guards/Proofs/IndexCensus.lean
++++ b/Tests/Guards/Proofs/IndexCensus.lean
+@@ -285,23 +285,24 @@
+   -- 2026-10-29 (item 394): `FlowBaseRoutes.valueF` and its two close relays read `ResumeFrames (SLYamlStream sp_start) ks` once each (×3 → ×5).
+   -- 2026-10-30 (item 405, Rule 8 fix): `pendingBlock.h_kslot`/`pendingBlockContent.h_kslot` re-indexed by the projection `markedCols sc` (no `∃ ns` binder): the ten `⟨nv0 :: ns, …⟩` relays into the `∃ ns` faces now pass `markedCols sc`, so the stream-class binders read twice fall 26 → 16.
+   -- Item 519: two `∃ ns : List Nat` stream-lane occurrences gone with `FlowBaseRoutes.vslot`'s restatement (6 → 4).
++  -- 2026-10-29 (item 394): `FlowBaseRoutes.valueF` and its two close relays read `ResumeFrames (SLYamlStream sp_start) ks` once each (×3 → ×5).
++  -- 2026-10-30 (item 405, Rule 8 fix): `pendingBlock.h_kslot`/`pendingBlockContent.h_kslot` re-indexed by the projection `markedCols sc` (no `∃ ns` binder): the ten `⟨nv0 :: ns, …⟩` relays into the `∃ ns` faces now pass `markedCols sc`, so the stream-class binders read twice fall 26 → 16.
++  -- Item 519: two `∃ ns : List Nat` stream-lane occurrences gone with `FlowBaseRoutes.vslot`'s restatement (6 → 4).
+   ["seq/bottom/occ=1  ×9",
+    "seq/frames/occ=2  ×9",
+    "seq/other/occ=2  ×3",
+-  -- 2026-10-29 (item 394): `FlowBaseRoutes.valueF` and its two close relays read `ResumeFrames (SLYamlStream sp_start) ks` once each (×3 → ×5).
+    "stream/frames/occ=1  ×3",
+    "stream/frames/occ=2  ×16",
+    "stream/frames/occ=3  ×9",
+    "stream/frames/occ=4  ×6",
+    "stream/frames/occ=5  ×6",
+-  -- 2026-10-30 (item 405, Rule 8 fix): `pendingBlock.h_kslot`/`pendingBlockContent.h_kslot` re-indexed by the projection `markedCols sc` (no `∃ ns` binder): the ten `⟨nv0 :: ns, …⟩` relays into the `∃ ns` faces now pass `markedCols sc`, so the stream-class binders read twice fall 26 → 16.
+--- Item 519: two `∃ ns : List Nat` stream-lane occurrences gone with `FlowBaseRoutes.vslot`'s restatement (6 → 4).
+    "stream/other/occ=1  ×2",
+    "stream/other/occ=2  ×31",
+    "stream/other/occ=3  ×1",
+    "stream/other/occ=4  ×4",
+    "stream/other/occ=6  ×1",
+-   "stream/other/occ=8  ×3",
++   "stream/other/occ=8  ×2",
++   "stream/other/occ=9  ×1",
+    "valueline/frames/occ=1  ×2",
+    "valueline/frames/occ=2  ×10",
+    "valueline/frames/occ=3  ×8",
+--- a/Tests/Guards/Proofs/NarrowingWorthCensus.lean
++++ b/Tests/Guards/Proofs/NarrowingWorthCensus.lean
+@@ -924,7 +924,7 @@
+ -- 2026-11-22 (Lean v4.36.0): theorems 6450 → 6422, the no-op readings unmoved. The 28 are generated theorems v4.35.0 realized
+ -- and v4.36.0 does not: 26 `eq_def` unfold lemmas (the `YamlValue.resolveAliases*` / `adaptForFlowContext` / `stripAnchors` and
+ -- `Grammar.toYamlValue` / `stripAnnotations` families, `Emit.emit`, three scanner loops, …) and `ValidNode.plainScalar{Block,Flow}.congr_simp`.
+-def expectedNoopTally : String := "theorems=6421 byElab=14 byWhnf=14 elabOnly=0 whnfOnly=0"
++def expectedNoopTally : String := "theorems=6428 byElab=14 byWhnf=14 elabOnly=0 whnfOnly=0"
+ -- 5302 → 5344 on 2026-10-18 (plan row 20's close, closure-log item 280): the
+ -- parse-side alias obligation moved to §7.1's DECLARATION set, so the carrier
+ -- grew and the predicate gained its tools.  What is new in kind: `AG` carries
+--- a/Tests/Guards/Proofs/OpenEntryRoute.lean
++++ b/Tests/Guards/Proofs/OpenEntryRoute.lean
+@@ -491,7 +491,7 @@
+ def expectedLine : String :=
+ -- Item 371 (t1Pairs=6 → 2, t1Sites=8 → 4, t2Pairs=2 → 6, t2Sites=4 → 8, covered1=6 → 2): the value-line packs end in the one-level
+ -- `ResumeFrames`; `question_open_map`'s `h_expl`/`h_closeFV`/`h_framesV` come from the bound tail route `h_route51F`.
+-  "aPairs=10 aSites=13 t1Pairs=2 t1Sites=4 t2Pairs=7 t2Sites=8 nPairs=1 nSites=1 multi=0 inline=0 covered1=2 covered2=9 stackedPairs=0 stackedNoDrop=0 nonA=10 nonANoDrop=8 pairs21=20 pairs18=18 sites=20 pairs=20 exhibits=5 closedFirst=1 handedNode=4 avail=13 behindLemmas=5 behindOpeners=0 aheadOpeners=3 funnelApps=4 paid=2 punted=2 other=0 chainApps=4 entryApps=6 qApps=1 cApps=1 reach=37"
++  "aPairs=10 aSites=13 t1Pairs=2 t1Sites=4 t2Pairs=7 t2Sites=8 nPairs=1 nSites=1 multi=0 inline=0 covered1=2 covered2=9 stackedPairs=0 stackedNoDrop=0 nonA=10 nonANoDrop=8 pairs21=20 pairs18=18 sites=20 pairs=20 exhibits=5 closedFirst=1 handedNode=4 avail=13 behindLemmas=5 behindOpeners=0 aheadOpeners=3 funnelApps=4 paid=2 punted=2 other=0 chainApps=3 entryApps=6 qApps=1 cApps=1 reach=37"
+ 
+ /-! ## §6 The reading -/
+ 
+--- a/Tests/Guards/Proofs/OrTrueAudit.lean
++++ b/Tests/Guards/Proofs/OrTrueAudit.lean
+@@ -263,13 +263,16 @@
+ -- Item 519: inrTrivial 497 → 495 — the two flow-close `h_vpack` `Or.inr trivial` arms are PAID from `vslot`
+ -- (the `h_framesV` arms keep their `[]` cover decline); shrink-only.
+ -- Item 519 (review round): inrTrivial 495 → 496, see the writers' row for `accum_flow_open_depth0`.
+-  "positions=253 top=162 nested=91 True=177 PackAlt=67 PackAltG=9 modules=2 supply: paid=26 relayed=117 declined-only=0 never-supplied=0 unresolved=8 conclusions=9 consumers: spent=102 relayed=13 unused=0 unreadable=36 writers=37 inrTrivial=460"
++  "positions=252 top=162 nested=90 True=177 PackAlt=66 PackAltG=9 modules=2 supply: paid=26 relayed=117 declined-only=0 never-supplied=0 unresolved=8 conclusions=9 consumers: spent=102 relayed=13 unused=0 unreadable=36 writers=37 inrTrivial=459"
+ 
+ -- Item 508 (2026-11-14): `entryKeyPack_of_dispatch` took the `h_dead` premise after `h_preprocess`,
+ -- so its `h_nodeS` / `h_nodeSF` positions read [31] / [32] (were [30] / [31]) — an index shift, not a
+ -- new position; 269 unchanged.
+ -- 2026-11-17 (item 520, review round 2): `KmSound`'s base-slot stamp / marker `∨ True` conjuncts deleted (decided at
+ -- `flowKeyPack_of_close` on the close state); `flowOpen_stamp` / `flowOpen_marker` deleted.
++-- 2026-11-27: 253 → 252. The own marked-column route is now required; the actual
++-- question entry pays it, and actual block scanValue excludes the value park's own mark.
++-- No new optional position or ceiling change.
+ def expectedPositions : List String :=
+   [ "L4YAML.Proofs.PreprocessIndentStable.IndentFloor.transport[3].h_floor top ∨ True",
+     "L4YAML.Proofs.PreprocessIndentStable.IndentFloor.transport[ret] top ∨ True",
+@@ -344,8 +347,7 @@
+     "L4YAML.Proofs.StreamAccum.ResumeKeyCtxbody nested ∨ True",
+     "L4YAML.Proofs.StreamAccum.ResumeKeyCtxbody nested ∨ True",
+     "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[10].h_vpack top ∨ PackAlt",
+-    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[11].h_vslot nested ∨ PackAlt",
+-    "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[11].h_vslot nested ∨ PackAlt",
++     "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[11].h_vslot nested ∨ PackAlt",
+     "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[19].h_sfx top ∨ True",
+     "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[20].h_mk top ∨ True",
+     "L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock[26].h_tail139 top ∨ True",
+@@ -888,6 +890,8 @@
+ -- ×7 → ×8 (the markless ks twin DECLINES) — the two new writers behind `ceilingWrites` 511 → 513.
+ -- 2026-11-17 (item 520, review round 2): `KmSound`'s base-slot stamp / marker `∨ True` conjuncts deleted (decided at
+ -- `flowKeyPack_of_close` on the close state); `flowOpen_stamp` / `flowOpen_marker` deleted.
++-- 2026-11-27: accum_block_pending 41 → 40: the own-slot PackAlt write is
++-- replaced by a required route on actual marked-column membership.
+ def expectedWriters : List String :=
+   ["L4YAML.Proofs.PreprocessIndentStable.IndentFloor.transport ×1 (PreprocessIndentStable)",
+   "L4YAML.Proofs.StreamAccum.FlowBaseRoutes.ofValue ×3 (StreamAccum)",
+@@ -896,7 +900,7 @@
+   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock ×26 (StreamAccum)",
+   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent ×23 (StreamAccum)",
+   "L4YAML.Proofs.StreamAccum.accum_block_on_pendingContent ×12 (StreamAccum)",
+-  "L4YAML.Proofs.StreamAccum.accum_block_pending ×41 (StreamAccum)",
++  "L4YAML.Proofs.StreamAccum.accum_block_pending ×40 (StreamAccum)",
+   "L4YAML.Proofs.StreamAccum.accum_content_on_noPending ×12 (StreamAccum)",
+   "L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented ×28 (StreamAccum)",
+   "L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented ×29 (StreamAccum)",
+--- a/Tests/Guards/Proofs/PaidLeafDelta.lean
++++ b/Tests/Guards/Proofs/PaidLeafDelta.lean
+@@ -412,7 +412,7 @@
+   -- 2026-11-14 (item 500): floorNodes 31603 → 31499 — the producers' three dead `if hlt : n < w` splits on the nested branch deleted; no leaf delta row moved.
+ -- Item 519: `nodes` 124487 → 124358 (123677 before the review round: the `pendingBlock` / `pendingMapValue` writers keep the ancestors' covers and `h_expl` as fallback funders, read in order), `floorNodes` 35190 → 35353 (35252 before the review round) — the depth-0 open's three `frameChainUnion`
+ -- ladders are gone and the closes' `vslot` reads are new floor terms; rows / payments / leaves unmoved.
+-  "rows=125 payments=1 literal=0 relay=1 scenarios=2 baseContent=17/6/13/4/2 allContent=19/6/12/6/2 baseEntry=17/6/13/4/2 allEntry=19/6/12/6/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=-1 puntEntry=-1 coverPuntContent=+2 coverPuntEntry=+2 mergedBase=true mergedAll=true floorLits=101 own=12 lit=6 var=83 ownLemmas=2 scanned=36 monoIndex=11 monoIndexLemmas=7 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=14 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=126564 floorNodes=34999"
++  "rows=125 payments=1 literal=0 relay=1 scenarios=2 baseContent=17/6/13/4/2 allContent=19/6/12/6/2 baseEntry=17/6/13/4/2 allEntry=19/6/12/6/2 turnedPaidContent=0 turnedPaidEntry=0 originsBaseContent=6 originsAllContent=6 originsBaseEntry=6 originsAllEntry=6 puntContent=-1 puntEntry=-1 coverPuntContent=+2 coverPuntEntry=+2 mergedBase=true mergedAll=true floorLits=101 own=12 lit=6 var=83 ownLemmas=2 scanned=36 monoIndex=11 monoIndexLemmas=7 floorCons=4 floorConsLemmas=2 floorPopTo=1 floorPopToLemmas=1 leOfMem=0 coveredPopTo=1 coveredPopToLemmas=1 raiseFloor=0 dedupHead=2 dedupHeadLemmas=2 coveredCons=14 rootMonoCaller=1 rootMonoSite=1 rootNtop=1 nodes=127027 floorNodes=34979"
+ 
+ /-! ## §4 The reading -/
+ 
+--- a/Tests/Guards/Proofs/PremiseNecessityCensus.lean
++++ b/Tests/Guards/Proofs/PremiseNecessityCensus.lean
+@@ -413,7 +413,7 @@
+ -- Item 519 (review round): constants / decls +2 (the two `vslot` fallback `match` auxiliaries), READ +8 (the ancestors' covers and `h_expl`'s route / third conjunct read again at the open).
+   -- 2026-11-22 (Lean v4.36.0): constants 1760 → 1747 and nothing else — the thirteen generated equation lemmas
+   -- `HypothesisReaderCensus.expectedModuleTally` names, seen through this peel.
+-  "constants=1746 decls=1390 eta=611 FIELD=201 READ=1486 RELAY=2702 RETURN=175 UNUSED=24"
++  "constants=1745 decls=1388 eta=611 FIELD=199 READ=1465 RELAY=2706 RETURN=175 UNUSED=24"
+ 
+ -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
+ -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
+--- a/Tests/Guards/Proofs/PuntCoverInputs.lean
++++ b/Tests/Guards/Proofs/PuntCoverInputs.lean
+@@ -842,7 +842,7 @@
+   -- 2026-11-07 (item 448, (α) stage A): nodes 124494 → 124500 — the `≤` park faces' relays and `closeThenBlock`'s
+   -- `ResumeFrames.strict` read; no punt-cover row moved.
+ -- Item 519: `nodes` 124487 → 124358 (123677 before the review round: the `pendingBlock` / `pendingMapValue` writers keep the ancestors' covers and `h_expl` as fallback funders, read in order) — the depth-0 open's three `frameChainUnion` ladders are gone; no site, shape or bound moved.
+-  "sites=3 pb=0 pmv=0 props=3 idx0=2 mono=1 monoOpt=0 base=1 baseOpt=0 prep=1 dispB=0 dispC=3 hc=2 chr=2 dash=0 corr=3 noflow=3 save=1 fl=0 top=0 larm=0 floor=1 nic=3 armed=0 col0=1 ids=0 coverSites=1 coverBinders=4 coverFnSites=3 full=0 fullB=0 missMono=2 missBase=2 missPrep=2 missFloorSrc=3 own=0 empty=0 relay=1 relayEntries=4 bounds=0 below=0 belowSyn=0 belowArm=0 at=0 atSyn=0 atArm=0 undecided=0 bOwn=0 bOld=0 landedBelow=0 inlineBelow=0 payable=0 lack=2 lackCallers=16 lackSupplied=0 lackSuppliedB=2 lackLow=2 lackPayable=0 vacuous=2 bottomBelow=0 paidRows=16 bottomPaidBelow=5 bottomPaidRelay=9 named=8 rows=125 nodes=126564"
++  "sites=3 pb=0 pmv=0 props=3 idx0=2 mono=1 monoOpt=0 base=1 baseOpt=0 prep=1 dispB=0 dispC=3 hc=2 chr=2 dash=0 corr=3 noflow=3 save=1 fl=0 top=0 larm=0 floor=1 nic=3 armed=0 col0=1 ids=0 coverSites=1 coverBinders=4 coverFnSites=3 full=0 fullB=0 missMono=2 missBase=2 missPrep=2 missFloorSrc=3 own=0 empty=0 relay=1 relayEntries=4 bounds=0 below=0 belowSyn=0 belowArm=0 at=0 atSyn=0 atArm=0 undecided=0 bOwn=0 bOld=0 landedBelow=0 inlineBelow=0 payable=0 lack=2 lackCallers=16 lackSupplied=0 lackSuppliedB=2 lackLow=2 lackPayable=0 vacuous=2 bottomBelow=0 paidRows=16 bottomPaidBelow=5 bottomPaidRelay=9 named=8 rows=125 nodes=127027"
+ 
+ /-! ## §3 The reading -/
+ 
+--- a/Tests/Guards/Proofs/RelaySupplyCensus.lean
++++ b/Tests/Guards/Proofs/RelaySupplyCensus.lean
+@@ -1066,9 +1066,9 @@
+ -- 2026-11-02 (item 422): piped 78 → 73, `Or.elim⇒SPLIT` 5 → 0 — the five `h_park.elim`/`h_kslotUp.elim` pipes at the `h_outer` writes
+ -- are `Classical.em (MarkedColsIn s_prep [k])` decisions now (see `expectedTally`).
+ def expectedPipeLanding : String :=
+-  "piped=102 producers=12 [Eq.rec⇒VIA=8, Or.elim⇒SPLIT=20, Or.imp⇒FIELD=37, \
++  "piped=103 producers=12 [Eq.rec⇒VIA=8, Or.elim⇒SPLIT=20, Or.imp⇒FIELD=37, \
+ Or.imp⇒LOCAL=5, Or.imp⇒PAY=1, Or.imp⇒RELAY=18, Or.imp⇒SPLIT=4, Or.imp⇒VIA=4, \
+-dite⇒SPLIT=5]"
++dite⇒SPLIT=6]"
+ 
+ /-- What the SPLITs decide (DOCS item 216), and the row that matters is
+     `elsewhere=0`: **not one leaf of any case split in this module is decided
+@@ -1149,17 +1149,15 @@
+ -- four flow-close `Classical.em` splits on the closed state's marks are gone (`vslot` every-mark pays
+ -- `h_vpack` / `h_framesV` outright) and the open's three `frameChainUnion` ladders with them.
+ def expectedSplitLanding : String :=
+-  "survived=175 collapsed=10 leaves=422 elsewhere=11 [DECLINE=214, PAY=197, \
++  "survived=175 collapsed=10 leaves=412 elsewhere=11 [DECLINE=206, PAY=195, \
+ VIA=11] \
+ [DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|VIA|VIA|VIA=1, \
+ DECLINE|DECLINE|DECLINE|DECLINE|DECLINE|PAY|VIA|VIA=1, \
+-DECLINE|DECLINE|DECLINE|DECLINE|PAY=1, \
+-DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
+ DECLINE|DECLINE|DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
+ DECLINE|DECLINE|DECLINE|PAY=1, DECLINE|DECLINE|DECLINE|PAY|PAY|PAY=1, \
+-DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=9, \
++DECLINE|DECLINE|DECLINE|PAY|VIA=3, DECLINE|DECLINE|PAY=7, \
+ DECLINE|DECLINE|PAY|PAY|PAY=3, DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY=1, \
+-DECLINE|PAY=148, DECLINE|PAY|PAY=2, PAY|VIA=1, PAY|VIA|VIA=1]"
++DECLINE|PAY=152, DECLINE|PAY|PAY=2, PAY|VIA=1, PAY|VIA|VIA=1]"
+ 
+ /-- **Which BRANCH is taken (DOCS item 217).**  Item 216 resolved what a split
+     WRITES — both answers, one per arm.  What it could not say was which arm the
+@@ -1268,7 +1266,7 @@
+ -- Item 519: splits 174 → 175, leaves 420 → 422, relayRooted 164 → 161, siteDecided 10 → 14, plainRoot 55 → 52,
+ -- DECLINE-closed 105 → 102, DECLINE-free 112 → 116, PAY-free 191 → 192 — the four flow-close `Classical.em`
+ -- splits are gone and the open's three ladders with them (`vslot` every-mark).
+-  "splits=175 leaves=422 relayRooted=161 siteDecided=14 optionalRoot=109 plainRoot=52 agree=116/116 disagree=0 [DECLINE-closed=96, DECLINE-free=118, PAY-free=197, VIA L4YAML.Proofs.StreamAccum.deeperLandingResume-=2, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA absurd-=8]"
++  "splits=175 leaves=412 relayRooted=160 siteDecided=15 optionalRoot=109 plainRoot=51 agree=116/116 disagree=0 [DECLINE-closed=96, DECLINE-free=110, PAY-free=195, VIA L4YAML.Proofs.StreamAccum.deeperLandingResume-=2, VIA L4YAML.Proofs.StreamAccum.flowKeyRoute_of_root-=1, VIA absurd-=8]"
+ 
+ /-- **The ten splits the site decides for itself**, which is the whole residue
+     of the branch question after `expectedSplitBranch`.  Four are a `dite` on a
+@@ -1287,17 +1285,17 @@
+ -- retired: the two `h_outer` writes still decide by `Classical.em (MarkedColsIn s_prep [k])`, but BOTH arms pay now ((γ′)), so
+ -- the split is no longer site-decided-with-a-decline (see `expectedTally`).
+ def expectedSiteDecided : List String :=
+-  ["1 accum_block_on_closeThenBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
+-   -- Item 519: the four flow-close `match resume.vslot` sites — the frame's every-mark field decides the close's
+-   "1 accum_block_on_pendingBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
++  -- Item 519: the four flow-close `match resume.vslot` sites — the frame's every-mark field decides the close's
++  -- `h_vpack` / `h_framesV` (PAY on `Or.inl`, the frame's own `PackAltG` decline on `Or.inr`).
++  ["1 accum_block_on_pendingBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
+    "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|DECLINE|PAY|PAY|PAY",
+    "1 accum_block_on_pendingBlock :: dite on VIA LE.le ⇒ DECLINE|DECLINE|PAY|PAY|PAY|PAY|PAY",
+    "1 accum_block_on_pendingBlockContent :: dite on VIA Eq ⇒ DECLINE|PAY",
+    "1 accum_content_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|DECLINE|DECLINE|PAY",
+    "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_24 on SPLIT Or.casesOn on VIA preprocess_some_savedKey_shape ⇒ PAY|VIA",
+    "1 accum_flow_open_depth0 :: accum_flow_open_depth0.match_1_4 on LOCAL h_mapFV201:opt ⇒ DECLINE|PAY",
++   "2 accum_block_on_closeThenBlock :: dite on VIA Eq ⇒ DECLINE|PAY",
+    "2 accum_block_pending :: Or.casesOn on VIA Nat.eq_zero_or_pos ⇒ DECLINE|PAY",
+-   -- `h_vpack` / `h_framesV` (PAY on `Or.inl`, the frame's own `PackAltG` decline on `Or.inr`).
+    "4 accum_step_flow :: accum_step_flow.match_1_28 on VIA FlowBaseRoutes.vslot ⇒ DECLINE|PAY"]
+ 
+ /-- **The premises the branch is taken on**, by binder NAME, for the 99 splits
+--- a/Tests/Guards/Proofs/ValueLineOrigins.lean
++++ b/Tests/Guards/Proofs/ValueLineOrigins.lean
+@@ -590,6 +590,13 @@
+   -- 2026-10-31 (item 412): the entry-shaped `pendingMapValue.h_expl` — the chain one frame up sits inside the `?` arm
+   -- (`∨L ∃ ∧R ∧R ∨L`), projected on `markedCols sc` minus the own mark; and its consumer param twin.
+   -- Item 413: compact_open_map.h_chainUp — the opener's relay parameter (the `-` / slot park's chain over the entry's content).
++  -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
++  -- Item 372 (2026-10-27): the pack's route conjunct is now an Or (`∨ SeqTopKey sc`), so its head reads `(Or)`.
++  -- Item 409 (2026-10-30): `explFrameValueLine` deleted — its position and three writer rows are gone; the two
++  -- `:` consumers' `h_kslotD` positions are PAID from the pack (rows below re-read by the build).
++  -- 2026-10-31 (item 412): the entry-shaped `pendingMapValue.h_expl` — the chain one frame up sits inside the `?` arm
++  -- (`∨L ∃ ∧R ∧R ∨L`), projected on `markedCols sc` minus the own mark; and its consumer param twin.
++  -- Item 413: compact_open_map.h_chainUp — the opener's relay parameter (the `-` / slot park's chain over the entry's content).
+   ["ctor:pendingContent.h_key packaged arm=l path=→→∨Lδ∃∃∃∧R∧R∧R∧R∧L∨L∃∧R→→→→→→→→→→ lvl=(possible(…)=true)→(line(…)=line(…))→δImplicitKeyPack∃k∃sp_key∃sp_gram(Or)(ImplicitKeyHead)(GStar)(col(…)=k)(And)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=before",
+    "ctor:pendingContent.h_vpack arm=l path=∨L∃∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "ctor:pendingProps.h_key packaged arm=l/stamp path=∨Lδ∧L∃∧R∧R∧L∨L∃∧R→→→→→→→→→→ lvl=δPropsKeyPack(And)∃k(?)(col(…)=k)(And)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=before",
+@@ -602,16 +609,14 @@
+    "ctor:pendingBlock.h_kslotUp arm=l path=∨L∃∧R→→→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "ctor:pendingMapValue.h_ivl arm=r/stamp path=∨R∧R lvl=(sp_scan.col=n + 1) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
+    "ctor:pendingMapValue.h_expl arm=l/stamp path=∨L∃∧R∧R∨L→→→→→→→→→ lvl=∃sp_q(GLit('?'))(?)∀nv∈markedCols(…) premises=[Ne,SBlockMapEntry(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-   "ctor:pendingMapValue.h_vslot arm=l/stamp path=∨L∧R∧R lvl=(sc.currentIndent≤n)(sp_scan.col=n + 1) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
++   "ctor:pendingMapValue.h_vslot arm=l/stamp path=∨L∧R∧R∧L lvl=(sc.currentIndent≤n)(sp_scan.col=n + 1)(?) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
+    "ctor:pendingMapValue.h_kslot arm=l path=∨L∃∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockNode(n + 1),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "ctor:pendingMapValue.h_explUp arm=l/stamp path=∨L∃∃∧R∧R→→→→→→→→ lvl=∃sp_q∃ns(GLit('?'))(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "param:accum_block_on_closeThenBlock.h_vpack arm=l path=∨L∃∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "param:accum_block_on_closeThenBlock.h_vslot arm=l/stamp path=∨L∃∃∧R∧R∧R∧R∧R∧R∧R∧R∨L→→→→→→→→ lvl=∃nv∃sp_a(SLYamlStream(sp_start))(sc.currentIndent≤nv)(needIndentCheck(…)=false)(simpleKeyAllowed(…)=true)(sp_gram=sp_scan)(sp_scan.col=nv + 1)(?)(Or)∀nvU∈markedCols(…) premises=[SBlockIndented(nv),SIndent(nvU),GLit(':'),SBlockIndented(nvU)] ⊢ ResumeFrames tail=no",
+-    "param:accum_block_on_pendingBlock.h_kslot arm=l path=∨L→→→→→→→→→→ lvl=∀nv∈markedCols(…) premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "param:accum_block_on_pendingBlock.h_kslotUp arm=l path=∨L∃∧R→→→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "param:accum_block_on_pendingBlockContent.h_key packaged arm=l path=→→∨Lδ∃∃∃∧R∧R∧R∧R∧L∨L∃∧R→→→→→→→→→→ lvl=(possible(…)=true)→(line(…)=line(…))→δImplicitKeyPack∃k∃sp_key∃sp_gram(Or)(ImplicitKeyHead)(GStar)(col(…)=k)(And)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=before",
+-   -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
+-   -- Item 372 (2026-10-27): the pack's route conjunct is now an Or (`∨ SeqTopKey sc`), so its head reads `(Or)`.
++   "ctor:pendingMapValue.h_explUp arm=l/stamp path=∨L∃∃∧R∧R→→→→→→→→ lvl=∃sp_q∃ns(GLit('?'))(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "param:accum_block_on_closeThenBlock.h_vpack arm=l path=∨L∃∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "param:accum_block_on_closeThenBlock.h_vslot arm=l/stamp path=∨L∃∃∧R∧R∧R∧R∧R∧R∧R∧R∨L→→→→→→→→ lvl=∃nv∃sp_a(SLYamlStream(sp_start))(sc.currentIndent≤nv)(needIndentCheck(…)=false)(simpleKeyAllowed(…)=true)(sp_gram=sp_scan)(sp_scan.col=nv + 1)(?)(?)∀nvU∈markedCols(…) premises=[SBlockIndented(nv),SIndent(nvU),GLit(':'),SBlockIndented(nvU)] ⊢ ResumeFrames tail=no",
++   "param:accum_block_on_pendingBlock.h_kslot arm=l path=∨L→→→→→→→→→→ lvl=∀nv∈markedCols(…) premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "param:accum_block_on_pendingBlock.h_kslotUp arm=l path=∨L∃∧R→→→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "param:accum_block_on_pendingBlockContent.h_key packaged arm=l path=→→∨Lδ∃∃∃∧R∧R∧R∧R∧L∨L∃∧R→→→→→→→→→→ lvl=(possible(…)=true)→(line(…)=line(…))→δImplicitKeyPack∃k∃sp_key∃sp_gram(Or)(ImplicitKeyHead)(GStar)(col(…)=k)(And)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=before",
+    "param:accum_block_on_pendingBlockContent.h_kslot arm=l path=∨L→→→→→→→→→→ lvl=∀nv∈markedCols(…) premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "param:accum_block_on_pendingBlockContent.h_kslotUp arm=l path=∨L∃∧R→→→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "param:accum_block_on_pendingContent.h_key packaged arm=l path=→→∨Lδ∃∃∃∧R∧R∧R∧R∧L∨L∃∧R→→→→→→→→→→ lvl=(possible(…)=true)→(line(…)=line(…))→δImplicitKeyPack∃k∃sp_key∃sp_gram(Or)(ImplicitKeyHead)(GStar)(col(…)=k)(And)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=before",
+@@ -632,8 +637,6 @@
+    "param:entryChainMap.up arm=l path=→→→→→→ lvl=∀nvX∈ns premises=[SBlockIndented(n),SCompactSeqTail(n)] ⊢ ExplValueLine(nvX) tail=no",
+    "param:entryKeyPack_of_dispatch.h_compact arm=l path=∨L∧R∧R∨L∃∧R→→→→→→→→ lvl=(?)(sp_scan.col=n + 1)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "param:entryKeyPack_of_dispatch.h_ivl arm=r/stamp path=∨R∧R∧R∨L∃∧R→→→→→→→→ lvl=(?)(sp_scan.col=n + 1)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-   -- Item 409 (2026-10-30): `explFrameValueLine` deleted — its position and three writer rows are gone; the two
+-   -- `:` consumers' `h_kslotD` positions are PAID from the pack (rows below re-read by the build).
+    "param:entryKeyPack_of_dispatch.h_nodeV arm=l path=∨L∃∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockNode(n + 1),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "param:entryPropsKeyPack_of_dispatch.h_compact arm=l path=∨L∧R∧R∨L∃∧R→→→→→→→→ lvl=(?)(sp_scan.col=n + 1)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "param:entryPropsKeyPack_of_dispatch.h_ivl arm=r/stamp path=∨R∧R∧R∨L∃∧R→→→→→→→→ lvl=(?)(sp_scan.col=n + 1)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+@@ -642,13 +645,10 @@
+    "param:flowKeyPack_of_close.h_key arm=l path=∨L∃∃∧R∧R∧R∧L∨L→→→→→→→→→→ lvl=∃k∃sp_key(?)(?)(kc=k)(And)∀nv∈markedCols(…) premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=before",
+    "param:flowKeyRoute_of_open.h_compact_pair arm=l path=∨L→→→→→→→→ lvl=∀nv∈markedCols(…) premises=[SBlockIndented(nc),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "param:indicator_open_map.h_explUp_chain arm=l path=∨L∃→→→→→→→→ lvl=∃ns∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  -- 2026-10-31 (item 412): the entry-shaped `pendingMapValue.h_expl` — the chain one frame up sits inside the `?` arm
+-  -- (`∨L ∃ ∧R ∧R ∨L`), projected on `markedCols sc` minus the own mark; and its consumer param twin.
+-  "param:indicator_open_map.h_explUp_chainD arm=l path=∨L∃∧R∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)(?)∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "param:question_open_map.h_explUp_chain arm=l path=∨L∃→→→→→→→→ lvl=∃ns∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  -- Item 413: compact_open_map.h_chainUp — the opener's relay parameter (the `-` / slot park's chain over the entry's content).
+-  "param:question_open_map.h_explUp_chainD arm=l path=∨L∃∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "param:slotChainMap.up arm=l path=→→→→ lvl=∀nvX∈ns premises=[SBlockIndented(nv)] ⊢ ExplValueLine(nvX) tail=no"]
++   "param:indicator_open_map.h_explUp_chainD arm=l path=∨L∃∧R∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)(?)∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "param:question_open_map.h_explUp_chain arm=l path=∨L∃→→→→→→→→ lvl=∃ns∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "param:question_open_map.h_explUp_chainD arm=l path=∨L∃∧R→→→→→→→→ lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "param:slotChainMap.up arm=l path=→→→→ lvl=∀nvX∈ns premises=[SBlockIndented(nv)] ⊢ ExplValueLine(nvX) tail=no"]
+ -- 2026-10-20 (item 306): 70 → 73 — three origins more, all in `accum_content_on_pendingBlock_indented`:
+ -- the two key-pack builders' `h_nodeFV`/`h_dframesV` are now built from the entry park's
+ -- `h_closeFV_old` (frames origin) where item 108 left punts; the rows after them renumber.
+@@ -781,13 +781,12 @@
+ -- 2026-10-30 (item 405, Rule 8 fix): the eight `h_kslot`-fed rows read `paid:other/built` (the projection `markedCols sc` is an `other` level) and `none=[fact,…]` where `MarkedColsIn.self` is spent.
+ def expectedRows : List String :=
+   ["accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_kslot := paid:other/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[fact,punt] ⊢ some-held 1/2",
+-   "accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_kslotUp := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[stamp,punt] ⊢ some-held 1/2",
+-   "accum_block_on_closeThenBlock #1 param:indicator_open_map.h_explUp_chain := alt/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[stamp,punt] ⊢ some-held 1/2",
++   "accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_kslotUp := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[punt] ⊢ some-held 1/2",
++   "accum_block_on_closeThenBlock #1 param:indicator_open_map.h_explUp_chain := alt/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[punt] ⊢ some-held 1/2",
+    "accum_block_on_closeThenBlock #1 param:indicator_open_map.h_explUp_chainD := alt/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[stamp,absurd,punt] ⊢ some-held 1/2",
+-   "accum_block_on_closeThenBlock #1 param:slotChainMap.up := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] ⊢ some-held 1/2",
+-   "accum_block_on_closeThenBlock #2 param:slotChainMap.up := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[absurd] ⊢ some-held 1/2",
++   "accum_block_on_closeThenBlock #1 param:slotChainMap.up := relay/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] ⊢ some-held 1/2",
++   "accum_block_on_closeThenBlock #2 param:slotChainMap.up := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] ⊢ some-held 1/2",
+    "accum_block_on_closeThenBlock #3 param:slotChainMap.up := relay/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] ⊢ some-held 1/2",
+-   "accum_block_on_closeThenBlock #4 param:slotChainMap.up := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] ⊢ some-held 1/2",
+    "accum_block_on_closeThenBlock #1 param:colon_open_map_explicit.hvp := relay/built pos=[param:accum_block_on_closeThenBlock.h_vpack] origins=[O0,O1,O2,O3,O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O23,O26,O27,O28,O29,O30,O31,O34,O35,O36,O37,O38,O39,O40,O41,O42,O46,O47,O49,O50,O54,O55,O68,O69] ⊢ some-held 2/47",
+    "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_kslot := paid:other/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[fact,stamp] ⊢ some-held 1/2",
+    "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_kslotUp := paid:chain/built pos=[param:accum_block_on_closeThenBlock.h_vslot] origins=[O4,O69] none=[stamp] ⊢ some-held 1/2",
+@@ -942,7 +941,7 @@
+    "colon_open_map #1 ctor:pendingMapValue.h_explUp := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_ivl := paid:chain/built pos=[param:colon_open_map_explicit.hvp] origins=[O0,O1,O2,O3,O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O23,O26,O27,O28,O29,O30,O31,O34,O35,O36,O37,O38,O39,O40,O41,O42,O46,O47,O49,O50,O54,O55,O68,O69] ⊢ some-held 2/47",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_expl := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
+-   "colon_open_map_explicit #1 ctor:pendingMapValue.h_vslot := paid:chain/built pos=[param:colon_open_map_explicit.hvp] origins=[O0,O1,O2,O3,O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O23,O26,O27,O28,O29,O30,O31,O34,O35,O36,O37,O38,O39,O40,O41,O42,O46,O47,O49,O50,O54,O55,O68,O69] ⊢ some-held 2/47",
++   "colon_open_map_explicit #1 ctor:pendingMapValue.h_vslot := paid:other/built pos=[param:colon_open_map_explicit.hvp] origins=[O0,O1,O2,O3,O4,O5,O6,O7,O8,O9,O10,O11,O12,O13,O14,O15,O16,O17,O18,O19,O20,O21,O22,O23,O26,O27,O28,O29,O30,O31,O34,O35,O36,O37,O38,O39,O40,O41,O42,O46,O47,O49,O50,O54,O55,O68,O69] ⊢ some-held 2/47",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_kslot := punt/stamp pos=[] origins=[] none=[stamp,punt] ⊢ —",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_explUp := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
+    "colon_open_map_implicit #1 ctor:pendingMapValue.h_ivl := stamp/stamp pos=[] origins=[] none=[stamp] ⊢ —",
+@@ -975,7 +974,7 @@
+    "indicator_open_map #1 param:question_open_map.h_explUp_chainD := step/built pos=[param:indicator_open_map.h_explUp_chainD] origins=[O4,O69] ⊢ some-held 1/2",
+    "question_open_map #1 ctor:pendingMapValue.h_ivl := paid:route/built pos=[] origins=[O56,O57,O58,O59,O60,O61] ⊢ all-held 6/6",
+    "question_open_map #1 ctor:pendingMapValue.h_expl := paid:chain/built pos=[param:question_open_map.h_explUp_chainD] origins=[O4,O69] none=[absurd,punt] ⊢ some-held 1/2",
+-   "question_open_map #1 ctor:pendingMapValue.h_vslot := paid:route/built pos=[] origins=[O62,O63,O64,O65,O66,O67] ⊢ all-held 6/6",
++   "question_open_map #1 ctor:pendingMapValue.h_vslot := paid:other/built pos=[] origins=[O62,O63,O64,O65,O66,O67] ⊢ all-held 6/6",
+    "question_open_map #1 ctor:pendingMapValue.h_kslot := paid:tail/built pos=[param:question_open_map.h_explUp_chainD] origins=[O4,O68,O69] none=[punt] ⊢ some-held 2/3",
+    "question_open_map #1 ctor:pendingMapValue.h_explUp := alt/built pos=[param:question_open_map.h_explUp_chainD] origins=[O4,O69] none=[stamp] ⊢ some-held 1/2"]
+ -- 2026-10-20 (item 306): the positions' origin sets re-read with the three new origins
+@@ -1045,7 +1044,7 @@
+    "param:indicator_open_map.h_explUp_chainD writers=4 punt=1 stamp=1 built=2 unborn=0 dead=0 allHeld=0 someHeld=2 noneHeld=0 origins=[O4,O69] ⊢ 1/2 held",
+    "param:question_open_map.h_explUp_chain writers=1 punt=0 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=1 noneHeld=0 origins=[O4,O69] ⊢ 1/2 held",
+    "param:question_open_map.h_explUp_chainD writers=1 punt=0 stamp=0 built=1 unborn=0 dead=0 allHeld=0 someHeld=1 noneHeld=0 origins=[O4,O69] ⊢ 1/2 held",
+-   "param:slotChainMap.up writers=4 punt=0 stamp=0 built=4 unborn=0 dead=0 allHeld=0 someHeld=4 noneHeld=0 origins=[O4,O69] ⊢ 1/2 held"]
++   "param:slotChainMap.up writers=3 punt=0 stamp=0 built=3 unborn=0 dead=0 allHeld=0 someHeld=3 noneHeld=0 origins=[O4,O69] ⊢ 1/2 held"]
+ -- 2026-10-24 (item 355): 0 → 9.  The marked-column domain is transported through the step by
+ -- `h.imp (fun ⟨ns, hd, k⟩ => ⟨ns, MarkedColsIn.step_content … hd, k⟩) …`, which this walker reads as a
+ -- `step(...)` writer with no origin (it does not look through the transport lambda to the door it
+@@ -1238,7 +1237,7 @@
+ -- Item 519 (review round): term size only — lets 753 → 756, lapps 1204 → 1209, alts 5620 → 5625, liteNodes 688005 → 688691 (the `vslot` writers' fallback funders: `have hnode`, `by_cases`); no row, origin or hold moved.
+   -- 2026-11-22 (Lean v4.36.0): liteNodes 693828 → 693938 and nothing else — the walk crosses the same lets, applications,
+   -- alternatives and nodes; v4.36.0 elaborates the same proof text to slightly larger terms. No origin row moved.
+-  "positions=52 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=198 ctorRows=104 paramRows=94 packagedRows=29 punt=4 stamp=37 built=157 origins=70 originRows=35 route=12 frames=29 tail=15 other=0 concl=8 invariant=6 heldOrigins=14 allHeld=2 someHeld=125 noneHeld=13 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=7 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=416 lets=775 lapps=1232 alts=5712 nodes=14657 liteNodes=696789"
++  "positions=52 packaged=7 packConsts=[ImplicitKeyPack,PropsKeyPack] rows=197 ctorRows=104 paramRows=93 packagedRows=29 punt=4 stamp=37 built=156 origins=70 originRows=35 route=12 frames=29 tail=15 other=0 concl=8 invariant=6 heldOrigins=14 allHeld=2 someHeld=124 noneHeld=13 unbornRows=0 relayedPunt=0 relayedStamp=10 relayedAbsurd=7 relayedFact=0 deadRows=0 unbornPos=0 rounds=4 follows=397 lets=781 lapps=1229 alts=5727 nodes=14630 liteNodes=698354"
+ 
+ /-! ## §4 The reading -/
+ 
+--- a/Tests/Guards/Proofs/ValueLinePacks.lean
++++ b/Tests/Guards/Proofs/ValueLinePacks.lean
+@@ -730,24 +730,24 @@
+ -- 2026-10-30 (item 405, Rule 8 fix): the two `h_kslot` packs read `lvl=∀nv∈markedCols(…)` — the chain re-indexed by the projection, no `∃nv0∃ns`.
+ -- 2026-11-26 (actual marked-column correspondence):
+ -- Both value-pack interfaces retain MarkedColsIn sc ns; path and binder readings now include scanner-state coverage.
+-def expectedPacks : List String := [
+-  "pendingContent.h_vpack arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "pendingProps.h_kslot arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockNode(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "pendingProps.h_kslotE arm=l lvl=∃ne(n=ne + 1)∀nv∈markedCols(…) premises=[SBlockNode(n),SCompactSeqTail(ne),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "pendingBlockContent.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "pendingBlockContent.h_kslotUp arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "pendingBlock.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "pendingBlock.h_kslotUp arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  "pendingMapValue.h_ivl arm=r/stamp lvl=(sp_scan.col=n + 1) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
++def expectedPacks : List String :=
+   -- Item 288: the field's other disjunct is the stamp, not `True`.
+-  "pendingMapValue.h_vslot arm=l/stamp lvl=(sc.currentIndent≤n)(sp_scan.col=n + 1) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
+-  "pendingMapValue.h_kslot arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockNode(n + 1),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+   -- 2026-10-24 (item 350): `arm=l` → `arm=l/stamp` — the alternative is the scanner fact
+   -- `NotQuestionPark sc` now, which the census reads as a stamp, not a `PackAlt` escape.
+-  "pendingMapValue.h_explUp arm=l/stamp lvl=∃sp_q∃ns(GLit('?'))(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+   -- 2026-10-31 (item 412): the `?` park's route one frame up — `h_expl`'s chain is read over the park's OWN ENTRY
+   -- (`SBlockMapEntry n`), projected on `markedCols sc` minus the own mark (`Ne`), and declines into `PackAlt sc`.
+-  "pendingMapValue.h_expl arm=l/stamp lvl=∃sp_q(GLit('?'))(?)∀nv∈markedCols(…) premises=[Ne,SBlockMapEntry(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no"]
++  ["pendingContent.h_vpack arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingProps.h_kslot arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockNode(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingProps.h_kslotE arm=l lvl=∃ne(n=ne + 1)∀nv∈markedCols(…) premises=[SBlockNode(n),SCompactSeqTail(ne),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingBlockContent.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingBlockContent.h_kslotUp arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingBlock.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingBlock.h_kslotUp arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingMapValue.h_ivl arm=r/stamp lvl=(sp_scan.col=n + 1) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
++   "pendingMapValue.h_expl arm=l/stamp lvl=∃sp_q(GLit('?'))(?)∀nv∈markedCols(…) premises=[Ne,SBlockMapEntry(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingMapValue.h_vslot arm=l/stamp lvl=(sc.currentIndent≤n)(sp_scan.col=n + 1)(?) premises=[SBlockIndented(n)] ⊢ SLYamlStream tail=no",
++   "pendingMapValue.h_kslot arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockNode(n + 1),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "pendingMapValue.h_explUp arm=l/stamp lvl=∃sp_q∃ns(GLit('?'))(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no"]
+ def expectedFramesOn : List String := [
+   "pendingContent.h_framesV frames(ks)@ExplValueLine(nv)←landing",
+   "pendingProps.h_closeFV frames(ks)@ExplValueLine(nv)←SBlockNode(n)",
+@@ -774,12 +774,16 @@
+   -- domain conjunct; `explFrameValueLine` deleted (its callers pass the park's domained chain).
+   -- 2026-10-31 (item 412): the consumer reads the entry-shaped `h_expl` (its twin of the pack row).
+   -- Item 413: the opener's relay parameter — the `-` / slot park's chain over the entry's CONTENT, on the projection.
++  -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
++  -- Item 409 (2026-10-30): the pack faces and `h_compact`/`h_ivl`/`h_nodeV` carry the `MarkedColsIn`
++  -- domain conjunct; `explFrameValueLine` deleted (its callers pass the park's domained chain).
++  -- 2026-10-31 (item 412): the consumer reads the entry-shaped `h_expl` (its twin of the pack row).
++  -- Item 413: the opener's relay parameter — the `-` / slot park's chain over the entry's CONTENT, on the projection.
+   ["accum_block_on_closeThenBlock.h_vpack arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "accum_block_on_closeThenBlock.h_vslot arm=l/stamp lvl=∃nv∃sp_a(SLYamlStream(sp_start))(sc.currentIndent≤nv)(needIndentCheck(…)=false)(simpleKeyAllowed(…)=true)(sp_gram=sp_scan)(sp_scan.col=nv + 1)(?)(Or)∀nvU∈markedCols(…) premises=[SBlockIndented(nv),SIndent(nvU),GLit(':'),SBlockIndented(nvU)] ⊢ ResumeFrames tail=no",
+-    "accum_block_on_pendingBlock.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "accum_block_on_pendingBlock.h_kslotUp arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-    "accum_block_on_pendingBlockContent.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-   -- Item 371: the restated value-line pack (`⇒ Resume(map(_)::[])▹Stream`, `ResumeFrames.one`'s level)
++   "accum_block_on_closeThenBlock.h_vslot arm=l/stamp lvl=∃nv∃sp_a(SLYamlStream(sp_start))(sc.currentIndent≤nv)(needIndentCheck(…)=false)(simpleKeyAllowed(…)=true)(sp_gram=sp_scan)(sp_scan.col=nv + 1)(?)(?)∀nvU∈markedCols(…) premises=[SBlockIndented(nv),SIndent(nvU),GLit(':'),SBlockIndented(nvU)] ⊢ ResumeFrames tail=no",
++   "accum_block_on_pendingBlock.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "accum_block_on_pendingBlock.h_kslotUp arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
++   "accum_block_on_pendingBlockContent.h_kslot arm=l lvl=∀nv∈markedCols(…) premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "accum_block_on_pendingBlockContent.h_kslotUp arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "accum_block_on_pendingContent.h_vpack arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SSLComments,SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "accum_content_on_pendingBlock_indented.h_kslotUp_old arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SCompactSeqTail(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+@@ -793,8 +797,6 @@
+    "colon_open_map_implicit.h_kslotD arm=l/stamp lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "colon_open_map_props.h_kslotD arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SCompactMapTail(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "compact_open_map.h_chainUp arm=l lvl=∀nv∈markedCols(…) premises=[SBlockIndented(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-   -- Item 409 (2026-10-30): the pack faces and `h_compact`/`h_ivl`/`h_nodeV` carry the `MarkedColsIn`
+-   -- domain conjunct; `explFrameValueLine` deleted (its callers pass the park's domained chain).
+    "entryChainMap.up arm=l lvl=∀nvX∈ns premises=[SBlockIndented(n),SCompactSeqTail(n)] ⊢ ExplValueLine(nvX) tail=no",
+    "entryKeyPack_of_dispatch.h_compact arm=l lvl=(?)(sp_scan.col=n + 1)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "entryKeyPack_of_dispatch.h_ivl arm=r/stamp lvl=(?)(sp_scan.col=n + 1)∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockIndented(n),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+@@ -807,9 +809,7 @@
+    "flowKeyRoute_of_open.h_compact_pair arm=l lvl=∀nv∈markedCols(…) premises=[SBlockIndented(nc),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "indicator_open_map.h_explUp_chain arm=l lvl=∃ns∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "indicator_open_map.h_explUp_chainD arm=l lvl=∃ns(MarkedColsIn)(?)∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-  -- 2026-10-31 (item 412): the consumer reads the entry-shaped `h_expl` (its twin of the pack row).
+-  "question_open_map.h_explUp_chain arm=l lvl=∃ns∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+-   -- Item 413: the opener's relay parameter — the `-` / slot park's chain over the entry's CONTENT, on the projection.
++   "question_open_map.h_explUp_chain arm=l lvl=∃ns∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "question_open_map.h_explUp_chainD arm=l lvl=∃ns(MarkedColsIn)∀nv∈ns premises=[SBlockMapEntry(k),SIndent(nv),GLit(':'),SBlockIndented(nv)] ⊢ ResumeFrames tail=no",
+    "slotChainMap.up arm=l lvl=∀nvX∈ns premises=[SBlockIndented(nv)] ⊢ ExplValueLine(nvX) tail=no"]
+ -- The nine rows carrying a `(h_vslot)`-style binder list after `<param:…` read
+@@ -852,17 +852,16 @@
+   -- Item 519: the depth-0 open's `pendingBlock` / `pendingMapValue` writes read the parks' every-mark chains alone
+   -- (`h_kslotUp` / `h_explUp` dropped from the holds); the two flow-close `h_vpack` punts are PAID chains from `vslot`.
+   ["accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_kslot idx=k := paid:other ns=— spend=relay(h_mcstep_ne←param:accum_block_on_closeThenBlock.h_mcstep_ne) holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h✝:frames(ks_e)←SCompactSeqTail(k); h_entryTailF:frames(ks_e)←SCompactSeqTail(k); h_seqFrames:frames(ks)←SCompactSeqTail(k); h_slotV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_resSeqV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_resKslot:frames(map(…) :: [])←SBlockIndented(nv); h_slotV':frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_seqFramesV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k)] ⊢ held(h_res_land,h_resV_land)",
+-   "accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_kslotUp idx=k := paid:chain ns=markedCols(…) spend=alt[hkv←param:accum_block_on_closeThenBlock.h_vslot|kvU←param:accum_block_on_closeThenBlock.h_vslot] holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h✝:frames(ks_e)←SCompactSeqTail(k); h_entryTailF:frames(ks_e)←SCompactSeqTail(k); h_seqFrames:frames(ks)←SCompactSeqTail(k); h_slotV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_resSeqV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_resKslot:frames(map(…) :: [])←SBlockIndented(nv); h_slotV':frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_seqFramesV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k)] ⊢ level-var",
+-   "accum_block_on_closeThenBlock #1 param:indicator_open_map.h_explUp_chain idx=— := alt[paid:chain|paid:chain|paid:chain] ns=markedCols(…)|nv :: []|markedCols(…) spend=slotChainMap(alt[kv←param:accum_block_on_closeThenBlock.h_vslot|kvU←param:accum_block_on_closeThenBlock.h_vslot])|slotChainMap(kv←param:accum_block_on_closeThenBlock.h_vslot)|slotChainMap(kvU←param:accum_block_on_closeThenBlock.h_vslot) holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing] ⊢ none",
+-   "accum_block_on_closeThenBlock #1 param:indicator_open_map.h_explUp_chainD idx=— := alt[paid:chain|alt[empty|empty]] ns=markedCols(…)|[]|[] spend=slotChainMap(alt[kv←param:accum_block_on_closeThenBlock.h_vslot|kvU←param:accum_block_on_closeThenBlock.h_vslot])|—|— holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing] ⊢ level-var",
+-   "accum_block_on_closeThenBlock #1 param:slotChainMap.up idx=— := paid:chain ns=— spend=alt[kv←param:accum_block_on_closeThenBlock.h_vslot|kvU←param:accum_block_on_closeThenBlock.h_vslot] holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU); kv:frames(map(…) :: [])←SBlockIndented(nv); kvU:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ level-var",
+-   "accum_block_on_closeThenBlock #2 param:slotChainMap.up idx=— := paid:chain ns=— spend=kv←param:accum_block_on_closeThenBlock.h_vslot holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU); kv:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ level-var",
+-   "accum_block_on_closeThenBlock #3 param:slotChainMap.up idx=— := relay:chain(param:accum_block_on_closeThenBlock.h_vslot) ns=— spend=— holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU); kvU:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ —",
+-   "accum_block_on_closeThenBlock #4 param:slotChainMap.up idx=— := paid:chain ns=— spend=alt[kv←param:accum_block_on_closeThenBlock.h_vslot|kvU←param:accum_block_on_closeThenBlock.h_vslot] holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU); kv:frames(map(…) :: [])←SBlockIndented(nv); kvU:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ level-var",
++   "accum_block_on_closeThenBlock #1 ctor:pendingBlock.h_kslotUp idx=k := paid:chain ns=markedCols(…) spend=kvU←param:accum_block_on_closeThenBlock.h_vslot holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h✝:frames(ks_e)←SCompactSeqTail(k); h_entryTailF:frames(ks_e)←SCompactSeqTail(k); h_seqFrames:frames(ks)←SCompactSeqTail(k); h_slotV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_resSeqV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_resKslot:frames(map(…) :: [])←SBlockIndented(nv); h_slotV':frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k); h_seqFramesV:frames(ks)@ExplValueLine(nv)←SCompactSeqTail(k)] ⊢ level-var",
++   "accum_block_on_closeThenBlock #1 param:indicator_open_map.h_explUp_chain idx=— := alt[paid:chain|paid:chain] ns=markedCols(…)|filter(…) spend=slotChainMap(kvU←param:accum_block_on_closeThenBlock.h_vslot)|slotChainMap(hkv←param:accum_block_on_closeThenBlock.h_vslot) holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing] ⊢ level-var",
++   "accum_block_on_closeThenBlock #1 param:indicator_open_map.h_explUp_chainD idx=— := alt[paid:chain|alt[empty|empty]] ns=markedCols(…)|[]|[] spend=slotChainMap(kvU←param:accum_block_on_closeThenBlock.h_vslot)|—|— holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing] ⊢ level-var",
++   "accum_block_on_closeThenBlock #1 param:slotChainMap.up idx=— := relay:chain(param:accum_block_on_closeThenBlock.h_vslot) ns=— spend=— holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU); kvU:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ —",
++   "accum_block_on_closeThenBlock #2 param:slotChainMap.up idx=— := paid:chain ns=— spend=hkv←param:accum_block_on_closeThenBlock.h_vslot holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ level-var",
++   "accum_block_on_closeThenBlock #3 param:slotChainMap.up idx=— := relay:chain(param:accum_block_on_closeThenBlock.h_vslot) ns=— spend=— holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; left✝:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU); kvU:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ —",
+    "accum_block_on_closeThenBlock #1 param:colon_open_map_explicit.hvp idx=— := relay:chain(λ:hvp) ns=— spend=— holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; hvp:frames(map(…) :: [])←SBlockIndented(k)] ⊢ —",
+    "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_kslot idx=nv + 1 + m := paid:other ns=— spend=relay(h_mcstep_ne←param:accum_block_on_closeThenBlock.h_mcstep_ne) holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ none",
+-   "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_kslotUp idx=nv + 1 + m := paid:chain ns=markedCols(…) spend=alt[kv←param:accum_block_on_closeThenBlock.h_vslot|kvU←param:accum_block_on_closeThenBlock.h_vslot] holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ level-var",
+-   "accum_block_on_closeThenBlock #1 param:compact_open_map.h_chainUp idx=— := paid:chain ns=— spend=relay(alt[kv←param:accum_block_on_closeThenBlock.h_vslot|kvU←param:accum_block_on_closeThenBlock.h_vslot]) holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ level-var",
++   "accum_block_on_closeThenBlock #2 ctor:pendingBlock.h_kslotUp idx=nv + 1 + m := paid:chain ns=markedCols(…) spend=kvU←param:accum_block_on_closeThenBlock.h_vslot holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ level-var",
++   "accum_block_on_closeThenBlock #1 param:compact_open_map.h_chainUp idx=— := paid:chain ns=— spend=relay(kvU←param:accum_block_on_closeThenBlock.h_vslot) holds=[h_vpack:frames(map(…) :: [])←SBlockIndented(nv); h_vslot:frames(map(…) :: [])←SBlockIndented(nv); h_valF:frames(map(…) :: ks)←SBlockNode(nv + 1); h_seqF:frames(ks)←SCompactSeqTail(ke); h_mapF:frames(ks)←landing; h_mapFV:frames(ks)@ExplValueLine(nv)←landing; h_valFV:frames(ks)@ExplValueLine(nv)←SBlockNode(nn + 1); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); h✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); right✝:frames(map(…) :: [])←SBlockIndented(nv); hkv:frames(map(…) :: [])←SBlockIndented(nv); hkvUp:frames(map(…) :: [])←SBlockIndented(nvU)] ⊢ level-var",
+    "accum_block_on_noPending #1 ctor:pendingBlock.h_kslot idx=k := paid:other ns=— spend=absurd holds=[] ⊢ none",
+    "accum_block_on_noPending #1 ctor:pendingBlock.h_kslotUp idx=k := punt ns=— spend=— holds=[] ⊢ —",
+    "accum_block_on_noPending #1 param:indicator_open_map.h_explUp_chain idx=— := punt ns=— spend=— holds=[] ⊢ —",
+@@ -988,7 +987,7 @@
+    "colon_open_map #1 ctor:pendingMapValue.h_explUp idx=k := stamp ns=— spend=— holds=[h_res_land:tail(k)←landing; h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv); h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k)] ⊢ —",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_ivl idx=nv := paid:chain ns=— spend=h_slot←let:h_slot holds=[hvp:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ none",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_expl idx=nv := stamp ns=— spend=— holds=[hvp:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ —",
+-   "colon_open_map_explicit #1 ctor:pendingMapValue.h_vslot idx=nv := paid:chain ns=— spend=h_slot←let:h_slot holds=[hvp:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ none",
++   "colon_open_map_explicit #1 ctor:pendingMapValue.h_vslot idx=nv := paid:other ns=— spend=h_noOwn←let:h_noOwn<ret:r2_value_excludes_top_column(h_noflow_disp,h_top_eq) holds=[hvp:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ none",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_kslot idx=nv := punt ns=— spend=— holds=[hvp:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ —",
+    "colon_open_map_explicit #1 ctor:pendingMapValue.h_explUp idx=nv := stamp ns=— spend=— holds=[hvp:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ —",
+    "colon_open_map_implicit #1 ctor:pendingMapValue.h_ivl idx=k := stamp ns=— spend=— holds=[h_routeF:tail(k)←SBlockMapEntry(k); h_routeFV:tail(k)←SBlockMapEntry(k); h_routeS:tail(k)←SBlockMapEntry(k); h_kslotD:tail(k)←SBlockMapEntry(k)] ⊢ —",
+@@ -1017,7 +1016,7 @@
+    "indicator_open_map #1 param:question_open_map.h_explUp_chainD idx=— := step(param:indicator_open_map.h_explUp_chainD) ns=— spend=— holds=[h_res_land:tail(k)←landing; h_explUp_chain:frames(map(…) :: [])←SBlockIndented(nv); h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ —",
+    "question_open_map #1 ctor:pendingMapValue.h_ivl idx=k := paid:route ns=— spend=h_route51←let:h_route51<param:question_open_map.h_res_land(h_res_land,h_sfx_land,h_nodoc_land,h_mk_land,h_pr_land) holds=[h_res_land:tail(k)←landing; h_explUp_chain:frames(map(…) :: [])←SBlockIndented(nv); h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv); h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k); h_route51F:tail(k)←SBlockMapEntry(k); h_upAll:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F)",
+    "question_open_map #1 ctor:pendingMapValue.h_expl idx=k := paid:chain ns=— spend=up←param:question_open_map.h_explUp_chainD holds=[h_res_land:tail(k)←landing; h_explUp_chain:frames(map(…) :: [])←SBlockIndented(nv); h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv); h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k); h_route51F:tail(k)←SBlockMapEntry(k); h_upAll:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F)",
+-   "question_open_map #1 ctor:pendingMapValue.h_vslot idx=k := paid:route ns=— spend=h_route51←let:h_route51<param:question_open_map.h_res_land(h_res_land,h_sfx_land,h_nodoc_land,h_mk_land,h_pr_land) holds=[h_res_land:tail(k)←landing; h_explUp_chain:frames(map(…) :: [])←SBlockIndented(nv); h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv); h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k); h_route51F:tail(k)←SBlockMapEntry(k); h_upAll:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F)",
++   "question_open_map #1 ctor:pendingMapValue.h_vslot idx=k := paid:other ns=— spend=absurd holds=[h_res_land:tail(k)←landing; h_explUp_chain:frames(map(…) :: [])←SBlockIndented(nv); h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv); h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k); h_route51F:tail(k)←SBlockMapEntry(k); h_upAll:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F)",
+    "question_open_map #1 ctor:pendingMapValue.h_kslot idx=k := paid:tail ns=k :: nsU spend=alt[one(h_route51F←let:h_route51F)|up←param:question_open_map.h_explUp_chainD]⊣tail holds=[h_res_land:tail(k)←landing; h_explUp_chain:frames(map(…) :: [])←SBlockIndented(nv); h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv); h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k); h_route51F:tail(k)←SBlockMapEntry(k); h_upAll:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ held(h_res_land,h_resV_land,h✝,right✝,h_routeF,h_route51F)",
+    "question_open_map #1 ctor:pendingMapValue.h_explUp idx=k := alt[paid:frames|paid:chain|stamp] ns=hAppend(…)|nsD|— spend=alt[resumeFrameRouteK(contV←param:question_open_map.h_explUp_chainD)|upD←param:question_open_map.h_explUp_chainD]|upD←param:question_open_map.h_explUp_chainD|—⊣tail holds=[h_res_land:tail(k)←landing; h_explUp_chain:frames(map(…) :: [])←SBlockIndented(nv); h_resV_land:tail(k)←landing; h_explUp_chainD:frames(map(…) :: [])←SBlockIndented(nv); h✝:tail(k)←SBlockMapEntry(k); right✝:tail(k)←SBlockMapEntry(k); h_routeF:tail(k)←SBlockMapEntry(k); h_route51F:tail(k)←SBlockMapEntry(k); h_upAll:frames(map(…) :: [])←SBlockIndented(nv)] ⊢ level-var"]
+ -- 2026-10-20 (item 307): re-read — the three γ roots' `h_vpack` are paid and `closeThenBlock`'s landed arm
+@@ -1040,7 +1039,7 @@
+    "ctor:pendingBlock.h_kslotUp writers=7 punt=1 stamp=0 empty=0 relay=0 step=0 via=0 chain=6 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=6 none=0 touched=6",
+    "ctor:pendingMapValue.h_ivl writers=6 punt=0 stamp=3 empty=0 relay=1 step=0 via=0 chain=1 route=1 frames=0 tail=0 other=0 alt=0 held=1 levelVar=0 none=1 touched=6",
+    "ctor:pendingMapValue.h_expl writers=6 punt=0 stamp=4 empty=0 relay=1 step=0 via=0 chain=1 route=0 frames=0 tail=0 other=0 alt=0 held=1 levelVar=0 none=0 touched=6",
+-   "ctor:pendingMapValue.h_vslot writers=6 punt=0 stamp=3 empty=0 relay=1 step=0 via=0 chain=1 route=1 frames=0 tail=0 other=0 alt=0 held=1 levelVar=0 none=1 touched=6",
++   "ctor:pendingMapValue.h_vslot writers=6 punt=0 stamp=3 empty=0 relay=1 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=2 alt=0 held=1 levelVar=0 none=1 touched=6",
+    "ctor:pendingMapValue.h_kslot writers=6 punt=2 stamp=0 empty=0 relay=0 step=0 via=0 chain=3 route=0 frames=0 tail=1 other=0 alt=0 held=1 levelVar=3 none=0 touched=4",
+    "ctor:pendingMapValue.h_explUp writers=6 punt=0 stamp=4 empty=0 relay=0 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=2 held=1 levelVar=1 none=0 touched=6",
+    "param:accum_block_on_closeThenBlock.h_vpack writers=11 punt=1 stamp=0 empty=2 relay=1 step=0 via=0 chain=3 route=0 frames=3 tail=0 other=0 alt=1 held=0 levelVar=7 none=0 touched=10",
+@@ -1071,11 +1070,11 @@
+    "param:explEntryChain_of_keyContent.up writers=5 punt=0 stamp=0 empty=0 relay=5 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=0 none=0 touched=5",
+    "param:flowKeyPack_of_close.h_key writers=2 punt=0 stamp=0 empty=0 relay=2 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=0 none=0 touched=2",
+    "param:flowKeyRoute_of_open.h_compact_pair writers=3 punt=1 stamp=0 empty=0 relay=0 step=0 via=0 chain=1 route=0 frames=0 tail=1 other=0 alt=0 held=0 levelVar=2 none=0 touched=2",
+-   "param:indicator_open_map.h_explUp_chain writers=4 punt=2 stamp=0 empty=0 relay=0 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=2 held=0 levelVar=1 none=1 touched=2",
++   "param:indicator_open_map.h_explUp_chain writers=4 punt=2 stamp=0 empty=0 relay=0 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=2 held=0 levelVar=2 none=0 touched=2",
+    "param:indicator_open_map.h_explUp_chainD writers=4 punt=2 stamp=0 empty=0 relay=0 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=2 held=0 levelVar=2 none=0 touched=2",
+    "param:question_open_map.h_explUp_chain writers=1 punt=0 stamp=0 empty=0 relay=1 step=0 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=0 none=0 touched=1",
+    "param:question_open_map.h_explUp_chainD writers=1 punt=0 stamp=0 empty=0 relay=0 step=1 via=0 chain=0 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=0 none=0 touched=1",
+-   "param:slotChainMap.up writers=4 punt=0 stamp=0 empty=0 relay=1 step=0 via=0 chain=3 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=3 none=0 touched=4"]
++   "param:slotChainMap.up writers=3 punt=0 stamp=0 empty=0 relay=2 step=0 via=0 chain=1 route=0 frames=0 tail=0 other=0 alt=0 held=0 levelVar=1 none=0 touched=3"]
+ -- 2026-10-18 (item 284): `nodes` 12296 → 12374 and nothing else.  The walk
+ -- counts nodes only while it follows a value-line pack, so this is item 284's
+ -- additions inside pack-carrying terms; the old `pendingFlow` arm restored alone
+@@ -1155,7 +1154,7 @@
+   -- 2026-10-28 (item 386): nodes 13665 → 13675 — the `-` opener's `h_lvl_old` beside the value-line packs it walks; no pack/row moved.
+ -- Item 519: punt 21 → 19, chain 53 → 55, levelVar 51 → 53, touched 147 → 149 — the two flow-close `h_vpack`
+ -- punts are PAID chains from `FlowBaseRoutes.vslot` (every mark of the open state, read at the close).
+-  "packs=12 framesOn=7 params=33 paramLemmas=20 apps=51 rows=169 ctorRows=80 paramRows=89 punt=16 stamp=24 empty=2 relay=37 step=10 via=3 chain=55 route=2 frames=3 tail=2 other=7 alt=8 held=7 levelVar=57 none=16 spendTail=10 lemmas=21 helpers=[frameChainUnionD] touched=153 nodes=14622"
++  "packs=12 framesOn=7 params=33 paramLemmas=20 apps=51 rows=168 ctorRows=80 paramRows=88 punt=16 stamp=24 empty=2 relay=38 step=10 via=3 chain=52 route=1 frames=3 tail=2 other=9 alt=8 held=7 levelVar=56 none=15 spendTail=10 lemmas=21 helpers=[frameChainUnionD] touched=152 nodes=14595"
+ 
+ /-! ## §4 The reading -/
+ 
