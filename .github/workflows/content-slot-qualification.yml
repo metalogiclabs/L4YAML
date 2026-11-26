@@ -1,0 +1,143 @@
+name: Actual explicit-value slot correspondence
+on:
+  push:
+    branches: [test/content-slot-qualification]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          submodules: recursive
+          path: upstream
+      - name: Bind exact owner and compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd upstream
+          test "$(git rev-parse HEAD)" = cc83019024fb88b7c0d0cdadc4e590bda7a72788
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/owner.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          mkdir -p Research/ContentSlot
+          cp ../evidence/Research/ContentSlot/*.lean Research/ContentSlot/
+          cd ../evidence
+          sha256sum -c Research/ContentSlot/evidence-sha256.txt
+          git rev-parse HEAD > ../results/evidence-commit.txt
+      - uses: actions/cache/restore@v4
+        id: cache
+        continue-on-error: true
+        with:
+          path: upstream/.lake
+          key: content-slot-cc830190-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            content-slot-cc830190-lean4360-${{ runner.os }}-
+            root-payment-cc830190-lean4360-${{ runner.os }}-
+      - name: Baseline controls and exact trust profiles
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version > ../results/lean-version.txt
+          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath > ../results/baseline-build.txt 2>&1
+          lake env lean --run Research/ContentSlot/Controls.lean > ../results/source-controls.txt 2>&1
+          lake env lean --run Research/ContentSlot/AdversarialProbe.lean > ../results/adversarial-controls.txt 2>&1
+          grep -F 'ADVERSARIAL_SOURCE_COLUMNS passed=792 failed=0' ../results/adversarial-controls.txt
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms-before.txt 2>&1
+      - name: Build the strengthened domain and measure the proof graph
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --check ../evidence/Research/ContentSlot/candidate.patch
+          git apply ../evidence/Research/ContentSlot/candidate.patch
+          sha256sum -c ../evidence/Research/ContentSlot/candidate-source-sha256.txt
+          rm -f .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.trace
+          lake build L4YAML.Proofs.Production.DocumentProduction > ../results/source-fresh-build.txt 2>&1
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms-after.txt 2>&1
+          sed -n '/CONTENT_SLOT_AXIOM /p' ../results/axioms-before.txt > ../results/axiom-set-before.txt
+          sed -n '/CONTENT_SLOT_AXIOM /p' ../results/axioms-after.txt > ../results/axiom-set-after.txt
+          diff -u ../results/axiom-set-before.txt ../results/axiom-set-after.txt
+          lake env lean Research/ContentSlot/ProofImpact.lean > ../results/proof-impact.txt 2>&1
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > Research/ContentSlot/MeasuredRepin.lean
+          cat Research/ContentSlot/MeasuredRepinDriver.lean >> Research/ContentSlot/MeasuredRepin.lean
+          lake build Scripts.Main.Repin
+          passed=false
+          for round in $(seq 1 18); do
+            if lake build > "../results/full-build-$round.txt" 2>&1; then
+              passed=true
+              printf '%s\n' "$round" > ../results/successful-build-round.txt
+              break
+            fi
+            before_repin=$(git diff | sha256sum)
+            repin_status=0
+            lake exe scripts-repin "../results/full-build-$round.txt" > "../results/repin-$round.txt" 2>&1 || repin_status=$?
+            test "$repin_status" -le 1
+            lean --run Research/ContentSlot/MeasuredRepin.lean "../results/full-build-$round.txt" . > "../results/measured-repin-$round.txt" 2>&1
+            after_repin=$(git diff | sha256sum)
+            if test "$before_repin" = "$after_repin"; then
+              echo "No measured snapshot progress; refusing an identical retry."
+              tail -100 "../results/full-build-$round.txt"
+              exit 1
+            fi
+          done
+          test "$passed" = true
+          git diff --exit-code -- lean-toolchain lake-manifest.json
+          git diff --check
+          git diff --name-only > ../results/changed-paths.txt
+          while IFS= read -r path; do
+            case "$path" in
+              L4YAML/Proofs/Production/StreamAccum.lean|Tests/AdversarialInstantiation.lean|Tests/Guards/Proofs/*.lean) ;;
+              *) echo "Unexpected edit: $path"; exit 1 ;;
+            esac
+          done < ../results/changed-paths.txt
+          git diff --binary > ../results/qualified-candidate.patch
+          xargs sha256sum < ../results/changed-paths.txt > ../results/candidate-source-sha256.txt
+          git add -- L4YAML Tests
+          git write-tree > ../results/candidate-tree.txt
+          git reset --quiet HEAD -- L4YAML Tests
+          lake run census-dashboard -- --diff HEAD > ../results/dashboard-diff.md
+      - name: Run all repository gates and native suites
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-serialization-proofs check-gate-vocab check-pack-births check-scripts-lean; do
+            lake run "$gate" > "../results/$gate.txt" 2>&1
+          done
+          lake run dead-census -- --check > ../results/dead-census.txt 2>&1
+          lake run census-dashboard -- --check > ../results/dashboard-check.txt 2>&1
+          lake build tests demo limittests suiterunner eventscore collect-stats > ../results/native-executable-build.txt 2>&1
+          lake run run-all-tests > ../results/run-all-tests.txt 2>&1
+          lake exe suiterunner > ../results/suiterunner.txt 2>&1
+          lake exe eventscore > ../results/eventscore.txt 2>&1
+          lake exe collect-stats > ../results/collect-stats.txt 2>&1
+          lake run check-hygiene -- docs/reports/stats.json > ../results/hygiene.txt 2>&1
+          cp docs/reports/stats.json ../results/stats.json
+          printf '%s\n' 'full_build=PASS' 'all_gates=PASS' 'native_suites=PASS' 'source_controls=PASS' 'exact_existing_axiom_sets_unchanged=true' 'offcol_escape_on_capstone=false' 'content_slot_fully_retired=false' > ../results/outcomes.txt
+      - uses: actions/cache/save@v4
+        if: always() && steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        with:
+          path: upstream/.lake
+          key: content-slot-cc830190-lean4360-${{ runner.os }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: content-slot-state-correspondence
+          path: results/
+          if-no-files-found: error
