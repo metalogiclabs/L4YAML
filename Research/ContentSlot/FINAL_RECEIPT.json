@@ -1,0 +1,73 @@
+{
+  "state": "WARRANTED_BOUNDED",
+  "owner": "2ebc4740262ebaa566d7bce748e0a55a5c2f0cd5",
+  "source_commit": "4c54da7e3716ab0197b126294474bb2868651402",
+  "source_tree": "3b7506b0f4439102df820b8f26bf8d76ab136402",
+  "harness_commit": "d8092d0d9028af9f4d7c39d2ffe4b7318236cabf",
+  "run_id": 45777461093,
+  "run_conclusion": "success",
+  "artifact_id": 15098111829,
+  "archive_sha256": "ab094fd74135c38e936b94969fa80b230e4b7c3a48e2ed0a054a41efc307f53b",
+  "archive_members_crc_passed": 231,
+  "independent_git_reconstruction": true,
+  "independent_source_sha256_files": 32,
+  "full_build_jobs": 2645,
+  "verified_cases": {
+    "passed": 65233,
+    "total": 65233
+  },
+  "matrix": {
+    "passed": 869,
+    "failed": 0,
+    "skipped": 151
+  },
+  "hygiene": {
+    "theorems_with_transitive_sorry": 0,
+    "theorems_with_direct_sorry": 0,
+    "theorems_with_custom_axiom": 0,
+    "theorems": 11860,
+    "custom_axiom_names": [],
+    "axioms": 0
+  },
+  "outcomes": {
+    "full_build": "PASS",
+    "all_gates": "PASS",
+    "native_suites": "PASS",
+    "source_controls": "PASS",
+    "exact_existing_axiom_sets_unchanged": "true",
+    "offcol_escape_on_capstone": "false",
+    "content_slot_fully_retired": "false"
+  },
+  "directed_readings": {
+    "toward": 4,
+    "away": 2,
+    "split_decline_leaves": [
+      213,
+      214
+    ],
+    "free_decline_leaves": [
+      117,
+      118
+    ]
+  },
+  "scope": {
+    "production_off_column_calls_retired": 3,
+    "critical_optional_positions_remaining": 7,
+    "document_marker_supplies_paid": 2,
+    "includes_root_payment_pr_380": false
+  },
+  "archive_file": "qualified-evidence.zip",
+  "event_score": {
+    "correct": 347,
+    "scored": 358,
+    "event_differences": 11
+  },
+  "limits": [
+    "Separate root PR #380 excluded",
+    "All seven optional positions remain",
+    "Complete field retirement remains open",
+    "scannerDrop removal remains open",
+    "Universal scan_trace and corrected Group 7.7 remain open",
+    "Event score is 347/358, not complete YAML conformance"
+  ]
+}
