@@ -1,6 +1,6 @@
 {
   "item": 538,
-  "tag": "R2-NORMALIZED-CHAIN-RESIDUAL-PRICE",
+  "tag": "R2-LAYOUT-BINDER-CORRECTED-RESIDUAL-PRICE",
   "rev": "HEAD",
   "target": "L4YAML",
   "log": "../results/r2/normalized-price.log",
@@ -68,14 +68,14 @@
             "                  | Or.inr h_alt, _ => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))"
           ],
           "new": [
-            "                  (Or.inl (RegisterWitness.MarkedColsIn.relay",
-            "                    (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by",
-            "                    intro x hx sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi",
-            "                    exact hkvUp x hx sp_e",
-            "                      (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind",
-            "                        (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e",
-            "                          h_dash2 h_gnot2 h_bi h_tail))",
-            "                      sp_i sp_c h_iv h_lit sp_v h_sbi))"
+            "                 (Or.inl (RegisterWitness.MarkedColsIn.relay",
+            "                   (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by",
+            "                   intro x hx sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi",
+            "                   exact hkvUp x hx sp_e",
+            "                     (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind",
+            "                       (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e",
+            "                         h_dash2 h_gnot2 h_bi h_tail))",
+            "                     sp_i sp_c h_iv h_lit sp_v h_sbi))"
           ],
           "count": 1
         },
@@ -106,14 +106,14 @@
             "                  | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))"
           ],
           "new": [
-            "                  (Or.inl ⟨RegisterWitness.markedCols sc,",
-            "                    h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by",
-            "                    intro x hx sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi",
-            "                    exact hkvUp x hx sp_e",
-            "                      (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind",
-            "                        (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e",
-            "                          h_dash2 h_gnot2 h_bi h_tail))",
-            "                      sp_i sp_c h_iv h_lit sp_v h_sbi⟩)"
+            "                 (Or.inl ⟨RegisterWitness.markedCols sc,",
+            "                   h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by",
+            "                   intro x hx sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi",
+            "                   exact hkvUp x hx sp_e",
+            "                     (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind",
+            "                       (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e",
+            "                         h_dash2 h_gnot2 h_bi h_tail))",
+            "                     sp_i sp_c h_iv h_lit sp_v h_sbi⟩)"
           ],
           "count": 1
         },
@@ -142,27 +142,27 @@
             "                  | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))"
           ],
           "new": [
-            "                  (if hms : RegisterWitness.markedCols s' = [nv] then Or.inl (fun nv' hm => by",
-            "                       have hm_old : nv ∈ RegisterWitness.markedCols sc :=",
-            "                         (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem",
-            "                           (by rw [hms]; exact List.mem_singleton.mpr rfl)",
-            "                       rw [hms] at hm; rw [List.mem_singleton.mp hm]",
-            "                       exact ⟨[], fun _ h => absurd h (List.not_mem_nil),",
-            "                       -- Item 364: K1-fresh PAID on the compact fill — `h_closeF`'s literal cover",
-            "                       -- (floor `nv + 1`, empty frames), the same transport as the twin above.",
-            "                       Or.inl ⟨nv + 1,",
-            "                         ⟨Nat.le_add_right (nv + 1) m, fun _ h => absurd h List.not_mem_nil⟩,",
-            "                         IndentStackCover.scanBlockEntry_cover",
-            "                           (dispatchBlockIndicators_dash_scan h_dispatch).1",
-            "                           (dispatchBlockIndicators_dash_scan h_dispatch).2",
-            "                           ((IndentStackCover.preprocess_cover h_preprocess",
-            "                               (IndentStackCover.covered_nil_of_top_le h_mono h_top_slot)).of_indents_eq",
-            "                             (by split <;> rfl))⟩,",
-            "                       fun sp_m h_bi sp_e h_tail =>",
-            "                         KeyFrames.bottom sp_e (hkvUp nv hm_old sp_e",
-            "                           (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind",
-            "                             (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e",
-            "                               h_dash2 h_gnot2 h_bi h_tail)))⟩) else Or.inr trivial)"
+            "                 (if hms : RegisterWitness.markedCols s' = [nv] then Or.inl (fun nv' hm => by",
+            "                      have hm_old : nv ∈ RegisterWitness.markedCols sc :=",
+            "                        (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem",
+            "                          (by rw [hms]; exact List.mem_singleton.mpr rfl)",
+            "                      rw [hms] at hm; rw [List.mem_singleton.mp hm]",
+            "                      exact ⟨[], fun _ h => absurd h (List.not_mem_nil),",
+            "                      -- Item 364: K1-fresh PAID on the compact fill — `h_closeF`'s literal cover",
+            "                      -- (floor `nv + 1`, empty frames), the same transport as the twin above.",
+            "                      Or.inl ⟨nv + 1,",
+            "                        ⟨Nat.le_add_right (nv + 1) m, fun _ h => absurd h List.not_mem_nil⟩,",
+            "                        IndentStackCover.scanBlockEntry_cover",
+            "                          (dispatchBlockIndicators_dash_scan h_dispatch).1",
+            "                          (dispatchBlockIndicators_dash_scan h_dispatch).2",
+            "                          ((IndentStackCover.preprocess_cover h_preprocess",
+            "                              (IndentStackCover.covered_nil_of_top_le h_mono h_top_slot)).of_indents_eq",
+            "                            (by split <;> rfl))⟩,",
+            "                      fun sp_m h_bi sp_e h_tail =>",
+            "                        KeyFrames.bottom sp_e (hkvUp nv hm_old sp_e",
+            "                          (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind",
+            "                            (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e",
+            "                              h_dash2 h_gnot2 h_bi h_tail)))⟩) else Or.inr trivial)"
           ],
           "count": 1
         },
@@ -179,8 +179,8 @@
             "               | Or.inr h, _ => Or.inr h)"
           ],
           "new": [
-            "               (Or.inl (RegisterWitness.MarkedColsIn.relay (RegisterWitness.MarkedColsIn.self sc)",
-            "                 (fun x hx => hkvUp x hx)))"
+            "              (Or.inl (RegisterWitness.MarkedColsIn.relay (RegisterWitness.MarkedColsIn.self sc)",
+            "                (fun x hx => hkvUp x hx)))"
           ],
           "count": 1
         },
@@ -203,21 +203,21 @@
             "      | _ => Or.inr trivial"
           ],
           "new": [
-            "       | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
-            "           if hnk : nv ≤ k then",
-            "             if hms : RegisterWitness.markedCols s' = [nv] then",
-            "               Or.inl (fun nv' hm => by",
-            "                 have hm_old : nv ∈ RegisterWitness.markedCols sc :=",
-            "                   (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem",
-            "                     (by rw [hms]; exact List.mem_singleton.mpr rfl)",
-            "                 rw [hms] at hm; rw [List.mem_singleton.mp hm]",
-            "                 exact ⟨[], fun _ h => absurd h (List.not_mem_nil),",
-            "                   fun _ h_indented sp_e h_tail =>",
-            "                     KeyFrames.bottom sp_e (kvU nv hm_old sp_e (slotLandedSeq hnk h_ssl",
-            "                       (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))⟩)",
-            "             else Or.inr trivial",
-            "           else Or.inr trivial",
-            "       | _ => Or.inr trivial"
+            "      | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
+            "          if hnk : nv ≤ k then",
+            "            if hms : RegisterWitness.markedCols s' = [nv] then",
+            "              Or.inl (fun nv' hm => by",
+            "                have hm_old : nv ∈ RegisterWitness.markedCols sc :=",
+            "                  (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem",
+            "                    (by rw [hms]; exact List.mem_singleton.mpr rfl)",
+            "                rw [hms] at hm; rw [List.mem_singleton.mp hm]",
+            "                exact ⟨[], fun _ h => absurd h (List.not_mem_nil),",
+            "                  fun _ h_indented sp_e h_tail =>",
+            "                    KeyFrames.bottom sp_e (kvU nv hm_old sp_e (slotLandedSeq hnk h_ssl",
+            "                      (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))⟩)",
+            "            else Or.inr trivial",
+            "          else Or.inr trivial",
+            "      | _ => Or.inr trivial"
           ],
           "count": 1
         },
@@ -240,15 +240,15 @@
             "              | _ => Or.inr trivial)"
           ],
           "new": [
-            "               | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
-            "                   if hnk : nv ≤ k then",
-            "                     Or.inl (RegisterWitness.MarkedColsIn.relay",
-            "                       (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by",
-            "                       intro x hx _ h_indented sp_e h_tail",
-            "                       exact kvU x hx sp_e (slotLandedSeq hnk h_ssl",
-            "                         (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))",
-            "                   else Or.inr trivial",
-            "               | _ => Or.inr trivial)"
+            "              | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
+            "                  if hnk : nv ≤ k then",
+            "                    Or.inl (RegisterWitness.MarkedColsIn.relay",
+            "                      (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by",
+            "                      intro x hx _ h_indented sp_e h_tail",
+            "                      exact kvU x hx sp_e (slotLandedSeq hnk h_ssl",
+            "                        (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))",
+            "                  else Or.inr trivial",
+            "              | _ => Or.inr trivial)"
           ],
           "count": 1
         },
@@ -279,15 +279,15 @@
             "              | _ => Or.inr trivial)"
           ],
           "new": [
-            "               | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
-            "                   if hnk : nv ≤ k then",
-            "                     Or.inl ⟨RegisterWitness.markedCols sc,",
-            "                       h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by",
-            "                       intro x hx _ h_indented sp_e h_tail",
-            "                       exact kvU x hx sp_e (slotLandedSeq hnk h_ssl",
-            "                         (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail))⟩",
-            "                   else Or.inr trivial",
-            "               | _ => Or.inr trivial)"
+            "              | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
+            "                  if hnk : nv ≤ k then",
+            "                    Or.inl ⟨RegisterWitness.markedCols sc,",
+            "                      h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc), by",
+            "                      intro x hx _ h_indented sp_e h_tail",
+            "                      exact kvU x hx sp_e (slotLandedSeq hnk h_ssl",
+            "                        (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail))⟩",
+            "                  else Or.inr trivial",
+            "              | _ => Or.inr trivial)"
           ],
           "count": 1
         },
@@ -316,11 +316,11 @@
             "           | _ => Or.inr trivial)"
           ],
           "new": [
-            "            | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
-            "                if hnk : nv + 1 ≤ k then",
-            "                  Or.inl ⟨RegisterWitness.markedCols sc, slotChainMap hnk h_ssl h_ind kvU⟩",
-            "                else Or.inr trivial",
-            "            | _ => Or.inr trivial)"
+            "           | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
+            "               if hnk : nv + 1 ≤ k then",
+            "                 Or.inl ⟨RegisterWitness.markedCols sc, slotChainMap hnk h_ssl h_ind kvU⟩",
+            "               else Or.inr trivial",
+            "           | _ => Or.inr trivial)"
           ],
           "count": 1
         },
@@ -340,12 +340,12 @@
             "                 | Or.inr h_alt, _ => Or.inr h_alt"
           ],
           "new": [
-            "            | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
-            "                if hnk : nv + 1 ≤ k then",
-            "                  Or.inl ⟨RegisterWitness.markedCols sc,",
-            "                    (by have h1 := (RegisterWitness.AtCol.of_corr hcorr_prep).1; have h2 := SIndent_col h_ind; have h := h_mcstep _ (RegisterWitness.MarkedColsIn.self sc); rw [Int.toNat_natCast] at h; rwa [show ((s_prep.col : Nat) : Nat) = k by omega] at h),",
-            "                    (fun hne => h_mcstep_ne hne _ (RegisterWitness.MarkedColsIn.self sc)),",
-            "                    slotChainMap hnk h_ssl h_ind kvU⟩"
+            "           | Or.inl ⟨nv, _, _, _, _, _, _, _, _, kvU⟩ =>",
+            "               if hnk : nv + 1 ≤ k then",
+            "                 Or.inl ⟨RegisterWitness.markedCols sc,",
+            "                   (by have h1 := (RegisterWitness.AtCol.of_corr hcorr_prep).1; have h2 := SIndent_col h_ind; have h := h_mcstep _ (RegisterWitness.MarkedColsIn.self sc); rw [Int.toNat_natCast] at h; rwa [show ((s_prep.col : Nat) : Nat) = k by omega] at h),",
+            "                   (fun hne => h_mcstep_ne hne _ (RegisterWitness.MarkedColsIn.self sc)),",
+            "                   slotChainMap hnk h_ssl h_ind kvU⟩"
           ],
           "count": 1
         },
@@ -388,32 +388,32 @@
             "              | Or.inr _ => Or.inr trivial)⟩"
           ],
           "new": [
-            "              (by",
-            "                intro nvU hmem sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi",
-            "                rcases h_expl51 with ⟨sp_q, h_qlit, route, h_up⟩ | h_notQ",
-            "                · by_cases hEq : nvU = nmv",
-            "                  · subst hEq",
-            "                    exact ResumeFrames.one (route sp_v",
-            "                      (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v",
-            "                        h_qlit h_bo h_iv h_lit h_sbi))",
-            "                  · rcases h_up with up | h_alt",
-            "                    · exact up nvU hmem hEq sp_m",
-            "                        (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit h_bo)",
-            "                        sp_i sp_c h_iv h_lit sp_v h_sbi",
-            "                    · rcases h_explUp190 with ⟨sp_q', nsU, h_qlit', hdom, up⟩ | h_missing",
-            "                      · exact up nvU ((List.mem_cons.1 (hdom.mem hmem)).resolve_left hEq) sp_m",
-            "                          (SBlockMapEntry.explicitEmpty nmv sp_q' sp_scan sp_m h_qlit' h_bo)",
-            "                          sp_i sp_c h_iv h_lit sp_v h_sbi",
-            "                      · -- Diagnostic: no ancestor route from either held entry chain.",
-            "                        assumption",
-            "                · rcases h_explUp190 with ⟨sp_q, nsU, h_qlit, hdom, up⟩ | h_missing",
-            "                  · -- Diagnostic: establish actual own-column absence, not a token-only shortcut.",
-            "                    have hne : nvU ≠ nmv := by assumption",
-            "                    exact up nvU ((List.mem_cons.1 (hdom.mem hmem)).resolve_left hne) sp_m",
-            "                      (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit h_bo)",
-            "                      sp_i sp_c h_iv h_lit sp_v h_sbi",
-            "                  · -- Diagnostic: no held entry chain; prove the actual predecessor/route.",
-            "                    assumption)⟩"
+            "             (by",
+            "               intro nvU hmem sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi",
+            "               rcases h_expl51 with ⟨sp_q, h_qlit, route, h_up⟩ | h_notQ",
+            "               · by_cases hEq : nvU = nmv",
+            "                 · subst nvU",
+            "                   exact ResumeFrames.one (route sp_v",
+            "                     (SBlockMapEntry.explicit nmv sp_q sp_scan sp_m sp_i sp_c sp_v",
+            "                       h_qlit h_bo h_iv h_lit h_sbi))",
+            "                 · rcases h_up with up | h_alt",
+            "                   · exact up nvU hmem hEq sp_m",
+            "                       (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit h_bo)",
+            "                       sp_i sp_c h_iv h_lit sp_v h_sbi",
+            "                   · rcases h_explUp190 with ⟨sp_q', nsU, h_qlit', hdom, up⟩ | h_missing",
+            "                     · exact up nvU ((List.mem_cons.1 (hdom.mem hmem)).resolve_left hEq) sp_m",
+            "                         (SBlockMapEntry.explicitEmpty nmv sp_q' sp_scan sp_m h_qlit' h_bo)",
+            "                         sp_i sp_c h_iv h_lit sp_v h_sbi",
+            "                     · -- Diagnostic: no ancestor route from either held entry chain.",
+            "                       assumption",
+            "               · rcases h_explUp190 with ⟨sp_q, nsU, h_qlit, hdom, up⟩ | h_missing",
+            "                 · -- Diagnostic: establish actual own-column absence, not a token-only shortcut.",
+            "                   have hne : nvU ≠ nmv := by assumption",
+            "                   exact up nvU ((List.mem_cons.1 (hdom.mem hmem)).resolve_left hne) sp_m",
+            "                     (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit h_bo)",
+            "                     sp_i sp_c h_iv h_lit sp_v h_sbi",
+            "                 · -- Diagnostic: no held entry chain; prove the actual predecessor/route.",
+            "                   assumption)⟩"
           ],
           "count": 1
         }
