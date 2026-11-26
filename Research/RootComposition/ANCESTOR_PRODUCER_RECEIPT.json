@@ -1,0 +1,61 @@
+{
+  "state": "WARRANTED diagnostic and restoration boundary; stronger proof INCOMPLETE",
+  "harness": "08a98ec37c354ae87cd6b4cfd97201513336fa37",
+  "run": 45899137353,
+  "job": 140180325877,
+  "source": "9f59de2e097d0174f14651d91a88917c026e3acb",
+  "source_tree": "eec308182759db30ee036bbd0d845219b2386fcb",
+  "spec_sha256": "30134e914912df0dfc959583e40af67d8b860fc699374b5ff4edf794a928b591",
+  "attempted_stream_sha256": "63343c4ab6abd4b8538b4caaa428a8a97eef4ee791bb8be6cdbe4e43b8077bc1",
+  "artifact": 15155217329,
+  "artifact_sha256": "e9c1cd57746b05432b74d673180ed3b568093a172b72744f7b09803e7d639abb",
+  "artifact_bytes": 41017,
+  "archive_git_blob": "692c64b217e876fc64fd7a1dfb738e06f9d02e1f",
+  "independent_verification_run": 45901071566,
+  "independent_verification_job": 140186692429,
+  "verification_boundary": "Second hosted runner rehashed original ZIP, checked every CRC and compared both restored axiom outputs byte-for-byte. Root read exact goal report; no independent local Lean replay.",
+  "CRC_members": 25,
+  "immediate_sites": 4,
+  "immediate_declarations": 2,
+  "total_sites": 6,
+  "total_declarations": 3,
+  "dependent_capstone_guard_sites": 2,
+  "structural_errors": 0,
+  "qualified_ON_positions": 7,
+  "critical_ON_retirement": false,
+  "candidate_ON_count": null,
+  "exact_source_restored": true,
+  "restored_library_build_exit": 0,
+  "restored_axioms_unchanged": true,
+  "goals": [
+    {
+      "line": 28299,
+      "owner": "accum_block_on_closeThenBlock",
+      "residual": "landed sequence continuation declined"
+    },
+    {
+      "line": 28306,
+      "owner": "accum_block_on_closeThenBlock",
+      "residual": "landed sequence continuation declined"
+    },
+    {
+      "line": 31317,
+      "owner": "accum_block_pending",
+      "residual": "question entry chain and covered legacy chain both declined; own route still reusable"
+    },
+    {
+      "line": 31321,
+      "owner": "accum_block_pending",
+      "residual": "NotQuestionPark with surviving proper ancestor nvU != nmv; own-mark exclusion is insufficient"
+    }
+  ],
+  "prior_frontier": {
+    "run": 45894740733,
+    "immediate_sites": 3,
+    "immediate_declarations": 1,
+    "total_sites": 5,
+    "meaning": "Different contract: slot ancestor supply remained optional. Counts are not a monotone progress metric."
+  },
+  "prediction": "HELD: compact consumer gap disappears; two landed gaps remain; two actual slot producer branches expose missing continuation evidence.",
+  "next": "Preserve the ancestor continuation at the actual question-entry and explicit-value slot births. For the value case inspect colon_open_map_explicit where hvp is closed to h_slot. Do not infer absence of proper ancestors from NotQuestionPark or own-mark exclusion; do not rerun unchanged diagnostic or claim critical ON retirement."
+}
