@@ -1,0 +1,191 @@
+name: Normalize direct kslot producers on actual capstone ON family
+on:
+  push:
+    branches: [test/root-domain-qualification]
+    paths:
+      - .github/workflows/actual-on-kslot-normalized-price.yml
+      - Research/RootComposition/actual-on-kslot-normalization.json
+permissions:
+  contents: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: c5d6e3f5190d20d5f4bddfe6fb5ce48762407845
+          path: evidence
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 4c54da7e3716ab0197b126294474bb2868651402
+          submodules: recursive
+          path: source
+      - name: Restore and check both exact qualified bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/price root-archive own-archive
+          git -C harness rev-parse HEAD > results/harness.txt
+          git -C evidence rev-parse HEAD > results/evidence-head.txt
+          test "$(cat results/evidence-head.txt)" = c5d6e3f5190d20d5f4bddfe6fb5ce48762407845
+          echo 'e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c  evidence/Research/RootComposition/qualified-root-evidence.zip' | sha256sum -c -
+          echo '022c53717d61556ab4b9a2a3048dfba6fb593d9904dd473cba136265a42b9c27  evidence/Research/RootComposition/qualified-r2-own-evidence.zip' | sha256sum -c -
+          unzip -t evidence/Research/RootComposition/qualified-root-evidence.zip > results/root-zip-crc.txt
+          unzip -t evidence/Research/RootComposition/qualified-r2-own-evidence.zip > results/own-zip-crc.txt
+          unzip -q evidence/Research/RootComposition/qualified-root-evidence.zip -d root-archive
+          unzip -q evidence/Research/RootComposition/qualified-r2-own-evidence.zip -d own-archive
+          cp evidence/Research/RootComposition/{FINAL_ROOT_RECEIPT,R2_OWN_RECEIPT}.json results/
+          cp harness/Research/RootComposition/actual-on-*-price.json results/
+          sha256sum results/actual-on-*-price.json > results/spec-sha256.txt
+          cd source
+          git bundle verify ../root-archive/root-context/source.bundle
+          git fetch ../root-archive/root-context/source.bundle HEAD
+          git checkout --detach 967d3503b30dde555078929f118101cba9f95a56
+          test "$(git rev-parse HEAD^{tree})" = 20e10d2041c66d199d4408b4c37f82b6ec8cddf0
+          mapfile -t bundles < <(find ../own-archive -type f -name source.bundle)
+          test "${#bundles[@]}" = 1
+          git bundle verify "${bundles[0]}"
+          git fetch "${bundles[0]}" HEAD
+          git checkout --detach 9f59de2e097d0174f14651d91a88917c026e3acb
+          test "$(git rev-parse HEAD)" = 9f59de2e097d0174f14651d91a88917c026e3acb
+          test "$(git rev-parse HEAD^{tree})" = eec308182759db30ee036bbd0d845219b2386fcb
+          test "$(git rev-parse HEAD^)" = 967d3503b30dde555078929f118101cba9f95a56
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree} HEAD^ > ../results/source-identity.txt
+          printf '%s\n' 'c9ae3a8aa8e07f617d78eab588205334d5ab4a0cd88e905ec7a3110bce75b6ed  L4YAML/Proofs/Production/StreamAccum.lean' 'd39cfff27b6fad724f60d507eba397cf08dba712ae3dabf423d6d00189e789cd  L4YAML/Proofs/Scanner/RegisterWitness.lean' > ../results/baseline-source-sha256.txt
+          sha256sum -c ../results/baseline-source-sha256.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: actual-on-kslot-normalized-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Bind actual ON roster and exact-source axiom baseline
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib, re
+          guard = pathlib.Path("Tests/Guards/Proofs/CapstonePathAudit.lean").read_text()
+          section = guard.split("def expectedOn : List String :=",1)[1].split("def expectedOff",1)[0]
+          rows = re.findall(r'"(L4YAML\.Proofs\.StreamAccum\.[^"]+)"', section)
+          expected = [
+              "PendingNode.pendingContent[9].h_vpack",
+              "PendingNode.pendingBlockContent[12].h_kslot",
+              "PendingNode.pendingBlock[10].h_kslot",
+              "accum_block_on_closeThenBlock[10].h_vpack",
+              "accum_block_on_pendingBlock[13].h_kslot",
+              "accum_block_on_pendingBlockContent[15].h_kslot",
+              "accum_block_on_pendingContent[16].h_vpack",
+          ]
+          assert [row.split("StreamAccum.",1)[1].split(" ",1)[0] for row in rows] == expected, rows
+          pathlib.Path("../results/on-roster.txt").write_text("\n".join(rows)+"\n")
+          PY
+          lake build L4YAML scripts-flip > ../results/baseline-build.txt 2>&1
+          lake run capstone-path > ../results/actual-capstone-path.txt 2>&1
+          grep -E '^CAPSTONE-PATH .* on=7 ' ../results/actual-capstone-path.txt
+          for kind in final-axioms final-root-axioms; do
+            mapfile -t paths < <(find ../own-archive -type f -name "$kind.txt")
+            test "${#paths[@]}" = 1
+            cp "${paths[0]}" "../results/retained-$kind.txt"
+          done
+          lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/baseline-axioms.txt 2>&1
+          lake env lean Research/ContentSlot/RootAudit.lean > ../results/baseline-root-axioms.txt 2>&1
+          diff -u ../results/retained-final-axioms.txt ../results/baseline-axioms.txt
+          diff -u ../results/retained-final-root-axioms.txt ../results/baseline-root-axioms.txt
+          sha256sum -c ../results/baseline-source-sha256.txt
+          test -z "$(git status --porcelain)"
+      - name: Verify exact eight wrapper sites and create a normalized diagnostic spec
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, pathlib, re, hashlib
+          src = pathlib.Path("L4YAML/Proofs/Production/StreamAccum.lean")
+          raw = src.read_bytes()
+          assert hashlib.sha256(raw).hexdigest() == "c9ae3a8aa8e07f617d78eab588205334d5ab4a0cd88e905ec7a3110bce75b6ed"
+          lines = raw.decode().splitlines()
+          spec = json.loads(pathlib.Path("../harness/Research/RootComposition/actual-on-kslot-price.json").read_text())
+          control = json.loads(pathlib.Path("../harness/Research/RootComposition/actual-on-kslot-normalization.json").read_text())
+          assert control["source_head"] == "9f59de2e097d0174f14651d91a88917c026e3acb"
+          assert len(spec["files"]) == 1 and len(spec["files"][0]["patches"]) == 4
+          assert len(control["direct_wrapper_sites"]) == 8
+          src_text = raw.decode()
+          changes = []
+          for site in control["direct_wrapper_sites"]:
+              n = site["line"]
+              line = lines[n-1]
+              pattern = r"(?<![\w.])(?:Or\.inl|\.inl) kslot\b"
+              assert len(re.findall(pattern, line)) == 1, (n, line)
+              new_line = re.sub(pattern, "kslot", line)
+              assert new_line != line
+              # Extend context if the identical surrounding text occurs more than once.
+              for radius in range(1, 9):
+                  start = n-1-radius
+                  stop = n+radius
+                  old = lines[start:stop]
+                  if src_text.count("\n".join(old)) == 1:
+                      break
+              else:
+                  raise AssertionError(("nonunique anchor", n))
+              new = old.copy()
+              new[radius] = new_line
+              spec["files"][0]["patches"].append({"name": f"normalize-direct-kslot-{n}", "old": old, "new": new, "count": 1})
+              changes.append({"line": n, "declaration": site["declaration"], "old": line, "new": new_line})
+          assert len(spec["files"][0]["patches"]) == 12
+          spec["tag"] = "ACTUAL-ON-KSLOT-NORMALIZED-DIRECT-PRICE"
+          out = pathlib.Path("../results")
+          (out/"kslot-normalized-spec.json").write_text(json.dumps(spec, indent=2)+"\n")
+          (out/"kslot-normalized-edits.json").write_text(json.dumps(changes, indent=2)+"\n")
+          # Retain real source context for remaining elaboration and producer obligations.
+          with (out/"kslot-prior-sites-source.txt").open("w") as f:
+              for n in control["prior_error_lines"]:
+                  f.write(f"\n--- prior site {n} ---\n")
+                  for i in range(max(0,n-13), min(len(lines),n+12)):
+                      f.write(f"{i+1}: {lines[i]}\n")
+          PY
+          sha256sum ../results/kslot-normalized-spec.json ../results/kslot-normalized-edits.json > ../results/normalized-spec-sha256.txt
+          test -z "$(git status --porcelain)"
+      - name: Price the normalized kslot family and restore exact source
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for family in kslot; do
+            spec="../results/kslot-normalized-spec.json"
+            lake exe scripts-flip "$spec" --rev HEAD --dry > "../results/price/$family-dry.txt" 2>&1
+            status=0
+            lake exe scripts-flip "$spec" --rev HEAD > "../results/price/$family-report.txt" 2>&1 || status=$?
+            echo "$status" > "../results/price/$family-exit.txt"
+            test "$status" = 0 -o "$status" = 3
+            sha256sum -c ../results/baseline-source-sha256.txt
+            test -z "$(git status --porcelain)"
+            test "$(git rev-parse HEAD^{tree})" = eec308182759db30ee036bbd0d845219b2386fcb
+            lake build L4YAML > "../results/price/$family-restored-build.txt" 2>&1
+            lake env lean Research/ContentSlot/AxiomAudit.lean > "../results/price/$family-restored-axioms.txt" 2>&1
+            lake env lean Research/ContentSlot/RootAudit.lean > "../results/price/$family-restored-root-axioms.txt" 2>&1
+            diff -u ../results/baseline-axioms.txt "../results/price/$family-restored-axioms.txt"
+            diff -u ../results/baseline-root-axioms.txt "../results/price/$family-restored-root-axioms.txt"
+          done
+          printf '%s\n' 'diagnostic_only=true' 'exact_source_restored=true' 'checked_axioms_unchanged=true' 'ON_retirement=NOT_CLAIMED' 'full_R2=NOT_CLAIMED' > ../results/outcomes.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-on-kslot-normalized-price
+          path: results/
+          if-no-files-found: error

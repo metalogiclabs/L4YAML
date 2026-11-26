@@ -1,0 +1,77 @@
+{
+  "source_head": "9f59de2e097d0174f14651d91a88917c026e3acb",
+  "source_tree": "eec308182759db30ee036bbd0d845219b2386fcb",
+  "prior_run": 45881603636,
+  "prior_artifact": 15147751857,
+  "prior_artifact_sha256": "e0927dc6fe5b3daed642bd7c88dffbeff2dbd3d75fc95e482fb5328ed47eab34",
+  "purpose": "Remove only direct paid producer wrapper mismatches; preserve strengthened statements and genuine unpaid branches. Diagnostic only, no ON retirement claim.",
+  "direct_wrapper_sites": [
+    {
+      "line": 14532,
+      "declaration": "accum_flow_open_depth0"
+    },
+    {
+      "line": 14555,
+      "declaration": "accum_flow_open_depth0"
+    },
+    {
+      "line": 29511,
+      "declaration": "accum_block_on_pendingBlockContent"
+    },
+    {
+      "line": 30084,
+      "declaration": "accum_block_on_pendingBlock"
+    },
+    {
+      "line": 30194,
+      "declaration": "accum_block_on_pendingBlock"
+    },
+    {
+      "line": 30484,
+      "declaration": "accum_block_on_pendingBlock"
+    },
+    {
+      "line": 30528,
+      "declaration": "accum_block_on_pendingBlock"
+    },
+    {
+      "line": 30716,
+      "declaration": "accum_block_on_pendingBlock"
+    }
+  ],
+  "prior_error_lines": [
+    14532,
+    14555,
+    27090,
+    27662,
+    27670,
+    27664,
+    28301,
+    28306,
+    28307,
+    28303,
+    29511,
+    29845,
+    29854,
+    30084,
+    30194,
+    30484,
+    30528,
+    30630,
+    30639,
+    30716,
+    37361,
+    37369,
+    37649,
+    37655,
+    37828,
+    37836,
+    40565,
+    40568,
+    40694,
+    40697,
+    40820,
+    40823,
+    40914
+  ]
+}
