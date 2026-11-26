@@ -1,0 +1,27 @@
+{
+  "item": 538,
+  "tag": "R2-ANCESTOR-UP-PLAIN-CANDIDATE",
+  "rev": "HEAD",
+  "target": "L4YAML",
+  "log": "../results/r2/ancestor-up-plain-price.log",
+  "msgWidth": 110,
+  "rounds": 6,
+  "report": "bodies",
+  "files": [
+    {
+      "file": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patches": [
+        {
+          "name": "accum_block_on_closeThenBlock.h_vslot.hkvUp-informative",
+          "old": [
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nvU] sp_v) ∨ PackAlt sc)) ∨"
+          ],
+          "new": [
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nvU] sp_v))) ∨"
+          ],
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

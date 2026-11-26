@@ -1,0 +1,38 @@
+{
+  "item": 538,
+  "tag": "R2-OWN-CONJUNCT-REDUNDANCY-WITH-PLAIN-UP-CANDIDATE",
+  "rev": "HEAD",
+  "target": "L4YAML",
+  "log": "../results/r2/own-conjunct-price.log",
+  "msgWidth": 110,
+  "rounds": 6,
+  "report": "bodies",
+  "files": [
+    {
+      "file": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patches": [
+        {
+          "name": "accum_block_on_closeThenBlock.h_vslot.remove-own-hkv-only",
+          "old": [
+            "      ((∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_gram sp_m →",
+            "        ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →",
+            "        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →",
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc) ∧"
+          ],
+          "new": [],
+          "count": 1
+        },
+        {
+          "name": "accum_block_on_closeThenBlock.h_vslot.hkvUp-informative",
+          "old": [
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nvU] sp_v) ∨ PackAlt sc)) ∨"
+          ],
+          "new": [
+            "        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nvU] sp_v))) ∨"
+          ],
+          "count": 1
+        }
+      ]
+    }
+  ]
+}
