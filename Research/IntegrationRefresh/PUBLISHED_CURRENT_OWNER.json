@@ -1,5 +1,5 @@
 {
-  "state": "WARRANTED: five independently qualified source trees published with preserved ancestry",
+  "state": "SUPERSEDED IN PART: historical five-source publication against a62ac16 retained; PR #384 superseded by current-owner qualification",
   "owner": "a62ac16b92d6487bc58405043bca79d39bae30d0",
   "publication_boundary": "Published merge-commit metadata differs from hosted generated source commits. Complete Git tree identity matches every qualified source; original reviewed heads and owner are direct parents. Ref updates used expected-head leases and no force.",
   "qualification_boundary": "Per-candidate default build, repository/census gates, native suites, hygiene, C/Python/Rust and cross-language comparisons passed. No combined five-way integration, fresh API-doc qualification or new upstream CI success claimed.",
@@ -48,7 +48,8 @@
       "description_prefix_verified": true,
       "historical_substantive_content_preserved": true,
       "state_at_final_readback": "open",
-      "merged_at_final_readback": false
+      "merged_at_final_readback": false,
+      "API_docs_followup_receipt": "Research/IntegrationRefresh/TAG_API_MEMORY_RECEIPT.json"
     },
     {
       "pr": 370,
@@ -117,7 +118,14 @@
       "description_prefix_verified": true,
       "historical_substantive_content_preserved": true,
       "state_at_final_readback": "open",
-      "merged_at_final_readback": false
+      "merged_at_final_readback": false,
+      "superseded_by": {
+        "head": "d221fb2d8893984ca4f894964364ebeff2368768",
+        "tree": "6093b8776e32bb306deeeb422f7d1b0594f59c5f",
+        "owner": "6dc5601039d63dd02f3dfa0d16478b2c849fecd3",
+        "qualification_run": 45920641632,
+        "receipt": "Research/IntegrationRefresh/ROOT_LANDING_REFRESH.json"
+      }
     }
   ],
   "proof": {
@@ -145,7 +153,13 @@
     "completed_at": "2026-11-26T22:34:28Z",
     "mergeable": true,
     "merged": false,
-    "boundary": "Owner workflow succeeded on the unchanged PR #380 head. This does not establish new owner-CI success for the other five refreshed heads."
+    "boundary": "Prior workflow observation above retained as history. Nicolas subsequently merged #380. No other PR merged.",
+    "historical_observation_retained": true,
+    "current_merged": true,
+    "current_merge_commit": "6dc5601039d63dd02f3dfa0d16478b2c849fecd3",
+    "current_merged_at": "2026-11-26T23:15:02Z"
   },
-  "description_boundary": "All five current-head description prefixes and qualification receipts read back through the GitHub API after browser edits. Substantive history preserved; whitespace normalization and removal of a duplicate historical #384 dashboard table are presentation changes only."
+  "description_boundary": "All five current-head description prefixes and qualification receipts read back through the GitHub API after browser edits. Substantive history preserved; whitespace normalization and removal of a duplicate historical #384 dashboard table are presentation changes only. Later #361 API qualification was added and read back. New #384 current qualification summary read back; full prior description is retained separately in PR384_DESCRIPTION_HISTORY.md.",
+  "owner_scope": "Historical qualification owner a62ac16b92d6487bc58405043bca79d39bae30d0. Do not treat this owner as the current upstream branch head.",
+  "current_state_receipt": "Research/IntegrationRefresh/ROOT_LANDING_REFRESH.json"
 }

@@ -1,5 +1,5 @@
 {
-  "state": "CANDIDATE: current-owner integration qualifying; production PR head unchanged",
+  "state": "WARRANTED: current-owner integration fully qualified and exact source tree published to PR #384",
   "pr": 384,
   "previous_head": "0146eb0833716f6e8e3ff22babe66b39c9415ebf",
   "owner": "6dc5601039d63dd02f3dfa0d16478b2c849fecd3",
@@ -12,8 +12,54 @@
   "qualification": {
     "run": 45920641632,
     "harness": "bcf8392a727f58b45e33c61205c69124dd6cb324",
-    "state": "in_progress",
-    "publication_permitted_after": "Default build, compiler-measured snapshots with unchanged algorithms and ceilings, exact axiom comparisons and capstone consumption, repository gates, native suites, hygiene and C/Python/Rust/cross-language checks all pass. Published complete tree must equal the qualified source tree; ref update uses expected old head without force."
+    "state": "success",
+    "publication_permitted_after": "Default build, compiler-measured snapshots with unchanged algorithms and ceilings, exact axiom comparisons and capstone consumption, repository gates, native suites, hygiene and C/Python/Rust/cross-language checks all pass. Published complete tree must equal the qualified source tree; ref update uses expected old head without force.",
+    "current_stage": "complete",
+    "default_build_and_census_gates": "passed",
+    "job": 140250293600,
+    "default_build_jobs": 2645,
+    "native_verified": 65238,
+    "native_total": 65238,
+    "repository_and_census_gates": "passed",
+    "dead_declaration_guard": "passed without changing the roster",
+    "guard_measurement_boundary": "Only compiler-reported snapshot literals and cross-check values changed. Census algorithms, comparisons and ceilings unchanged.",
+    "producer_and_root_axiom_comparisons": "unchanged; both diff logs empty",
+    "hygiene": {
+      "theorems": 11861,
+      "sorries": 0,
+      "custom_axioms": 0
+    },
+    "C_build": "passed",
+    "python_ffi_tests": 78,
+    "python_package_tests": 192,
+    "python_package_subtests": 91,
+    "rust_integration_tests": 24,
+    "rust_doctests": 1,
+    "cross_language": {
+      "backends": 4,
+      "all_presets_identical": true,
+      "unlimited": {
+        "passed": 869,
+        "failed": 0,
+        "skipped": 151
+      },
+      "boundary": "Other presets have preset-specific accept/reject mismatches; all four backends agree on each result."
+    },
+    "event_score": {
+      "correct": 347,
+      "total": 358,
+      "event_differences": 11
+    },
+    "docs_boundary": "API and Verso docs outside this run",
+    "artifact": {
+      "id": 15166013044,
+      "bytes": 1065517,
+      "sha256": "b5e18079a5f2bec7b67e610ddf5974f300d7ff289bfc8669a62f71617f96bce7",
+      "crc_members": 126,
+      "independently_rehashed": true,
+      "path": "Research/IntegrationRefresh/qualified-root-integration-evidence.zip",
+      "git_blob": "c1c1fd437779459817f514e55d5a0c1e451b7989"
+    }
   },
   "negative_lineage": [
     {
@@ -234,12 +280,161 @@
     "harness": "77fc7df0d52b613b08bed00aff5ce4ca795327d2",
     "source": "9870bcb398aeb8e639056b6405346ec8764a9572",
     "tree": "59b1d49586550bf4171dcff04fc22d7abc7da1c5",
-    "state": "in_progress",
+    "state": "WARRANTED API-only generation success on exact published TAG tree",
     "boundary": "API-only build with one Lean worker and 8 GiB temporary swap; native suites not repeated. Historical full run 45904386866 remains failed.",
     "failed_artifact_verified": {
       "artifact": 15159264065,
       "sha256": "a19b6a385db36876ad3c9ea158853c84cdd6b1cb43bc431bcc07f367ba357f48",
       "crc_members": 74
+    },
+    "conclusion": "success",
+    "artifact": {
+      "id": 15165331175,
+      "sha256": "a9100970993d114691dfae1c8fe7dc59d4c9baca4ff0bdf54c1df00f8772cf95",
+      "crc_members": 13,
+      "bytes": 235138
+    },
+    "jobs": 4066,
+    "html_pages": 3507,
+    "elapsed": "54:32.36",
+    "source_and_dependency_pins_unchanged": true,
+    "PR_description_updated_and_read_back": true
+  },
+  "published_head": "d221fb2d8893984ca4f894964364ebeff2368768",
+  "qualified_generated_source": "ce489fa00884e57d45e5c2b56d06500db8cdab09",
+  "qualified_and_published_tree": "6093b8776e32bb306deeeb422f7d1b0594f59c5f",
+  "publication": {
+    "branch": "fix/content-slot-state-domain",
+    "direct_parents": [
+      "0146eb0833716f6e8e3ff22babe66b39c9415ebf",
+      "6dc5601039d63dd02f3dfa0d16478b2c849fecd3"
+    ],
+    "expected_head_lease": true,
+    "force": false,
+    "tree_readback_verified": true,
+    "commit_parents_readback_verified": true,
+    "all_12_changed_blobs_independently_applied_and_hashed": true,
+    "complete_created_tree_matches_qualified_tree": true,
+    "mergeable": true,
+    "open": true,
+    "merged": false,
+    "description_current_summary_readback_verified": true,
+    "description_history_disposition": "Browser saved the exact current qualification summary but omitted the proposed collapsed historical appendix. Preserve original full prior description in PR384_DESCRIPTION_HISTORY.md; all original source/qualification links retained there. No claim of full-body exact match.",
+    "history_path": "Research/IntegrationRefresh/PR384_DESCRIPTION_HISTORY.md"
+  },
+  "dashboard": {
+    "baseline_owner": "6dc5601039d63dd02f3dfa0d16478b2c849fecd3",
+    "contribution_excludes_landed_380": true,
+    "directed_toward": 4,
+    "directed_away": 2,
+    "direct_decline": [
+      236,
+      234
+    ],
+    "dead_premises": [
+      33,
+      30
+    ],
+    "value_line_punts": [
+      18,
+      16
+    ],
+    "park_Tp": [
+      40,
+      39
+    ],
+    "split_declines": [
+      213,
+      214
+    ],
+    "free_declines": [
+      117,
+      118
+    ],
+    "critical_optional_positions": 7,
+    "critical_retired": 0
+  },
+  "queue_readback": [
+    {
+      "pr": 302,
+      "head": "fb6e9d0c0d127d67e56591140156dfdc50f1a213",
+      "mergeable": true,
+      "state": "open",
+      "merged": false,
+      "owner_workflow": [
+        {
+          "run": 45904138404,
+          "conclusion": "action_required",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "pr": 361,
+      "head": "9870bcb398aeb8e639056b6405346ec8764a9572",
+      "mergeable": true,
+      "state": "open",
+      "merged": false,
+      "owner_workflow": [
+        {
+          "run": 45904396025,
+          "conclusion": "action_required",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "pr": 370,
+      "head": "ff97c3493a482b394f995b292475b3687ed99480",
+      "mergeable": true,
+      "state": "open",
+      "merged": false,
+      "owner_workflow": [
+        {
+          "run": 45903510414,
+          "conclusion": "action_required",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "pr": 371,
+      "head": "7771f8f3a6849a13e469896b30d6ff386793234e",
+      "mergeable": true,
+      "state": "open",
+      "merged": false,
+      "owner_workflow": [
+        {
+          "run": 45903369952,
+          "conclusion": "action_required",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "pr": 384,
+      "head": "d221fb2d8893984ca4f894964364ebeff2368768",
+      "mergeable": true,
+      "state": "open",
+      "merged": false,
+      "owner_workflow": [
+        {
+          "run": 45926355413,
+          "conclusion": "action_required",
+          "status": "completed"
+        }
+      ]
     }
+  ],
+  "current_owner_integration_boundary": "Only PR #384 in this receipt is built together with owner 6dc5601. The other four published source qualifications retain owner a62ac16. Mergeability against current owner does not qualify the resulting integration.",
+  "upstream_380": {
+    "merged": true,
+    "merged_at": "2026-11-26T23:15:02Z",
+    "merge_commit": "6dc5601039d63dd02f3dfa0d16478b2c849fecd3"
+  },
+  "work_lock": {
+    "qualification_run": 45920641632,
+    "state": "released",
+    "reason": "qualification, source publication and current description verification complete; no duplicate build requested"
   }
 }
