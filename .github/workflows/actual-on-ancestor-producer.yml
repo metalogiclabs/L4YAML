@@ -44,7 +44,7 @@ jobs:
           unzip -q evidence/Research/RootComposition/qualified-r2-own-evidence.zip -d own-archive
           cp evidence/Research/RootComposition/{FINAL_ROOT_RECEIPT,R2_OWN_RECEIPT}.json results/
           cp harness/Research/RootComposition/explicit-value-ancestor-callers.json results/
-          sha256sum results/actual-on-ancestor-producer.json > results/spec-sha256.txt
+          sha256sum results/explicit-value-ancestor-callers.json > results/spec-sha256.txt
           cd source
           git bundle verify ../root-archive/root-context/source.bundle
           git fetch ../root-archive/root-context/source.bundle HEAD
