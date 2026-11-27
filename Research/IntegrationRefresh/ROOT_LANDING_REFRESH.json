@@ -1,0 +1,245 @@
+{
+  "state": "CANDIDATE: current-owner integration qualifying; production PR head unchanged",
+  "pr": 384,
+  "previous_head": "0146eb0833716f6e8e3ff22babe66b39c9415ebf",
+  "owner": "6dc5601039d63dd02f3dfa0d16478b2c849fecd3",
+  "merge_base": "a62ac16b92d6487bc58405043bca79d39bae30d0",
+  "compiled_scanner": {
+    "git_blob": "8421ea62310c8996deae6699ef6ba0dd6fb11c2b",
+    "sha256": "05f50ca16ead1384b290e804cbd2c2b28be29b36490544af0529ba319d32c2f2",
+    "verification": "Independently reconstructed from the old reviewed scanner plus the owner's three landed hunks and from the archived exact premeasurement merge patch; byte identities match."
+  },
+  "qualification": {
+    "run": 45920641632,
+    "harness": "bcf8392a727f58b45e33c61205c69124dd6cb324",
+    "state": "in_progress",
+    "publication_permitted_after": "Default build, compiler-measured snapshots with unchanged algorithms and ceilings, exact axiom comparisons and capstone consumption, repository gates, native suites, hygiene and C/Python/Rust/cross-language checks all pass. Published complete tree must equal the qualified source tree; ref update uses expected old head without force."
+  },
+  "negative_lineage": [
+    {
+      "run": 45916420512,
+      "harness": "af41fa085242008b70911a76606b5cef32cbd1c9",
+      "outcome": "failure",
+      "boundary": "Combined proof and both exact axiom checks passed; six census passes stopped solely on unsupported actual-only RouteShapes roster. Native and binding checks skipped.",
+      "artifact": 15164020984,
+      "sha256": "f3aa7d82fb17356069e6a4098a2b5761947495a3553469ea2b1ac9f74f7ed4bd",
+      "crc_members": 35,
+      "archive_git_blob": "7b49d89c4005bb6cd5ce8892f6b0fabcf4c64baf",
+      "archive_path": "Research/IntegrationRefresh/negative-lineage/first-root-merge-evidence.zip"
+    },
+    {
+      "run": 45919631682,
+      "harness": "221c466fc0bf8f4856e3a96a6dd400b6551d85e9",
+      "outcome": "failure",
+      "boundary": "Corrected RouteShapes formatter calibrated three literals; eleven remaining calibration/idempotence readings made zero edits. Exact combined 241-job proof build passed. Audit import failed because Scripts.Path.CapstonePath had not been built; explicit dependency added in the next harness. Native and binding checks skipped.",
+      "artifact": 15164496747,
+      "sha256": "8c348d565cb91a2b0b049e8793ff328c5d8b4425b464f6343fc479ea62f630cd",
+      "crc_members": 73,
+      "job_log_path": "Research/IntegrationRefresh/negative-lineage/replay-missing-audit-dependency.log"
+    }
+  ],
+  "compact_source_recovery": {
+    "state": "WARRANTED exact source tree restoration; no new Lean replay or current-owner integration",
+    "archived_qualified_commit": "f472ce463b3a4c80e675f08bc1ee4ebcb502ac77",
+    "qualified_tree": "c5b769ae96bdb8015a2148f9f274826126c0f114",
+    "published_head": "12f27421d70b7e5039fc01ed946a19141156773e",
+    "branch": "test/qualified-compact-source",
+    "published_parent": "4c54da7e3716ab0197b126294474bb2868651402",
+    "metadata_boundary": "Publication changes commit metadata and flattens archived intermediate ancestry. The complete Git tree and all 34 changed/added blobs match the archived qualification. Original intermediate ancestry remains in the retained bundles.",
+    "original_lineage": [
+      "f472ce463b3a4c80e675f08bc1ee4ebcb502ac77",
+      "2c00e38e677a3924b6db204f7c8d8f6331899173",
+      "9f59de2e097d0174f14651d91a88917c026e3acb",
+      "967d3503b30dde555078929f118101cba9f95a56",
+      "4c54da7e3716ab0197b126294474bb2868651402"
+    ],
+    "changed_blobs": [
+      {
+        "path": "L4YAML/Proofs/Production/StreamAccum.lean",
+        "sha": "7f731ef53f93aebc969b9790ad03bc14b7cd029e"
+      },
+      {
+        "path": "L4YAML/Proofs/Scanner/RegisterWitness.lean",
+        "sha": "7442565a8a68b45806c28c15c0590cba67e84761"
+      },
+      {
+        "path": "Research/ContentSlot/AdversarialProbe.lean",
+        "sha": "f77239260b1c32fbef7375d54e9ce6cb0a898f33"
+      },
+      {
+        "path": "Research/ContentSlot/AxiomAudit.lean",
+        "sha": "8ca883c1f2bfd0d0ff4b9da8bd7cec86b23ba7e5"
+      },
+      {
+        "path": "Research/ContentSlot/Controls.lean",
+        "sha": "2075cb50cd3b4b0acd203ec79b364d731fc5346a"
+      },
+      {
+        "path": "Research/ContentSlot/DocumentMarkerControls.lean",
+        "sha": "ae3c563a7e665b6fc58071a8bb048741464b03c0"
+      },
+      {
+        "path": "Research/ContentSlot/MarkerSupplyAudit.lean",
+        "sha": "b4d5e35bc353b6647064c475ff7ae76d4b766ecd"
+      },
+      {
+        "path": "Research/ContentSlot/MeasuredRepin.lean",
+        "sha": "10e27d57d058b70dbbc890bf1df25b123a1cf50f"
+      },
+      {
+        "path": "Research/ContentSlot/MeasuredRepinDriver.lean",
+        "sha": "bb1251a68feece2cf52ff6696afa2f11b53284c8"
+      },
+      {
+        "path": "Research/ContentSlot/ProofImpact.lean",
+        "sha": "1628dabab6e526013b238da8d59e01473044b706"
+      },
+      {
+        "path": "Research/ContentSlot/ReachableControls.lean",
+        "sha": "4459136a79b4873e7d1613be06c40c5edeae8ce9"
+      },
+      {
+        "path": "Research/ContentSlot/RootAudit.lean",
+        "sha": "7e624bb25d8600386ec80b7b0082f0c00f6b6ec3"
+      },
+      {
+        "path": "Research/ContentSlot/StateCorrespondenceProbe.lean",
+        "sha": "9bdcd470767efa4a450823c2ba024b3318273e6d"
+      },
+      {
+        "path": "Research/ContentSlot/cleanup-width-fixture.lean",
+        "sha": "08bc367a2ac7f2dcb5d12cf2b9f687cc6266f43b"
+      },
+      {
+        "path": "Tests/Guards/Proofs/CapstonePathAudit.lean",
+        "sha": "8a3c9ccc51dfd5e3052a6dbe348bc4c1bf9e634d"
+      },
+      {
+        "path": "Tests/Guards/Proofs/CloseLandingWidth.lean",
+        "sha": "077b843e5a39e8c0394170d5a19615db5eb5332b"
+      },
+      {
+        "path": "Tests/Guards/Proofs/CloseSplitFrames.lean",
+        "sha": "e95ad911d5a828797da235174cf1d01247e36285"
+      },
+      {
+        "path": "Tests/Guards/Proofs/CloseStackCover.lean",
+        "sha": "f3e8e247e4e6d1744b654caa61a93a0118b011d3"
+      },
+      {
+        "path": "Tests/Guards/Proofs/ConclusionRouteCensus.lean",
+        "sha": "40fcd1d7df826545c6a1650cea808a50b05c7fd7"
+      },
+      {
+        "path": "Tests/Guards/Proofs/DeadDeclarationCensus.lean",
+        "sha": "94faaf630ed97ce1096f199f70a2ee23b1578770"
+      },
+      {
+        "path": "Tests/Guards/Proofs/DispatchPrice.lean",
+        "sha": "b55691312dd5c055891da452a8a2e2c0d93cd5a2"
+      },
+      {
+        "path": "Tests/Guards/Proofs/GhostIndexCensus.lean",
+        "sha": "ef2d04a71b077295955388c23c8759df4702a146"
+      },
+      {
+        "path": "Tests/Guards/Proofs/HypothesisReaderCensus.lean",
+        "sha": "e06f3173c18e806f7531ec5409a9880e07bcdd8e"
+      },
+      {
+        "path": "Tests/Guards/Proofs/IndexCensus.lean",
+        "sha": "8f81c849ec1939595b2bdf4702584f95f976d22a"
+      },
+      {
+        "path": "Tests/Guards/Proofs/NarrowingWorthCensus.lean",
+        "sha": "bc2ab75c137b17cee78f6b5bf5d205682bdf0dda"
+      },
+      {
+        "path": "Tests/Guards/Proofs/OpenEntryRoute.lean",
+        "sha": "5c4d5a9e5916a3e8dc0b0278be31881da4c60027"
+      },
+      {
+        "path": "Tests/Guards/Proofs/OrTrueAudit.lean",
+        "sha": "252af9092d50ef1aa2a6dc6b910a40b645217a54"
+      },
+      {
+        "path": "Tests/Guards/Proofs/PaidLeafDelta.lean",
+        "sha": "7281981d95f7212b10cf84ace17de247f3c230ef"
+      },
+      {
+        "path": "Tests/Guards/Proofs/PremiseNecessityCensus.lean",
+        "sha": "1e1e9b6b87f9aca0baf6c6f57a2bc4293cf5d594"
+      },
+      {
+        "path": "Tests/Guards/Proofs/PuntCoverInputs.lean",
+        "sha": "c5cc26d54f32c7ccf3cb37d1bc81a42187208c0e"
+      },
+      {
+        "path": "Tests/Guards/Proofs/RelaySupplyCensus.lean",
+        "sha": "6a04e9c853d5a8e1f8dacbc2e89dea5078711de9"
+      },
+      {
+        "path": "Tests/Guards/Proofs/RouteShapes.lean",
+        "sha": "e0bd12a9baf99791ee14562fec0766e32ea85095"
+      },
+      {
+        "path": "Tests/Guards/Proofs/ValueLineOrigins.lean",
+        "sha": "e2d65e748b1f962c415f793bb7f1759572f07414"
+      },
+      {
+        "path": "Tests/Guards/Proofs/ValueLinePacks.lean",
+        "sha": "1b349484c46398294276798c145c0ffc5c411d60"
+      }
+    ],
+    "archives": [
+      {
+        "artifact": 15156035618,
+        "sha256": "8e9d2f83679a28b4e588422c01789a5f0405e70e88b88dd892c8706d46b1fc46",
+        "crc": 65
+      },
+      {
+        "artifact": 15145503499,
+        "sha256": "8e36c9d08aa1f67641fa4db84cabdabf47cd263b737394cd3019675be2e9a187",
+        "crc": 320
+      },
+      {
+        "artifact": 15154601531,
+        "sha256": "6f571018f26451b78cef15c6dacac03084633fc3fbb71f45650b6b6ff32cef00",
+        "crc": 59
+      },
+      {
+        "artifact": 15113010561,
+        "sha256": "e72eccdef198414f90b8508cefd34aa7491afc3fcddbad067dc32ef2471c789c",
+        "crc": 277
+      }
+    ]
+  },
+  "producer_audit": {
+    "source": "12f27421d70b7e5039fc01ed946a19141156773e",
+    "source_tree": "c5b769ae96bdb8015a2148f9f274826126c0f114",
+    "state": "WARRANTED source inspection; new ancestor proof UNKNOWN",
+    "correction": "colon_open_map_explicit closes hvp into h_slot but also retains the own-column ResumeFrames continuation in node and comment frame supplies at lines 25108-25114. Retaining hvp again alone is not a sufficient direct repair. The missing supply is ancestor-specific after the value.",
+    "callers": [
+      "accum_block_on_closeThenBlock",
+      "accum_block_on_pendingBlockContent",
+      "accum_block_on_pendingBlock"
+    ],
+    "immediate_goals_in_prior_diagnostic": 4,
+    "dependent_guards": 2,
+    "qualified_critical_ON_positions": 7,
+    "critical_position_retired": false
+  },
+  "tag_docs": {
+    "run": 45917182353,
+    "harness": "77fc7df0d52b613b08bed00aff5ce4ca795327d2",
+    "source": "9870bcb398aeb8e639056b6405346ec8764a9572",
+    "tree": "59b1d49586550bf4171dcff04fc22d7abc7da1c5",
+    "state": "in_progress",
+    "boundary": "API-only build with one Lean worker and 8 GiB temporary swap; native suites not repeated. Historical full run 45904386866 remains failed.",
+    "failed_artifact_verified": {
+      "artifact": 15159264065,
+      "sha256": "a19b6a385db36876ad3c9ea158853c84cdd6b1cb43bc431bcc07f367ba357f48",
+      "crc_members": 74
+    }
+  }
+}
