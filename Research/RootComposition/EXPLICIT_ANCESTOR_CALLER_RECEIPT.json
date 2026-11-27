@@ -1,0 +1,91 @@
+{
+  "state": "WARRANTED bounded diagnostic and exact-source restoration; stronger proof INCOMPLETE",
+  "harness": "42692b69c07f8e9300a57c3a3cf93c32e982c0a0",
+  "run": 45923156538,
+  "job": 140258349565,
+  "source": "9f59de2e097d0174f14651d91a88917c026e3acb",
+  "source_tree": "eec308182759db30ee036bbd0d845219b2386fcb",
+  "artifact": 15165004422,
+  "artifact_sha256": "7ff78b2e8c534860caee527ff748135c7aadac32c57dfb8ceddc1a18a383d094",
+  "CRC_members": 26,
+  "independent_verification": "Downloaded archive bytes rehashed, all CRCs checked, safe extraction, before/after axiom bytes equal, original diagnostic baseline axiom bytes equal. Published workflow and spec read back exactly. Independent local Lean replay not performed.",
+  "spec_sha256": "2665278c06e3e1bb6ceb38787f97b80a24813bcd468b0bd5307d51ddb3fd5572",
+  "source_anchor_count": 50,
+  "derived_attempted_source_sha256": "52b8c2d9c9e87ecfa786c208e6f4baf44e6cd9f38dd06b4b495c3213c72f8571",
+  "immediate_sites": 6,
+  "immediate_declarations": 4,
+  "total_sites": 8,
+  "total_declarations": 5,
+  "dependent_capstone_guard_sites": 2,
+  "structural_errors": 0,
+  "consumer_gap_closed_conditionally": true,
+  "three_explicit_value_caller_goals_exposed": true,
+  "question_own_case_reused": true,
+  "question_proper_ancestor_remains": true,
+  "landed_sequence_gaps_remaining": 2,
+  "qualified_ON_positions": 7,
+  "candidate_ON_count": null,
+  "critical_retirement": false,
+  "source_restored_identically": true,
+  "restored_library_build_exit": 0,
+  "restored_axioms_unchanged": true,
+  "domain_controls": {
+    "accepted": 510,
+    "rejected": 30,
+    "value_slot_observations": 1362,
+    "own_marked": 0,
+    "with_ancestors": 912,
+    "verification_boundary": "Source-initialized bounded scanner observations. Not a proof of the grammar continuation.",
+    "source_grid_executions": 540
+  },
+  "goals": [
+    {
+      "line": 28316,
+      "owner": "accum_block_on_closeThenBlock"
+    },
+    {
+      "line": 28323,
+      "owner": "accum_block_on_closeThenBlock"
+    },
+    {
+      "line": 28476,
+      "owner": "accum_block_on_closeThenBlock"
+    },
+    {
+      "line": 29787,
+      "owner": "accum_block_on_pendingBlockContent"
+    },
+    {
+      "line": 30560,
+      "owner": "accum_block_on_pendingBlock"
+    },
+    {
+      "line": 31348,
+      "owner": "accum_block_pending"
+    }
+  ],
+  "prediction_result": "HELD. One consumer gap moved to its three actual callers; site counts are different contracts and are not a monotone progress metric.",
+  "prior_diagnostic": {
+    "run": 45899137353,
+    "immediate_sites": 4,
+    "total_sites": 6,
+    "receipt": "9dd55bf282983808dab07f0d92ae5bc13fb635f9/Research/RootComposition/ANCESTOR_PRODUCER_RECEIPT.json"
+  },
+  "negative_lineage": {
+    "run": 45923072942,
+    "state": "FAILED before Lean due to stale checksum basename; corrected harness changes that line only"
+  },
+  "next": "Derive the two-stage value-line/ancestor continuation from actual question-entry ancestors and retain that reading in the existing value/key packs consumed by the three callers. Do not infer the proper-ancestor route from an own-frame stream closure, replay unchanged diagnostic, or claim 7-to-6.",
+  "files_sha256": {
+    "price/normalized-report.txt": "4110b3eb1019f01f371318c002ad706f1eee2c1d12f5b873d1f90e12a03d490b",
+    "price/explicit-ancestor-compiler.log": "b463a4561175f86bd27cf3db950c1f55f09946c37d0b2b6ebe4908a9d6789cc3",
+    "ancestor-domain-controls.txt": "0433725b53fdc791fd5f169bb177da2140ad77235c954053e144d99eb476090c",
+    "baseline-axioms.txt": "d8a2130e619f90b135bf9016554dbb5de7af25c4b303b194d76e1fe40f853497",
+    "baseline-root-axioms.txt": "0cd7b18f39bc0d8025ad6a38477c103d24c592df1bc806efa518724a9b1f6c84",
+    "price/normalized-restored-axioms.txt": "d8a2130e619f90b135bf9016554dbb5de7af25c4b303b194d76e1fe40f853497",
+    "price/normalized-restored-root-axioms.txt": "0cd7b18f39bc0d8025ad6a38477c103d24c592df1bc806efa518724a9b1f6c84",
+    "explicit-value-ancestor-callers.json": "2665278c06e3e1bb6ceb38787f97b80a24813bcd468b0bd5307d51ddb3fd5572",
+    "outcomes.txt": "2d94b390a3128f26f010c6bb26d2a7c343e9e0342e4aadb61d6605299362ca76",
+    "source-identity.txt": "1a2381f64b03251c8db6920d34790b6853785cf4c2f05d8cceee224c5de3aaef"
+  }
+}

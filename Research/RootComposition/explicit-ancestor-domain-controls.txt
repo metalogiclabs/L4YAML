@@ -1,0 +1,26 @@
+TOKEN_ONLY_NOTQUESTION_REFUTED source="? a\n: b" step=1 own=0 marks=[0] token=some (L4YAML.YamlToken.scalar "a" (L4YAML.ScalarStyle.plain))
+TOKEN_ONLY_NOTQUESTION_REFUTED source="? a\x0d\n: b" step=1 own=0 marks=[0] token=some (L4YAML.YamlToken.scalar "a" (L4YAML.ScalarStyle.plain))
+TOKEN_ONLY_NOTQUESTION_REFUTED source="# comment\n? a\n: b" step=1 own=0 marks=[0] token=some (L4YAML.YamlToken.scalar "a" (L4YAML.ScalarStyle.plain))
+TOKEN_ONLY_NOTQUESTION_REFUTED source="# comment\x0d\n? a\x0d\n: b" step=1 own=0 marks=[0] token=some (L4YAML.YamlToken.scalar "a" (L4YAML.ScalarStyle.plain))
+DASH_STRICT_BOUND_REFUTED source="?\n- b" step=1 landing=0 marks=[0]
+DASH_STRICT_BOUND_REFUTED source="?\x0d\n- b" step=1 landing=0 marks=[0]
+DASH_STRICT_BOUND_REFUTED source="# comment\n?\n- b" step=1 landing=0 marks=[0]
+DASH_STRICT_BOUND_REFUTED source="# comment\x0d\n?\x0d\n- b" step=1 landing=0 marks=[0]
+REJECTED_SOURCE_CONTROL "?\n  ? -\n- b"
+REJECTED_SOURCE_CONTROL "?\x0d\n  ? -\x0d\n- b"
+REJECTED_SOURCE_CONTROL "# comment\n?\n  ? -\n- b"
+REJECTED_SOURCE_CONTROL "# comment\x0d\n?\x0d\n  ? -\x0d\n- b"
+REACHABLE_CONTROL_READINGS { accepted := 510,
+  rejected := 30,
+  rootPreprocess := 510,
+  rootIndented := 6,
+  nonQuestionMarkedOwn := 486,
+  valueSlots := 1362,
+  valueSlotOwnMarked := 0,
+  valueSlotAncestors := 912,
+  dashLandings := 180,
+  dashRightMarks := 0,
+  dashEqualMarks := 30 }
+ROOT_DOMAIN_CONTROL passed=510 initialized_from_source=true
+R2_POST_VALUE_CONTROL slots=1362 own_marked=0 with_ancestors=912
+R1_DASH_CONTROL landings=180 marks_right=0 marks_equal=30
