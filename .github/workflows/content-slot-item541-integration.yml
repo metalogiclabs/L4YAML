@@ -1,0 +1,133 @@
+name: Price exact PR 384 integration with landed item 541
+on:
+  push:
+    branches: [test/content-slot-item541-integration]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      LEAN_NUM_THREADS: 2
+      OLD: 05749b745f8c88fad8f1b6971aaa22b65155f489
+      OWNER: 1383fa62e838576fb9c712b4af89b5e381aaaab4
+      BASE: 2540115c885d3badf65237cc45f1737a596f7ec9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 05749b745f8c88fad8f1b6971aaa22b65155f489
+          path: source
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind exact prior source and retained proof profiles
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p results
+          git -C evidence rev-parse HEAD HEAD^{tree} > results/harness.txt
+          test "$(git -C source rev-parse HEAD)" = "$OLD"
+          test "$(git -C source rev-parse HEAD^{tree})" = 9e5bb329ada408d7a9620dd389b1c7d852244dc1
+          git -C source fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$OWNER"
+          test "$(git -C source rev-parse "$OWNER^{tree}")" = 0c7dced413db0510b0a0a144ca2ca74111cf6a77
+          test "$(git -C source merge-base "$OLD" "$OWNER")" = "$BASE"
+          git -C source rev-parse HEAD HEAD^{tree} "$OWNER" "$OWNER^{tree}" "$BASE" > results/inputs.txt
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15172924564/zip > "$RUNNER_TEMP/prior.zip"
+          echo "023b6939a8a35a3d4fc4991204c631662067fdf3a5cb8caf83b96f8ccced1eba  $RUNNER_TEMP/prior.zip" | sha256sum -c -
+          unzip -t "$RUNNER_TEMP/prior.zip" > results/prior-crc.txt
+          unzip -q "$RUNNER_TEMP/prior.zip" -d "$RUNNER_TEMP/prior"
+          test "$(sed -n '2p' "$RUNNER_TEMP/prior/qualified-source.txt")" = 9e5bb329ada408d7a9620dd389b1c7d852244dc1
+          cmp "$RUNNER_TEMP/prior/axioms-before.log" "$RUNNER_TEMP/prior/axioms-after.log"
+          cmp "$RUNNER_TEMP/prior/root-axioms-before.log" "$RUNNER_TEMP/prior/root-axioms-after.log"
+          cp "$RUNNER_TEMP/prior/axioms-after.log" results/axioms-before.log
+          cp "$RUNNER_TEMP/prior/root-axioms-after.log" results/root-axioms-before.log
+          cp evidence/Research/IntegrationRefresh/{AxiomAudit,RootAudit}.lean results/
+          test "$(cat source/lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat source/lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        with:
+          path: source/.lake
+          key: pr-price-item541-384-${{ github.run_id }}
+          restore-keys: |
+            pr-refresh-item540-384-45937399083
+            pr-refresh-item540-384-
+      - name: Measure real Git integration; retain all three guard stages
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "Metalogic research"
+          git config user.email "research@example.invalid"
+          status=0
+          git merge --no-ff --no-commit "$OWNER" > ../results/merge.log 2>&1 || status=$?
+          printf '%s\n' "$status" > ../results/merge.exit
+          cat ../results/merge.log
+          test "$status" -le 1
+          git diff --name-only --diff-filter=U > ../results/conflicted-paths.txt
+          git ls-files -u > ../results/conflict-index.txt
+          mkdir -p ../results/conflict-stages
+          while IFS= read -r path; do
+            case "$path" in
+              Tests/Guards/Proofs/CapstonePathAudit.lean|Tests/Guards/Proofs/CloseLandingWidth.lean|Tests/Guards/Proofs/CloseSplitFrames.lean|Tests/Guards/Proofs/CloseStackCover.lean|Tests/Guards/Proofs/HypothesisReaderCensus.lean|Tests/Guards/Proofs/OpenEntryRoute.lean|Tests/Guards/Proofs/OrTrueAudit.lean|Tests/Guards/Proofs/PaidLeafDelta.lean|Tests/Guards/Proofs/PremiseNecessityCensus.lean|Tests/Guards/Proofs/PuntCoverInputs.lean|Tests/Guards/Proofs/RelaySupplyCensus.lean|Tests/Guards/Proofs/ValueLineOrigins.lean|Tests/Guards/Proofs/ValueLinePacks.lean|Tests/Guards/Proofs/IndexCensus.lean) ;;
+              *) echo "Unexpected conflict: $path; stop without resolution"; exit 1 ;;
+            esac
+            name=$(basename "$path")
+            for stage in 1 2 3; do git show ":$stage:$path" > "../results/conflict-stages/$name.$stage"; done
+            cp "$path" "../results/conflict-stages/$name.markers"
+            # Provisional guard text ONLY for focused proof compilation.
+            # No guard result or qualification is claimed from these choices.
+            git merge-file --ours -p "../results/conflict-stages/$name.2" "../results/conflict-stages/$name.1" "../results/conflict-stages/$name.3" > "$path"
+            git add -- "$path"
+          done < ../results/conflicted-paths.txt
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git diff --cached --binary > ../results/merged-provisional.patch
+          git diff --cached --check
+          git commit -m "Diagnostic only: exact item 541 integration, provisional guard snapshots"
+          git rev-parse HEAD HEAD^{tree} > ../results/diagnostic-source.txt
+          git merge-base --is-ancestor "$OLD" HEAD
+          git merge-base --is-ancestor "$OWNER" HEAD
+          git diff --exit-code "$OWNER" HEAD -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules .github/workflows
+          git hash-object L4YAML/Proofs/Production/StreamAccum.lean > ../results/merged-stream.blob
+          git diff --binary "$OWNER" HEAD -- L4YAML > ../results/proof-v-owner.patch
+          git diff --binary "$OLD" HEAD -- L4YAML > ../results/proof-v-reviewed.patch
+          git bundle create ../results/diagnostic.bundle HEAD ^"$OLD" ^"$OWNER"
+          git bundle verify ../results/diagnostic.bundle > ../results/bundle-verify.log 2>&1
+          sha256sum ../results/diagnostic.bundle ../results/merged-provisional.patch > ../results/diagnostic.sha256
+      - name: Focused compiler price and capstone profiles
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version > ../results/lean-version.txt
+          status=0
+          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath > ../results/proof-build.log 2>&1 || status=$?
+          printf '%s\n' "$status" > ../results/proof-build.exit
+          tail -100 ../results/proof-build.log
+          test "$status" = 0
+          lake env lean ../results/AxiomAudit.lean > ../results/axioms-after.log 2>&1
+          lake env lean ../results/RootAudit.lean > ../results/root-axioms-after.log 2>&1
+          cmp ../results/axioms-before.log ../results/axioms-after.log
+          cmp ../results/root-axioms-before.log ../results/root-axioms-after.log
+          status=0
+          lake run capstone-path > ../results/capstone-path.log 2>&1 || status=$?
+          printf '%s\n' "$status" > ../results/capstone-path.exit
+          cat ../results/capstone-path.log
+          test "$status" = 0
+          echo "FOCUSED PRICE COMPLETE; provisional guards, native tests, bindings, docs and full qualification NOT checked"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-384-item541-integration-price
+          path: results/
+          if-no-files-found: error
