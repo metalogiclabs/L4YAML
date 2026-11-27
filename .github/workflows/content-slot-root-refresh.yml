@@ -1,9 +1,10 @@
-name: Qualify content-slot integration after root landing
+name: Qualify content-slot root integration with retained census readings
 on:
   push:
-    branches: [test/content-slot-root-refresh]
+    branches: [test/content-slot-root-refresh-replay]
 permissions:
   contents: read
+  actions: read
 jobs:
   qualify:
     runs-on: ubuntu-latest
@@ -50,6 +51,21 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
           "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
           git -C ../evidence rev-parse HEAD > ../results/harness.txt
+      - name: Restore exact failed harness evidence without repeating its measurements
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15164020984/zip > results/prior-census-evidence.zip
+          echo 'f3aa7d82fb17356069e6a4098a2b5761947495a3553469ea2b1ac9f74f7ed4bd  results/prior-census-evidence.zip' | sha256sum -c -
+          unzip -t results/prior-census-evidence.zip > results/prior-zip-crc.txt
+          unzip -q results/prior-census-evidence.zip -d results/prior
+          test "$(cat results/prior/harness.txt)" = af41fa085242008b70911a76606b5cef32cbd1c9
+          test "$(sed -n '1p' results/prior/reviewed-source.txt)" = 0146eb0833716f6e8e3ff22babe66b39c9415ebf
+          test "$(sed -n '1p' results/prior/owner.txt)" = 6dc5601039d63dd02f3dfa0d16478b2c849fecd3
+          cmp results/prior/axioms-before.log results/prior/axioms-after.log
+          cmp results/prior/root-axioms-before.log results/prior/root-axioms-after.log
       - uses: actions/cache/restore@v4
         with:
           path: source/.lake
@@ -61,9 +77,8 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath > ../results/baseline-library-build.log 2>&1
-          lake env lean ../results/AxiomAudit.lean > ../results/axioms-before.log 2>&1
-          lake env lean ../results/RootAudit.lean > ../results/root-axioms-before.log 2>&1
+          cp ../results/prior/axioms-before.log ../results/axioms-before.log
+          cp ../results/prior/root-axioms-before.log ../results/root-axioms-before.log
           status=0
           git merge --no-ff --no-commit "$OWNER" > ../results/merge.log 2>&1 || status=$?
           test "$status" -le 1
@@ -84,9 +99,25 @@ jobs:
             esac
           done < ../results/merged-paths.txt
           git diff --cached --binary > ../results/merged-before-measurement.patch
+          cmp ../results/prior/merged-before-measurement.patch ../results/merged-before-measurement.patch
           git commit -m 'proof(integration): preserve content-slot correction and landed root payment'
           echo "INITIAL_SOURCE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           git diff --exit-code "$OWNER" -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > ../results/MeasuredRepin.lean
+          cat ../evidence/Research/IntegrationRefresh/MeasuredRepinDriver.lean >> ../results/MeasuredRepin.lean
+          for log in $(find ../results/prior -maxdepth 1 -name 'build-*.log' | sort -V); do
+            lean --run ../results/MeasuredRepin.lean "$log" . > "../results/replay-$(basename "$log")" 2>&1
+          done
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > ../results/CorrectedRepin.lean
+          cat ../evidence/Research/IntegrationRefresh/RootRefreshRepinDriver.lean >> ../results/CorrectedRepin.lean
+          for log in $(find ../results/prior -maxdepth 1 -name 'build-*.log' | sort -V); do
+            lean --run ../results/CorrectedRepin.lean "$log" . > "../results/route-calibration-$(basename "$log")" 2>&1
+            cat "../results/route-calibration-$(basename "$log")"
+          done
+          for log in $(find ../results/prior -maxdepth 1 -name 'build-*.log' | sort -V); do
+            lean --run ../results/CorrectedRepin.lean "$log" . > "../results/route-idempotence-$(basename "$log")" 2>&1
+            grep -Fx 'MEASURED_REPIN_EDITS 0' "../results/route-idempotence-$(basename "$log")"
+          done
           rm -f .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean
           lake build L4YAML.Proofs.Production.DocumentProduction > ../results/integrated-proof-build.log 2>&1
           lake env lean ../results/AxiomAudit.lean > ../results/axioms-after.log 2>&1
@@ -100,14 +131,12 @@ jobs:
           set -Eeuo pipefail
           lean --version | tee ../results/lean-version.txt
           lake build scripts-repin scripts-dead-census > ../results/instruments-build.log 2>&1
-          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > ../results/MeasuredRepin.lean
-          cat ../evidence/Research/IntegrationRefresh/MeasuredRepinDriver.lean >> ../results/MeasuredRepin.lean
           passed=false
           for round in $(seq 1 12); do
             echo "BUILD_ROUND $round"
             if lake build > "../results/build-$round.log" 2>&1; then passed=true; break; fi
             tail -100 "../results/build-$round.log"
-            lean --run ../results/MeasuredRepin.lean "../results/build-$round.log" . > "../results/repin-$round.log" 2>&1
+            lean --run ../results/CorrectedRepin.lean "../results/build-$round.log" . > "../results/repin-$round.log" 2>&1
             cat "../results/repin-$round.log"
             grep -Eq '^MEASURED_REPIN_EDITS [1-9][0-9]*$' "../results/repin-$round.log"
           done
@@ -199,7 +228,7 @@ jobs:
             echo "QUALIFICATION_SUMMARY_END $name"
           done
       - uses: actions/cache/save@v4
-        if: success()
+        if: always()
         with:
           path: source/.lake
           key: pr-refresh-436-384-${{ github.run_id }}
