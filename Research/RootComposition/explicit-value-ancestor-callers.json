@@ -1,6 +1,6 @@
 {
   "item": 538,
-  "tag": "EXPLICIT-VALUE-PROPER-ANCESTOR-CALLER-PRICE",
+  "tag": "R2-EXPLICIT-ANCESTOR-PAIR",
   "rev": "HEAD",
   "target": "L4YAML",
   "log": "../results/price/explicit-ancestor-compiler.log",
@@ -11,6 +11,42 @@
     {
       "file": "L4YAML/Proofs/Production/StreamAccum.lean",
       "patches": [
+        {
+          "name": "paired-entry-grammar-composition-lemmas",
+          "old": [
+            "  · exact up nv hmem hne sp_m (SBlockMapEntry.explicitEmpty n sp_q sp_scan sp_m h_qlit h_key)",
+            "      sp_i sp_c h_ind h_lit sp_v h_val"
+          ],
+          "new": [
+            "  · exact up nv hmem hne sp_m (SBlockMapEntry.explicitEmpty n sp_q sp_scan sp_m h_qlit h_key)",
+            "      sp_i sp_c h_ind h_lit sp_v h_val",
+            "",
+            "/-- Experimental carrier: the completed inner key together with its whole-entry route to a surviving ancestor. -/",
+            "def R2ExplicitPairKey (sp_start : SurfPos) (k a : Nat) (sp_key : SurfPos) : Prop :=",
+            "  ∃ sp_q sp_qend : SurfPos, GLit '?' sp_q sp_qend ∧",
+            "    SBlockIndented k .blockOut sp_qend sp_key ∧",
+            "    (∀ sp_v : SurfPos, SBlockMapEntry k sp_q sp_v → ExplValueLine sp_start a sp_v)",
+            "",
+            "lemma R2ExplicitPairKey.finish {sp_start sp_key sp_i sp_c sp_v : SurfPos} {k a : Nat}",
+            "    (h : R2ExplicitPairKey sp_start k a sp_key)",
+            "    (hi : SIndent k sp_key sp_i) (hl : GLit ':' sp_i sp_c)",
+            "    (hv : SBlockIndented k .blockOut sp_c sp_v) :",
+            "    ExplValueLine sp_start a sp_v := by",
+            "  obtain ⟨sp_q, sp_qend, hq, hk, up⟩ := h",
+            "  exact up sp_v (SBlockMapEntry.explicit k sp_q sp_qend sp_key sp_i sp_c sp_v hq hk hi hl hv)",
+            "",
+            "lemma R2ExplicitPairKey.compactSeq {sp_start sp_q sp_qend sp_dash sp_entry sp_m sp_e : SurfPos} {n m a : Nat}",
+            "    (hq : GLit '?' sp_q sp_qend) (hi : SIndent m sp_qend sp_dash)",
+            "    (hd : GLit '-' sp_dash sp_entry) (hs : GNot SNsChar sp_entry)",
+            "    (hb : SBlockIndented (n + 1 + m) .blockIn sp_entry sp_m)",
+            "    (ht : SCompactSeqTail (n + 1 + m) sp_m sp_e)",
+            "    (up : ∀ sp_v : SurfPos, SBlockMapEntry n sp_q sp_v → ExplValueLine sp_start a sp_v) :",
+            "    R2ExplicitPairKey sp_start n a sp_e :=",
+            "  ⟨sp_q, sp_qend, hq, SBlockIndented.compactSeq n .blockOut m sp_qend sp_dash sp_e hi",
+            "    (SCompactSeq.mk (n + 1 + m) sp_dash sp_entry sp_m sp_e hd hs hb ht), up⟩"
+          ],
+          "count": 1
+        },
         {
           "name": "actual-ON-kslot-1",
           "old": [
@@ -1090,7 +1126,9 @@
             "               intro nvU hmem sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi",
             "               rcases h_expl51 with ⟨sp_q, h_qlit, route, h_entryUp⟩ | h_notQ",
             "               · rcases h_entryUp with entryUp | h_entryUp_declined",
-            "                 · exact explEntryChain_of_keyContent h_qlit route entryUp nvU hmem",
+            "                 · have pairAt : nvU ≠ nmv → R2ExplicitPairKey sp_start nmv nvU sp_m :=",
+            "                     fun hne => ⟨sp_q, sp_scan, h_qlit, h_bo, entryUp nvU hmem hne⟩",
+            "                   exact explEntryChain_of_keyContent h_qlit route entryUp nvU hmem",
             "                     sp_m h_bo sp_i sp_c h_iv h_lit sp_v h_sbi",
             "                 · rcases h_explUp190 with ⟨sp_q', nsU, h_qlit', hdom, up⟩ | h_legacy_declined",
             "                   · by_cases hEq : nvU = nmv",
@@ -1195,6 +1233,46 @@
             "            (h_sound_in :="
           ],
           "count": 3
+        },
+        {
+          "name": "price-paired-key-only-at-pendingBlockContent",
+          "old": [
+            "          have h_explicit := fun (kslot : ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →",
+            "              ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "              ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →",
+            "              ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →",
+            "              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>",
+            "            colon_open_map_explicit",
+            "            (h_ancestor := by",
+            "              intro nv_req hm_req hne_req mid_req bi_req i_req c_req iv_req lit_req v_req sbi_req",
+            "              assumption)",
+            "            (h_sound_in :="
+          ],
+          "new": [
+            "          have h_explicit := fun (kslot : ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →",
+            "              ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →",
+            "              ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →",
+            "              ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →",
+            "              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>",
+            "            colon_open_map_explicit",
+            "            (h_ancestor := by",
+            "              intro nv_req hm_req hne_req mid_req bi_req i_req c_req iv_req lit_req v_req sbi_req",
+            "              have hm_pre := h_markBack nv_req hm_req (by simp)",
+            "              have pairAt : R2ExplicitPairKey sp_start k nv_req sp_mid := by",
+            "                assumption",
+            "              have hpeek_disp : (if s_prep.allowDirectives then",
+            "                  { s_prep with allowDirectives := false, documentEverStarted := true }",
+            "                else s_prep).peek? = some ':' := by",
+            "                split <;> exact preprocess_some_peek h_preprocess",
+            "              obtain ⟨sp_colon, h_lit, hcorr_colon⟩ :=",
+            "                dispatchBlockValue_full_prod _ sp_sc",
+            "                  (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch",
+            "              have hsp_eq := ScannerSurfCorr_unique hcorr_colon hcorr_result",
+            "              rw [hsp_eq] at h_lit",
+            "              exact (pairAt.finish h_ind h_lit bi_req) i_req c_req iv_req lit_req v_req sbi_req)",
+            "            (h_sound_in :="
+          ],
+          "count": 1
         }
       ]
     }
