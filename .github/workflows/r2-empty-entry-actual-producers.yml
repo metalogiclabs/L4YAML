@@ -112,13 +112,15 @@ jobs:
           next_decl=re.search(r'(?m)^(?:(?:private|protected|noncomputable) +)*(?:lemma|theorem|def) +[\w.]+',s[decl_start:ref_start])
           b=decl_start+next_decl.start() if next_decl else ref_start
           part=s[a:b]
-          pattern=r'(?m)^  \| pendingBlock[ \t]+([^\n]+?)[ \t]*=>'
+          pattern=r"(?m)^  \| pendingBlock[ \t]+([\w']+(?:(?:[ \t]+|\n[ \t]+)[\w']+)*?)[ \t]*=>"
           actual=list(re.finditer(pattern,part))
           reference=[m for m in re.finditer(pattern,s[ref_start:]) if m.group(1).split()[-1]=='h_pairSeq']
           assert len(actual)==1 and len(reference)==1,(len(actual),len(reference))
           old=actual[0].group(1).split()
           ref=reference[0].group(1).split()
           assert all(re.fullmatch(r"[\w']+",t) for t in old+ref),(old,ref)
+          assert old==["_","_","_","n_old","_h_close","h_close_entry_old","h_floor208","h_sk_old","h_col_old","h_kslot92","h_closeF369","_","h_seqF167","h_kslotUp190","h_closeFV198","h_top208","_","h_nextB"],old
+          assert ref==["_","_","_","n_old","h_close_old","h_close_entry_old","h_floor_old","h_sk_old","h_col_old","h_kslot92","h_closeF99","_","h_seqF167","h_kslotUp190","h_closeFV198","h_park_top_old","h_offer_b","h_nextB","_","h_pairSeq"],ref
           missing=len(ref)-len(old)
           assert missing in (1,2),(old,ref)
           assert ref[-2:]==['_','h_pairSeq'],ref
