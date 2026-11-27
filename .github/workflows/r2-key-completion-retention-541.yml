@@ -1,0 +1,88 @@
+name: R2 key completion retained ownership
+on:
+  push:
+    branches: [test/r2-key-completion-retention-541]
+    paths:
+      - '.github/workflows/r2-key-completion-retention-541.yml'
+permissions:
+  contents: read
+jobs:
+  price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          path: source
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind upstream and retained compact proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd source
+          test "$(git rev-parse HEAD)" = 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          test "$(git rev-parse HEAD^{tree})" = 0c7dced413db0510b0a0a144ca2ca74111cf6a77
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          git apply --check ../harness/Research/R2EntryProvenance/Concurrent/compact-candidate.patch
+          git apply ../harness/Research/R2EntryProvenance/Concurrent/compact-candidate.patch
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/compact-base.patch
+          sha256sum L4YAML/Proofs/Production/StreamAccum.lean > ../results/compact-base.sha256
+          test "$(sha256sum L4YAML/Proofs/Production/StreamAccum.lean | cut -d ' ' -f1)" = d89a05d0ded19e6d641c139cadeb403c16ae94c245489464eb0af6b5e2b0cc12
+          cp L4YAML/Proofs/Production/StreamAccum.lean ../compact-base.lean
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-key-completion-541-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Validate same-owner composition at three actual key writers
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../harness/Research/R2EntryProvenance/Retention/spec.json ../results/spec.json
+          python3 ../harness/Research/R2EntryProvenance/Retention/apply.py ../results/spec.json own | tee ../results/own.receipt
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/own.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/own.log 2>&1 || status=$?
+          echo "$status" > ../results/own.exit
+          grep -E 'error:|warning:|Build completed' ../results/own.log | tail -60 || true
+      - name: Require all surviving owners in existing pack and real colon reader
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../compact-base.lean L4YAML/Proofs/Production/StreamAccum.lean
+          python3 ../harness/Research/R2EntryProvenance/Retention/apply.py ../results/spec.json retention | tee ../results/retention.receipt
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/retention.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/retention.log 2>&1 || status=$?
+          echo "$status" > ../results/retention.exit
+          grep -E 'error:|R2_KEY_|R2_OTHER_|Build completed' ../results/retention.log | tail -150 || true
+          printf '%s\n' 'Phase own is local construction only; phase retention strengthens the existing paid pack, transports through actual landing and prices omitted producers. Existing PackAlt alternatives are unchanged. No full qualification or critical retirement claimed.' > ../results/boundary.txt
+          git restore -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r2-key-completion-retention-541
+          path: results/
+          if-no-files-found: error
