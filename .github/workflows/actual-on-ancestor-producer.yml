@@ -1,10 +1,10 @@
-name: Price proper-ancestor continuation at its real entry producer
+name: Price explicit-value ancestor supply at the three actual callers
 on:
   push:
-    branches: [test/proper-ancestor-producer-price]
+    branches: [test/explicit-value-ancestor-price]
     paths:
       - .github/workflows/actual-on-ancestor-producer.yml
-      - Research/RootComposition/actual-on-ancestor-producer.json
+      - Research/RootComposition/explicit-value-ancestor-callers.json
 permissions:
   contents: read
 jobs:
@@ -43,7 +43,7 @@ jobs:
           unzip -q evidence/Research/RootComposition/qualified-root-evidence.zip -d root-archive
           unzip -q evidence/Research/RootComposition/qualified-r2-own-evidence.zip -d own-archive
           cp evidence/Research/RootComposition/{FINAL_ROOT_RECEIPT,R2_OWN_RECEIPT}.json results/
-          cp harness/Research/RootComposition/actual-on-ancestor-producer.json results/
+          cp harness/Research/RootComposition/explicit-value-ancestor-callers.json results/
           sha256sum results/actual-on-ancestor-producer.json > results/spec-sha256.txt
           cd source
           git bundle verify ../root-archive/root-context/source.bundle
@@ -105,13 +105,15 @@ jobs:
           diff -u ../results/retained-final-root-axioms.txt ../results/baseline-root-axioms.txt
           sha256sum -c ../results/baseline-source-sha256.txt
           test -z "$(git status --porcelain)"
+          lake env lean --run ../harness/Research/RootComposition/AncestorDomainControls.lean > ../results/ancestor-domain-controls.txt 2>&1
+          grep -F 'R2_POST_VALUE_CONTROL' ../results/ancestor-domain-controls.txt
       - name: Price normalized key-slot callers and restore the exact source
         working-directory: source
         shell: bash
         run: |
           set -euo pipefail
           for family in normalized; do
-            spec="../harness/Research/RootComposition/actual-on-ancestor-producer.json"
+            spec="../harness/Research/RootComposition/explicit-value-ancestor-callers.json"
             lake exe scripts-flip "$spec" --rev HEAD --dry > "../results/price/$family-dry.txt" 2>&1
             status=0
             lake exe scripts-flip "$spec" --rev HEAD > "../results/price/$family-report.txt" 2>&1 || status=$?
@@ -137,6 +139,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: actual-on-ancestor-producer
+          name: explicit-value-ancestor-callers
           path: results/
           if-no-files-found: error

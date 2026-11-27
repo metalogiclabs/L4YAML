@@ -1,0 +1,23 @@
+{
+  "state": "CANDIDATE diagnostic; no proof retirement claimed",
+  "objective": "Locate the missing explicit-value proper-ancestor continuation at its three actual callers",
+  "source": "9f59de2e097d0174f14651d91a88917c026e3acb",
+  "source_tree": "eec308182759db30ee036bbd0d845219b2386fcb",
+  "parent_diagnostic": {
+    "harness": "08a98ec37c354ae87cd6b4cfd97201513336fa37",
+    "run": 45899137353,
+    "immediate_sites": 4,
+    "total_sites": 6
+  },
+  "predictions": [
+    "The actual pendingMapValue non-question consumer gap is discharged by the new mandatory conditional slot contract.",
+    "The explicit-value helper consumes the new supplied proper-ancestor contract; merely retaining its already-present own-frame hvp is not used as a substitute.",
+    "The three explicit-value callers expose their own proper-ancestor supply goals.",
+    "The question producer's declined-chain own-column case is paid from its existing entry route; its proper-ancestor case remains.",
+    "The two landed sequence continuation gaps remain.",
+    "Expected immediate frontier: six sites in four declarations; total may include two dependent capstone guards. A larger site count reflects upstream pricing, not worsening or proof progress."
+  ],
+  "verification_boundary": "Source-initialized native controls test the domain only, not the undecidable grammar continuation. The flip elaborates the strengthened contract, reports unresolved goals, restores exact source bytes and rebuilds/checks restored axioms.",
+  "critical_retirement": false,
+  "production_refs_changed": false
+}
