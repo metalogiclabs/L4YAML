@@ -1,0 +1,82 @@
+name: Qualify TAG API documentation with bounded memory
+on:
+  push:
+    branches: [test/tag-api-doc-memory]
+permissions:
+  contents: read
+jobs:
+  api-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      LEAN_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 9870bcb398aeb8e639056b6405346ec8764a9572
+          path: source
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind exact published TAG source and compiler
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = 9870bcb398aeb8e639056b6405346ec8764a9572
+          test "$(git rev-parse HEAD^{tree})" = 59b1d49586550bf4171dcff04fc22d7abc7da1c5
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          git ls-tree HEAD lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json > ../results/pins-before.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        with:
+          path: source/.lake
+          key: tag-api-doc-memory-${{ github.run_id }}
+          restore-keys: |
+            pr-refresh-436-361-
+      - name: Record and provision temporary swap for the documentation build
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          free -h | tee results/memory-before.txt
+          df -h | tee results/disk-before.txt
+          sudo fallocate -l 8G "$RUNNER_TEMP/tag-api-doc.swap"
+          sudo chmod 600 "$RUNNER_TEMP/tag-api-doc.swap"
+          sudo mkswap "$RUNNER_TEMP/tag-api-doc.swap"
+          sudo swapon "$RUNNER_TEMP/tag-api-doc.swap"
+          free -h | tee results/memory-provisioned.txt
+      - name: Build all API documentation on the unchanged source
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake --version > ../results/lake-version.txt
+          /usr/bin/time -v lake build :docs > ../results/api-docs.log 2> ../results/api-docs-resource.log
+          test -s .lake/build/doc/index.html
+          find .lake/build/doc -type f -name '*.html' -print0 | sort -z | xargs -0 sha256sum > ../results/html-sha256.txt
+          find .lake/build/doc -type f -name '*.html' | wc -l > ../results/html-count.txt
+          git diff --exit-code
+          git ls-tree HEAD lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json > ../results/pins-after.txt
+          cmp ../results/pins-before.txt ../results/pins-after.txt
+          printf '%s\n' 'api_documentation=PASS' 'source_unchanged=true' 'dependency_pins_unchanged=true' 'native_suites_repeated=false' > ../results/outcome.txt
+          tail -10 ../results/api-docs.log
+          cat ../results/api-docs-resource.log ../results/outcome.txt ../results/html-count.txt
+      - name: Retain final memory observations and release temporary swap
+        if: always()
+        shell: bash
+        run: |
+          free -h > results/memory-after.txt
+          if test -f "$RUNNER_TEMP/tag-api-doc.swap"; then
+            sudo swapoff "$RUNNER_TEMP/tag-api-doc.swap" || true
+            sudo rm -f "$RUNNER_TEMP/tag-api-doc.swap"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tag-exact-source-api-doc-memory-evidence
+          path: results/
+          if-no-files-found: error
