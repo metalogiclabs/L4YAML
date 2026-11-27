@@ -1,0 +1,99 @@
+name: Item 541 landed ancestor domain relay
+on:
+  push:
+    branches: [test/item541-landed-domain-relay]
+    paths: [.github/workflows/item541-landed-domain-relay.yml]
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          path: source
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind exact item 541 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd source
+          test "$(git rev-parse HEAD)" = 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          test "$(git rev-parse HEAD^{tree})" = 0c7dced413db0510b0a0a144ca2ca74111cf6a77
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: item541-landed-domain-relay-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Demand only the already available landed route at all three existing consumers
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../harness/Research/RootComposition/item541-landed-domain-relay.json ../results/spec.json
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          out=pathlib.Path('../results')
+          spec=json.loads((out/'spec.json').read_text())
+          p=pathlib.Path(spec['path'])
+          s=p.read_text()
+          a=s.index(spec['start']); b=s.index(spec['end'],a)
+          part=s[a:b]
+          assert part.count(spec['anchor'])==1
+          part=part.replace(spec['anchor'],spec['helper']+spec['anchor'],1)
+          for old,new,n in spec['uses']:
+              assert part.count(old)==n,(old,part.count(old))
+              part=part.replace(old,new)
+          p.write_text(s[:a]+part+s[b:])
+          (out/'candidate.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
+          PY
+          git diff --check
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/candidate.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/stream-build.log 2>&1 || status=$?
+          echo "$status" > ../results/stream-build.exit
+          grep -E 'error:|Build completed' ../results/stream-build.log | tail -50 || true
+          if test "$status" = 0; then
+            status=0
+            lake run capstone-path > ../results/capstone-path.log 2>&1 || status=$?
+            echo "$status" > ../results/capstone-path.exit
+            cat > /tmp/Item541Axioms.lean <<'LEAN'
+          import L4YAML.Proofs.Production.StreamAccum
+          #print axioms L4YAML.Proofs.StreamAccum.question_open_map
+          #print axioms L4YAML.Proofs.StreamAccum.accum_block_pending
+          #print axioms L4YAML.Proofs.StreamAccum.scan_content_gives_stream_v2
+          LEAN
+            cp /tmp/Item541Axioms.lean ../results/
+            status=0
+            lake env lean /tmp/Item541Axioms.lean > ../results/candidate-axioms.log 2>&1 || status=$?
+            echo "$status" > ../results/candidate-axioms.exit
+          fi
+          git restore -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test -z "$(git status --porcelain)"
+          printf '%s\n' 'Bounded producer diagnostic only; no universal closure, no critical retirement, no axiom comparison or qualification claimed.' > ../results/boundary.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: item541-landed-domain-relay
+          path: results/
+          if-no-files-found: error

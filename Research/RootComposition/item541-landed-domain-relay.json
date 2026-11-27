@@ -1,0 +1,19 @@
+{
+  "path": "L4YAML/Proofs/Production/StreamAccum.lean",
+  "start": "lemma question_open_map ",
+  "end": "lemma colon_open_map_explicit ",
+  "anchor": "  exact ⟨sp_land, sp_land, sp_land, sp_scan', h_stream_land,",
+  "helper": "  -- Research: the actual landed value-line route already covers surviving marks.\n  have h_chainD : (∃ ns : List Nat, RegisterWitness.MarkedColsIn s' (k :: ns) ∧ ∀ nv ∈ ns,\n      ∀ sp_v : SurfPos, SBlockMapEntry k sp_ind sp_v →\n      ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →\n      ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →\n      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ PackAlt sc := by\n    rcases h_explUp_chainD with paid | declined\n    · exact Or.inl paid\n    · rcases h_resV_land with hall | _\n      · refine Or.inl ⟨(RegisterWitness.markedCols s').filter (fun x => decide (x ≠ k)), ?_, ?_⟩\n        · apply (RegisterWitness.MarkedColsIn.self s').mono\n          intro x hx\n          by_cases he : x = k\n          · exact List.mem_cons.mpr (Or.inl he)\n          · exact List.mem_cons.mpr (Or.inr (List.mem_filter.mpr ⟨hx, by simp [he]⟩))\n        · intro nv hm\n          obtain ⟨hm', hne⟩ := List.mem_filter.mp hm\n          obtain ⟨_, _, contV⟩ := hall nv hm' (of_decide_eq_true hne)\n          exact resumeFrameRouteK h_ind contV\n      · exact Or.inr declined\n",
+  "uses": [
+    [
+      "match h_explUp_chainD with",
+      "match h_chainD with",
+      2
+    ],
+    [
+      "match h_explUp_chainD, h_resV_land with",
+      "match h_chainD, h_resV_land with",
+      1
+    ]
+  ]
+}
