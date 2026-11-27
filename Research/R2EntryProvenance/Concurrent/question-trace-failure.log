@@ -1,0 +1,7 @@
+R2QuestionProvenance.lean:22:2: error(lean.unknownIdentifier): Unknown identifier `markedColsOf`
+R2QuestionProvenance.lean:55:0: error: cannot evaluate code because 'r2Marks._redArg' uses 'sorry' and/or contains errors
+R2QuestionProvenance.lean:56:0: error: cannot evaluate code because 'r2Marks._redArg' uses 'sorry' and/or contains errors
+R2QuestionProvenance.lean:57:0: error: cannot evaluate code because 'r2Marks._redArg' uses 'sorry' and/or contains errors
+R2QuestionProvenance.lean:58:0: error: cannot evaluate code because 'r2Marks._redArg' uses 'sorry' and/or contains errors
+R2QuestionProvenance.lean:59:0: error: cannot evaluate code because 'r2Marks._redArg' uses 'sorry' and/or contains errors
+R2QuestionProvenance.lean:69:0: error: cannot evaluate code because 'r2Marks._redArg' uses 'sorry' and/or contains errors

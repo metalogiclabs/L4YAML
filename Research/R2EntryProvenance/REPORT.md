@@ -1,5 +1,8 @@
 # R2: three relays compile, but actual entry ownership still blocks the consumers
 
+See `RECONCILIATION.md` for experiments completed concurrently on upstream
+PR #387 and the repaired exact-upstream scanner/event controls.
+
 **WARRANTED within the local Lean 4.36.0 boundary.** The sibling, nested-block
 and compact-sequence pair relays all compile in the actual producer. The
 selected helper, accumulation and capstone axiom reports are byte-identical

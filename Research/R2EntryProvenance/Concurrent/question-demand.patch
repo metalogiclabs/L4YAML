@@ -1,0 +1,22 @@
+diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
+index 599a99c..0ed7890 100644
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -24781,7 +24781,16 @@ lemma question_open_map {sc : ScannerState} (sp_start sp_land sp_ind : SurfPos)
+                  · exact up _ h sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi)
+              -- Item 412: the ancestors' chain was declined upstream — re-declined here (a `?`
+              -- ARMS the register, so no refusal transports across it).
+-             | Or.inr _ => Or.inr trivial⟩)
++             | Or.inr _ => Or.inl (by
++                 intro nv hnv hne sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi
++                 rcases h_resV_land with hall | h_noResume
++                 · obtain ⟨_, _, contV⟩ := hall nv hnv hne
++                   exact resumeFrameRouteK h_ind contV sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi
++                 · rcases h_explUp_chain with ⟨ns, up⟩ | h_noChain
++                   · have hmem : nv ∈ ns := by
++                       first | assumption | (trace_state; fail "R2_QUESTION_ANCESTOR_DOMAIN")
++                     exact up nv hmem sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi
++                   · first | assumption | (trace_state; fail "R2_QUESTION_ANCESTOR_NO_CHAIN"))⟩)
+            -- Item 209: and the slot's own stack top, the caller's measurement.
+            (Or.inl ⟨h_top_in, park_col_of_indicator hcol_land h_ind h_lit,
+              fun sp_v h_sbi =>

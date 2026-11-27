@@ -87,5 +87,62 @@
     "45961304424",
     "45961669654"
   ],
-  "development_failures": "Two probe compilation errors retained; syntax layout and Option.flatten API, corrected before native controls. Not mathematical refutations."
+  "development_failures": "Two probe compilation errors retained; syntax layout and Option.flatten API, corrected before native controls. Not mathematical refutations.",
+  "upstream_exact_source_replay": {
+    "source_commit": "9f1f7bc60cf54741c1bf5d0c0618ee680268ed15",
+    "source_tree": "0c7dced413db0510b0a0a144ca2ca74111cf6a77",
+    "runtime_and_event_sources_identical_to_prior_pin": true,
+    "markedCols_definition_identical": true,
+    "build": {
+      "exit": 0,
+      "jobs": 205,
+      "targets": [
+        "L4YAML.Proofs.Scanner.RegisterWitness",
+        "L4YAML.Output.Events",
+        "L4YAML.Output.EventsIx"
+      ]
+    },
+    "same_fourteen_case_probe_exit": 0,
+    "fourteen_case_trace_byte_identical": true,
+    "corrected_five_case_trace_exit": 0,
+    "five_slot_controls_passed": true,
+    "list_indexed_event_parity_five_cases": true,
+    "correction": "markedColsOf s.pendingKeys s.indentColumns -> markedCols s",
+    "source_restored_clean": true
+  },
+  "reconciled_concurrent_experiments": [
+    {
+      "run": 45968133262,
+      "harness": "1150a09ebda69e1e983522a57d751a4ebb8018ca",
+      "artifact": 15184027707,
+      "artifact_sha256": "9a7d9b1bd927ce8314110dc5196ef65b33058d6012752d7e6768a74b29d18fcb",
+      "verified_crc_entries": 13,
+      "reconstructed_candidate_sha256": "d89a05d0ded19e6d641c139cadeb403c16ae94c245489464eb0af6b5e2b0cc12",
+      "stream_build_exit": 0,
+      "stream_build_jobs": 239,
+      "witness_build_exit": 0,
+      "witness_exit": 0,
+      "critical_positions_reported": 7,
+      "capstone_summary_pack_declines": {
+        "on": 0,
+        "off": 0
+      },
+      "warning": "No paired same-instrument baseline or candidate axiom audit in this artifact. Do not promote the zero decline counts as payments."
+    },
+    {
+      "run": 45968167777,
+      "harness": "52c402c7a4fd6ce8219cdb7b511fc68eba2c5d92",
+      "artifact": 15183528391,
+      "artifact_sha256": "673ac67afb968dff102923523256f0e36dd7d2c370e0234d17af912e32bdddba",
+      "verified_crc_entries": 14,
+      "reconstructed_candidate_sha256": "17593dabefa0f5c68247393e738cc62f8ee35d495b70fa9314df05351ce5709c",
+      "actual_producer_build_exit": 1,
+      "diagnostics": [
+        "R2_QUESTION_ANCESTOR_DOMAIN",
+        "R2_QUESTION_ANCESTOR_NO_CHAIN"
+      ],
+      "original_trace_exit": 1,
+      "trace_cause": "Unknown identifier markedColsOf; locally corrected exact-source replay recorded separately."
+    }
+  ]
 }
