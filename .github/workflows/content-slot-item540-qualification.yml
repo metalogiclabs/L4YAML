@@ -1,0 +1,243 @@
+name: Qualify exact PR 384 plus item 540
+on:
+  push:
+    branches: [test/content-slot-item540-qualification]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      LEAN_NUM_THREADS: 2
+      PR: '384'
+      OWNER: 2540115c885d3badf65237cc45f1737a596f7ec9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: d221fb2d8893984ca4f894964364ebeff2368768
+          path: source
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind reviewed source and exact current owner
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ../results
+          test "$(git rev-parse HEAD)" = d221fb2d8893984ca4f894964364ebeff2368768
+          test "$(git rev-parse HEAD^{tree})" = 6093b8776e32bb306deeeb422f7d1b0594f59c5f
+          echo 'OLD=d221fb2d8893984ca4f894964364ebeff2368768' >> "$GITHUB_ENV"
+          git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$OWNER"
+          test "$(git merge-base HEAD "$OWNER")" = 6dc5601039d63dd02f3dfa0d16478b2c849fecd3
+          git config user.name 'Heath Sanchez'
+          git config user.email 'heathsanchez@gmail.com'
+          git rev-parse HEAD HEAD^{tree} > ../results/reviewed-source.txt
+          git rev-parse "$OWNER" "$OWNER^{tree}" > ../results/owner.txt
+          git diff "$OWNER^" "$OWNER" > ../results/owner-root-payment.patch
+          cp Tests/Guards/Proofs/DeadDeclarationRoster.lean ../results/initial-roster.lean
+          cp ../evidence/Research/IntegrationRefresh/AxiomAudit.lean ../results/AxiomAudit.lean
+          cp ../evidence/Research/IntegrationRefresh/RootAudit.lean ../results/RootAudit.lean
+          git rev-parse --verify HEAD:lean-toolchain > ../results/compiler-pin.txt
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          git -C ../evidence rev-parse HEAD > ../results/harness.txt
+      - name: Bind both previously verified receipts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15166013044/zip > results/prior-qualified.zip
+          echo 'b5e18079a5f2bec7b67e610ddf5974f300d7ff289bfc8669a62f71617f96bce7  results/prior-qualified.zip' | sha256sum -c -
+          unzip -t results/prior-qualified.zip > results/prior-qualified-crc.txt
+          unzip -q results/prior-qualified.zip -d results/prior
+          test "$(sed -n '2p' results/prior/qualified-source.txt)" = 6093b8776e32bb306deeeb422f7d1b0594f59c5f
+          cmp results/prior/axioms-before.log results/prior/axioms-after.log
+          cmp results/prior/root-axioms-before.log results/prior/root-axioms-after.log
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15170438784/zip > results/prior-reconciliation.zip
+          echo '78c7efbf61d656947258a3700f4389a9daa025811f5c6697ee61a497f5c3c91d  results/prior-reconciliation.zip' | sha256sum -c -
+          unzip -t results/prior-reconciliation.zip > results/prior-reconciliation-crc.txt
+          unzip -q results/prior-reconciliation.zip -d results/reconciliation
+          test "$(cat results/reconciliation/stream-build.exit)" = 0
+          test "$(cat results/reconciliation/merged-stream.blob)" = 4c92640bb6689052749ef00a9eac52edd5cd1fb5
+      - uses: actions/cache/restore@v4
+        with:
+          path: source/.lake
+          key: pr-refresh-item540-384-${{ github.run_id }}
+          restore-keys: |
+            pr-refresh-436-384-45920641632
+            pr-refresh-436-384-
+      - name: Preserve both proofs, resolve only the eleven known census conflicts
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cp ../results/prior/axioms-after.log ../results/axioms-before.log
+          cp ../results/prior/root-axioms-after.log ../results/root-axioms-before.log
+          status=0
+          git merge --no-ff --no-commit "$OWNER" > ../results/merge.log 2>&1 || status=$?
+          test "$status" = 1
+          git diff --name-only --diff-filter=U > ../results/conflicted-paths.txt
+          cmp ../results/reconciliation/conflict-paths.txt ../results/conflicted-paths.txt
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 4c92640bb6689052749ef00a9eac52edd5cd1fb5
+          mkdir -p ../results/conflict-stages
+          while IFS= read -r path; do
+            case "$path" in
+              Tests/Guards/Proofs/CapstonePathAudit.lean|Tests/Guards/Proofs/CloseStackCover.lean|Tests/Guards/Proofs/HypothesisReaderCensus.lean|Tests/Guards/Proofs/OrTrueAudit.lean|Tests/Guards/Proofs/PaidLeafDelta.lean|Tests/Guards/Proofs/PremiseNecessityCensus.lean|Tests/Guards/Proofs/PuntCoverInputs.lean|Tests/Guards/Proofs/RelaySupplyCensus.lean|Tests/Guards/Proofs/RouteShapes.lean|Tests/Guards/Proofs/ValueLineOrigins.lean|Tests/Guards/Proofs/ValueLinePacks.lean) ;;
+              *) echo "Unexpected conflict: $path"; exit 1 ;;
+            esac
+            name=$(basename "$path")
+            for stage in 1 2 3; do git show ":$stage:$path" > "../results/conflict-stages/$name.$stage"; done
+            cp "$path" "../results/conflict-stages/$name.markers"
+            # Keep PR's deliberate deleted-helper roster changes in overlap,
+            # but preserve upstream's clean nonoverlapping changes.
+            git merge-file --ours -p "../results/conflict-stages/$name.2" "../results/conflict-stages/$name.1" "../results/conflict-stages/$name.3" > "$path"
+            git add -- "$path"
+          done < ../results/conflicted-paths.txt
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git diff --cached --name-only > ../results/merged-paths.txt
+          while IFS= read -r path; do
+            case "$path" in
+              DOCS.md|Scripts/Main/PackCensus.lean|Tests/AdversarialInstantiation.lean|L4YAML/Proofs/Production/StreamAccum.lean|Tests/Guards/Proofs/*.lean) ;;
+              *) echo "Unexpected integration edit: $path"; exit 1 ;;
+            esac
+          done < ../results/merged-paths.txt
+          git diff --cached --binary > ../results/merged-before-measurement.patch
+          git commit -m 'proof(integration): preserve qualified content-slot correction and item 540'
+          echo "INITIAL_SOURCE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          git diff --exit-code "$OWNER" -- DOCS.md Scripts/Main/PackCensus.lean lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules
+          git diff --binary "$OWNER" HEAD -- Tests/Guards/Proofs > ../results/guards-v-owner-before.patch
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > ../results/CorrectedRepin.lean
+          cat ../evidence/Research/IntegrationRefresh/RootRefreshRepinDriver.lean >> ../results/CorrectedRepin.lean
+          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath > ../results/integrated-proof-build.log 2>&1 || { tail -80 ../results/integrated-proof-build.log; exit 1; }
+          lake env lean ../results/AxiomAudit.lean > ../results/axioms-after.log 2>&1 || { cat ../results/axioms-after.log; exit 1; }
+          lake env lean ../results/RootAudit.lean > ../results/root-axioms-after.log 2>&1 || { cat ../results/root-axioms-after.log; exit 1; }
+          diff -u ../results/axioms-before.log ../results/axioms-after.log > ../results/axioms.diff
+          diff -u ../results/root-axioms-before.log ../results/root-axioms-after.log > ../results/root-axioms.diff
+      - name: Build and remeasure only compiler-reported snapshots
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee ../results/lean-version.txt
+          lake build scripts-repin scripts-dead-census > ../results/instruments-build.log 2>&1
+          passed=false
+          for round in $(seq 1 12); do
+            echo "BUILD_ROUND $round"
+            if lake build > "../results/build-$round.log" 2>&1; then passed=true; break; fi
+            tail -100 "../results/build-$round.log"
+            lean --run ../results/CorrectedRepin.lean "../results/build-$round.log" . > "../results/repin-$round.log" 2>&1
+            cat "../results/repin-$round.log"
+            grep -Eq '^MEASURED_REPIN_EDITS [1-9][0-9]*$' "../results/repin-$round.log"
+          done
+          test "$passed" = true
+          lake build tests demo limittests > ../results/extra-build.log 2>&1
+          lake run dead-census -- --write > ../results/census-write.log 2>&1
+          lake build > ../results/final-build.log 2>&1
+          lake run dead-census -- --check > ../results/census-check.log 2>&1
+          cmp ../results/initial-roster.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          git diff --check
+          git diff --binary > ../results/measured-snapshots.patch
+          git diff --exit-code -- . ':(exclude)Tests/Guards/Proofs/*.lean'
+          lake run capstone-path > ../results/capstone-path.log 2>&1
+          grep -E '^CAPSTONE-PATH .* on=7 ' ../results/capstone-path.log
+      - name: Run native suites and all repository gates
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs/reports
+          lake exe adversarialinstantiation > ../results/adversarial.log 2>&1
+          lake run run-all-tests -- docs/reports > ../results/native-suites.log 2>&1
+          lake exe eventscore --suite yaml-test-suite > ../results/eventscore.log 2>&1
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" > "../results/$gate.log" 2>&1
+          done
+          lake run census-dashboard -- --check --md ../results/dashboard.md > ../results/dashboard-check.log 2>&1
+          lake run census-dashboard -- --diff "$OWNER" > ../results/dashboard-diff.log 2>&1
+          lake run census-dashboard -- --diff "$OLD" > ../results/dashboard-root-delta.log 2>&1
+          lake exe collect-stats > ../results/collect-stats.log 2>&1
+          lake run check-hygiene -- docs/reports/stats.json > ../results/hygiene.log 2>&1
+          cp docs/reports/stats.json ../results/stats.json
+      - name: Build and test language bindings
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev python3-venv
+          python3 -m venv "$RUNNER_TEMP/bindings-venv"
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pip install --quiet pytest
+          export PYTHONNOUSERSITE=1
+          mkdir -p "$RUNNER_TEMP/bindings-venv/empty"
+          export PYTHONPATH="$RUNNER_TEMP/bindings-venv/empty"
+          export L4YAML_LIB="$PWD/ffi/out/libl4yaml.so"
+          export LD_LIBRARY_PATH="$PWD/ffi/out:$(lean --print-prefix)/lib/lean:${LD_LIBRARY_PATH:-}"
+          cmake -B ffi/out -S ffi > ../results/cmake-config.log 2>&1
+          cmake --build ffi/out --parallel 2 > ../results/cmake-build.log 2>&1
+          test -f ffi/out/libl4yaml.so && test -x ffi/out/tryparse_c
+          cargo build --manifest-path rust/l4yaml/Cargo.toml --release --example tryparse --jobs 2 > ../results/rust-build.log 2>&1
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 > ../results/rust-tests.log 2>&1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pytest Tests/test_python_ffi.py -q > ../results/python-ffi.log 2>&1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pytest python/tests/ -q > ../results/python-package.log 2>&1
+          export PATH="$RUNNER_TEMP/bindings-venv/bin:$PATH"
+          lake run cross-lang-compare -- docs/reports > ../results/cross-language.log 2>&1
+      - name: Freeze verified source and preserve exact candidate bundle
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code -- . ':(exclude)Tests/Guards/Proofs/*.lean'
+          git diff --check
+          git add Tests/Guards/Proofs
+          if ! git diff --cached --quiet; then git commit -m "test(guards): measure PR $PR on exact current owner"; fi
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git merge-base --is-ancestor "$OLD" HEAD
+          git merge-base --is-ancestor "$OWNER" HEAD
+          git rev-parse HEAD HEAD^{tree} > ../results/qualified-source.txt
+          git diff --binary "$INITIAL_SOURCE" HEAD > ../results/final-snapshot.patch
+          git bundle create ../results/qualified.bundle HEAD ^"$OLD" ^"$OWNER"
+          git bundle verify ../results/qualified.bundle > ../results/bundle-verify.log 2>&1
+          sha256sum ../results/qualified.bundle ../results/final-snapshot.patch > ../results/qualified.sha256
+          printf 'NATIVE_QUALIFIED PR=%s SOURCE=%s TREE=%s\n' "$PR" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})"
+      - name: Emit exact qualified patch and verification summaries for publication
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --binary "$OLD" HEAD > ../results/publication.patch
+          git diff --name-only "$OLD" HEAD > ../results/publication-paths.txt
+          git ls-tree -r HEAD > ../results/qualified-tree.txt
+          sha256sum ../results/publication.patch
+          echo PUBLICATION_PATCH_BEGIN
+          cat ../results/publication.patch
+          echo PUBLICATION_PATCH_END
+          echo QUALIFIED_TREE_BEGIN
+          cat ../results/qualified-source.txt
+          echo QUALIFIED_TREE_END
+          for name in native-suites.log hygiene.log eventscore.log final-build.log dashboard-diff.log dashboard-root-delta.log python-ffi.log python-package.log rust-tests.log cross-language.log; do
+            echo "QUALIFICATION_SUMMARY_BEGIN $name"
+            if test "$name" = final-build.log; then tail -5 "../results/$name"; else cat "../results/$name"; fi
+            echo "QUALIFICATION_SUMMARY_END $name"
+          done
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: source/.lake
+          key: pr-refresh-item540-384-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-384-item540-qualified-evidence
+          path: results/
+          if-no-files-found: error
