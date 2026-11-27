@@ -1,0 +1,103 @@
+name: Item 541 compact question provenance
+on:
+  push:
+    branches: [test/item541-compact-question-provenance]
+    paths: [.github/workflows/item541-compact-question-provenance.yml]
+permissions:
+  contents: read
+jobs:
+  compact-question:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          path: source
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind exact item 541 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd source
+          test "$(git rev-parse HEAD)" = 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          test "$(git rev-parse HEAD^{tree})" = 0c7dced413db0510b0a0a144ca2ca74111cf6a77
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test "$(git hash-object Tests/AdversarialInstantiation.lean)" = 0b88efceaddb9f3b6e06433f86aa1685d6aa3ac5
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: item541-compact-question-lean4360-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Price original question-entry provenance at actual writer
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          p=pathlib.Path('L4YAML/Proofs/Production/StreamAccum.lean')
+          out=pathlib.Path('../results')
+          spec=json.loads(r'''{"old":"           -- Item 190: the compact `?` has the literal but no outer frame's\n           -- line reaches it — this park stands inside a COMPACT key, whose\n           -- landing has yet to reach the branch that would spend one.\n           (match hc with\n            | Or.inl h => Or.inr (Or.inl (dispatchBlock_colon_notQuestion (h ▸ h_dispatch)))\n            -- Item 405: the compact `?`'s chain has no domain here — DECLINED (ruling (a)).\n            | Or.inr _ => Or.inr (Or.inr trivial)),","new":"           -- Research: retain the actual compact question's entry-associated chain.\n           -- Same caller-owned content continuation as h_expl105.\n           (match hc with\n            | Or.inl h => Or.inr (Or.inl (dispatchBlock_colon_notQuestion (h ▸ h_dispatch)))\n            | Or.inr h => match h_chainUp with\n              | Or.inl up => Or.inl ⟨sp_ind, RegisterWitness.markedCols sc, h_qlit h,\n                  (by\n                    have hk : ((s_prep.col : Nat) : Int).toNat = n + 1 + m := by\n                      have h1 := hcorr_prep.col_eq\n                      have h2 := SIndent_col h_ind\n                      rw [Int.toNat_natCast]; omega\n                    rw [← hk]\n                    exact h_mcstep _ (RegisterWitness.MarkedColsIn.self sc)),\n                  fun nv hmem sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi =>\n                    up nv hmem sp_v\n                      (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind\n                        (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v h_entry\n                          (SCompactMapTail.nil (n + 1 + m) sp_v)))\n                      sp_i sp_c h_iv h_clit sp_w h_sbi⟩\n              | Or.inr _ => Or.inr (Or.inr trivial)),"}''')
+          s=p.read_text()
+          assert s.count(spec['old'])==1
+          start=s.index('lemma compact_open_map ')
+          end=s.index('lemma indicator_open_map ',start)
+          assert start<s.index(spec['old'])<end
+          p.write_text(s.replace(spec['old'],spec['new'],1))
+          out.joinpath('candidate.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
+          out.joinpath('scope.txt').write_text('existing_h_explUp_writer_only\nreal_explicit_question_literal_and_entry\nno_new_fallback\nabsence_branch_unchanged\ncritical_retirement_NOT_CLAIMED\n')
+          PY
+          git diff --check
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/candidate.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/stream-build.log 2>&1 || status=$?
+          echo "$status" > ../results/stream-build.exit
+          grep -E 'error:|Build completed' ../results/stream-build.log | tail -50 || true
+          if test "$status" = 0; then
+            status=0
+            lake run capstone-path > ../results/capstone-path.log 2>&1 || status=$?
+            echo "$status" > ../results/capstone-path.exit
+            status=0
+            lake build Tests.AdversarialInstantiation > ../results/witness-build.log 2>&1 || status=$?
+            echo "$status" > ../results/witness-build.exit
+            if test "$status" = 0; then
+              cat > /tmp/Item541Witness.lean <<'LEAN'
+          import Tests.AdversarialInstantiation
+          open Tests.AdversarialInstantiation
+          #eval P144Test.valueSlots "? ? a\n  : - b\n: c"
+          #eval P144Test.valueSlots "?\n  ? a\n  : - b\n: c"
+          #eval P144Test.valueSlots "? ? ? a\n    : - b\n  : c\n: d"
+          #eval P144Test.valueSlots "? a\n: - b"
+          #guard P144Test.valueSlots "? ? a\n  : - b\n: c" == [(true, 2, [0]), (true, 0, [])]
+          #guard P144Test.valueSlots "?\n  ? a\n  : - b\n: c" == [(true, 2, [0]), (true, 0, [])]
+          #guard P144Test.valueSlots "? ? ? a\n    : - b\n  : c\n: d" == [(true, 4, [0, 2]), (true, 2, [0]), (true, 0, [])]
+          #guard P144Test.valueSlots "? a\n: - b" == [(true, 0, [])]
+          LEAN
+              cp /tmp/Item541Witness.lean ../results/
+              status=0
+              lake env lean /tmp/Item541Witness.lean > ../results/witness.log 2>&1 || status=$?
+              echo "$status" > ../results/witness.exit
+            fi
+          fi
+          git restore -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: item541-compact-question-provenance
+          path: results/
+          if-no-files-found: error
