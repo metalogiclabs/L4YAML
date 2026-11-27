@@ -1,0 +1,35 @@
+{
+  "run": 45917182353,
+  "harness": "77fc7df0d52b613b08bed00aff5ce4ca795327d2",
+  "source": "9870bcb398aeb8e639056b6405346ec8764a9572",
+  "tree": "59b1d49586550bf4171dcff04fc22d7abc7da1c5",
+  "state": "WARRANTED exact-source API generation; reusable resource configuration for this source and runner boundary",
+  "boundary": "API-only build with one Lean worker and 8 GiB temporary swap; native suites not repeated. Historical full run 45904386866 remains failed.",
+  "failed_artifact_verified": {
+    "artifact": 15159264065,
+    "sha256": "a19b6a385db36876ad3c9ea158853c84cdd6b1cb43bc431bcc07f367ba357f48",
+    "crc_members": 74
+  },
+  "conclusion": "success",
+  "artifact": {
+    "id": 15165331175,
+    "sha256": "a9100970993d114691dfae1c8fe7dc59d4c9baca4ff0bdf54c1df00f8772cf95",
+    "crc_members": 13,
+    "bytes": 235138
+  },
+  "jobs": 4066,
+  "html_pages": 3507,
+  "elapsed": "54:32.36",
+  "source_and_dependency_pins_unchanged": true,
+  "PR_description_updated_and_read_back": true,
+  "artifact_git_blob": "9d67e95ce5450dc2b1fde3fb93d292c130f7222d",
+  "artifact_path": "Research/IntegrationRefresh/tag-api-memory-evidence.zip",
+  "body_readback_head": "9870bcb398aeb8e639056b6405346ec8764a9572",
+  "source_replayed_native_suites": false,
+  "provenance": "Artifact byte digest and all 13 CRCs independently checked after connector download; source and complete tree identities read from artifact and GitHub; historical full fork run remains failed.",
+  "limits": [
+    "API-only follow-up, not a new whole-workflow success on the production PR ref",
+    "No unique causal attribution between fewer workers and added swap",
+    "No current-owner integration claim beyond the exact published TAG tree"
+  ]
+}
