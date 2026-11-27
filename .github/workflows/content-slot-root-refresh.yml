@@ -119,9 +119,9 @@ jobs:
             grep -Fx 'MEASURED_REPIN_EDITS 0' "../results/route-idempotence-$(basename "$log")"
           done
           rm -f .lake/build/lib/lean/L4YAML/Proofs/Production/StreamAccum.olean
-          lake build L4YAML.Proofs.Production.DocumentProduction > ../results/integrated-proof-build.log 2>&1
-          lake env lean ../results/AxiomAudit.lean > ../results/axioms-after.log 2>&1
-          lake env lean ../results/RootAudit.lean > ../results/root-axioms-after.log 2>&1
+          lake build L4YAML.Proofs.Production.DocumentProduction Scripts.Path.CapstonePath > ../results/integrated-proof-build.log 2>&1 || { tail -80 ../results/integrated-proof-build.log; exit 1; }
+          lake env lean ../results/AxiomAudit.lean > ../results/axioms-after.log 2>&1 || { cat ../results/axioms-after.log; exit 1; }
+          lake env lean ../results/RootAudit.lean > ../results/root-axioms-after.log 2>&1 || { cat ../results/root-axioms-after.log; exit 1; }
           diff -u ../results/axioms-before.log ../results/axioms-after.log > ../results/axioms.diff
           diff -u ../results/root-axioms-before.log ../results/root-axioms-after.log > ../results/root-axioms.diff
       - name: Build and remeasure only compiler-reported snapshots
