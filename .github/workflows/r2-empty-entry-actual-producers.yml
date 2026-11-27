@@ -1,0 +1,159 @@
+name: Price root and actual empty-entry R2 continuations
+on:
+  push:
+    branches: [test/r2-empty-entry-actual-producers]
+    paths: [.github/workflows/r2-empty-entry-actual-producers.yml]
+permissions:
+  contents: read
+jobs:
+  producer-price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 12f27421d70b7e5039fc01ed946a19141156773e
+          path: source
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind exact previously checked transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cp harness/Research/RootComposition/explicit-value-pair-transport.json results/spec.json
+          cd source
+          test "$(git rev-parse HEAD)" = 12f27421d70b7e5039fc01ed946a19141156773e
+          test "$(git rev-parse HEAD^{tree})" = c5b769ae96bdb8015a2148f9f274826126c0f114
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 7f731ef53f93aebc969b9790ad03bc14b7cd029e
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-empty-entry-12f27421-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Price actual empty-entry continuation at both mandatory callers
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, hashlib, re
+          out=pathlib.Path('../results')
+          spec=json.loads((out/'spec.json').read_text())
+          p=pathlib.Path(spec['path'])
+          s=p.read_text()
+          for e in spec['edits']:
+              assert s.count(e['old'])==1,e['label']
+              s=s.replace(e['old'],e['new'],1)
+          assert hashlib.sha256(s.encode()).hexdigest()=='ae87361a3b4f5497db154f2f41eb7919090d3e936612c0ee73bf613df435b51c'
+          lines=s.splitlines(keepends=True)
+          assert lines[27094].strip().startswith('PendingNode.pendingBlock (h_seqTop :=')
+          assert lines[28538].strip()=='colon_open_map_explicit'
+          assert lines[30667].strip()=='colon_open_map_explicit'
+          root="""(h_pairSeq := by
+                           have h_out : RegisterWitness.MarkedColsIn s' [] :=
+                             RegisterWitness.dispatchBlockIndicators_markedCols_of_ne h_dispatch (by decide)
+                               ((RegisterWitness.preprocess_markedCols h_preprocess
+                                 (RegisterWitness.MarkedColsIn.of_explicitKeyLine_none h_sound
+                                   (by simpa [ScannerState.inFlow] using h_scflow) (h_noek h_scflow))).transport
+                                 (by split <;> rfl) (by split <;> rfl))
+                               (by split <;> exact (PendingKeySound.preprocess_sound h_preprocess h_sound h_mono).slots)
+                           exact Or.inl ⟨k, fun a hm _ => absurd (h_out.mem hm) List.not_mem_nil⟩) """
+          lines[27094]=lines[27094].replace('PendingNode.pendingBlock ','PendingNode.pendingBlock '+root,1)
+          def demand(carrier,entry,label):
+              return """ (h_pairValue := by
+                        apply Or.inl
+                        intro a hm hn m hb
+                        have hp : s_prep.peek? = some ':' := preprocess_some_peek h_preprocess
+                        have hpeek_disp : (if s_prep.allowDirectives then
+                            { s_prep with allowDirectives := false, documentEverStarted := true }
+                          else s_prep).peek? = some ':' := by
+                          split <;> exact hp
+                        obtain ⟨sp_colon, hl, hcorr_colon⟩ :=
+                          dispatchBlockValue_full_prod _ sp_sc
+                            (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+                        have heq := ScannerSurfCorr_unique hcorr_colon hcorr_result
+                        rw [heq] at hl
+                        rcases """+carrier+""" with ⟨own, pair⟩ | _
+                        · by_cases he : own = k
+                          · subst own
+                            exact pair a (h_markBack a hm (by simp)) hn """+entry+""" sp_sc sp_scan' h_ind hl m hb
+                          · trace_state
+                            first | assumption | fail "R2_"""+label+"""_OWNER_MISMATCH"
+                        · trace_state
+                          first | assumption | fail "R2_"""+label+"""_UNAVAILABLE")"""
+          lines[28538]=lines[28538].rstrip('\n')+demand('h_pairSeed','sp_mid (SBlockIndented.empty k .blockOut sp_gram sp_mid h_ssl)','SEED')+'\n'
+          lines[30667]=lines[30667].rstrip('\n')+demand('h_pairSeq_old','sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl) sp_mid (SCompactSeqTail.nil n sp_mid)','SEQ')+'\n'
+          s=''.join(lines)
+          # Carry the actual sequence field through its real caller. Match the
+          # already-verified pattern in the content consumer to derive the arity.
+          a=s.index('lemma accum_block_on_pendingBlock\n')
+          b=s.index("\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream",a)
+          assert s[b-3:b]==') :',repr(s[b-120:b])
+          s=s[:b-2]+"\n    (h_pairSeq_old : R2PairSeq sc sp_start sp_scan n ∨ True) :"+s[b:]
+          a=s.index('lemma accum_block_pending (sc : ScannerState)')
+          ref_start=s.index('lemma accum_content_pending (sc : ScannerState)')
+          decl_start=a+len('lemma accum_block_pending (sc : ScannerState)')
+          next_decl=re.search(r'(?m)^(?:(?:private|protected|noncomputable) +)*(?:lemma|theorem|def) +[\w.]+',s[decl_start:ref_start])
+          b=decl_start+next_decl.start() if next_decl else ref_start
+          part=s[a:b]
+          pattern=r'(?m)^  \| pendingBlock[ \t]+([^\n]+?)[ \t]*=>'
+          actual=list(re.finditer(pattern,part))
+          reference=[m for m in re.finditer(pattern,s[ref_start:]) if m.group(1).split()[-1]=='h_pairSeq']
+          assert len(actual)==1 and len(reference)==1,(len(actual),len(reference))
+          old=actual[0].group(1).split()
+          ref=reference[0].group(1).split()
+          assert all(re.fullmatch(r"[\w']+",t) for t in old+ref),(old,ref)
+          missing=len(ref)-len(old)
+          assert missing in (1,2),(old,ref)
+          assert ref[-2:]==['_','h_pairSeq'],ref
+          out.joinpath('pattern-roster.json').write_text(json.dumps({'old':old,'reference':ref,'missing':missing},indent=2)+'\n')
+          m=actual[0]
+          new=m.group(1)+' '+(' _ ' if missing==2 else '')+'h_pairSeqBlock'
+          part=part[:m.start(1)]+new+part[m.end(1):]
+          needle='exact accum_block_on_pendingBlock '
+          assert part.count(needle)==1,part.count(needle)
+          part=part.replace(needle,'exact accum_block_on_pendingBlock (h_pairSeq_old := h_pairSeqBlock) ',1)
+          s=s[:a]+part+s[b:]
+          p.write_text(s)
+          out.joinpath('candidate.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
+          out.joinpath('scope.txt').write_text('root_domain=actual_markedCols_empty_from_item540\nmandatory_pair_sites=two\nno_new_optional_fallback=true\ncritical_retirement=NOT_CLAIMED\n')
+          PY
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/actual-producer.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/actual-producer.log 2>&1 || status=$?
+          echo "$status" > ../results/actual-producer.exit
+          grep -E 'error:|R2_SEED_|R2_SEQ_|Build completed' ../results/actual-producer.log | tail -100 || true
+          if test "$status" = 0; then
+            status=0
+            lake build L4YAML > ../results/combined-build.log 2>&1 || status=$?
+            echo "$status" > ../results/combined-build.exit
+            if test "$status" = 0; then
+              lake run capstone-path > ../results/candidate-capstone.log 2>&1
+              lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms.log 2>&1
+            fi
+          fi
+          git restore -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 7f731ef53f93aebc969b9790ad03bc14b7cd029e
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-empty-entry-producer-price
+          path: results/
+          if-no-files-found: error
