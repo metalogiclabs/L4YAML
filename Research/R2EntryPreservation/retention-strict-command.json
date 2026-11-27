@@ -1,0 +1,14 @@
+{
+  "command": [
+    "lake",
+    "env",
+    "lean",
+    "-j",
+    "1",
+    "/workspace/scratch/ea3cc0c1f611/retention-strict.lean"
+  ],
+  "threads": 1,
+  "source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa",
+  "seconds": 149.12,
+  "exit": 1
+}

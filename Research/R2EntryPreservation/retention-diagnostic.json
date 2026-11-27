@@ -1,0 +1,133 @@
+{
+  "epistemic_state": "UNKNOWN_GLOBAL_PRESERVATION",
+  "base_commit": "9f1f7bc60cf54741c1bf5d0c0618ee680268ed15",
+  "prior_retention_source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60",
+  "strict_source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa",
+  "sequential_patches_reconstruct_exact_source": true,
+  "exit": 1,
+  "diagnostic_error_sites": 22,
+  "additional_type_error_sites": 0,
+  "explicit_proof_demands": [
+    {
+      "line": 20263,
+      "column": 617,
+      "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+    },
+    {
+      "line": 20496,
+      "column": 616,
+      "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+    },
+    {
+      "line": 29788,
+      "column": 65,
+      "label": "R2_OTHER_BLOCK_CONTENT_PAIR"
+    },
+    {
+      "line": 30594,
+      "column": 63,
+      "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+    },
+    {
+      "line": 31168,
+      "column": 86,
+      "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+    },
+    {
+      "line": 31200,
+      "column": 84,
+      "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+    },
+    {
+      "line": 31262,
+      "column": 77,
+      "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+    },
+    {
+      "line": 31355,
+      "column": 37,
+      "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+    },
+    {
+      "line": 38367,
+      "column": 58,
+      "label": "R2_KEY_FLOW_SURVIVING_OWNER"
+    },
+    {
+      "line": 38368,
+      "column": 56,
+      "label": "R2_KEY_FLOW_NO_CHAIN"
+    },
+    {
+      "line": 38369,
+      "column": 54,
+      "label": "R2_KEY_FLOW_NO_QUESTION"
+    },
+    {
+      "line": 38583,
+      "column": 58,
+      "label": "R2_KEY_SCALAR_SURVIVING_OWNER"
+    },
+    {
+      "line": 38584,
+      "column": 56,
+      "label": "R2_KEY_SCALAR_NO_CHAIN"
+    },
+    {
+      "line": 38585,
+      "column": 54,
+      "label": "R2_KEY_SCALAR_NO_QUESTION"
+    },
+    {
+      "line": 38714,
+      "column": 58,
+      "label": "R2_KEY_MULTILINE_SURVIVING_OWNER"
+    },
+    {
+      "line": 38715,
+      "column": 56,
+      "label": "R2_KEY_MULTILINE_NO_CHAIN"
+    },
+    {
+      "line": 38716,
+      "column": 54,
+      "label": "R2_KEY_MULTILINE_NO_QUESTION"
+    },
+    {
+      "line": 40305,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+    },
+    {
+      "line": 40390,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+    },
+    {
+      "line": 40676,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+    },
+    {
+      "line": 40804,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+    },
+    {
+      "line": 40924,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+    }
+  ],
+  "not_impossibility_proof": true,
+  "colon_helper_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound",
+    "L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_2",
+    "L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_3"
+  ],
+  "colon_helper_profile_contains_sorryAx": false,
+  "surrounding_callers_not_accepted_due_to_remaining_demands": true,
+  "log_sha256": "0ef41f6a9f7a4fdf6329b16d6aa504f2c736c18884b1f1faddb57feffff415ca"
+}

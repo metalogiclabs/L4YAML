@@ -1,0 +1,132 @@
+ℹ [115/229] Replayed L4YAML.Proofs.Serialization.SerializationWellFormed
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:463:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_correct' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:464:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:465:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:467:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:468:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:470:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.alias_membership_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:471:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.tag_membership_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:473:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_set_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:474:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_set_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:476:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_envEquivalent' depends on axioms: [propext, Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:477:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.wellFormedFrom_envEquivalent' depends on axioms: [propext,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:479:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:480:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_declared_anchor_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:482:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_runtime' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:483:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_runtime' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+⚠ [246/472] Replayed L4YAML.Proofs.Production.StreamAccum
+warning: L4YAML/Proofs/Production/StreamAccum.lean:19649:5: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+ℹ [248/472] Replayed L4YAML.Proofs.Serialization.SourceEvents
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:389:0: 'L4YAML.Proofs.Serialization.SourceEvents.spanWhile_all' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:390:0: 'L4YAML.Proofs.Serialization.SourceEvents.alias_use_source_exact' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:391:0: 'L4YAML.Proofs.Serialization.SourceEvents.named_tag_use_source_exact' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:392:0: 'L4YAML.Proofs.Serialization.SourceEvents.source_alias_allowed_iff_scanner_guard' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:393:0: 'L4YAML.Proofs.Serialization.SourceEvents.source_named_tag_allowed_iff_parser_guard' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:395:0: 'L4YAML.Proofs.Serialization.SourceEvents.anchor_definition_surface' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:396:0: 'L4YAML.Proofs.Serialization.SourceEvents.alias_use_surface' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:397:0: 'L4YAML.Proofs.Serialization.SourceEvents.named_tag_use_surface' depends on axioms: [propext]
+ℹ [250/472] Replayed L4YAML.Proofs.Serialization.CommitTrace
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:96:0: 'L4YAML.Proofs.Serialization.CommitTrace.current_l4yaml_enclosing_anchor_self_reference_rejected' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:97:0: 'L4YAML.Proofs.Serialization.CommitTrace.later_sibling_alias_allowed' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:98:0: 'L4YAML.Proofs.Serialization.CommitTrace.current_l4yaml_node_boundary_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:99:0: 'L4YAML.Proofs.Serialization.CommitTrace.anchored_then_rest_events' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:101:0: 'L4YAML.Proofs.Serialization.CommitTrace.yaml_enclosing_anchor_self_reference_allowed' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:102:0: 'L4YAML.Proofs.Serialization.CommitTrace.yaml_current_l4yaml_anchor_separator' depends on axioms: [propext]
+ℹ [252/472] Replayed L4YAML.Proofs.Serialization.SurfaceEvents
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:118:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.alias_surface_has_event' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:119:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.anchor_surface_has_pending' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:120:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.commit_pending_matches_commitNode' does not depend on any axioms
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:121:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.current_l4yaml_pending_anchor_does_not_authorize_inner_alias' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:123:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.yaml_anchor_authorizes_inner_alias' depends on axioms: [propext]
+ℹ [254/472] Replayed L4YAML.Proofs.Serialization.EventsOf
+info: L4YAML/Proofs/Serialization/EventsOf.lean:222:0: 'L4YAML.Proofs.Serialization.EventsOf.eventsOfSegs_append' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/EventsOf.lean:223:0: 'L4YAML.Proofs.Serialization.EventsOf.skeleton_text' depends on axioms: [propext, Classical.choice, Quot.sound]
+⚠ [466/472] Built Tests.AdversarialInstantiation (78s)
+warning: Tests/AdversarialInstantiation.lean:5890:14: Variable name `sp_e` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _sp_e
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Tests/AdversarialInstantiation.lean:5883:0: Definition `birthOne` is a proposition; use `theorem` instead of `def`
+
+Note: This linter can be disabled with `set_option linter.defProp false`
+warning: Tests/AdversarialInstantiation.lean:5938:5: Variable name `route` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _route
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Tests/AdversarialInstantiation.lean:5940:5: Variable name `he` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _he
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Tests/AdversarialInstantiation.lean:5940:41: Variable name `t` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _t
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Tests/AdversarialInstantiation.lean:9978:22: Variable name `sc` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _sc
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Tests/AdversarialInstantiation.lean:12073:8: Variable name `lines` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _lines
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Tests/AdversarialInstantiation.lean:16785:6: Variable name `get` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _get
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Tests/AdversarialInstantiation.lean:19128:84: `String.mk` has been deprecated: Use `String.ofList` instead
+
+Hint: Replace the deprecated name:
+  String.m̵k̵o̲f̲L̲i̲s̲t̲
+✔ [468/472] Built Tests.AdversarialInstantiation.Runner (6.9s)
+✔ [470/472] Built Tests.AdversarialInstantiation.Runner:c.o (99ms)
+✔ [471/472] Built Tests.AdversarialInstantiation:c.o (75s)
+✔ [472/472] Built adversarialinstantiation:exe (754ms)
+Build completed successfully (472 jobs).

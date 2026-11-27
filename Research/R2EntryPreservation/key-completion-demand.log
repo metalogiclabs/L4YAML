@@ -1,0 +1,1281 @@
+/workspace/scratch/ea3cc0c1f611/demand-StreamAccum.lean:19677:5: warning: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+/workspace/scratch/ea3cc0c1f611/demand-StreamAccum.lean:38272:12: error: R2_KEY_CURRENT_ENTRY_NO_ANCESTOR_CONTEXT
+case pos.inr
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+n : Nat
+s_prep s' : ScannerState
+c : Char
+sp_prep sp_scan' : SurfPos
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_old : ∀ (sp : SurfPos), SBlockNode (n + 1) YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp
+h_floor_old : IndentFloor sc (n + 1)
+h_col0_old : 0 < sp_scan.col
+h_ncol_old : n ≤ sp_scan.col ∨ True
+h_vslot :
+  (sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v) ∨
+    PackAlt sc
+h_kslot :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_m →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_m sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeF99 :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo,
+              IndentStackCover.Floor lo n (FrameLevel.map n :: ks) ∧
+                IndentStackCover.Covered lo (FrameLevel.map n :: ks) sc) ∨
+            True) ∧
+          ∀ (sp_mid : SurfPos),
+            SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+              ResumeFrames (SLYamlStream sp_start) (FrameLevel.map n :: ks) sp_mid) ∨
+    True
+h_frames99 :
+  (∃ ks,
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨
+    True
+h_closeFV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+                  KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_framesV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_ska : sc.simpleKeyAllowed = true
+h_ivl_mv :
+  sc.implicitValueLine = some sc.line ∨
+    sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v
+h_nic_mv : sc.needIndentCheck = false
+h_real_mv : LastTokenReal sc.tokens
+h_mono : IndentStackMono.Mono sc
+h_base : IndentStackBase.SentinelBase sc
+hcorr_prep : ScannerSurfCorr s_prep sp_prep
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, c))
+h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep []
+h_sound : PendingKeySound.Sound sc
+h_fl0 : sc.flowLevel = 0
+h_not_doc :
+  (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep).col =
+      0 →
+    atDocumentBoundary
+        (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep) =
+      false
+h_flow_disp :
+  (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep).inFlow =
+    false
+h_dispatch :
+  scanNextToken_dispatchContent
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      c =
+    Except.ok s'
+h_seqF168 :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_e : SurfPos), SCompactMapTail n sp_mid sp_e → ResumeFrames (SeqEntryTail sp_start ke) ks sp_e) ∨
+    True
+h_next : NextIsSep sc
+h_src : SlotGateAt s_prep
+h_refused : ExplicitValueRefused sc ∨ True
+h_gatePark : sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_cov_step : ∀ (lo : Nat) (ks : List FrameLevel), IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s'
+h_ivl_pack :
+  sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧ LastTokenReal sc.tokens ∨
+    (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc)
+h_compact_vslot :
+  (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc) ∨
+    True
+sp_gram : SurfPos
+h_sep_all : SSeparate (n + 1) YamlContext.flowOut sp_scan sp_prep
+h_flow_all : ∀ (n : Nat), SFlowNode n YamlContext.flowOut sp_prep sp_gram
+h_trailing_ws : GStar SSWhite sp_gram sp_scan'
+h_gate : sp_gram = sp_scan' → s'.col ≠ 0 → ¬(CommentOk s' ∧ s'.peek? = some '#')
+h_line : sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars
+hna : c ≠ '&'
+hnt : c ≠ '!'
+outer : Nat
+houter : outer ∈ RegisterWitness.markedCols s'
+sp_m : SurfPos
+h_ssl : SSLComments sp_gram sp_m
+sp_i sp_c : SurfPos
+h_colon : GLit ':' sp_i sp_c
+sp_v sp_q : SurfPos
+h_q : GLit '?' sp_q sp_scan
+left✝ :
+  ∀ (sp_v : SurfPos),
+    SBlockMapEntry n sp_q sp_v → ∀ (sp_e : SurfPos), SCompactMapTail n sp_v sp_e → SLYamlStream sp_start sp_e
+hown : n ∈ RegisterWitness.markedCols s'
+hlt : outer < n
+h_ind : SIndent n sp_m sp_i
+h_value : SBlockIndented n YamlContext.blockOut sp_c sp_v
+h_missing : PackAlt sc
+⊢ ExplValueLine sp_start outer sp_v
+/workspace/scratch/ea3cc0c1f611/demand-StreamAccum.lean:38274:10: error: R2_KEY_OTHER_SURVIVING_ENTRY_CONTEXT
+case neg
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+n : Nat
+s_prep s' : ScannerState
+c : Char
+sp_prep sp_scan' : SurfPos
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_old : ∀ (sp : SurfPos), SBlockNode (n + 1) YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp
+h_floor_old : IndentFloor sc (n + 1)
+h_col0_old : 0 < sp_scan.col
+h_ncol_old : n ≤ sp_scan.col ∨ True
+h_vslot :
+  (sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v) ∨
+    PackAlt sc
+h_kslot :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_m →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_m sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeF99 :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo,
+              IndentStackCover.Floor lo n (FrameLevel.map n :: ks) ∧
+                IndentStackCover.Covered lo (FrameLevel.map n :: ks) sc) ∨
+            True) ∧
+          ∀ (sp_mid : SurfPos),
+            SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+              ResumeFrames (SLYamlStream sp_start) (FrameLevel.map n :: ks) sp_mid) ∨
+    True
+h_frames99 :
+  (∃ ks,
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨
+    True
+h_closeFV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+                  KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_framesV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_ska : sc.simpleKeyAllowed = true
+h_ivl_mv :
+  sc.implicitValueLine = some sc.line ∨
+    sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v
+h_nic_mv : sc.needIndentCheck = false
+h_real_mv : LastTokenReal sc.tokens
+h_mono : IndentStackMono.Mono sc
+h_base : IndentStackBase.SentinelBase sc
+hcorr_prep : ScannerSurfCorr s_prep sp_prep
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, c))
+h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep []
+h_sound : PendingKeySound.Sound sc
+h_fl0 : sc.flowLevel = 0
+h_not_doc :
+  (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep).col =
+      0 →
+    atDocumentBoundary
+        (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep) =
+      false
+h_flow_disp :
+  (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep).inFlow =
+    false
+h_dispatch :
+  scanNextToken_dispatchContent
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      c =
+    Except.ok s'
+h_seqF168 :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_e : SurfPos), SCompactMapTail n sp_mid sp_e → ResumeFrames (SeqEntryTail sp_start ke) ks sp_e) ∨
+    True
+h_next : NextIsSep sc
+h_src : SlotGateAt s_prep
+h_refused : ExplicitValueRefused sc ∨ True
+h_gatePark : sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_cov_step : ∀ (lo : Nat) (ks : List FrameLevel), IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s'
+h_ivl_pack :
+  sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧ LastTokenReal sc.tokens ∨
+    (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc)
+h_compact_vslot :
+  (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc) ∨
+    True
+sp_gram : SurfPos
+h_sep_all : SSeparate (n + 1) YamlContext.flowOut sp_scan sp_prep
+h_flow_all : ∀ (n : Nat), SFlowNode n YamlContext.flowOut sp_prep sp_gram
+h_trailing_ws : GStar SSWhite sp_gram sp_scan'
+h_gate : sp_gram = sp_scan' → s'.col ≠ 0 → ¬(CommentOk s' ∧ s'.peek? = some '#')
+h_line : sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars
+hna : c ≠ '&'
+hnt : c ≠ '!'
+own : Nat
+hown : own ∈ RegisterWitness.markedCols s'
+outer : Nat
+houter : outer ∈ RegisterWitness.markedCols s'
+hlt : outer < own
+sp_m : SurfPos
+h_ssl : SSLComments sp_gram sp_m
+sp_i sp_c : SurfPos
+h_ind : SIndent own sp_m sp_i
+h_colon : GLit ':' sp_i sp_c
+sp_v : SurfPos
+h_value : SBlockIndented own YamlContext.blockOut sp_c sp_v
+sp_q : SurfPos
+h_q : GLit '?' sp_q sp_scan
+left✝ :
+  ∀ (sp_v : SurfPos),
+    SBlockMapEntry n sp_q sp_v → ∀ (sp_e : SurfPos), SCompactMapTail n sp_v sp_e → SLYamlStream sp_start sp_e
+ancestor :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        nv ≠ n →
+          ∀ (sp_v : SurfPos),
+            SBlockMapEntry n sp_q sp_v →
+              ∀ (sp_i sp_c : SurfPos),
+                SIndent nv sp_v sp_i →
+                  GLit ':' sp_i sp_c →
+                    ∀ (sp_w : SurfPos),
+                      SBlockIndented nv YamlContext.blockOut sp_c sp_w →
+                        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨
+    PackAlt sc
+hcurrent : ¬own = n
+⊢ ExplValueLine sp_start outer sp_v
+/workspace/scratch/ea3cc0c1f611/demand-StreamAccum.lean:38276:8: error: R2_KEY_NONQUESTION_ENTRY_CONTEXT
+case inr
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+n : Nat
+s_prep s' : ScannerState
+c : Char
+sp_prep sp_scan' : SurfPos
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_old : ∀ (sp : SurfPos), SBlockNode (n + 1) YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp
+h_floor_old : IndentFloor sc (n + 1)
+h_col0_old : 0 < sp_scan.col
+h_ncol_old : n ≤ sp_scan.col ∨ True
+h_vslot :
+  (sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v) ∨
+    PackAlt sc
+h_kslot :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_m →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_m sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeF99 :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo,
+              IndentStackCover.Floor lo n (FrameLevel.map n :: ks) ∧
+                IndentStackCover.Covered lo (FrameLevel.map n :: ks) sc) ∨
+            True) ∧
+          ∀ (sp_mid : SurfPos),
+            SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+              ResumeFrames (SLYamlStream sp_start) (FrameLevel.map n :: ks) sp_mid) ∨
+    True
+h_frames99 :
+  (∃ ks,
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨
+    True
+h_closeFV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+                  KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_framesV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_ska : sc.simpleKeyAllowed = true
+h_ivl_mv :
+  sc.implicitValueLine = some sc.line ∨
+    sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v
+h_nic_mv : sc.needIndentCheck = false
+h_real_mv : LastTokenReal sc.tokens
+h_mono : IndentStackMono.Mono sc
+h_base : IndentStackBase.SentinelBase sc
+hcorr_prep : ScannerSurfCorr s_prep sp_prep
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, c))
+h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep []
+h_sound : PendingKeySound.Sound sc
+h_fl0 : sc.flowLevel = 0
+h_not_doc :
+  (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep).col =
+      0 →
+    atDocumentBoundary
+        (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep) =
+      false
+h_flow_disp :
+  (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep).inFlow =
+    false
+h_dispatch :
+  scanNextToken_dispatchContent
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      c =
+    Except.ok s'
+h_seqF168 :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_e : SurfPos), SCompactMapTail n sp_mid sp_e → ResumeFrames (SeqEntryTail sp_start ke) ks sp_e) ∨
+    True
+h_next : NextIsSep sc
+h_src : SlotGateAt s_prep
+h_refused : ExplicitValueRefused sc ∨ True
+h_gatePark : sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_cov_step : ∀ (lo : Nat) (ks : List FrameLevel), IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s'
+h_ivl_pack :
+  sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧ LastTokenReal sc.tokens ∨
+    (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc)
+h_compact_vslot :
+  (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc) ∨
+    True
+sp_gram : SurfPos
+h_sep_all : SSeparate (n + 1) YamlContext.flowOut sp_scan sp_prep
+h_flow_all : ∀ (n : Nat), SFlowNode n YamlContext.flowOut sp_prep sp_gram
+h_trailing_ws : GStar SSWhite sp_gram sp_scan'
+h_gate : sp_gram = sp_scan' → s'.col ≠ 0 → ¬(CommentOk s' ∧ s'.peek? = some '#')
+h_line : sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars
+hna : c ≠ '&'
+hnt : c ≠ '!'
+own : Nat
+hown : own ∈ RegisterWitness.markedCols s'
+outer : Nat
+houter : outer ∈ RegisterWitness.markedCols s'
+hlt : outer < own
+sp_m : SurfPos
+h_ssl : SSLComments sp_gram sp_m
+sp_i sp_c : SurfPos
+h_ind : SIndent own sp_m sp_i
+h_colon : GLit ':' sp_i sp_c
+sp_v : SurfPos
+h_value : SBlockIndented own YamlContext.blockOut sp_c sp_v
+h_nonquestion : NotQuestionPark sc
+⊢ ExplValueLine sp_start outer sp_v
+case pos.inr
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+n : Nat
+s_prep s' : ScannerState
+c : Char
+sp_prep sp_scan' : SurfPos
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_old : ∀ (sp : SurfPos), SBlockNode (n + 1) YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp
+h_floor_old : IndentFloor sc (n + 1)
+h_col0_old : 0 < sp_scan.col
+h_ncol_old : n ≤ sp_scan.col ∨ True
+h_vslot :
+  (sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v) ∨
+    PackAlt sc
+h_kslot :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_m →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_m sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeF99 :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo,
+              IndentStackCover.Floor lo n (FrameLevel.map n :: ks) ∧
+                IndentStackCover.Covered lo (FrameLevel.map n :: ks) sc) ∨
+            True) ∧
+          ∀ (sp_mid : SurfPos),
+            SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+              ResumeFrames (SLYamlStream sp_start) (FrameLevel.map n :: ks) sp_mid) ∨
+    True
+h_frames99 :
+  (∃ ks,
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨
+    True
+h_closeFV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+                  KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_framesV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_ska : sc.simpleKeyAllowed = true
+h_ivl_mv :
+  sc.implicitValueLine = some sc.line ∨
+    sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v
+h_nic_mv : sc.needIndentCheck = false
+h_real_mv : LastTokenReal sc.tokens
+h_mono : IndentStackMono.Mono sc
+h_base : IndentStackBase.SentinelBase sc
+hcorr_prep : ScannerSurfCorr s_prep sp_prep
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, c))
+h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep []
+h_sound : PendingKeySound.Sound sc
+h_fl0 : sc.flowLevel = 0
+h_not_doc :
+  (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep).col =
+      0 →
+    atDocumentBoundary
+        (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep) =
+      false
+h_flow_disp :
+  (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep).inFlow =
+    false
+h_dispatch :
+  scanNextToken_dispatchContent
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      c =
+    Except.ok s'
+h_seqF168 :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_e : SurfPos), SCompactMapTail n sp_mid sp_e → ResumeFrames (SeqEntryTail sp_start ke) ks sp_e) ∨
+    True
+h_next : NextIsSep sc
+h_src : SlotGateAt s_prep
+h_refused : ExplicitValueRefused sc ∨ True
+h_gatePark : sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_cov_step : ∀ (lo : Nat) (ks : List FrameLevel), IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s'
+h_ivl_pack :
+  sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧ LastTokenReal sc.tokens ∨
+    (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc)
+h_compact_vslot :
+  (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc) ∨
+    True
+sp_gram : SurfPos
+h_sep_all : SSeparate (n + 1) YamlContext.flowOut sp_scan sp_prep
+h_flow_all : ∀ (n : Nat), SFlowNode n YamlContext.flowOut sp_prep sp_gram
+h_trailing_ws : GStar SSWhite sp_gram sp_scan'
+h_gate : sp_gram = sp_scan' → s'.col ≠ 0 → ¬(CommentOk s' ∧ s'.peek? = some '#')
+h_line : sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars
+hna : c ≠ '&'
+hnt : c ≠ '!'
+outer : Nat
+houter : outer ∈ RegisterWitness.markedCols s'
+sp_m : SurfPos
+h_ssl : SSLComments sp_gram sp_m
+sp_i sp_c : SurfPos
+h_colon : GLit ':' sp_i sp_c
+sp_v sp_q : SurfPos
+h_q : GLit '?' sp_q sp_scan
+left✝ :
+  ∀ (sp_v : SurfPos),
+    SBlockMapEntry n sp_q sp_v → ∀ (sp_e : SurfPos), SCompactMapTail n sp_v sp_e → SLYamlStream sp_start sp_e
+hown : n ∈ RegisterWitness.markedCols s'
+hlt : outer < n
+h_ind : SIndent n sp_m sp_i
+h_value : SBlockIndented n YamlContext.blockOut sp_c sp_v
+h_missing : PackAlt sc
+⊢ ExplValueLine sp_start outer sp_v
+case neg
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+n : Nat
+s_prep s' : ScannerState
+c : Char
+sp_prep sp_scan' : SurfPos
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_old : ∀ (sp : SurfPos), SBlockNode (n + 1) YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp
+h_floor_old : IndentFloor sc (n + 1)
+h_col0_old : 0 < sp_scan.col
+h_ncol_old : n ≤ sp_scan.col ∨ True
+h_vslot :
+  (sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v) ∨
+    PackAlt sc
+h_kslot :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_m →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_m sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeF99 :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo,
+              IndentStackCover.Floor lo n (FrameLevel.map n :: ks) ∧
+                IndentStackCover.Covered lo (FrameLevel.map n :: ks) sc) ∨
+            True) ∧
+          ∀ (sp_mid : SurfPos),
+            SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+              ResumeFrames (SLYamlStream sp_start) (FrameLevel.map n :: ks) sp_mid) ∨
+    True
+h_frames99 :
+  (∃ ks,
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨
+    True
+h_closeFV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+                  KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_framesV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_ska : sc.simpleKeyAllowed = true
+h_ivl_mv :
+  sc.implicitValueLine = some sc.line ∨
+    sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v
+h_nic_mv : sc.needIndentCheck = false
+h_real_mv : LastTokenReal sc.tokens
+h_mono : IndentStackMono.Mono sc
+h_base : IndentStackBase.SentinelBase sc
+hcorr_prep : ScannerSurfCorr s_prep sp_prep
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, c))
+h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep []
+h_sound : PendingKeySound.Sound sc
+h_fl0 : sc.flowLevel = 0
+h_not_doc :
+  (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep).col =
+      0 →
+    atDocumentBoundary
+        (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep) =
+      false
+h_flow_disp :
+  (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep).inFlow =
+    false
+h_dispatch :
+  scanNextToken_dispatchContent
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      c =
+    Except.ok s'
+h_seqF168 :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_e : SurfPos), SCompactMapTail n sp_mid sp_e → ResumeFrames (SeqEntryTail sp_start ke) ks sp_e) ∨
+    True
+h_next : NextIsSep sc
+h_src : SlotGateAt s_prep
+h_refused : ExplicitValueRefused sc ∨ True
+h_gatePark : sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_cov_step : ∀ (lo : Nat) (ks : List FrameLevel), IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s'
+h_ivl_pack :
+  sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧ LastTokenReal sc.tokens ∨
+    (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc)
+h_compact_vslot :
+  (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc) ∨
+    True
+sp_gram : SurfPos
+h_sep_all : SSeparate (n + 1) YamlContext.flowOut sp_scan sp_prep
+h_flow_all : ∀ (n : Nat), SFlowNode n YamlContext.flowOut sp_prep sp_gram
+h_trailing_ws : GStar SSWhite sp_gram sp_scan'
+h_gate : sp_gram = sp_scan' → s'.col ≠ 0 → ¬(CommentOk s' ∧ s'.peek? = some '#')
+h_line : sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars
+hna : c ≠ '&'
+hnt : c ≠ '!'
+own : Nat
+hown : own ∈ RegisterWitness.markedCols s'
+outer : Nat
+houter : outer ∈ RegisterWitness.markedCols s'
+hlt : outer < own
+sp_m : SurfPos
+h_ssl : SSLComments sp_gram sp_m
+sp_i sp_c : SurfPos
+h_ind : SIndent own sp_m sp_i
+h_colon : GLit ':' sp_i sp_c
+sp_v : SurfPos
+h_value : SBlockIndented own YamlContext.blockOut sp_c sp_v
+sp_q : SurfPos
+h_q : GLit '?' sp_q sp_scan
+left✝ :
+  ∀ (sp_v : SurfPos),
+    SBlockMapEntry n sp_q sp_v → ∀ (sp_e : SurfPos), SCompactMapTail n sp_v sp_e → SLYamlStream sp_start sp_e
+ancestor :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        nv ≠ n →
+          ∀ (sp_v : SurfPos),
+            SBlockMapEntry n sp_q sp_v →
+              ∀ (sp_i sp_c : SurfPos),
+                SIndent nv sp_v sp_i →
+                  GLit ':' sp_i sp_c →
+                    ∀ (sp_w : SurfPos),
+                      SBlockIndented nv YamlContext.blockOut sp_c sp_w →
+                        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨
+    PackAlt sc
+hcurrent : ¬own = n
+⊢ ExplValueLine sp_start outer sp_v
+case inr
+sc : ScannerState
+sp_start sp_block sp_scan : SurfPos
+n : Nat
+s_prep s' : ScannerState
+c : Char
+sp_prep sp_scan' : SurfPos
+h_stream_block : SLYamlStream sp_start sp_block
+h_close_old : ∀ (sp : SurfPos), SBlockNode (n + 1) YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp
+h_floor_old : IndentFloor sc (n + 1)
+h_col0_old : 0 < sp_scan.col
+h_ncol_old : n ≤ sp_scan.col ∨ True
+h_vslot :
+  (sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v) ∨
+    PackAlt sc
+h_kslot :
+  (∃ ns,
+      RegisterWitness.MarkedColsIn sc ns ∧
+        ∀ (nv : Nat),
+          nv ∈ ns →
+            ∀ (sp_m : SurfPos),
+              SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_m →
+                ∀ (sp_i sp_c : SurfPos),
+                  SIndent nv sp_m sp_i →
+                    GLit ':' sp_i sp_c →
+                      ∀ (sp_v : SurfPos),
+                        SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+    PackAlt sc
+h_closeF99 :
+  (∃ ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ((∃ lo,
+              IndentStackCover.Floor lo n (FrameLevel.map n :: ks) ∧
+                IndentStackCover.Covered lo (FrameLevel.map n :: ks) sc) ∨
+            True) ∧
+          ∀ (sp_mid : SurfPos),
+            SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+              ResumeFrames (SLYamlStream sp_start) (FrameLevel.map n :: ks) sp_mid) ∨
+    True
+h_frames99 :
+  (∃ ks,
+      ((∃ lo, IndentStackCover.Floor lo n ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+        ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → ResumeFrames (SLYamlStream sp_start) ks sp_mid) ∨
+    True
+h_closeFV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+            ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+              ∀ (sp_mid : SurfPos),
+                SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+                  KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_framesV108 :
+  (∀ (nv : Nat),
+      nv ∈ RegisterWitness.markedCols sc →
+        ∃ ks,
+          ((∃ lo, IndentStackCover.Floor lo (n + 1) ks ∧ IndentStackCover.Covered lo ks sc) ∨ True) ∧
+            ∀ (sp_mid : SurfPos), SSLComments sp_scan sp_mid → KeyFrames (ExplValueLine sp_start nv) ks sp_mid) ∨
+    PackAlt sc
+h_ska : sc.simpleKeyAllowed = true
+h_ivl_mv :
+  sc.implicitValueLine = some sc.line ∨
+    sp_scan.col = n + 1 ∧
+      ∀ (sp_v : SurfPos), SBlockIndented n YamlContext.blockOut sp_scan sp_v → SLYamlStream sp_start sp_v
+h_nic_mv : sc.needIndentCheck = false
+h_real_mv : LastTokenReal sc.tokens
+h_mono : IndentStackMono.Mono sc
+h_base : IndentStackBase.SentinelBase sc
+hcorr_prep : ScannerSurfCorr s_prep sp_prep
+hcorr_result : ScannerSurfCorr s' sp_scan'
+h_corr : ScannerSurfCorr sc sp_scan
+h_preprocess : scanNextToken_preprocess sc = Except.ok (some (s_prep, c))
+h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep []
+h_sound : PendingKeySound.Sound sc
+h_fl0 : sc.flowLevel = 0
+h_not_doc :
+  (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep).col =
+      0 →
+    atDocumentBoundary
+        (if s_prep.allowDirectives = true then
+          { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+            col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+            flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+            simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+            needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+            seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+            documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+            implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+            explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+            comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+        else s_prep) =
+      false
+h_flow_disp :
+  (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep).inFlow =
+    false
+h_dispatch :
+  scanNextToken_dispatchContent
+      (if s_prep.allowDirectives = true then
+        { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset, line := s_prep.line,
+          col := s_prep.col, indents := s_prep.indents, pendingKeys := s_prep.pendingKeys,
+          flowLevel := s_prep.flowLevel, tokens := s_prep.tokens, simpleKey := s_prep.simpleKey,
+          simpleKeyStack := s_prep.simpleKeyStack, simpleKeyAllowed := s_prep.simpleKeyAllowed,
+          needIndentCheck := s_prep.needIndentCheck, allowDirectives := false,
+          seenYamlDirective := s_prep.seenYamlDirective, directivesPresent := s_prep.directivesPresent,
+          documentEverStarted := true, flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+          implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+          explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+          comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+      else s_prep)
+      c =
+    Except.ok s'
+h_seqF168 :
+  (∃ ke ks,
+      (∀ (fr : FrameLevel), fr ∈ ks → fr.width ≤ n) ∧
+        ∀ (sp_mid : SurfPos),
+          SBlockNode (n + 1) YamlContext.blockIn sp_scan sp_mid →
+            ∀ (sp_e : SurfPos), SCompactMapTail n sp_mid sp_e → ResumeFrames (SeqEntryTail sp_start ke) ks sp_e) ∨
+    True
+h_next : NextIsSep sc
+h_src : SlotGateAt s_prep
+h_refused : ExplicitValueRefused sc ∨ True
+h_gatePark : sc.col ≠ 0 → ¬(CommentOk sc ∧ sc.peek? = some '#')
+h_cov_step : ∀ (lo : Nat) (ks : List FrameLevel), IndentStackCover.Covered lo ks sc → IndentStackCover.Covered lo ks s'
+h_ivl_pack :
+  sc.implicitValueLine = some sc.line ∧ sc.needIndentCheck = false ∧ LastTokenReal sc.tokens ∨
+    (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc)
+h_compact_vslot :
+  (∀ (sp : SurfPos), SBlockIndented n YamlContext.blockIn sp_scan sp → SLYamlStream sp_start sp) ∧
+      sp_scan.col = n + 1 ∧
+        ((∃ ns,
+            RegisterWitness.MarkedColsIn sc ns ∧
+              ∀ (nv : Nat),
+                nv ∈ ns →
+                  ∀ (sp : SurfPos),
+                    SBlockIndented n YamlContext.blockIn sp_scan sp →
+                      ∀ (sp_i sp_c : SurfPos),
+                        SIndent nv sp sp_i →
+                          GLit ':' sp_i sp_c →
+                            ∀ (sp_v : SurfPos),
+                              SBlockIndented nv YamlContext.blockOut sp_c sp_v →
+                                ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨
+          PackAlt sc) ∨
+    True
+sp_gram : SurfPos
+h_sep_all : SSeparate (n + 1) YamlContext.flowOut sp_scan sp_prep
+h_flow_all : ∀ (n : Nat), SFlowNode n YamlContext.flowOut sp_prep sp_gram
+h_trailing_ws : GStar SSWhite sp_gram sp_scan'
+h_gate : sp_gram = sp_scan' → s'.col ≠ 0 → ¬(CommentOk s' ∧ s'.peek? = some '#')
+h_line : sp_scan'.col = 0 ∨ LineNodeStop sp_scan'.chars
+hna : c ≠ '&'
+hnt : c ≠ '!'
+own : Nat
+hown : own ∈ RegisterWitness.markedCols s'
+outer : Nat
+houter : outer ∈ RegisterWitness.markedCols s'
+hlt : outer < own
+sp_m : SurfPos
+h_ssl : SSLComments sp_gram sp_m
+sp_i sp_c : SurfPos
+h_ind : SIndent own sp_m sp_i
+h_colon : GLit ':' sp_i sp_c
+sp_v : SurfPos
+h_value : SBlockIndented own YamlContext.blockOut sp_c sp_v
+h_nonquestion : NotQuestionPark sc
+⊢ ExplValueLine sp_start outer sp_v

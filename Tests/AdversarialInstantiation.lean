@@ -20130,6 +20130,36 @@ def testExplicitValueSlot (state : IO.Ref TestCollector) : IO Unit := do
     ((rows.filter fun (input, _) => (valueSlots input).any fun (e, _, marks) => !e && !marks.isEmpty).length == 3)
 end P144Test
 
+/-! ## P145 — entry continuations across nested and skipped explicit keys
+
+The entry route must keep its own future value available while a compact key
+is built.  Preprocessing can discard inner question marks before a value
+lands; choosing the last question is therefore insufficient.  These are
+initialized scanner/parser controls, not observations of Prop-valued choices.
+-/
+namespace P145Test
+def testEntryContinuations (state : IO.Ref TestCollector) : IO Unit := do
+  setCategory state "P145: source-owned explicit entry continuations"
+  for depth in [2, 3, 4, 5, 6] do
+    for skipped in List.range depth do
+      for value in ["b", "[b]", "- b"] do
+        let kept := depth - skipped
+        let questions := String.intercalate " " (List.replicate depth "?") ++ " a\n"
+        let values := (List.range kept).reverse.map fun j =>
+          String.ofList (List.replicate (2 * j) ' ') ++ ": " ++ value ++ "\n"
+        let input := questions ++ String.join values
+        let expected := (List.range kept).reverse.map fun (j : Nat) =>
+          (true, ((2 * j : Nat) : Int), (List.range j).map (2 * ·))
+        let got := P144Test.valueSlots input
+        check state s!"P145 depth={depth} skipped={skipped} value={value}: parser acceptance"
+          ((parseYaml input).isOk)
+        check state s!"P145 depth={depth} skipped={skipped} value={value}: every actual landing and surviving ancestor"
+          (got == expected)
+        if 0 < skipped then
+          check state s!"P145 depth={depth} skipped={skipped}: first value belongs to a surviving earlier question"
+            (got.head?.any fun (_, own, _) => own < (2 * (depth - 1) : Int))
+end P145Test
+
 namespace P141Test
 def testContentBehindParks (state : IO.Ref TestCollector) : IO Unit := do
   let t := P141.tally (P113.allRows ++ P118.extraRows ++ P135.extraRows)
@@ -20464,6 +20494,7 @@ def collectTests : IO VerifiedSuiteResult := do
   P142Test.testQuestionPark state
   P143Test.testRootEmptyDomain state
   P144Test.testExplicitValueSlot state
+  P145Test.testEntryContinuations state
   P131Test.testOpenCarrierShadow state
   let results ← finish state
   return { name := "adversarialinstantiation",

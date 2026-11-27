@@ -1,0 +1,16 @@
+════════════════════════════════════════════════════════
+  L4YAML event-stream structural score vs yaml-test-suite
+════════════════════════════════════════════════════════
+  Scored tests:        358  (skipped empty: 0, skipped 1.3: 48)
+
+  VALID tests:         263
+    event-pass   ✓     252
+    event-diff   ✗     11   (parsed, events differ)
+    event-reject ✗     0   (valid input rejected)
+
+  ERROR tests:         95
+    error-ok     ✓     95
+    error-miss   ✗     0   (invalid input accepted)
+
+  CORRECT (event-pass + error-ok): 347/358 (96%)
+════════════════════════════════════════════════════════

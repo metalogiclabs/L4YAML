@@ -1,0 +1,108 @@
+⚠ [317/533] Replayed L4YAML.Proofs.Production.StreamAccum
+warning: L4YAML/Proofs/Production/StreamAccum.lean:19677:5: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+ℹ [325/533] Replayed L4YAML.Proofs.Serialization.SerializationWellFormed
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:463:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_correct' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:464:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:465:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:467:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:468:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:470:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.alias_membership_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:471:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.tag_membership_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:473:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.scanner_alias_guard_set_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:474:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_set_ext' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:476:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.checkFrom_envEquivalent' depends on axioms: [propext, Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:477:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.wellFormedFrom_envEquivalent' depends on axioms: [propext,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:479:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:480:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_declared_anchor_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:482:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_tag_guard_runtime' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SerializationWellFormed.lean:483:0: 'L4YAML.Proofs.Serialization.SerializationWellFormed.parser_alias_guard_runtime' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+ℹ [343/533] Replayed L4YAML.Proofs.Serialization.SourceEvents
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:389:0: 'L4YAML.Proofs.Serialization.SourceEvents.spanWhile_all' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:390:0: 'L4YAML.Proofs.Serialization.SourceEvents.alias_use_source_exact' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:391:0: 'L4YAML.Proofs.Serialization.SourceEvents.named_tag_use_source_exact' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:392:0: 'L4YAML.Proofs.Serialization.SourceEvents.source_alias_allowed_iff_scanner_guard' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:393:0: 'L4YAML.Proofs.Serialization.SourceEvents.source_named_tag_allowed_iff_parser_guard' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:395:0: 'L4YAML.Proofs.Serialization.SourceEvents.anchor_definition_surface' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:396:0: 'L4YAML.Proofs.Serialization.SourceEvents.alias_use_surface' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SourceEvents.lean:397:0: 'L4YAML.Proofs.Serialization.SourceEvents.named_tag_use_surface' depends on axioms: [propext]
+ℹ [345/533] Replayed L4YAML.Proofs.Serialization.CommitTrace
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:96:0: 'L4YAML.Proofs.Serialization.CommitTrace.current_l4yaml_enclosing_anchor_self_reference_rejected' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:97:0: 'L4YAML.Proofs.Serialization.CommitTrace.later_sibling_alias_allowed' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:98:0: 'L4YAML.Proofs.Serialization.CommitTrace.current_l4yaml_node_boundary_separator' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:99:0: 'L4YAML.Proofs.Serialization.CommitTrace.anchored_then_rest_events' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:101:0: 'L4YAML.Proofs.Serialization.CommitTrace.yaml_enclosing_anchor_self_reference_allowed' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/CommitTrace.lean:102:0: 'L4YAML.Proofs.Serialization.CommitTrace.yaml_current_l4yaml_anchor_separator' depends on axioms: [propext]
+ℹ [347/533] Replayed L4YAML.Proofs.Serialization.SurfaceEvents
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:118:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.alias_surface_has_event' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:119:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.anchor_surface_has_pending' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:120:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.commit_pending_matches_commitNode' does not depend on any axioms
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:121:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.current_l4yaml_pending_anchor_does_not_authorize_inner_alias' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/SurfaceEvents.lean:123:0: 'L4YAML.Proofs.Serialization.SurfaceEvents.yaml_anchor_authorizes_inner_alias' depends on axioms: [propext]
+ℹ [349/533] Replayed L4YAML.Proofs.Serialization.EventsOf
+info: L4YAML/Proofs/Serialization/EventsOf.lean:222:0: 'L4YAML.Proofs.Serialization.EventsOf.eventsOfSegs_append' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/EventsOf.lean:223:0: 'L4YAML.Proofs.Serialization.EventsOf.skeleton_text' depends on axioms: [propext, Classical.choice, Quot.sound]
+ℹ [393/533] Replayed L4YAML.Proofs.Serialization.RuntimeScopes
+info: L4YAML/Proofs/Serialization/RuntimeScopes.lean:99:0: 'L4YAML.Proofs.Serialization.RuntimeScopes.scanner_document_start_resets_aliases' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/RuntimeScopes.lean:100:0: 'L4YAML.Proofs.Serialization.RuntimeScopes.prepareDocumentState_tagHandles_exact' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/RuntimeScopes.lean:102:0: 'L4YAML.Proofs.Serialization.RuntimeScopes.documentEvents_reset_before_directives' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/RuntimeScopes.lean:103:0: 'L4YAML.Proofs.Serialization.RuntimeScopes.tag_directive_reset_order_separator' depends on axioms: [propext]
+ℹ [395/533] Replayed L4YAML.Proofs.Serialization.AnchorTiming
+info: L4YAML/Proofs/Serialization/AnchorTiming.lean:49:0: 'L4YAML.Proofs.Serialization.AnchorTiming.self_reference_before_commit_rejected' depends on axioms: [propext]
+info: L4YAML/Proofs/Serialization/AnchorTiming.lean:50:0: 'L4YAML.Proofs.Serialization.AnchorTiming.anchor_commit_order_separator' depends on axioms: [propext]
+ℹ [397/533] Replayed L4YAML.Proofs.Serialization.AnchorRuntime
+info: L4YAML/Proofs/Serialization/AnchorRuntime.lean:68:0: 'L4YAML.Proofs.Serialization.AnchorRuntime.addAnchor_name_projection' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/AnchorRuntime.lean:69:0: 'L4YAML.Proofs.Serialization.AnchorRuntime.applyNodeFinalization_commits_anchor' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: L4YAML/Proofs/Serialization/AnchorRuntime.lean:70:0: 'L4YAML.Proofs.Serialization.AnchorRuntime.applyNodeFinalization_no_anchor_projection' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+ℹ [399/533] Replayed L4YAML.Proofs.Serialization.ErrorCensus
+info: L4YAML/Proofs/Serialization/ErrorCensus.lean:105:0: 'L4YAML.Proofs.Serialization.ErrorCensus.serialization_error_iff' depends on axioms: [propext, Quot.sound]
+info: L4YAML/Proofs/Serialization/ErrorCensus.lean:106:0: 'L4YAML.Proofs.Serialization.ErrorCensus.resource_guards_not_serialization' depends on axioms: [propext, Quot.sound]
+ℹ [403/533] Replayed L4YAML.Proofs.Serialization.ExecutableBoundary
+info: L4YAML/Proofs/Serialization/ExecutableBoundary.lean:84:0: 'L4YAML.Proofs.Serialization.parse_iff_executable_language' depends on axioms: [propext, Classical.choice, Quot.sound]
+✔ [859/862] Built Tests.LimitTests.Runner (35s)
+✔ [861/862] Built Tests.LimitTests.Runner:c.o (272ms)
+✔ [862/862] Built limittests:exe (2.1s)
+Build completed successfully (862 jobs).

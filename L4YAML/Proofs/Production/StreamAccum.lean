@@ -1713,6 +1713,34 @@ lemma frameChainCons {P : Nat → Prop} {a : Nat} {ns : List Nat}
   · exact ha
   · exact hs x hx'
 
+/-- Complete this actual explicit entry's key without closing away its value.
+    The result predicate is arbitrary: it may itself await an enclosing value.
+    Used by `explEntryChain_of_keyContent` and the compact entry producers on
+    the path to `scan_content_gives_stream_v2`. -/
+lemma explicitEntryValueRoute {P : SurfPos → Prop} {n : Nat}
+    {sp_q sp_key : SurfPos} (h_q : GLit '?' sp_q sp_key)
+    (route : ∀ sp_e, SBlockMapEntry n sp_q sp_e → P sp_e) :
+    ∀ sp_m, SBlockIndented n .blockOut sp_key sp_m →
+      ∀ sp_i sp_c, SIndent n sp_m sp_i → GLit ':' sp_i sp_c →
+      ∀ sp_v, SBlockIndented n .blockOut sp_c sp_v → P sp_v :=
+  fun sp_m h_key sp_i sp_c h_ind h_lit sp_v h_value =>
+    route sp_v (SBlockMapEntry.explicit n sp_q sp_key sp_m sp_i sp_c sp_v
+      h_q h_key h_ind h_lit h_value)
+
+/-- Plug a whole compact mapping entry into its actual enclosing slot.
+    Keep the caller's result predicate, including an unfinished explicit value,
+    rather than choosing the enclosing entry's `explicitEmpty` alternative.
+    The compact producers and `compactExplicitKeyFrame` consume this route. -/
+lemma compactEntryRoute {P : SurfPos → Prop} {n m : Nat} {ctx : YamlContext}
+    {sp_entry sp_ind : SurfPos}
+    (route : ∀ sp_e, SBlockIndented n ctx sp_entry sp_e → P sp_e)
+    (h_ind : SIndent m sp_entry sp_ind) :
+    ∀ sp_v, SBlockMapEntry (n + 1 + m) sp_ind sp_v →
+      ∀ sp_e, SCompactMapTail (n + 1 + m) sp_v sp_e → P sp_e :=
+  fun sp_v h_entry sp_e h_tail => route sp_e
+    (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_e h_ind
+      (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_e h_entry h_tail))
+
 /-- **The `?` entry's chain, read at its KEY content** (item 415).  A park holding a `?` entry
     (`pendingMapValue.h_expl`: the entry's own route to the stream, and item 412's chain one
     frame up) owes, at a content landing, the `:` line for every marked column: at the entry's
@@ -1737,7 +1765,7 @@ lemma explEntryChain_of_keyContent {sc : ScannerState} {n : Nat} {sp_start sp_q 
   by_cases hne : nv = n
   · subst hne
     exact ResumeFrames.one
-      (route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit h_key h_ind h_lit h_val))
+      (explicitEntryValueRoute h_qlit route sp_m h_key sp_i sp_c h_ind h_lit sp_v h_val)
   · exact up nv hmem hne sp_m (SBlockMapEntry.explicitEmpty n sp_q sp_scan sp_m h_qlit h_key)
       sp_i sp_c h_ind h_lit sp_v h_val
 
@@ -25086,10 +25114,8 @@ lemma compactExplicitKeyFrame {sp_start sp_entry sp_ind sp_scan' : SurfPos}
       SLYamlStream sp_start sp_v) :=
   have h_route : ∀ sp_v : SurfPos, SBlockMapEntry (n + 1 + m) sp_ind sp_v →
       SLYamlStream sp_start sp_v := fun sp_v h_entry =>
-    h_close_old sp_v
-      (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
-        (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v h_entry
-          (SCompactMapTail.nil (n + 1 + m) sp_v)))
+    compactEntryRoute h_close_old h_ind sp_v h_entry sp_v
+      (SCompactMapTail.nil (n + 1 + m) sp_v)
   ⟨⟨sp_ind, h_qlit, h_route⟩,
    fun sp_v h_sbi => h_route sp_v
      (SBlockMapEntry.explicitEmpty (n + 1 + m) sp_ind sp_scan' sp_v h_qlit h_sbi)⟩
@@ -25369,9 +25395,7 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
     | Or.inl h => Or.inr (dispatchBlock_colon_notQuestion (h ▸ h_dispatch))
     -- Item 371: the compact `?`'s route WITH its tail — the compact mapping the
     -- entry heads goes on with its siblings before the awaited node closes.
-    | Or.inr h => Or.inl ⟨sp_ind, h_qlit h, fun sp_v h_entry sp_e h_tail =>
-        h_close_old sp_e (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_e h_ind
-          (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_e h_entry h_tail)),
+    | Or.inr h => Or.inl ⟨sp_ind, h_qlit h, compactEntryRoute h_close_old h_ind,
         -- Item 413: the chain ONE FRAME UP, supplied from the `-` (or slot) park's chain over
         -- this entry's CONTENT (`h_chainUp`): the entry closed with no sibling IS the content
         -- (`compactMap` over a `nil` tail), and a mark of `s'` is this `?`'s own column —
@@ -25389,8 +25413,8 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
             rw [hk] at hmem
             rcases List.mem_cons.1 hmem with h | h
             · exact absurd h hne
-            · exact up _ h sp_v (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
-                (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v h_entry (SCompactMapTail.nil (n + 1 + m) sp_v)))
+            · exact compactEntryRoute (up _ h) h_ind sp_v h_entry sp_v
+                (SCompactMapTail.nil (n + 1 + m) sp_v)
                 sp_i sp_c h_iv h_clit sp_w h_sbi)
         | Or.inr _ => Or.inr trivial⟩
   have h_vslot105 : (s'.currentIndent ≤ ((n + 1 + m : Nat) : Int) ∧
@@ -25475,13 +25499,24 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
-           -- Item 190: the compact `?` has the literal but no outer frame's
-           -- line reaches it — this park stands inside a COMPACT key, whose
-           -- landing has yet to reach the branch that would spend one.
+           -- Keep the full compact entry and its actual question literal, as
+           -- h_expl105 does.  The existing caller's continuation supplies the
+           -- ancestor route; its covered domain is transported by h_mcstep.
            (match hc with
             | Or.inl h => Or.inr (Or.inl (dispatchBlock_colon_notQuestion (h ▸ h_dispatch)))
-            -- Item 405: the compact `?`'s chain has no domain here — DECLINED (ruling (a)).
-            | Or.inr _ => Or.inr (Or.inr trivial)),
+            | Or.inr h => match h_chainUp with
+              | Or.inl up => Or.inl ⟨sp_ind, RegisterWitness.markedCols sc, h_qlit h,
+                  (by
+                    have hk : ((s_prep.col : Nat) : Int).toNat = n + 1 + m := by
+                      have h1 := hcorr_prep.col_eq
+                      have h2 := SIndent_col h_ind
+                      rw [Int.toNat_natCast]; omega
+                    rw [← hk]
+                    exact h_mcstep _ (RegisterWitness.MarkedColsIn.self sc)),
+                  fun nv hmem sp_v h_entry =>
+                    compactEntryRoute (up nv hmem) h_ind sp_v h_entry sp_v
+                      (SCompactMapTail.nil (n + 1 + m) sp_v)⟩
+              | Or.inr _ => Or.inr (Or.inr trivial)),
          hcorr_result⟩
 
 -- The two KEYLESS block-mapping openers under one name (item 20).  They

@@ -1,0 +1,8 @@
+/workspace/scratch/ea3cc0c1f611/GenericRouteProbe.lean:65:33: warning: Variable name `other` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _other
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+'L4YAML.Proofs.StreamAccum.compactEntryRoute' does not depend on any axioms
+'L4YAML.Proofs.StreamAccum.explicitEntryValueRoute' does not depend on any axioms

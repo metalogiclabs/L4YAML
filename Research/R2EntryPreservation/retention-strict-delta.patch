@@ -1,0 +1,222 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1022,7 +1022,7 @@
+  
+ /-- Research-only: the actual completed key followed by two actual value lines. -/
+ def R2KeyPairAt (sc : ScannerState) (start gram : SurfPos) (own : Nat) : Prop :=
+-  ∀ a ∈ RegisterWitness.markedCols sc, a ≠ own →
++  ∀ a ∈ RegisterWitness.markedCols sc, a < own →
+     ∀ mid i c : SurfPos, SSLComments gram mid → SIndent own mid i → GLit ':' i c →
+     ∀ v : SurfPos, SBlockIndented own .blockOut c v → ExplValueLine start a v
+ 
+@@ -20260,7 +20260,7 @@
+                       -- projection of the state the face is about, decided here (Rule 8: no
+                       -- carrier), so the flow close restores a dead register.
+                       -- Item 519: `h_vpack` PAID at EVERY mark from the frame's `vslot` — the open wrote it over `markedCols s0`, the close reads it at the closed state through `markedCols_congr`; the markless case is no longer a split.
+-                      (match resume.vslot with | Or.inl vs => Or.inl ⟨RegisterWitness.markedCols (scanFlowSequenceEnd s_ad), RegisterWitness.MarkedColsIn.self _, fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi => vs nv ((RegisterWitness.markedCols_congr ((L4YAML.Proofs.PendingKeysStable.scanFlowSequenceEnd_preserves_pendingKeys s_ad).trans (h_pk_ad.trans h_pk_park)) ((L4YAML.Proofs.EmitterScannability.scanFlowSequenceEnd_preserves_indents s_ad).trans (h_ind_ad.trans h_ind_park))) ▸ hmem) sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq) sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi⟩ | Or.inr h => Or.inr (PackAlt.ofGateClose h))
++                      (match resume.vslot with | Or.inl vs => Or.inl ⟨RegisterWitness.markedCols (scanFlowSequenceEnd s_ad), RegisterWitness.MarkedColsIn.self _, fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi => vs nv ((RegisterWitness.markedCols_congr ((L4YAML.Proofs.PendingKeysStable.scanFlowSequenceEnd_preserves_pendingKeys s_ad).trans (h_pk_ad.trans h_pk_park)) ((L4YAML.Proofs.EmitterScannability.scanFlowSequenceEnd_preserves_indents s_ad).trans (h_ind_ad.trans h_ind_park))) ▸ hmem) sp_tok (SFlowContent.flowSeq _ _ _ _ h_seq) sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi, (by first | assumption | fail "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR")⟩ | Or.inr h => Or.inr (PackAlt.ofGateClose h))
+                       (Or.inr (by have := glit_col h_close_lit; omega))
+                       -- Item 200: `h_framesS`/`h_framesV`.  The value-line half is
+                       -- PAYABLE here — `h_vpack` above is `h_framesV` at `ks = []`
+@@ -20493,7 +20493,7 @@
+                       (fun _ => staleNodeTail_scanFlowMappingEnd _)
+                       -- Item 362: `h_vpack` PAID from the closed state, as at the sequence close.
+                         -- Item 519: `h_vpack` PAID at EVERY mark from the frame's `vslot` (the mapping twin).
+-                        (match resume.vslot with | Or.inl vs => Or.inl ⟨RegisterWitness.markedCols (scanFlowMappingEnd s_ad), RegisterWitness.MarkedColsIn.self _, fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi => vs nv ((RegisterWitness.markedCols_congr ((L4YAML.Proofs.PendingKeysStable.scanFlowMappingEnd_preserves_pendingKeys s_ad).trans (h_pk_ad.trans h_pk_park)) ((L4YAML.Proofs.EmitterScannability.scanFlowMappingEnd_preserves_indents s_ad).trans (h_ind_ad.trans h_ind_park))) ▸ hmem) sp_tok (SFlowContent.flowMap _ _ _ _ h_map) sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi⟩ | Or.inr h => Or.inr (PackAlt.ofGateClose h))
++                        (match resume.vslot with | Or.inl vs => Or.inl ⟨RegisterWitness.markedCols (scanFlowMappingEnd s_ad), RegisterWitness.MarkedColsIn.self _, fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi => vs nv ((RegisterWitness.markedCols_congr ((L4YAML.Proofs.PendingKeysStable.scanFlowMappingEnd_preserves_pendingKeys s_ad).trans (h_pk_ad.trans h_pk_park)) ((L4YAML.Proofs.EmitterScannability.scanFlowMappingEnd_preserves_indents s_ad).trans (h_ind_ad.trans h_ind_park))) ▸ hmem) sp_tok (SFlowContent.flowMap _ _ _ _ h_map) sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi, (by first | assumption | fail "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR")⟩ | Or.inr h => Or.inr (PackAlt.ofGateClose h))
+                       (Or.inr (by have := glit_col h_close_lit; omega))
+                       -- Item 200: as at the sequence close above — payable at
+                       -- `ks = []` off `h_vpack`, and a restatement if paid.  Item 362:
+@@ -24996,6 +24996,7 @@
+     (h_outer : (PendingKeySound.Sound s_prep ∧ RegisterWitness.MarkedColsIn s_prep [nv] ∧
+       (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨
+       (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv))
++    (h_mono_out : IndentStackMono.Mono s')
+     (h_pairAt : R2KeyPairAt s' sp_start sp_scan nv) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+@@ -25046,7 +25047,10 @@
+            (if h_noOwn : nv ∉ RegisterWitness.markedCols s' then
+               Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                 fun a hm m h_node =>
+-                  h_pairAt a hm (by intro he; subst a; exact h_noOwn hm)
++                  h_pairAt a hm (by
++                    have hle := markedCols_le_of_top h_mono_out h_top_in a hm
++                    have hne : a ≠ nv := fun he => h_noOwn (he ▸ hm)
++                    omega)
+                     sp_mid sp_ind sp_scan' h_ssl h_ind h_lit m
+                     (SBlockIndented.node nv .blockOut sp_scan' m
+                       (SBlockNode_blockIn_to_blockOut h_node))⟩
+@@ -28459,6 +28463,9 @@
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v)
+             (pair : R2KeyPairAt sc sp_start sp_gram k) =>
+           colon_open_map_explicit
++            (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
++              ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
++              ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+             (h_pairAt := fun a hm hn => pair a (h_markBack a hm (by simp)) hn)
+             sp_start sp_gram sp_mid _ k s_prep s'
+             sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+@@ -29585,7 +29592,7 @@
+                fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => by
+                  obtain ⟨_, _, _, closeFV⟩ := hall nv' hmem
+                  exact (closeFV sp_m h_ssl_m sp_m (SCompactSeqTail.nil n sp_m)).close
+-                   sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
++                   sp_i sp_c h_iv h_lit sp_v h_sbi, fun hc' => False.elim ((by decide : ('-' : Char) ≠ ':') hc')⟩)
+            (fun h_alt => Or.inr h_alt))
+           (Or.inr (fun h_res _ => (nodeStop_refutes_inline_residue h_line (Or.inl rfl) h_res).elim)) hcorr_prep hcorr_result h_corr h_noflow
+           h_park h_preprocess h_dispatch (Or.inr trivial) (Or.inr trivial)
+@@ -29775,6 +29782,9 @@
+               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+               ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+             colon_open_map_explicit
++            (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
++              ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
++              ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+               (h_pairAt := by first | assumption | (trace_state; fail "R2_OTHER_BLOCK_CONTENT_PAIR"))
+               sp_start sp_gram sp_mid _ k s_prep s'
+               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+@@ -30316,7 +30326,7 @@
+                fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => by
+                  obtain ⟨_, _, _, closeFV⟩ := hall nv' hmem
+                  exact (closeFV sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl_m)
+-                   sp_m (SCompactSeqTail.nil n sp_m)).close sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
++                   sp_m (SCompactSeqTail.nil n sp_m)).close sp_i sp_c h_iv h_lit sp_v h_sbi, fun hc' => False.elim ((by decide : ('-' : Char) ≠ ':') hc')⟩)
+            (fun h_alt => Or.inr h_alt))
+           (Or.inr (fun h_res _ => (sslComments_refutes_inline_residue h_ssl (Or.inl rfl) h_res).elim)) hcorr_prep hcorr_result
+           h_corr h_noflow (Or.inr (by omega)) h_preprocess h_dispatch (Or.inr trivial)
+@@ -30578,6 +30588,9 @@
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+           colon_open_map_explicit
++            (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
++              ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
++              ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+             (h_pairAt := by first | assumption | (trace_state; fail "R2_OTHER_PENDING_BLOCK_PAIR"))
+             sp_start sp_scan sp_mid _ k s_prep s'
+             sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+@@ -31152,7 +31165,7 @@
+                (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                  kslot nv hmem sp_m (flowInBlock_blockNode h_sep_p
+                    (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
+-                   h_ssl) sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                   h_ssl) sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_EMPTY_COLON_PAIR")⟩
+            | Or.inr h_alt => Or.inr h_alt)
+           (Or.inr h_inl) hcorr_prep
+           hcorr_result h_corr h_noflow (Or.inr h_col0_p) h_preprocess h_dispatch
+@@ -31184,7 +31197,7 @@
+              (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                kslot nv hmem sp_m (flowInBlock_blockNode h_sep_p
+                  (SFlowNode.propsEmpty _ .flowOut sp_p sp_scan h_run.toProperties)
+-                 h_ssl) sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                 h_ssl) sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR")⟩
+          | Or.inr h_alt => Or.inr h_alt)
+         (Or.inr (fun _ h_pay =>
+           (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inr (Or.inr ⟨h_prop, hc48⟩))
+@@ -31246,7 +31259,7 @@
+              (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                kslot nv hmem sp_m
+                  (SBlockNode.emptyNode (nmv + 1) .blockIn sp_scan sp_m h_ssl)
+-                 sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                 sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR")⟩
+          | Or.inr h_alt => Or.inr h_alt)
+         (Or.inr (fun _ h_pay =>
+           (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inl h_ivl48)
+@@ -31309,7 +31322,7 @@
+         -- the slot lane already spends `h_explUp` through, with the KEY empty
+         -- on the landing's comments instead of filled — the entry never got
+         -- its value, and the ancestor's `:` line follows. ═══
+-        (frameChainUnion
++        ((frameChainUnion
+           (frameChainUnion
+             (match h_expl51 with
+              | Or.inl ⟨sp_q, h_qlit, route, _⟩ => Or.inl ⟨[nmv], frameChainOne (a := nmv)
+@@ -31337,7 +31350,9 @@
+                    (SBlockMapEntry.explicitEmpty nmv sp_q sp_scan sp_m h_qlit
+                      (SBlockIndented.empty nmv .blockOut sp_scan sp_m h_ssl))
+                    sp_i sp_c h_ind h_lit sp_v h_sbi⟩
+-           | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩))
++           | Or.inr _ => Or.inl ⟨[], fun _ hm => (List.not_mem_nil hm).elim⟩)).imp
++           (fun ⟨ns, single⟩ => ⟨ns, single,
++             by first | assumption | fail "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"⟩) id)
+         (match h_vslot51 with
+          | Or.inl hvs => Or.inl ⟨nmv, sp_block, h_stream_block,
+              -- Item 209: the slot's own stack top, handed across — the park
+@@ -38346,7 +38361,7 @@
+                  · rcases h_chainUp with up | h_noChain
+                    · by_cases howner : own = n
+                      · subst own
+-                       exact up a (marks_step_content h_preprocess h_dispatch a ha) hn sp_v
++                       exact up a (marks_step_content h_preprocess h_dispatch a ha) (by omega) sp_v
+                          (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
+                            (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl))) h_iv h_lit h_sbi)
+                      · first | assumption | (trace_state; fail "R2_KEY_FLOW_SURVIVING_OWNER")
+@@ -38562,7 +38577,7 @@
+                  · rcases h_chainUp with up | h_noChain
+                    · by_cases howner : own = n
+                      · subst own
+-                       exact up a (marks_step_content h_preprocess h_dispatch a ha) hn sp_v
++                       exact up a (marks_step_content h_preprocess h_dispatch a ha) (by omega) sp_v
+                          (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
+                            (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (h_nodeAt sp_mid h_ssl))) h_iv h_lit h_sbi)
+                      · first | assumption | (trace_state; fail "R2_KEY_SCALAR_SURVIVING_OWNER")
+@@ -38693,7 +38708,7 @@
+                  · rcases h_chainUp with up | h_noChain
+                    · by_cases howner : own = n
+                      · subst own
+-                       exact up a (marks_step_content h_preprocess h_dispatch a ha) hn sp_v
++                       exact up a (marks_step_content h_preprocess h_dispatch a ha) (by omega) sp_v
+                          (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
+                            (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl))) h_iv h_lit h_sbi)
+                      · first | assumption | (trace_state; fail "R2_KEY_MULTILINE_SURVIVING_OWNER")
+@@ -40287,7 +40302,7 @@
+                           | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                 kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
+-                                  sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                                  sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_1_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -40372,7 +40387,7 @@
+                           | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                 kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
+-                                  sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                                  sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_2_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -40658,7 +40673,7 @@
+                           | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                 kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
+-                                  sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                                  sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_3_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -40786,7 +40801,7 @@
+                           | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                 kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
+-                                  sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                                  sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_4_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -40906,7 +40921,7 @@
+                           | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+                                 kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
+-                                  sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                                  sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_5_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+                              h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -42882,3 +42897,5 @@
+ end L4YAML.Proofs.StreamAccum
+ 
+ end Blanket
++
++#print axioms L4YAML.Proofs.StreamAccum.colon_open_map_explicit

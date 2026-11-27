@@ -1,0 +1,36 @@
+diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
+index 599a99c..ba1b3b8 100644
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -25475,13 +25475,26 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
+              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
+-           -- Item 190: the compact `?` has the literal but no outer frame's
+-           -- line reaches it — this park stands inside a COMPACT key, whose
+-           -- landing has yet to reach the branch that would spend one.
++           -- Research: retain the actual compact question's entry-associated chain.
++           -- Same caller-owned content continuation as h_expl105.
+            (match hc with
+             | Or.inl h => Or.inr (Or.inl (dispatchBlock_colon_notQuestion (h ▸ h_dispatch)))
+-            -- Item 405: the compact `?`'s chain has no domain here — DECLINED (ruling (a)).
+-            | Or.inr _ => Or.inr (Or.inr trivial)),
++            | Or.inr h => match h_chainUp with
++              | Or.inl up => Or.inl ⟨sp_ind, RegisterWitness.markedCols sc, h_qlit h,
++                  (by
++                    have hk : ((s_prep.col : Nat) : Int).toNat = n + 1 + m := by
++                      have h1 := hcorr_prep.col_eq
++                      have h2 := SIndent_col h_ind
++                      rw [Int.toNat_natCast]; omega
++                    rw [← hk]
++                    exact h_mcstep _ (RegisterWitness.MarkedColsIn.self sc)),
++                  fun nv hmem sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi =>
++                    up nv hmem sp_v
++                      (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
++                        (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v h_entry
++                          (SCompactMapTail.nil (n + 1 + m) sp_v)))
++                      sp_i sp_c h_iv h_clit sp_w h_sbi⟩
++              | Or.inr _ => Or.inr (Or.inr trivial)),
+          hcorr_result⟩
+ 
+ -- The two KEYLESS block-mapping openers under one name (item 20).  They

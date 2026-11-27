@@ -1,0 +1,327 @@
+{
+  "epistemic_state": "WARRANTED_BOUNDED_LOCAL",
+  "scope": "Full-entry grammar composition checked in real production consumers; strict survivor contract checked; global scanner supplier UNKNOWN",
+  "base_commit": "9f1f7bc60cf54741c1bf5d0c0618ee680268ed15",
+  "base_tree": "0c7dced413db0510b0a0a144ca2ca74111cf6a77",
+  "lean": "4.36.0",
+  "source_files": {
+    "L4YAML/Proofs/Production/StreamAccum.lean": {
+      "git_blob": "89c82cfcf9ce87f9bc56d4cb4b1484cf85be458e",
+      "sha256": "f1eece1acca9f124666aa8fcc8fe5b591c316df35b292b32ed28af491a25772a"
+    },
+    "Tests/AdversarialInstantiation.lean": {
+      "git_blob": "99629cfb54039217696631bcdf3223a3834ab4a8",
+      "sha256": "94adf7de750ffcf3fb87c51fcb634da77b58a1029f669e70789b67864a8cd74b"
+    }
+  },
+  "proof_build": {
+    "exit": 0,
+    "jobs": 241,
+    "targets": [
+      "L4YAML.Proofs.Production.StreamAccum",
+      "L4YAML.Proofs.Production.DocumentProduction"
+    ]
+  },
+  "composition": {
+    "exit": 0,
+    "three_successive_values": true,
+    "sibling_tail": true,
+    "wrong_question_rejected": true,
+    "wrong_index_rejected": true,
+    "new_helpers_axioms": []
+  },
+  "axioms": {
+    "existing_profiles": 6,
+    "byte_identical": true,
+    "sha256": "4d8408ae7595e89a34945111bd5e5367d0be21220a6e13741f638bf72b60f5e5"
+  },
+  "native": {
+    "passed": 62527,
+    "failed": 0,
+    "new_source_rows": 60,
+    "new_checks": 165,
+    "log_sha256": "247b75932c7f16c2b6898bf6b869b00fef03cda4c3d19a14684a5a597009ec73",
+    "corpus_matrix": {
+      "passed": 869,
+      "failed": 0,
+      "skipped": 151
+    },
+    "event_score": {
+      "correct": 347,
+      "total": 358,
+      "standing_differences": 11
+    }
+  },
+  "capstone": {
+    "on_before": 7,
+    "on_after": 7,
+    "stream_reached_before": 1152,
+    "stream_reached_after": 1154,
+    "stream_total_before": 1262,
+    "stream_total_after": 1264,
+    "standalone_pack_declines_before": 0,
+    "standalone_pack_declines_after": 0,
+    "zero_declines_are_not_new_payments": true
+  },
+  "mandatory_key_completion_demand": {
+    "exit": 1,
+    "remaining_branches": [
+      "R2_KEY_CURRENT_ENTRY_NO_ANCESTOR_CONTEXT",
+      "R2_KEY_OTHER_SURVIVING_ENTRY_CONTEXT",
+      "R2_KEY_NONQUESTION_ENTRY_CONTEXT"
+    ],
+    "not_impossibility_proof": true
+  },
+  "full_default_qualification": {
+    "state": "INCOMPLETE_STOPPED",
+    "exit": 130,
+    "initial_resource_failure": "ENOSPC",
+    "resumed_attempt": "Interrupted after parallel retention completion changed integration priority",
+    "not_a_full_default_build_pass": true
+  },
+  "full_ordinary_suite": {
+    "exit": 0,
+    "verified": 64686,
+    "total": 64686,
+    "includes_adversarial_checks": true,
+    "first_attempt_failed_only_for_missing_limit_entrypoint": true
+  },
+  "production_prs_changed": false,
+  "upstream_refs_changed": false,
+  "new_hosted_runs": false,
+  "workflow_or_approval_changes": false,
+  "prior_lineage": [
+    "85f3188f36060141b8eb6c30df65948150f3201f",
+    "45968133262",
+    "45968167777",
+    "686cea942c674dbcb984b66cf9cd4da4afd4fa92",
+    "45973926202"
+  ],
+  "evidence_sha256": {
+    "AxiomAudit.lean": "971f7e63945856eef0629869f7e0daba737da137278d9b9a4fc1ca612dbed093",
+    "CompositionChecks.lean": "f030ba915f5d0ca36d6679d57bdd3e6199bc3346f05e7a84374529e85966cbf6",
+    "Predictions.md": "850004708c97e05beafb641fb7a2641e1994d3c03bf1f43b15cafbee558daf0a",
+    "REPORT.md": "e4686834e32216aa05b5eff670d7309241a1a14fe89d10d083a4706208be432a",
+    "StrictContractChecks.lean": "2b467e1d0be85f6a38811647972d6266675a1b3a4de9e9d06a1e1e7c1e9b65a8",
+    "all-tests-missing-entrypoint.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "all-tests-missing-entrypoint.log.xz": "493061af69001f26f9b35c35438866e44e62bcdab9248ca925ba864e2d16322c",
+    "all-tests.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "all-tests.log.xz": "3fd6291d5e6fef3041d0663bc525d454b69a771b2e0a018e97ac2453ff989925",
+    "axiom-comparison.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "baseline-axioms.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "baseline-axioms.log": "4d8408ae7595e89a34945111bd5e5367d0be21220a6e13741f638bf72b60f5e5",
+    "baseline-capstone-build.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "baseline-capstone-build.log": "ddd85132adb4d2a0e4c5715ce19b9cdb922e882bcb501097e5dc649a23070ba0",
+    "baseline-capstone.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "baseline-capstone.log": "de2f23fe6718c7ee895f8a2364c8b566e2f2205681fca624698334fdd95352cf",
+    "candidate-axioms.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "candidate-axioms.log": "4d8408ae7595e89a34945111bd5e5367d0be21220a6e13741f638bf72b60f5e5",
+    "candidate-capstone.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "candidate-capstone.log": "ac38151391a0e986779c5391a915520bf67402b919d5df84c1444e610d18d51b",
+    "candidate-proof-build.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "candidate-proof-build.log": "f7bbb2919e6ef253645d37ffd126a55bcbdff851395fccefd6e890d50eec5ca2",
+    "candidate.patch": "49f28098abbc9c3566dcf1103c6a769a9b869b6a8d0961aa904d23a28a7438f1",
+    "composition-after.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "composition-after.log": "abe664930187b33b4634fbadcff607b0aafecfe843e2efd731efa87088d09768",
+    "composition-before.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "composition-before.log": "8a904e36ec93af297d494c65cd13b0f7d6c35516477d6b93d11cdc893d2f7987",
+    "corpus-receipt.json": "5439eb469b29fb116de28fd3267a966d6a5342100499c4b25ce39aea3b3e0fde",
+    "eventscore.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "eventscore.log": "7dd555b15125e10172cea42736fbdab56aeb7b7c012ab2b5d50e3dc86b32f318",
+    "full-build-boundary.txt": "26836d1b634b0e6e7fad3b71b691ea16c4a3f914e0ab76fcf2fd1a5de7a3f18f",
+    "full-build-resource-failure.exit": "f5bde7eb9f6c71611dc5726e8aca3eb4eba3e386da49e0a4ed5c295a90a73a0d",
+    "full-build-resource-failure.log.xz": "975b2acd049e6e4d2ff28f5cbf3f73f1638f7765e8852003c375a0fb38558298",
+    "full-build.exit": "f5bde7eb9f6c71611dc5726e8aca3eb4eba3e386da49e0a4ed5c295a90a73a0d",
+    "full-build.log.xz": "372d6e1e4534bd78e60d131e6d5115f809d8e53f4c0d7ab3327f0c07d2e916de",
+    "generic-probe.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "generic-probe.log": "1ea83bcf2683fb909c75a4f174b7632dd0540cbf13f3332c3bc30f2419b96eda",
+    "initial-generic-probe.lean": "4cb653c67b6a7f6e725952056dd91982c33a2d31e70d4ec466d464900ef2f9f0",
+    "key-completion-demand-resource-failure.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "key-completion-demand-resource-failure.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "key-completion-demand.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "key-completion-demand.log": "3ab17a37cedf2c25c6de714c85b1bd77160200c2fc08711d74b3b1b60aee8f79",
+    "key-completion-demand.patch": "21bed1d0ee5e585e6570fa9d05957e897eb75e839cda219db843e443c1823ed0",
+    "limit-entrypoint-build.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "limit-entrypoint-build.log": "4094ebafafd4513b8d6aa64af4ecf751eea6186d0c7428de6001703453cb51f4",
+    "native-before-build.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "native-before-build.log": "73337ae6f243dec2e20e0ae8cdcd25c9a5bb63740b097e95211fa89f2120cd48",
+    "native-before-interpreted.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "native-before-interpreted.log": "97b5c63e87658bb288960e58c828a6cc74524ecf124f43dedbd056fe126122d7",
+    "native-before.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "native-grid-initial-type-error.log.xz": "520544a14a48f524914b7de308544a9123a764573fab180fffb6a9a75fa41a7e",
+    "native-tests.log.xz": "a947e3b1c7636803e72153085d17a28ca701f202357041d82852c4197f961d42",
+    "prior-compact-writer.patch": "861e5383eca0964cf2299229a67c7a8f7bbba197afcd4cde6593f1b29e1cfac8",
+    "retention-diagnostic.json": "3278fc39dcd59e2fc938db3852e6785f4699f315d9470c29438a05aa86d6ccbf",
+    "retention-original.patch": "ba7740a1829648dfc61973d028227f679b92586c6524179dcb9d5eca537b0409",
+    "retention-strict-command.json": "9ab5ebf3e275cc7ec943fe335b8f9cfefc648c0f1ad2b3f5ba581bde91346654",
+    "retention-strict-delta.patch": "7b11d0810a5c6128aa875545b90d9e9676885ab6b9deb4899b4cdfe5d5afb28e",
+    "retention-strict-malformed-field.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "retention-strict-malformed-field.log.xz": "dfb446053ec5b6ef7aa389b082fb4af1a7f3b01ea4fff994873f079fc0b2c6a7",
+    "retention-strict-memory-limit.command.json": "55bbca311396c6b22a06e1ce6cebaa7f4a79854b05586233031469a0c6a2aaaf",
+    "retention-strict-memory-limit.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "retention-strict-memory-limit.log.xz": "5821c5d56e9b765cd0ceab4e2ca2fd717303f8f3b963fd6f886e5e166612181a",
+    "retention-strict-resource-killed.exit": "cfeb3721a817579ed0f8bf7235b8b586be2d1f6426e5f7e4c3d3d62a3015f8d7",
+    "retention-strict-resource-killed.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retention-strict.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "retention-strict.log.xz": "0e690d07fac6e724eabe6e726072a0a38dc3a56aa037e2ed90a50fd74b0a58f2",
+    "strict-contract-checks.exit": "f5bde7eb9f6c71611dc5726e8aca3eb4eba3e386da49e0a4ed5c295a90a73a0d",
+    "strict-contract-checks.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "strict-contract-direct.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "strict-contract-direct.log": "3423e706b30aec968b67e52983ac89ad5b33bb2b8936355b21df751807f62df9",
+    "suite-entrypoints-build.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "suite-entrypoints-build.log": "4bae43e8e11e1ae96ddbb7f8972ed82b392ca2536da59bd58afb57e1b47976e9",
+    "suiterunner.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "suiterunner.log": "0ade13a0bb6d84c562f0723dfa32985b5273b330fa32ec49805ee6f00be8cdf8"
+  },
+  "created_at_utc": "2026-11-27T10:37:35.015546+00:00",
+  "strict_survivor_contract": {
+    "exit": 0,
+    "axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "proves": "Smaller marked-ancestor domain suffices for all actual post-landing survivors, given stack monotonicity, top bound, consumption and backward membership",
+    "not_global_preservation": true
+  },
+  "retention_diagnostic": {
+    "epistemic_state": "UNKNOWN_GLOBAL_PRESERVATION",
+    "base_commit": "9f1f7bc60cf54741c1bf5d0c0618ee680268ed15",
+    "prior_retention_source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60",
+    "strict_source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa",
+    "sequential_patches_reconstruct_exact_source": true,
+    "exit": 1,
+    "diagnostic_error_sites": 22,
+    "additional_type_error_sites": 0,
+    "explicit_proof_demands": [
+      {
+        "line": 20263,
+        "column": 617,
+        "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+      },
+      {
+        "line": 20496,
+        "column": 616,
+        "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+      },
+      {
+        "line": 29788,
+        "column": 65,
+        "label": "R2_OTHER_BLOCK_CONTENT_PAIR"
+      },
+      {
+        "line": 30594,
+        "column": 63,
+        "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+      },
+      {
+        "line": 31168,
+        "column": 86,
+        "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+      },
+      {
+        "line": 31200,
+        "column": 84,
+        "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+      },
+      {
+        "line": 31262,
+        "column": 77,
+        "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+      },
+      {
+        "line": 31355,
+        "column": 37,
+        "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+      },
+      {
+        "line": 38367,
+        "column": 58,
+        "label": "R2_KEY_FLOW_SURVIVING_OWNER"
+      },
+      {
+        "line": 38368,
+        "column": 56,
+        "label": "R2_KEY_FLOW_NO_CHAIN"
+      },
+      {
+        "line": 38369,
+        "column": 54,
+        "label": "R2_KEY_FLOW_NO_QUESTION"
+      },
+      {
+        "line": 38583,
+        "column": 58,
+        "label": "R2_KEY_SCALAR_SURVIVING_OWNER"
+      },
+      {
+        "line": 38584,
+        "column": 56,
+        "label": "R2_KEY_SCALAR_NO_CHAIN"
+      },
+      {
+        "line": 38585,
+        "column": 54,
+        "label": "R2_KEY_SCALAR_NO_QUESTION"
+      },
+      {
+        "line": 38714,
+        "column": 58,
+        "label": "R2_KEY_MULTILINE_SURVIVING_OWNER"
+      },
+      {
+        "line": 38715,
+        "column": 56,
+        "label": "R2_KEY_MULTILINE_NO_CHAIN"
+      },
+      {
+        "line": 38716,
+        "column": 54,
+        "label": "R2_KEY_MULTILINE_NO_QUESTION"
+      },
+      {
+        "line": 40305,
+        "column": 94,
+        "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+      },
+      {
+        "line": 40390,
+        "column": 94,
+        "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+      },
+      {
+        "line": 40676,
+        "column": 94,
+        "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+      },
+      {
+        "line": 40804,
+        "column": 94,
+        "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+      },
+      {
+        "line": 40924,
+        "column": 94,
+        "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+      }
+    ],
+    "not_impossibility_proof": true,
+    "colon_helper_axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound",
+      "L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_2",
+      "L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_3"
+    ],
+    "colon_helper_profile_contains_sorryAx": false,
+    "surrounding_callers_not_accepted_due_to_remaining_demands": true,
+    "log_sha256": "0ef41f6a9f7a4fdf6329b16d6aa504f2c736c18884b1f1faddb57feffff415ca"
+  },
+  "evidence_file_count_including_receipt": 75,
+  "preserved_resource_failures": {
+    "retention_sigkill_exit": -9,
+    "retention_2048_mib_cap_exit": 1,
+    "retention_malformed_union_exit": 1
+  },
+  "evidence_scope": "This is a local proof/test receipt; no hosted qualification or full repository build is implied"
+}

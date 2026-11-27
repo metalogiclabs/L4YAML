@@ -1,0 +1,2 @@
+Could not find native implementation of external declaration 'Tests.AdversarialInstantiation.collectTests' (symbols 'lp_L4YAML_Tests_AdversarialInstantiation_collectTests___boxed' or 'lp_L4YAML_Tests_AdversarialInstantiation_collectTests').
+For declarations from `Init`, `Std`, or `Lean`, you need to set `supportInterpreter := true` in the relevant `lean_exe` statement in your `lakefile.lean`.

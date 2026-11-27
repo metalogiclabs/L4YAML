@@ -1,0 +1,439 @@
+diff --git a/L4YAML/Proofs/Production/StreamAccum.lean b/L4YAML/Proofs/Production/StreamAccum.lean
+index 599a99c..7c924c1 100644
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1019,6 +1019,13 @@ def ExplValueLine (sp_start : SurfPos) (nv : Nat) (sp_e : SurfPos) : Prop :=
+   ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+   ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+   ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w
++ 
++/-- Research-only: the actual completed key followed by two actual value lines. -/
++def R2KeyPairAt (sc : ScannerState) (start gram : SurfPos) (own : Nat) : Prop :=
++  ∀ a ∈ RegisterWitness.markedCols sc, a ≠ own →
++    ∀ mid i c : SurfPos, SSLComments gram mid → SIndent own mid i → GLit ':' i c →
++    ∀ v : SurfPos, SBlockIndented own .blockOut c v → ExplValueLine start a v
++
+ 
+ /-- **The enclosing sequence's own remaining tail** (item 167) — the SEQUENCE
+     lane's bottom, and `ExplValueLine`'s twin on it.
+@@ -2107,12 +2114,13 @@ inductive PendingNode (sc : ScannerState) : Bool → SurfPos → SurfPos → Sur
+       -- the crossing — `FlowBaseRoutes.vslot` carries it across the
+       -- collection and the close arm hands it on (inline since item 478 deleted the
+       -- unconsumed `flowVPack_of_close`).
+-      (h_vpack : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
++      (h_vpack : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ (∀ nv ∈ ns,
+         ∀ sp_mid sp_i sp_c : SurfPos,
+           SSLComments sp_gram sp_mid → SIndent nv sp_mid sp_i →
+           GLit ':' sp_i sp_c →
+           ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
++          (∀ own ∈ ns, R2KeyPairAt sc sp_start sp_gram own)) ∨ PackAlt sc)
+       -- **Item 77 — the park's own arm** (LAST, so the patterns naming the older
+       -- fields still bind them).  A landed `:` measures its floor against the
+       -- save preprocessing makes at the landing, and item 76 supplies that save
+@@ -24987,7 +24995,8 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
+     (h_top_in : s'.currentIndent ≤ (nv : Int))
+     (h_outer : (PendingKeySound.Sound s_prep ∧ RegisterWitness.MarkedColsIn s_prep [nv] ∧
+       (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨
+-      (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv)) :
++      (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv))
++    (h_pairAt : R2KeyPairAt s' sp_start sp_scan nv) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -25034,7 +25043,14 @@ lemma colon_open_map_explicit (sp_start sp_scan sp_mid sp_ind : SurfPos) (nv : N
+            (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)
+            (Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega))
+            -- Item 93: a VALUE park has no value line of its own.
+-           (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
++           (if h_noOwn : nv ∉ RegisterWitness.markedCols s' then
++              Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
++                fun a hm m h_node =>
++                  h_pairAt a hm (by intro he; subst a; exact h_noOwn hm)
++                    sp_mid sp_ind sp_scan' h_ssl h_ind h_lit m
++                    (SBlockIndented.node nv .blockOut sp_scan' m
++                      (SBlockNode_blockIn_to_blockOut h_node))⟩
++            else h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+              -- Item 371: the park's own frame, from the restated value-line pack —
+              -- after the explicit `:`'s value (a node, or nothing but comments)
+              -- the mapping at `nv` goes on with its siblings: `? a⏎:⏎b: 1`.
+@@ -25475,13 +25491,26 @@ lemma compact_open_map (sp_start sp_entry sp_ind : SurfPos) (n m : Nat)
+              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+              (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+            (nodir_of_block_dispatch h_dispatch) (Or.inr trivial)
+-           -- Item 190: the compact `?` has the literal but no outer frame's
+-           -- line reaches it — this park stands inside a COMPACT key, whose
+-           -- landing has yet to reach the branch that would spend one.
++           -- Research: retain the actual compact question's entry-associated chain.
++           -- Same caller-owned content continuation as h_expl105.
+            (match hc with
+             | Or.inl h => Or.inr (Or.inl (dispatchBlock_colon_notQuestion (h ▸ h_dispatch)))
+-            -- Item 405: the compact `?`'s chain has no domain here — DECLINED (ruling (a)).
+-            | Or.inr _ => Or.inr (Or.inr trivial)),
++            | Or.inr h => match h_chainUp with
++              | Or.inl up => Or.inl ⟨sp_ind, RegisterWitness.markedCols sc, h_qlit h,
++                  (by
++                    have hk : ((s_prep.col : Nat) : Int).toNat = n + 1 + m := by
++                      have h1 := hcorr_prep.col_eq
++                      have h2 := SIndent_col h_ind
++                      rw [Int.toNat_natCast]; omega
++                    rw [← hk]
++                    exact h_mcstep _ (RegisterWitness.MarkedColsIn.self sc)),
++                  fun nv hmem sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi =>
++                    up nv hmem sp_v
++                      (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
++                        (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v h_entry
++                          (SCompactMapTail.nil (n + 1 + m) sp_v)))
++                      sp_i sp_c h_iv h_clit sp_w h_sbi⟩
++              | Or.inr _ => Or.inr (Or.inr trivial)),
+          hcorr_result⟩
+ 
+ -- The two KEYLESS block-mapping openers under one name (item 20).  They
+@@ -27308,11 +27337,12 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
+     -- list does for arbitrarily many.  So the split becomes the list, the
+     -- landing decides `k ∈ ns` once instead of casing twice, and the single
+     -- site that paid `h_vpackUp` appends instead. ═══
+-    (h_vpack : (∃ ns : List Nat, ∀ nv ∈ ns,
++    (h_vpack : (∃ ns : List Nat, (∀ nv ∈ ns,
+       ∀ sp_m sp_i sp_c : SurfPos,
+         SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
++        (c = ':' → ∀ own ∈ ns, R2KeyPairAt sc sp_start sp_gram own)) ∨ PackAlt sc)
+     -- Item 58: the slot travels with the park's own simple-key coordinate.
+     -- Only a `?`/`:` scan opens this slot, and both re-arm fresh saves, so a
+     -- key recorded at the NEXT indicator sits AT it — which is what sends the
+@@ -28426,8 +28456,11 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
+         have h_explicit := fun (hvp : ∀ sp_m sp_i sp_c : SurfPos,
+             SSLComments sp_gram sp_m → SIndent k sp_m sp_i → GLit ':' sp_i sp_c →
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+-            ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-          colon_open_map_explicit sp_start sp_gram sp_mid _ k s_prep s'
++            ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v)
++            (pair : R2KeyPairAt sc sp_start sp_gram k) =>
++          colon_open_map_explicit
++            (h_pairAt := fun a hm hn => pair a (h_markBack a hm (by simp)) hn)
++            sp_start sp_gram sp_mid _ k s_prep s'
+             sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+             -- Item 76: the explicit VALUE line measures on the same datum the
+             -- keyless opener does — `h_vpack` carries no flag, and the
+@@ -28480,17 +28513,17 @@ lemma accum_block_on_closeThenBlock {sp_gram : SurfPos}
+           else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+             { s_prep with allowDirectives := false, documentEverStarted := true }
+           else s_prep).explicitKeyCol
+-        · rcases h_vpack with ⟨ns, hvp⟩ | _
++        · rcases h_vpack with ⟨ns, hvp, pair⟩ | _
+           · by_cases hknv : k ∈ ns
+-            · exact h_explicit (hvp k hknv)
++            · exact h_explicit (hvp k hknv) (pair rfl k hknv)
+             · exact h_generic (fun _ => h_src)
+           · exact h_generic (fun _ => h_src)
+-        · rcases h_vpack with ⟨ns, hvp⟩ | _
++        · rcases h_vpack with ⟨ns, hvp, pair⟩ | _
+           -- Item 189: the park's own frame misses and one ABOVE it hits
+           -- (`?⏎  ?⏎: w`); item 192: or one further above still, which is why
+           -- the test is membership rather than a pair of equalities.
+           · by_cases hknv : k ∈ ns
+-            · exact h_explicit (hvp k hknv)
++            · exact h_explicit (hvp k hknv) (pair rfl k hknv)
+             · -- Item 185: no frame the park carries is at the landing's column.
+               exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
+                 h_stream_new
+@@ -29061,11 +29094,12 @@ lemma accum_block_on_pendingContent
+     -- landed `:` (see `accum_block_on_closeThenBlock`).  **Item 192: the
+     -- park's whole chain of frames**, which is what a flow collection that
+     -- closed into this park hands it.
+-    (h_vpack : (∃ ns : List Nat, ∀ nv ∈ ns,
++    (h_vpack : (∃ ns : List Nat, (∀ nv ∈ ns,
+       ∀ sp_m sp_i sp_c : SurfPos,
+         SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
++        (∀ own ∈ ns, R2KeyPairAt sc sp_start sp_gram own)) ∨ PackAlt sc)
+     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+     (hcorr_result : ScannerSurfCorr s' sp_scan')
+     (h_corr : ScannerSurfCorr sc sp_scan)
+@@ -29175,7 +29209,9 @@ lemma accum_block_on_pendingContent
+     exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
+       h_stream_block h_key h_stale h_park h_kbc h_scf h_live
+       (fun h_inl => accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' ':'
+-        sp_prep sp_scan' h_close_pending h_vpack (Or.inr h_inl) hcorr_prep hcorr_result
++        sp_prep sp_scan' h_close_pending
++        (h_vpack.imp (fun ⟨ns, single, pair⟩ => ⟨ns, single, fun _ => pair⟩) id)
++        (Or.inr h_inl) hcorr_prep hcorr_result
+         h_corr h_noflow h_park h_preprocess h_dispatch (Or.inr trivial)
+         (Or.inr trivial) h_bare h_dn h_fv h_base h_mono (Or.inl h_tail139) (Or.inr trivial)
+         -- Item 168: the landing character is `:` here, so the `-` arm that
+@@ -29203,9 +29239,9 @@ lemma accum_block_on_pendingContent
+       -- closed at the landing — the third γ root of item 301.
+       (h_mapFV108.elim
+        (fun hall => Or.inl ⟨RegisterWitness.markedCols sc,
+-           fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => by
++           (fun nv' hmem sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi => by
+              obtain ⟨_, fV⟩ := hall nv' hmem
+-             exact (fV sp_m h_ssl_m).close sp_i sp_c h_iv h_lit sp_v h_sbi⟩)
++             exact (fV sp_m h_ssl_m).close sp_i sp_c h_iv h_lit sp_v h_sbi), fun hc' => (hc hc').elim⟩)
+        (fun h_alt => Or.inr h_alt))
+       (Or.inr (fun h_res _ => (nodeStop_refutes_inline_residue h_line
+         ((block_indicator_char h_dispatch).imp id (fun h => h.resolve_left hc)) h_res).elim)) hcorr_prep hcorr_result h_corr h_noflow
+@@ -29738,7 +29774,9 @@ lemma accum_block_on_pendingBlockContent {sp_gram : SurfPos}
+               ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+               ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-            colon_open_map_explicit sp_start sp_gram sp_mid _ k s_prep s'
++            colon_open_map_explicit
++              (h_pairAt := by first | assumption | (trace_state; fail "R2_OTHER_BLOCK_CONTENT_PAIR"))
++              sp_start sp_gram sp_mid _ k s_prep s'
+               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+               (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+                 kslot sp_m h_ssl_m sp_m (SCompactSeqTail.nil n sp_m)
+@@ -30539,7 +30577,9 @@ lemma accum_block_on_pendingBlock
+             ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-          colon_open_map_explicit sp_start sp_scan sp_mid _ k s_prep s'
++          colon_open_map_explicit
++            (h_pairAt := by first | assumption | (trace_state; fail "R2_OTHER_PENDING_BLOCK_PAIR"))
++            sp_start sp_scan sp_mid _ k s_prep s'
+             sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+             (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+               kslot sp_m (SBlockIndented.empty n .blockIn sp_scan sp_m h_ssl_m)
+@@ -31063,7 +31103,7 @@ lemma accum_block_pending (sc : ScannerState)
+     -- punts its own, the recorded residue).
+     exact accum_block_on_pendingContent (h_sound := h_sound) sc sp_start sp_block sp_scan s_prep s' c
+       sp_prep sp_scan' sp_gramO h_stream_block h_runO h_gateO
+-      h_closableO h_line h_key (h_vpack51.imp (fun ⟨ns, _, k⟩ => ⟨ns, k⟩) id) hcorr_prep hcorr_result h_corr
++      h_closableO h_line h_key (h_vpack51.imp (fun ⟨ns, _, k, pair⟩ => ⟨ns, k, pair⟩) id) hcorr_prep hcorr_result h_corr
+       h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_mono
+       h_tail139 h_seqF168
+       (h_framesS109.imp (fun ⟨ks, _, fS⟩ => ⟨ks, fS⟩) id)
+@@ -38267,32 +38307,52 @@ lemma accum_content_on_pendingMapValue_indented
+              -- open at two different columns at once (`?⏎  ? a: b⏎: w` lands on
+              -- the OUTER), so preferring either shadows the other — item 189's
+              -- finding, one production over.  The chain takes both.
+-             (frameChainUnionD
+-               (match h_expl with
+-                | Or.inl ⟨sp_q, h_qlit, route, h_chainUp⟩ =>
+-                    -- Item 415: the `?` entry's own route (its `:` IS the entry's value) and item 412's chain
+-                    -- one frame up (a `:` at an enclosing mark closes a key-only entry), on the projection.
+-                    (match h_chainUp with
+-                     | Or.inl up => Or.inl ⟨RegisterWitness.markedCols sc,
+-                         MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+-                         fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+-                           explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+-                             (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid
+-                               (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl)))
+-                             sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+-                     | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+-                | Or.inr _ => Or.inr trivial)
+-               -- Item 93: the park's twin, as at the root arm
+-               -- (`k:⏎  ? a: b⏎  : - w`).
+-               (match h_kslot with
+-                | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
+-                    (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+-                      kslot nv hmem sp_m
+-                        (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_m
+-                          h_sep_all (h_flow_all (n + 1))
+-                          h_ssl)
+-                        sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
+-                | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
++             (by
++               have h_old : (∃ ns : List Nat, RegisterWitness.MarkedColsIn s' ns ∧ ∀ nv ∈ ns,
++                   ∀ sp_m sp_i sp_c : SurfPos, SSLComments sp_gram sp_m → SIndent nv sp_m sp_i →
++                   GLit ':' sp_i sp_c → ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
++                   ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt s' :=
++                 (frameChainUnionD
++                   (match h_expl with
++                    | Or.inl ⟨sp_q, h_qlit, route, h_chainUp⟩ =>
++                        -- Item 415: the `?` entry's own route (its `:` IS the entry's value) and item 412's chain
++                        -- one frame up (a `:` at an enclosing mark closes a key-only entry), on the projection.
++                        (match h_chainUp with
++                         | Or.inl up => Or.inl ⟨RegisterWitness.markedCols sc,
++                             MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
++                             fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
++                               explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
++                                 (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid
++                                   (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl)))
++                                 sp_i sp_c h_iv h_lit sp_v h_sbi⟩
++                         | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
++                    | Or.inr _ => Or.inr trivial)
++                   -- Item 93: the park's twin, as at the root arm
++                   -- (`k:⏎  ? a: b⏎  : - w`).
++                   (match h_kslot with
++                    | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
++                        (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
++                          kslot nv hmem sp_m
++                            (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_m
++                              h_sep_all (h_flow_all (n + 1))
++                              h_ssl)
++                            sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                    | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
++               rcases h_old with ⟨ns, hd, single⟩ | h_alt
++               · refine Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
++                   (fun nv hm => single nv (hd.mem hm)), ?_⟩
++                 intro own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi
++                 rcases h_expl with ⟨sp_q, h_qlit, route, h_chainUp⟩ | h_notQuestion
++                 · rcases h_chainUp with up | h_noChain
++                   · by_cases howner : own = n
++                     · subst own
++                       exact up a (marks_step_content h_preprocess h_dispatch a ha) hn sp_v
++                         (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
++                           (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl))) h_iv h_lit h_sbi)
++                     · first | assumption | (trace_state; fail "R2_KEY_FLOW_SURVIVING_OWNER")
++                   · first | assumption | (trace_state; fail "R2_KEY_FLOW_NO_CHAIN")
++                 · first | assumption | (trace_state; fail "R2_KEY_FLOW_NO_QUESTION")
++               · exact Or.inr h_alt)
+               (content_park_arm (preprocess_some_peek h_preprocess)
+                 h_flow_disp h_not_doc h_dispatch hcorr_result)
+              -- **Item 109: the park's own RESUME frames** — the SAME node the
+@@ -38468,27 +38528,47 @@ lemma accum_content_on_pendingMapValue_indented
+              -- (`k:⏎  ? |⏎    x⏎  : v` — the scalar is the frame's own KEY).
+              -- Item 192: both, as at the arm above — the preference item 112
+              -- recorded is what the chain replaces.
+-             (frameChainUnionD
+-               (match h_expl with
+-                | Or.inl ⟨sp_q, h_qlit, route, h_chainUp⟩ =>
+-                    -- Item 415: the `?` entry's own route (its `:` IS the entry's value) and item 412's chain
+-                    -- one frame up (a `:` at an enclosing mark closes a key-only entry), on the projection.
+-                    (match h_chainUp with
+-                     | Or.inl up => Or.inl ⟨RegisterWitness.markedCols sc,
+-                         MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+-                         fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+-                           explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+-                             (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid
+-                               (h_nodeAt sp_mid h_ssl)))
+-                             sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+-                     | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+-                | Or.inr _ => Or.inr trivial)
+-               (match h_kslot with
+-                | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
+-                    (fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+-                      kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
+-                        sp_i sp_c h_iv h_lit sp_v h_sbi)⟩
+-                | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
++             (by
++               have h_old : (∃ ns : List Nat, RegisterWitness.MarkedColsIn s' ns ∧ ∀ nv ∈ ns,
++                   ∀ sp_m sp_i sp_c : SurfPos, SSLComments sp_scan' sp_m → SIndent nv sp_m sp_i →
++                   GLit ':' sp_i sp_c → ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
++                   ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt s' :=
++                 (frameChainUnionD
++                   (match h_expl with
++                    | Or.inl ⟨sp_q, h_qlit, route, h_chainUp⟩ =>
++                        -- Item 415: the `?` entry's own route (its `:` IS the entry's value) and item 412's chain
++                        -- one frame up (a `:` at an enclosing mark closes a key-only entry), on the projection.
++                        (match h_chainUp with
++                         | Or.inl up => Or.inl ⟨RegisterWitness.markedCols sc,
++                             MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
++                             fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
++                               explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
++                                 (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid
++                                   (h_nodeAt sp_mid h_ssl)))
++                                 sp_i sp_c h_iv h_lit sp_v h_sbi⟩
++                         | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
++                    | Or.inr _ => Or.inr trivial)
++                   (match h_kslot with
++                    | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
++                        (fun sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
++                          kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
++                            sp_i sp_c h_iv h_lit sp_v h_sbi)⟩
++                    | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
++               rcases h_old with ⟨ns, hd, single⟩ | h_alt
++               · refine Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
++                   (fun nv hm => single nv (hd.mem hm)), ?_⟩
++                 intro own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi
++                 rcases h_expl with ⟨sp_q, h_qlit, route, h_chainUp⟩ | h_notQuestion
++                 · rcases h_chainUp with up | h_noChain
++                   · by_cases howner : own = n
++                     · subst own
++                       exact up a (marks_step_content h_preprocess h_dispatch a ha) hn sp_v
++                         (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
++                           (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (h_nodeAt sp_mid h_ssl))) h_iv h_lit h_sbi)
++                     · first | assumption | (trace_state; fail "R2_KEY_SCALAR_SURVIVING_OWNER")
++                   · first | assumption | (trace_state; fail "R2_KEY_SCALAR_NO_CHAIN")
++                 · first | assumption | (trace_state; fail "R2_KEY_SCALAR_NO_QUESTION")
++               · exact Or.inr h_alt)
+                (content_park_arm (preprocess_some_peek h_preprocess)
+                  h_flow_disp h_not_doc h_dispatch hcorr_result)
+              -- Item 112: items 99/108's faces — the re-read node feeds the
+@@ -38574,32 +38654,52 @@ lemma accum_content_on_pendingMapValue_indented
+                (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+                hcorr_result)
+              -- Item 192: both funders, as at the two arms above.
+-             (frameChainUnionD
+-               (match h_expl with
+-                | Or.inl ⟨sp_q, h_qlit, route, h_chainUp⟩ =>
+-                    -- Item 415: the `?` entry's own route (its `:` IS the entry's value) and item 412's chain
+-                    -- one frame up (a `:` at an enclosing mark closes a key-only entry), on the projection.
+-                    (match h_chainUp with
+-                     | Or.inl up => Or.inl ⟨RegisterWitness.markedCols sc,
+-                         MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
+-                         fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+-                           explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
+-                             (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid
+-                               (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl)))
+-                             sp_i sp_c h_iv h_lit sp_v h_sbi⟩
+-                     | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+-                | Or.inr _ => Or.inr trivial)
+-               -- Item 93: the park's twin, the multi-line node folded in as
+-               -- the closure folds it (`k:⏎  ? a: "p⏎      q"⏎  : - w`).
+-               (match h_kslot with
+-                | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
+-                    (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+-                      kslot nv hmem sp_m
+-                        (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_m
+-                          h_sep_all h_node_f
+-                          h_ssl)
+-                        sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
+-                | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
++             (by
++               have h_old : (∃ ns : List Nat, RegisterWitness.MarkedColsIn s' ns ∧ ∀ nv ∈ ns,
++                   ∀ sp_m sp_i sp_c : SurfPos, SSLComments sp_gramf sp_m → SIndent nv sp_m sp_i →
++                   GLit ':' sp_i sp_c → ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
++                   ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt s' :=
++                 (frameChainUnionD
++                   (match h_expl with
++                    | Or.inl ⟨sp_q, h_qlit, route, h_chainUp⟩ =>
++                        -- Item 415: the `?` entry's own route (its `:` IS the entry's value) and item 412's chain
++                        -- one frame up (a `:` at an enclosing mark closes a key-only entry), on the projection.
++                        (match h_chainUp with
++                         | Or.inl up => Or.inl ⟨RegisterWitness.markedCols sc,
++                             MarkedColsIn.step_content h_preprocess h_dispatch (RegisterWitness.MarkedColsIn.self sc),
++                             fun nv hmem sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
++                               explEntryChain_of_keyContent h_qlit route up nv hmem sp_mid
++                                 (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid
++                                   (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl)))
++                                 sp_i sp_c h_iv h_lit sp_v h_sbi⟩
++                         | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
++                    | Or.inr _ => Or.inr trivial)
++                   -- Item 93: the park's twin, the multi-line node folded in as
++                   -- the closure folds it (`k:⏎  ? a: "p⏎      q"⏎  : - w`).
++                   (match h_kslot with
++                    | Or.inl ⟨ns, hd, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, fun nv hmem =>
++                        (fun sp_m sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
++                          kslot nv hmem sp_m
++                            (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_m
++                              h_sep_all h_node_f
++                              h_ssl)
++                            sp_i sp_c h_ind h_lit sp_v h_sbi)⟩
++                    | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h)))
++               rcases h_old with ⟨ns, hd, single⟩ | h_alt
++               · refine Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
++                   (fun nv hm => single nv (hd.mem hm)), ?_⟩
++                 intro own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi
++                 rcases h_expl with ⟨sp_q, h_qlit, route, h_chainUp⟩ | h_notQuestion
++                 · rcases h_chainUp with up | h_noChain
++                   · by_cases howner : own = n
++                     · subst own
++                       exact up a (marks_step_content h_preprocess h_dispatch a ha) hn sp_v
++                         (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
++                           (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl))) h_iv h_lit h_sbi)
++                     · first | assumption | (trace_state; fail "R2_KEY_MULTILINE_SURVIVING_OWNER")
++                   · first | assumption | (trace_state; fail "R2_KEY_MULTILINE_NO_CHAIN")
++                 · first | assumption | (trace_state; fail "R2_KEY_MULTILINE_NO_QUESTION")
++               · exact Or.inr h_alt)
+               (content_park_arm (preprocess_some_peek h_preprocess)
+                 h_flow_disp h_not_doc h_dispatch hcorr_result)
+              -- Item 109: the park's own frames, the multi-line node folded in
