@@ -1,0 +1,188 @@
+name: Price uncovered R2 producers and reconcile item 540
+on:
+  push:
+    branches: [test/remaining-pair-producers-386]
+    paths: [.github/workflows/remaining-pair-producers-386.yml]
+permissions:
+  contents: read
+jobs:
+  producer-price:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 12f27421d70b7e5039fc01ed946a19141156773e
+          path: source
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind exact previously checked transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cp harness/Research/RootComposition/explicit-value-pair-transport.json results/spec.json
+          cd source
+          test "$(git rev-parse HEAD)" = 12f27421d70b7e5039fc01ed946a19141156773e
+          test "$(git rev-parse HEAD^{tree})" = c5b769ae96bdb8015a2148f9f274826126c0f114
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 7f731ef53f93aebc969b9790ad03bc14b7cd029e
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: remaining-pairs-12f27421-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Enumerate actual uncovered producers and price required caller alternative
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, hashlib, re
+          out=pathlib.Path('../results')
+          spec=json.loads((out/'spec.json').read_text())
+          p=pathlib.Path(spec['path'])
+          s=p.read_text()
+          for e in spec['edits']:
+              assert s.count(e['old'])==1, e['label']
+              s=s.replace(e['old'],e['new'],1)
+          assert hashlib.sha256(s.encode()).hexdigest()=='ae87361a3b4f5497db154f2f41eb7919090d3e936612c0ee73bf613df435b51c'
+          groups=[('sequence',r'PendingNode\.pendingBlock\b','h_pairSeq',7,2),
+                  ('content',r'PendingNode\.pendingBlockContent\b','h_pairContent',6,3),
+                  ('explicit-value',r'\bcolon_open_map_explicit\b','h_pairValue',3,1)]
+          sites=[]; edits=[]; counts={}
+          for kind, pat, field, expected, paired in groups:
+              actual=[]
+              for m in re.finditer(pat,s):
+                  begin=s.rfind('\n',0,m.start())+1
+                  end=s.find('\n',m.end())
+                  line=s[begin:end]
+                  if line.lstrip().startswith(('--','/--','/-','*')): continue
+                  if re.search(r'\b(?:theorem|lemma|def|abbrev)\s*$',s[begin:m.start()]): continue
+                  has=bool(re.match(r'\s*\('+field+r'\s*:=',s[m.end():]))
+                  lineno=s.count('\n',0,m.start())+1
+                  decls=list(re.finditer(r'(?m)^\s*(?:(?:private|protected|noncomputable)\s+)*(?:theorem|lemma|def)\s+([\w.]+)',s[:m.start()]))
+                  decl=decls[-1].group(1) if decls else '?'
+                  actual.append((m,has))
+                  sites.append(dict(kind=kind,line=lineno,declaration=decl,paired=has,text=line.strip()))
+                  excerpt=s.splitlines()[max(0,lineno-12):lineno+15]
+                  (out/f'{kind}-{lineno}.txt').write_text('\n'.join(f'{max(1,lineno-11)+i}: {l}' for i,l in enumerate(excerpt))+'\n')
+              counts[kind]={'actual':len(actual),'paired':sum(h for _,h in actual),'expected':expected,'expected_paired':paired}
+              for m,has in actual:
+                  if has: continue
+                  # Inspect real Lean local context, not a guessed source line.
+                  # At explicit consumers demand the left arm; at other producers retain the old fallback for diagnostics.
+                  tactic='by apply Or.inl; trace_state; first | assumption | fail "R2_MISSING_REQUIRED_PAIR_VALUE"' if kind=='explicit-value' else 'by trace_state; exact Or.inr trivial'
+                  edits.append((m.end(),f' ({field} := {tactic})'))
+          (out/'producer-sites.json').write_text(json.dumps(sites,indent=2)+'\n')
+          (out/'coverage.json').write_text(json.dumps(counts,indent=2)+'\n')
+          print(json.dumps(counts,indent=2))
+          assert all(v['actual']==v['expected'] and v['paired']==v['expected_paired'] for v in counts.values()), 'Syntactic roster prediction failed: see evidence; no speculative edits'
+          assert len(edits)==10
+          for pos, ins in sorted(edits,reverse=True): s=s[:pos]+ins+s[pos:]
+          p.write_text(s)
+          (out/'diagnostic.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
+          PY
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/diagnostic.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/producer-price.log 2>&1 || status=$?
+          echo "$status" > ../results/producer-price.exit
+          grep -E 'error:|R2_MISSING_REQUIRED_PAIR_VALUE|Build completed' ../results/producer-price.log | tail -100 || true
+          printf '%s\n' 'diagnostic_only=true' 'mandatory_at_two_unpaired_explicit_value_callers=true' 'critical_retirement=NOT_CLAIMED' > ../results/scope.txt
+          git restore -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 7f731ef53f93aebc969b9790ad03bc14b7cd029e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: remaining-producer-price
+          path: results/
+          if-no-files-found: error
+  reconcile-384:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: d221fb2d8893984ca4f894964364ebeff2368768
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+      - name: Exact merge tree, preserve owner payments and conflict stages
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../results
+          pr=d221fb2d8893984ca4f894964364ebeff2368768
+          owner=2540115c885d3badf65237cc45f1737a596f7ec9
+          test "$(git rev-parse HEAD)" = "$pr"
+          git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$owner"
+          test "$(git rev-parse FETCH_HEAD)" = "$owner"
+          base=$(git merge-base "$pr" "$owner")
+          test "$base" = 6dc5601039d63dd02f3dfa0d16478b2c849fecd3
+          printf '%s\n' "$pr" "$owner" "$base" > ../results/parents.txt
+          git -c user.name=Research -c user.email=research@example.invalid merge --no-commit --no-ff "$owner" > ../results/merge.log 2>&1 || true
+          git status --porcelain > ../results/status.txt
+          git ls-files -u > ../results/unmerged-stages.txt
+          git diff --name-only --diff-filter=U > ../results/conflict-paths.txt
+          cat ../results/conflict-paths.txt
+          path=L4YAML/Proofs/Production/StreamAccum.lean
+          git diff "$owner" -- "$path" > ../results/stream-v-owner.patch
+          git diff "$pr" -- "$path" > ../results/stream-v-pr.patch
+          git diff "$base" "$owner" -- "$path" > ../results/owner-payment.patch
+          if ! grep -qE '^(L4YAML/|lean-toolchain$|lakefile|lake-manifest)' ../results/conflict-paths.txt; then
+            git hash-object "$path" > ../results/merged-stream.blob
+            grep -n 'h_nomark' "$path" > ../results/refused-landing-sites.txt
+            printf '%s\n' 'library_conflicts=none' > ../results/scope.txt
+            git submodule update --init --recursive
+            test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+            curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+            echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+            "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+            touch ../results/library-ready
+          else
+            printf '%s\n' 'library_conflict=true; no build attempted' > ../results/scope.txt
+          fi
+      - uses: actions/cache/restore@v4
+        if: hashFiles('results/library-ready') != ''
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: reconcile-386-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Check combined library only if merge leaves it conflict-free
+        if: hashFiles('results/library-ready') != ''
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/stream-build.log 2>&1 || status=$?
+          echo "$status" > ../results/stream-build.exit
+          grep -E 'error:|Build completed' ../results/stream-build.log | tail -100 || true
+          printf '%s\n' 'full_qualification=NOT_CLAIMED' >> ../results/scope.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: item-540-exact-reconciliation
+          path: results/
+          if-no-files-found: error
