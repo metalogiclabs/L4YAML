@@ -1,0 +1,78 @@
+name: Restore exact qualified item540 source without rebuilding
+on:
+  push:
+    branches: [test/item540-source-publication]
+    paths: [.github/workflows/item540-source-publication.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OWNER: 2540115c885d3badf65237cc45f1737a596f7ec9
+      OLD: d221fb2d8893984ca4f894964364ebeff2368768
+      QUAL: ee1e14be111643fcfb7ed6a33eef3ee931b2b11f
+      TREE: 9e5bb329ada408d7a9620dd389b1c7d852244dc1
+      GROUP: ${{ matrix.group }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 2540115c885d3badf65237cc45f1737a596f7ec9
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify and reconstruct exact tree; emit bounded source objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15172924564/zip > "$RUNNER_TEMP/qualification.zip"
+          echo "023b6939a8a35a3d4fc4991204c631662067fdf3a5cb8caf83b96f8ccced1eba  $RUNNER_TEMP/qualification.zip" | sha256sum -c -
+          unzip -tq "$RUNNER_TEMP/qualification.zip"
+          unzip -q "$RUNNER_TEMP/qualification.zip" -d "$RUNNER_TEMP/receipt"
+          receipt="$RUNNER_TEMP/receipt"
+          echo "ef61b52d490d350564d37ef862073913d3354152d282e7455609db381e8071ba  $receipt/qualified.bundle" | sha256sum -c -
+          test "$(sed -n '1p' "$receipt/qualified-source.txt")" = "$QUAL"
+          test "$(sed -n '2p' "$receipt/qualified-source.txt")" = "$TREE"
+          git fetch --no-tags https://github.com/metalogiclabs/L4YAML.git "$OLD"
+          git bundle verify "$receipt/qualified.bundle"
+          git fetch "$receipt/qualified.bundle" HEAD
+          test "$(git rev-parse "$QUAL^{tree}")" = "$TREE"
+          git merge-base --is-ancestor "$OWNER" "$QUAL"
+          git merge-base --is-ancestor "$OLD" "$QUAL"
+          git ls-tree -r "$QUAL" > "$RUNNER_TEMP/restored-tree.txt"
+          cmp "$RUNNER_TEMP/restored-tree.txt" "$receipt/qualified-tree.txt"
+          cmp "$receipt/axioms-before.log" "$receipt/axioms-after.log"
+          cmp "$receipt/root-axioms-before.log" "$receipt/root-axioms-after.log"
+          git diff --exit-code "$OWNER" "$QUAL" -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules .github/workflows
+          echo "BEGIN-SOURCE $OLD $OWNER $QUAL $TREE"
+          git diff --name-only "$OWNER" "$QUAL" | while IFS= read -r path; do
+            mode=$(git ls-tree --format='%(objectmode)' "$QUAL" -- "$path")
+            blob=$(git ls-tree --format='%(objectname)' "$QUAL" -- "$path")
+            test "$mode" = 100644 -o "$mode" = 100755
+            prev=$(git rev-parse "$OLD:$path" 2>/dev/null || true)
+            upstream=$(git rev-parse "$OWNER:$path" 2>/dev/null || true)
+            if test "$blob" = "$prev" -o "$blob" = "$upstream"; then
+              printf 'EXISTING-BLOB %s %s %s\n' "$mode" "$blob" "$path"
+            else
+              size=$(git cat-file -s "$blob")
+              parts=$(((size+49151)/49152))
+              printf 'NOVEL-BLOB %s %s %s %s\n' "$mode" "$blob" "$size" "$path"
+              git show "$QUAL:$path" > "$RUNNER_TEMP/blob.tmp"
+              for part in $(seq 0 $((parts-1))); do
+                if test "$((part%8))" = "$GROUP"; then
+                  echo "BEGIN-CHUNK $blob $part $parts"
+                  dd if="$RUNNER_TEMP/blob.tmp" bs=49152 skip="$part" count=1 status=none | base64 -w 76
+                  echo END-CHUNK
+                fi
+              done
+            fi
+          done
+          echo END-SOURCE
+          echo "RESTORATION_VERIFIED $QUAL $TREE"
