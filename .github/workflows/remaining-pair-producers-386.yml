@@ -1,4 +1,4 @@
-name: Price uncovered R2 producers and reconcile item 540
+name: Price uncovered R2 producers (exact roster)
 on:
   push:
     branches: [test/remaining-pair-producers-386]
@@ -71,7 +71,7 @@ jobs:
                   begin=s.rfind('\n',0,m.start())+1
                   end=s.find('\n',m.end())
                   line=s[begin:end]
-                  if line.lstrip().startswith(('--','/--','/-','*')): continue
+                  if line.strip().startswith('`') or not re.match(r'\s*'+pat,line): continue
                   if re.search(r'\b(?:theorem|lemma|def|abbrev)\s*$',s[begin:m.start()]): continue
                   has=bool(re.match(r'\s*\('+field+r'\s*:=',s[m.end():]))
                   lineno=s.count('\n',0,m.start())+1
@@ -93,6 +93,9 @@ jobs:
           print(json.dumps(counts,indent=2))
           assert all(v['actual']==v['expected'] and v['paired']==v['expected_paired'] for v in counts.values()), 'Syntactic roster prediction failed: see evidence; no speculative edits'
           assert len(edits)==10
+          assert {x['line'] for x in sites if x['kind']=='sequence'}=={27095,27675,28328,29568,30165,30274,30792}
+          assert {x['line'] for x in sites if x['kind']=='content'}=={37346,37738,37825,40674,40801,40929}
+          assert {x['line'] for x in sites if x['kind']=='explicit-value'}=={28539,29855,30668}
           for pos, ins in sorted(edits,reverse=True): s=s[:pos]+ins+s[pos:]
           p.write_text(s)
           (out/'diagnostic.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
@@ -109,80 +112,5 @@ jobs:
         if: always()
         with:
           name: remaining-producer-price
-          path: results/
-          if-no-files-found: error
-  reconcile-384:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      LEAN_NUM_THREADS: 2
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: metalogiclabs/L4YAML
-          ref: d221fb2d8893984ca4f894964364ebeff2368768
-          fetch-depth: 0
-          path: source
-          persist-credentials: false
-      - name: Exact merge tree, preserve owner payments and conflict stages
-        working-directory: source
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ../results
-          pr=d221fb2d8893984ca4f894964364ebeff2368768
-          owner=2540115c885d3badf65237cc45f1737a596f7ec9
-          test "$(git rev-parse HEAD)" = "$pr"
-          git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$owner"
-          test "$(git rev-parse FETCH_HEAD)" = "$owner"
-          base=$(git merge-base "$pr" "$owner")
-          test "$base" = 6dc5601039d63dd02f3dfa0d16478b2c849fecd3
-          printf '%s\n' "$pr" "$owner" "$base" > ../results/parents.txt
-          git -c user.name=Research -c user.email=research@example.invalid merge --no-commit --no-ff "$owner" > ../results/merge.log 2>&1 || true
-          git status --porcelain > ../results/status.txt
-          git ls-files -u > ../results/unmerged-stages.txt
-          git diff --name-only --diff-filter=U > ../results/conflict-paths.txt
-          cat ../results/conflict-paths.txt
-          path=L4YAML/Proofs/Production/StreamAccum.lean
-          git diff "$owner" -- "$path" > ../results/stream-v-owner.patch
-          git diff "$pr" -- "$path" > ../results/stream-v-pr.patch
-          git diff "$base" "$owner" -- "$path" > ../results/owner-payment.patch
-          if ! grep -qE '^(L4YAML/|lean-toolchain$|lakefile|lake-manifest)' ../results/conflict-paths.txt; then
-            git hash-object "$path" > ../results/merged-stream.blob
-            grep -n 'h_nomark' "$path" > ../results/refused-landing-sites.txt
-            printf '%s\n' 'library_conflicts=none' > ../results/scope.txt
-            git submodule update --init --recursive
-            test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
-            curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
-            echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-            "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
-            touch ../results/library-ready
-          else
-            printf '%s\n' 'library_conflict=true; no build attempted' > ../results/scope.txt
-          fi
-      - uses: actions/cache/restore@v4
-        if: hashFiles('results/library-ready') != ''
-        continue-on-error: true
-        with:
-          path: source/.lake
-          key: reconcile-386-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
-            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
-      - name: Check combined library only if merge leaves it conflict-free
-        if: hashFiles('results/library-ready') != ''
-        working-directory: source
-        shell: bash
-        run: |
-          set -euo pipefail
-          status=0
-          lake build L4YAML.Proofs.Production.StreamAccum > ../results/stream-build.log 2>&1 || status=$?
-          echo "$status" > ../results/stream-build.exit
-          grep -E 'error:|Build completed' ../results/stream-build.log | tail -100 || true
-          printf '%s\n' 'full_qualification=NOT_CLAIMED' >> ../results/scope.txt
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: item-540-exact-reconciliation
           path: results/
           if-no-files-found: error
