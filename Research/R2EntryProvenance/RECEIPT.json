@@ -1,0 +1,91 @@
+{
+  "epistemic_state": "WARRANTED_BOUNDED_LOCAL",
+  "source_commit": "12f27421d70b7e5039fc01ed946a19141156773e",
+  "source_tree": "c5b769ae96bdb8015a2148f9f274826126c0f114",
+  "source_streamaccum_blob": "7f731ef53f93aebc969b9790ad03bc14b7cd029e",
+  "harness_parent": "3afc306213ea90eaad482caeab6444ec5e3fc1dc",
+  "upstream_comparison_head": "9f1f7bc60cf54741c1bf5d0c0618ee680268ed15",
+  "lean_version": "4.36.0",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "baseline_build": {
+    "exit": 0,
+    "jobs": 239
+  },
+  "three_relays_build": {
+    "exit": 0,
+    "jobs": 239,
+    "grammar_relays": [
+      "sibling sequence entry",
+      "nested block sequence",
+      "compact sequence"
+    ]
+  },
+  "axioms": {
+    "compared_declarations": [
+      "accum_block_on_pendingBlock",
+      "accum_block_pending",
+      "scan_content_gives_stream_v2"
+    ],
+    "byte_identical": true,
+    "sha256": "b6eeea2ef12cc1e8e575a10d904b75d11856fd243db4d496bd29314a10801d11"
+  },
+  "mandatory_consumer_build": {
+    "exit": 1,
+    "labels_unchanged_from_45946458630": true,
+    "errors": [
+      {
+        "line": 28565,
+        "column": 39,
+        "label": "R2_SEED_OWNER_MISMATCH"
+      },
+      {
+        "line": 28567,
+        "column": 37,
+        "label": "R2_SEED_UNAVAILABLE"
+      },
+      {
+        "line": 30735,
+        "column": 39,
+        "label": "R2_SEQ_OWNER_MISMATCH"
+      },
+      {
+        "line": 30737,
+        "column": 37,
+        "label": "R2_SEQ_UNAVAILABLE"
+      }
+    ]
+  },
+  "native_source_controls": {
+    "accepted": 14,
+    "critical_retirement_claimed": false,
+    "event": "summary",
+    "explicit_values_with_ancestors": 12,
+    "inner_values_before_any_sequence": 6,
+    "proof_disjunct_observation": false,
+    "value_landings_below_last_question_with_ancestors": 2
+  },
+  "compiled_source_sha256": {
+    "prior_19_relays": "ae87361a3b4f5497db154f2f41eb7919090d3e936612c0ee73bf613df435b51c",
+    "three_relays": "cc872cb95c2e2e8624dad82f6294f85ed4298a015009711f3f72d5c8ed095455",
+    "mandatory_consumer": "b228aad514e8dfaa5af28a78baf49f94c68d8e990f94bf1127f1bbdcf9685d1f"
+  },
+  "not_verified": [
+    "full default build",
+    "candidate capstone census",
+    "bindings",
+    "docs",
+    "universal continuation supply",
+    "critical position retirement",
+    "fresh owner CI"
+  ],
+  "source_restored_clean": true,
+  "production_refs_changed": false,
+  "hosted_workflows_launched": false,
+  "prior_negative_lineage": [
+    "45940594116",
+    "45946458630",
+    "45961304424",
+    "45961669654"
+  ],
+  "development_failures": "Two probe compilation errors retained; syntax layout and Option.flatten API, corrected before native controls. Not mathematical refutations."
+}

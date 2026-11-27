@@ -1,0 +1,148 @@
+info: DocGen4: materializing new dependency
+info: DocGen4: fetching revision 'b3ed25bf7905565f793c47f2a13737d742d96f14' from https://github.com/leanprover/doc-gen4.git
+info: DocGen4: checking out revision 'b3ed25bf7905565f793c47f2a13737d742d96f14'
+warning: /workspace/scratch/a08a06f5c42e/l4yaml-source/.lake/packages/DocGen4/lakefile.lean:274:19: `Lake.Module.leanArts` has been deprecated: Use `elabArts` or `irArts` instead.
+info: importGraph: materializing new dependency
+info: importGraph: fetching revision '8370c640afcd1cc3fb1cb9bf1560cc66eafee5e0' from https://github.com/leanprover-community/import-graph
+info: importGraph: checking out revision '8370c640afcd1cc3fb1cb9bf1560cc66eafee5e0'
+info: leansqlite: materializing new dependency
+info: leansqlite: fetching revision 'fed8102bf2d68d7eb1b1ec6c784cc1e0126584b7' from https://github.com/leanprover/leansqlite
+info: leansqlite: checking out revision 'fed8102bf2d68d7eb1b1ec6c784cc1e0126584b7'
+info: Cli: materializing new dependency
+info: Cli: fetching revision '50810f72af7618bee62fe9800dc26e806c188703' from https://github.com/leanprover/lean4-cli
+info: Cli: checking out revision '50810f72af7618bee62fe9800dc26e806c188703'
+info: UnicodeBasic: materializing new dependency
+info: UnicodeBasic: fetching revision '3a0e60a84c672431415e2cf664b6fc143f10e930' from https://github.com/fgdorais/lean4-unicode-basic
+info: UnicodeBasic: checking out revision '3a0e60a84c672431415e2cf664b6fc143f10e930'
+info: BibtexQuery: materializing new dependency
+info: BibtexQuery: fetching revision 'd5c536c4c75f197ed5e164120c86aa858767fb1c' from https://github.com/dupuisf/BibtexQuery
+info: BibtexQuery: checking out revision 'd5c536c4c75f197ed5e164120c86aa858767fb1c'
+info: MD4Lean: materializing new dependency
+info: MD4Lean: fetching revision '31907cc18f48a95384f99cee5582c00fb39e0f67' from https://github.com/acmepjz/md4lean
+info: MD4Lean: checking out revision '31907cc18f48a95384f99cee5582c00fb39e0f67'
+✔ [2/239] Built L4YAML.CapstoneAttr (1.1s)
+✔ [4/239] Built L4YAML.Init (516ms)
+✔ [6/239] Built L4YAML.Algebra.StringList (773ms)
+✔ [8/239] Built L4YAML.Indexed.Range (873ms)
+✔ [10/239] Built L4YAML.Spec.YamlSpec (958ms)
+✔ [12/239] Built L4YAML.Surface.Combinators (698ms)
+✔ [14/239] Built L4YAML.Spec.Types (1.9s)
+✔ [16/239] Built L4YAML.Spec.CharPredicates (1.4s)
+✔ [18/239] Built L4YAML.Output.Emitter (832ms)
+✔ [20/239] Built L4YAML.Surface.Basic (901ms)
+✔ [22/239] Built L4YAML.Parser.AnchorIndex (1.3s)
+✔ [24/239] Built L4YAML.Token.Token (1.7s)
+✔ [26/239] Built L4YAML.Parser.Fuel (566ms)
+✔ [28/239] Built L4YAML.Indexed.TokenStream (670ms)
+✔ [30/239] Built L4YAML.Parser.State (1.1s)
+✔ [31/239] Built L4YAML.Spec.Grammar (1.5s)
+✔ [34/239] Built L4YAML.Indexed.CharStream (897ms)
+✔ [36/239] Built L4YAML.Scanner.State (1.2s)
+✔ [37/239] Built L4YAML.Parser.FuelIx (642ms)
+✔ [38/239] Built L4YAML.Parser.ParseStateIx (907ms)
+✔ [39/239] Built L4YAML.Surface.Scalars (815ms)
+✔ [44/239] Built L4YAML.Proofs.Soundness (1.1s)
+✔ [46/239] Built L4YAML.Proofs.Foundation.StringProperties (917ms)
+✔ [47/239] Built L4YAML.Scanner.NodeProperties (856ms)
+✔ [48/239] Built L4YAML.Scanner.TokenQueries (822ms)
+✔ [49/239] Built L4YAML.Scanner.IndexedScanner (1.8s)
+✔ [50/239] Built L4YAML.Scanner.Indent (744ms)
+✔ [51/239] Built L4YAML.Scanner.Whitespace (882ms)
+✔ [58/239] Built L4YAML.Scanner.IndexedState (816ms)
+✔ [59/239] Built L4YAML.Scanner.Document (741ms)
+✔ [60/239] Built L4YAML.Scanner.SimpleKey (892ms)
+✔ [64/239] Built L4YAML.Proofs.Scanner.ScannerLinePreservation (809ms)
+✔ [66/239] Built L4YAML.Surface.Node (4.3s)
+✔ [68/239] Built L4YAML.Scanner.Scalar (1.0s)
+✔ [69/239] Built L4YAML.Proofs.Production.FlowIndexLift (903ms)
+✔ [70/239] Built L4YAML.Surface.Document (753ms)
+✔ [74/239] Built L4YAML.Parser.TokenParser (8.0s)
+✔ [76/239] Built L4YAML.Proofs.Foundation.SurfaceSpan (2.8s)
+✔ [78/239] Built L4YAML.Proofs.Production.FlowKeyLift (2.3s)
+✔ [80/239] Built L4YAML.Scanner.ScalarFast (4.6s)
+✔ [82/239] Built L4YAML.Scanner.Scanner (808ms)
+✔ [84/239] Built L4YAML.Proofs.Scanner.AliasTrailingContent (690ms)
+✔ [85/239] Built L4YAML.Proofs.Foundation.CharClass (810ms)
+✔ [86/239] Built L4YAML.Proofs.Coupling.CouplingBridge (1.4s)
+✔ [87/239] Built L4YAML.Proofs.Scanner.BlockScalarFlowGuard (973ms)
+✔ [88/239] Built L4YAML.Proofs.Scanner.FlowAdjacency (976ms)
+✔ [89/239] Built L4YAML.Parser.TokenParserIx (13s)
+✔ [90/239] Built L4YAML.Proofs.Scanner.ScannerContracts (766ms)
+✔ [91/239] Built L4YAML.Proofs.Scanner.ScannerLoopInvariant (893ms)
+✔ [94/239] Built L4YAML.Proofs.Scanner.CloseStaleExplicitKey (1.2s)
+✔ [102/239] Built L4YAML.Proofs.Scanner.ScannerProofs (1.1s)
+✔ [103/239] Built L4YAML.Parser.Composition (749ms)
+✔ [104/239] Built L4YAML.Proofs.Scanner.ScannerPlainContent (1.4s)
+✔ [105/239] Built L4YAML.Proofs.Scanner.IndexedWhitespace (783ms)
+✔ [110/239] Built L4YAML.Proofs.Scanner.ScannerWhitespace (858ms)
+✔ [112/239] Built L4YAML.Proofs.Scanner.ScannerFlowCollection (973ms)
+✔ [113/239] Built L4YAML.Proofs.Coupling.ScannerCoupling (1.5s)
+✔ [114/239] Built L4YAML.Proofs.Scanner.ScannerIndentStack (1.1s)
+✔ [115/239] Built L4YAML.Proofs.Composition (725ms)
+✔ [117/239] Built L4YAML.Proofs.Parser.ParserSoundness (1.8s)
+✔ [119/239] Built L4YAML.Proofs.RoundTrip.RoundTrip (1.5s)
+✔ [124/239] Built L4YAML.Proofs.Scanner.ScannerScalar (747ms)
+✔ [125/239] Built L4YAML.Proofs.Scanner.IndexedIndent (1.3s)
+✔ [128/239] Built L4YAML.Proofs.Scanner.ScannerDocument (947ms)
+✔ [129/239] Built L4YAML.Proofs.Parser.IndexedCompleteness (1.1s)
+✔ [132/239] Built L4YAML.Proofs.Scanner.ScannerDispatch (1.1s)
+✔ [134/239] Built L4YAML.Proofs.Scanner.ScannerProgress (1.7s)
+✔ [136/239] Built L4YAML.Proofs.Scanner.PreprocessIndentStable (4.9s)
+✔ [138/239] Built L4YAML.Proofs.Coupling.ScalarCoupling (5.8s)
+✔ [140/239] Built L4YAML.Proofs.Scanner.ScannerBound (8.2s)
+✔ [142/239] Built L4YAML.Proofs.Coupling.StructureCoupling (8.5s)
+✔ [144/239] Built L4YAML.Proofs.Scanner.ScanStrictCoupling (3.0s)
+✔ [146/239] Built L4YAML.Proofs.Coupling.TabIndentBridge (2.3s)
+✔ [148/239] Built L4YAML.Proofs.Scanner.ScannerCorrectness (24s)
+✔ [150/239] Built L4YAML.Proofs.Scanner.ScannerAllowDirectives (3.1s)
+✔ [151/239] Built L4YAML.Proofs.Scanner.PropsRunLineCoupling (4.8s)
+✔ [152/239] Built L4YAML.Proofs.Scanner.ScannerEkStackPreservation (6.4s)
+✔ [153/239] Built L4YAML.Proofs.Scanner.EntryBoundaryLayout (1.9s)
+✔ [158/239] Built L4YAML.Proofs.Scanner.ScannerFlowStackPreservation (5.8s)
+✔ [160/239] Built L4YAML.Proofs.Scanner.ScannerPlainScalar (10s)
+✔ [162/239] Built L4YAML.Proofs.Scanner.ContentAllowDirectives (5.1s)
+✔ [164/239] Built L4YAML.Proofs.Scanner.ExplicitKeyCoupling (6.0s)
+✔ [166/239] Built L4YAML.Proofs.Scanner.IndexedScalar (7.1s)
+✔ [168/239] Built L4YAML.Scanner.IndexedDispatch (2.4s)
+✔ [170/239] Built L4YAML.Parser.IndexedComposition (824ms)
+✔ [172/239] Built L4YAML.Proofs.Parser.IndexedComposition (633ms)
+✔ [174/239] Built L4YAML.Proofs.Production.ScannerPlainScalarValid (11s)
+✔ [176/239] Built L4YAML.Proofs.Output.ScannerEmitBridge (861ms)
+✔ [178/239] Built L4YAML.Proofs.Parser.ParserGrammableBase (2.6s)
+✔ [180/239] Built L4YAML.Proofs.Parser.ParserScannableBase (945ms)
+✔ [182/239] Built L4YAML.Algebra.Value (1.2s)
+✔ [184/239] Built L4YAML.Proofs.Parser.ParserWfaScannable (1.1s)
+✔ [186/239] Built L4YAML.Proofs.Parser.ParserNodeProofs (16s)
+✔ [188/239] Built L4YAML.Proofs.Parser.ParserWellBehaved (18s)
+✔ [190/239] Built L4YAML.Proofs.Parser.ParserWfaProofs (5.8s)
+✔ [192/239] Built L4YAML.Proofs.Parser.ParserAnchorProofs (700ms)
+✔ [194/239] Built L4YAML.Proofs.Parser.ParserGrammable (674ms)
+✔ [196/239] Built L4YAML.Proofs.Output.EmitterScannability.EscapeProperties (4.0s)
+✔ [198/239] Built L4YAML.Proofs.Output.EmitterScannability.ScannerAcceptance (5.3s)
+✔ [200/239] Built L4YAML.Proofs.Output.EmitterScannability.ScanSteps (4.2s)
+✔ [202/239] Built L4YAML.Proofs.Coupling.LandingTab (804ms)
+✔ [204/239] Built L4YAML.Proofs.Scanner.FlowIndentStable (2.9s)
+✔ [206/239] Built L4YAML.Proofs.Production.ScalarProduction (4.0s)
+✔ [208/239] Built L4YAML.Proofs.Scanner.IndentStackBase (3.1s)
+✔ [210/239] Built L4YAML.Proofs.Scanner.BlockScalarIndentFloor (2.4s)
+✔ [212/239] Built L4YAML.Proofs.Scanner.ScalarWalkColFloor (3.6s)
+✔ [214/239] Built L4YAML.Proofs.Production.ScalarFoldAt (3.6s)
+✔ [216/239] Built L4YAML.Proofs.Production.StructureProduction (4.4s)
+✔ [218/239] Built L4YAML.Proofs.Scanner.IndentStackMono (2.0s)
+✔ [220/239] Built L4YAML.Proofs.Production.NodeProduction (2.3s)
+✔ [222/239] Built L4YAML.Proofs.Scanner.PendingKeysStable (4.9s)
+✔ [224/239] Built L4YAML.Proofs.Scanner.IndentStackCover (2.9s)
+✔ [226/239] Built L4YAML.Proofs.Scanner.LineOpenGuard (7.1s)
+✔ [228/239] Built L4YAML.Proofs.Scanner.PendingKeySound (5.9s)
+✔ [230/239] Built L4YAML.Proofs.Scanner.StaleCursorFloor (3.9s)
+✔ [232/239] Built L4YAML.Proofs.Scanner.RegisterWitness (2.4s)
+✔ [234/239] Built L4YAML.Proofs.Production.PreprocessProduction (14s)
+✔ [236/239] Built L4YAML.Proofs.Scanner.ColFloor (4.9s)
+⚠ [238/239] Built L4YAML.Proofs.Production.StreamAccum (36s)
+warning: L4YAML/Proofs/Production/StreamAccum.lean:19658:5: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Build completed successfully (239 jobs).

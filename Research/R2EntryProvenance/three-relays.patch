@@ -1,0 +1,343 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1733,6 +1733,34 @@
+       (route sp_v (SBlockMapEntry.explicit nv sp_q sp_scan sp_m sp_i sp_c sp_v h_qlit h_key h_ind h_lit h_val))
+   · exact up nv hmem hne sp_m (SBlockMapEntry.explicitEmpty n sp_q sp_scan sp_m h_qlit h_key)
+       sp_i sp_c h_ind h_lit sp_v h_val
++
++/- Research-only transport: conditional availability, not capstone retirement. -/
++def R2PairLine (start : SurfPos) (own outer : Nat) (e : SurfPos) : Prop :=
++  ∀ i c : SurfPos, SIndent own e i → GLit ':' i c →
++    ∀ v : SurfPos, SBlockIndented own .blockOut c v →
++      ExplValueLine start outer v
++
++def R2PairSeed (sc : ScannerState) (start keyStart : SurfPos) : Prop :=
++  ∃ own : Nat, ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →
++    ∀ e : SurfPos, SBlockIndented own .blockOut keyStart e →
++      R2PairLine start own outer e
++
++def R2PairSeq (sc : ScannerState) (start entry : SurfPos) (n : Nat) : Prop :=
++  ∃ own : Nat, ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →
++    ∀ m : SurfPos, SBlockIndented n .blockIn entry m →
++    ∀ e : SurfPos, SCompactSeqTail n m e →
++      R2PairLine start own outer e
++
++def R2PairContent (sc : ScannerState) (start gram : SurfPos) (n : Nat) : Prop :=
++  ∃ own : Nat, ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →
++    ∀ m : SurfPos, SSLComments gram m →
++    ∀ e : SurfPos, SCompactSeqTail n m e →
++      R2PairLine start own outer e
++
++def R2PairValue (sc : ScannerState) (start colon : SurfPos) (own : Nat) : Prop :=
++  ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →
++    ∀ m : SurfPos, SBlockIndented own .blockOut colon m →
++      ExplValueLine start outer m
+ 
+ /-- **Two optional funders, one chain** (item 192).  Where a park holds both
+     its own frame's value line and the frame above it — which is the shape item
+@@ -2865,7 +2893,8 @@
+       -- scanner's comment gate at the park, as on `pendingContent`.
+       (h_run : GStar SSWhite sp_gram sp_scan)
+       (h_gate : sp_gram = sp_scan → sc.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#'))
+-      (h_live : InlineResidue sp_scan ':' → sc.simpleKey.possible = true) :
++      (h_live : InlineResidue sp_scan ':' → sc.simpleKey.possible = true)
++      (h_pairContent : R2PairContent sc sp_start sp_gram n ∨ True := Or.inr trivial) :
+       PendingNode sc false sp_start sp_block sp_scan
+   /-- Block indicator scanned (`-`, `?`, `:`).
+       The gap sp_block → sp_scan contains the indicator character.
+@@ -3081,7 +3110,8 @@
+       (h_offer : OfferPred sc.tokens)
+       -- `[66]` narrowed to col 0: the scanner's comment gate at this park, off a
+       -- line start — the indicator that parked here is the last consumed char.
+-      (h_next : sc.inFlow = false → NextIsSep sc) (h_seqTop : ∃ e, sc.indents.back? = some e ∧ (e.isSequence = true ∨ e.column = (n : Int))) :
++      (h_next : sc.inFlow = false → NextIsSep sc) (h_seqTop : ∃ e, sc.indents.back? = some e ∧ (e.isSequence = true ∨ e.column = (n : Int)))
++      (h_pairSeq : R2PairSeq sc sp_start sp_scan n ∨ True := Or.inr trivial) :
+       PendingNode sc false sp_start sp_block sp_scan
+   /-- A KEYLESS block-mapping entry opened at column 0, depth 0, one node
+       awaited — the mapping twin of `pendingBlock` (item 13).  The whole entry
+@@ -25047,7 +25077,8 @@
+     (h_top_in : s'.currentIndent ≤ (nv : Int))
+     (h_outer : (PendingKeySound.Sound s_prep ∧ RegisterWitness.MarkedColsIn s_prep [nv] ∧
+       (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨
+-      (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv)) :
++      (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv))
++    (h_pairValue : R2PairValue s' sp_start sp_scan' nv ∨ True := Or.inr trivial) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -25100,8 +25131,13 @@
+            -- Item 68: the same column the slot above carries, stated on its own.
+            (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)
+            (Or.inl (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega))
+-           -- Item 93: a VALUE park has no value line of its own.
+-           (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
++           -- Item 93: the own mark is excluded, but proper ancestors keep their value lines.
++           (match h_pairValue with
++            | Or.inl pair => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
++                fun a hm m h_node => pair a hm (by intro he; subst a; exact h_noOwn hm) m
++                  (SBlockIndented.node nv .blockOut sp_scan' m
++                    (SBlockNode_blockIn_to_blockOut h_node))⟩
++            | Or.inr _ => h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+              -- Item 371: the park's own frame, from the restated value-line pack —
+              -- after the explicit `:`'s value (a node, or nothing but comments)
+              -- the mapping at `nv` goes on with its siblings: `? a⏎:⏎b: 1`.
+@@ -27577,7 +27613,8 @@
+     (h_mcstep_ne : c ≠ '?' → ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
+       RegisterWitness.MarkedColsIn s' ns)
+     -- Item 366: the park state's soundness, for the K7 pay at the landed `:` (decided in this lemma).
+-    (h_sound : PendingKeySound.Sound sc) :
++    (h_sound : PendingKeySound.Sound sc)
++    (h_pairSeed : R2PairSeed sc sp_start sp_gram ∨ True := Or.inr trivial) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -28288,7 +28325,15 @@
+       · exact h_slotV'
+     exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_new,
+            BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
+-           PendingNode.pendingBlock (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_mid sp_scan' k
++           PendingNode.pendingBlock (h_pairSeq := by
++                rcases h_pairSeed with ⟨own, pair⟩ | _
++                · by_cases hw : own ≤ k
++                  · exact Or.inl ⟨own, fun a hm hn m hb e ht =>
++                      pair a (h_markBack a hm (fun h => absurd h (by decide))) hn e
++                        (slotLandedSeq hw h_ssl
++                          (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot hb ht))⟩
++                  · exact Or.inr trivial
++                · exact Or.inr trivial) (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_landing_floor h_noflow h_larm h_nic0 h_base h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_mid sp_scan' k
+              -- Item 118: where the route is `h_docRoute`'s, the sequence
+              -- document lands wherever the closed park says.  Item 167: where
+              -- the park names an open collection at this width, both
+@@ -29424,7 +29469,8 @@
+       RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns))
+     (h_mcstep_ne : c ≠ '?' → ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
+       RegisterWitness.MarkedColsIn s' ns)
+-    (h_cf : ColFloor.ColFloor sc) (h_lkt : ScalarWalkColFloor.LiveKeyTop sc) :
++    (h_cf : ColFloor.ColFloor sc) (h_lkt : ScalarWalkColFloor.LiveKeyTop sc)
++    (h_pairContent_old : R2PairContent sc sp_start sp_gram n ∨ True := Or.inr trivial) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -29519,7 +29565,13 @@
+         have h_cont := h_entry_old sp_mid h_ssl
+         exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+                BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+-               PendingNode.pendingBlock (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) ((ColFloor.preprocess_colfloor h_preprocess h_cf h_base).floor (by have := nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow); split at this <;> exact this)) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' k
++               PendingNode.pendingBlock (h_pairSeq := by
++                    rcases h_pairContent_old with ⟨own, pair⟩ | _
++                    · exact Or.inl ⟨own, fun a hm hn m hb e ht =>
++                        pair a (h_markBack a hm (by simp)) hn sp_mid h_ssl e
++                          (SCompactSeqTail.cons k sp_mid _ sp_scan' m e
++                            h_ind h_dash2 h_gnot2 hb ht)⟩
++                    · exact Or.inr trivial) (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) ((ColFloor.preprocess_colfloor h_preprocess h_cf h_base).floor (by have := nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow); split at this <;> exact this)) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' k
+                  (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                    h_cont sp_final (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_final
+                      h_ind h_dash2 h_gnot2 h_indented (SCompactSeqTail.nil k sp_final)))
+@@ -29801,6 +29853,25 @@
+               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+               ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+             colon_open_map_explicit
++            (h_pairValue := by
++              rcases h_pairContent_old with ⟨own, pair⟩ | _
++              · by_cases he : own = k
++                · subst own
++                  have hp : s_prep.peek? = some ':' := preprocess_some_peek h_preprocess
++                  have hpeek_disp : (if s_prep.allowDirectives then
++                      { s_prep with allowDirectives := false, documentEverStarted := true }
++                    else s_prep).peek? = some ':' := by
++                    split <;> exact hp
++                  obtain ⟨sp_colon, hl, hcorr_colon⟩ :=
++                    dispatchBlockValue_full_prod _ sp_sc
++                      (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
++                  have heq := ScannerSurfCorr_unique hcorr_colon hcorr_result
++                  rw [heq] at hl
++                  exact Or.inl (fun a hm hn m hb =>
++                    pair a (h_markBack a hm (by simp)) hn sp_mid h_ssl sp_mid
++                      (SCompactSeqTail.nil n sp_mid) sp_sc sp_scan' h_ind hl m hb)
++                · exact Or.inr trivial
++              · exact Or.inr trivial)
+             (h_sound_in := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
+             (h_mono_in := IndentStackMono.preprocess_mono h_preprocess h_mono) sp_start sp_gram sp_mid _ k s_prep s'
+               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+@@ -30019,7 +30090,8 @@
+     (h_mcstep : ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
+       RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns))
+     (h_mcstep_ne : c ≠ '?' → ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
+-      RegisterWitness.MarkedColsIn s' ns) :
++      RegisterWitness.MarkedColsIn s' ns)
++    (h_pairSeq_old : R2PairSeq sc sp_start sp_scan n ∨ True) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -30091,7 +30163,16 @@
+       have h_cont := h_close_entry_old sp_mid h_node_old
+       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+-             PendingNode.pendingBlock (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_dispatch_floor h_base (by have hc := (hcorr_prep.col_eq).symm; have := SIndent_col h_ind; omega) h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' k
++             PendingNode.pendingBlock (h_pairSeq := by
++                 rcases h_pairSeq_old with ⟨own, pair⟩ | _
++                 · refine Or.inl ⟨own, ?_⟩
++                   intro a hm hn sp_m h_bi sp_e h_tail
++                   exact pair a (RegisterWitness.MarkedColsIn.relay
++                     (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc))
++                     (fun _ h => h) a hm) hn sp_mid h_node_old sp_e
++                       (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
++                         h_ind h_dash2 h_gnot2 h_bi h_tail)
++                 · exact Or.inr trivial) (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_dispatch_floor h_base (by have hc := (hcorr_prep.col_eq).symm; have := SIndent_col h_ind; omega) h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' k
+                (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                  h_cont sp_final (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_final
+                    h_ind h_dash2 h_gnot2 h_indented (SCompactSeqTail.nil k sp_final)))
+@@ -30200,7 +30281,18 @@
+             sp_end (SCompactSeqTail.nil n sp_end)
+         exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+                BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+-               PendingNode.pendingBlock (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_dispatch_floor h_base (by have hc := (hcorr_prep.col_eq).symm; have := SIndent_col h_ind; omega) h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' k
++               PendingNode.pendingBlock (h_pairSeq := by
++                   rcases h_pairSeq_old with ⟨own, pair⟩ | _
++                   · refine Or.inl ⟨own, ?_⟩
++                     intro a hm hn sp_m h_bi sp_e h_tail
++                     exact pair a (RegisterWitness.MarkedColsIn.relay
++                       (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc))
++                       (fun _ h => h) a hm) hn sp_e
++                         (SBlockIndented.node n .blockIn sp_scan sp_e
++                           (nestedBlockSeq hlt h_ssl
++                             (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2 h_bi h_tail)))
++                         sp_e (SCompactSeqTail.nil n sp_e)
++                   · exact Or.inr trivial) (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_dispatch_floor h_base (by have hc := (hcorr_prep.col_eq).symm; have := SIndent_col h_ind; omega) h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' k
+                  (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                    h_close_inner sp_final
+                      (SBlockSeqEntries.single k sp_mid _ sp_scan' sp_scan' sp_final
+@@ -30718,7 +30810,18 @@
+       rw [hsp_dash2_eq] at h_dash2 h_gnot2
+       exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+              BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+-             PendingNode.pendingBlock (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_dispatch_floor h_base (by have hc := (hcorr_prep.col_eq).symm; have := SIndent_col h_ind; omega) h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' (n + 1 + m)
++             PendingNode.pendingBlock (h_pairSeq := by
++                 rcases h_pairSeq_old with ⟨own, pair⟩ | _
++                 · refine Or.inl ⟨own, ?_⟩
++                   intro a hm hn sp_m h_bi sp_e h_tail
++                   exact pair a (RegisterWitness.MarkedColsIn.relay
++                     (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc))
++                     (fun _ h => h) a hm) hn sp_e
++                       (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_e h_ind
++                         (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e
++                           h_dash2 h_gnot2 h_bi h_tail))
++                       sp_e (SCompactSeqTail.nil n sp_e)
++                 · exact Or.inr trivial) (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_base h_preprocess h_base) (dash_dispatch_floor h_base (by have hc := (hcorr_prep.col_eq).symm; have := SIndent_col h_ind; omega) h_preprocess) h_dispatch) (h_next := fun _ => dispatchBlock_dash_next (noflow_disp_of_noflow h_noflow) hpeek_disp h_dispatch) (h_offer := dispatchBlock_dash_offerPred h_dispatch) sp_start sp_block sp_scan' (n + 1 + m)
+                (fun sp_final (h_bi : SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_final) =>
+                  h_close_old sp_final
+                    (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_final h_ind
+@@ -31301,7 +31404,14 @@
+         (h_closeFV108.imp (fun hall => ⟨nmv, fun nv hm => let ⟨ks, h_le, _, fV⟩ := hall nv hm; ⟨ks, h_le, fV⟩⟩) id)
+         -- Item 208: refuted from the park's own column, as above.
+         (nic0_of_col_pos h_col0_mv) (GStar.nil _) (fun _ _ => (h_nextM (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep
+-    · exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
++    · exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne)
++        (h_pairSeed := by
++          rcases h_expl51 with ⟨sp_q, hq, _, hup⟩ | _
++          · rcases hup with up | _
++            · exact Or.inl ⟨nmv, fun a hm hn e hk i c hi hl v hv =>
++                up a hm hn v (SBlockMapEntry.explicit nmv sp_q sp_scan e i c v hq hk hi hl hv)⟩
++            · exact Or.inr trivial
++          · exact Or.inr trivial) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+         h_close_pending
+         -- ═══ **Item 192: this park's OWN frame and the one above it, in ONE
+         -- list.**  Item 189 handed the second to a parameter of its own
+@@ -31416,11 +31526,11 @@
+         (h_closeFV108.imp (fun hall => ⟨nmv, fun nv hm => let ⟨ks, h_le, _, fV⟩ := hall nv hm; ⟨ks, h_le, fV⟩⟩) id)
+         -- Item 208: a value park is never at column 0, so the premise is refuted.
+         (nic0_of_col_pos h_col0_mv) (GStar.nil _) (fun _ _ => (h_nextM (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep
+-  | pendingBlockContent _ _ _ _ n_old h_line h_closableBC h_entry_old h_key_old h_stale47 h_arm77 h_kslot92 h_closeF99 _ h_tail139 h_seqF167 h_kslotUp190 h_closeFV198 h_nic0B h_runBC h_gateBC h_live290 =>
++  | pendingBlockContent _ _ _ _ n_old h_line h_closableBC h_entry_old h_key_old h_stale47 h_arm77 h_kslot92 h_closeF99 _ h_tail139 h_seqF167 h_kslotUp190 h_closeFV198 h_nic0B h_runBC h_gateBC h_live290 h_pairContent =>
+     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
+     -- deferral this arm used to open is gone with it.
+     -- Item 37: and what is left of the escape is `[154]`'s `:`.
+-    exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_scan s_prep s' c
++    exact accum_block_on_pendingBlockContent (h_pairContent_old := h_pairContent) sc sp_start sp_block sp_scan s_prep s' c
+       sp_prep sp_scan' n_old h_stream_block (fun hd _ => h_closableBC hd) h_line
+       h_entry_old h_kslot92 h_key_old h_stale47 h_kbc h_scf hcorr_prep hcorr_result h_corr h_noflow
+       h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_sound h_mono h_tail139 h_seqF167
+@@ -31435,8 +31545,8 @@
+       -- Item 208: the park's own indent check, read at the block landing.
+       h_nic0B h_live290 h_runBC h_gateBC h_mcstep h_mcstep_ne h_cf h_lkt
+   | pendingBlock _ _ _ n_old _h_close h_close_entry_old h_floor208 h_sk_old h_col_old h_kslot92
+-      h_closeF369 _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 _ h_nextB =>
+-    exact accum_block_on_pendingBlock (h_closeF_old := h_closeF369) sc sp_start sp_block sp_scan s_prep s' c sp_prep
++      h_closeF369 _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 _ h_nextB _ h_pairSeqBlock =>
++    exact accum_block_on_pendingBlock (h_pairSeq_old := h_pairSeqBlock) (h_closeF_old := h_closeF369) sc sp_start sp_block sp_scan s_prep s' c sp_prep
+       sp_scan' n_old h_stream_block h_close_pending h_close_entry_old h_kslot92
+       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_nextB h_preprocess h_dispatch h_bare
+       h_dn h_fv h_base h_sound h_mono h_seqF167
+@@ -37231,7 +37341,8 @@
+     -- Item 284: what the token behind this landing pays a property run's
+     -- slot face with (`SlotGateAt`).
+     (h_next : NextIsSep sc)
+-    (h_src : SlotGateAt s_prep) :
++    (h_src : SlotGateAt s_prep)
++    (h_pairSeq_old : R2PairSeq sc sp_start sp_scan n ∨ True := Or.inr trivial) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -37264,7 +37375,14 @@
+     ⟨sp_gramf, h_node_f, h_tws_f, h_gate_f, h_sep_all, h_line, hna, hnt⟩ | h_ded
+   · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+-           PendingNode.pendingBlockContent (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_start sp_block sp_scan' _ n h_line
++           PendingNode.pendingBlockContent (h_pairContent := by
++              rcases h_pairSeq_old with ⟨own, pair⟩ | _
++              · exact Or.inl ⟨own, fun a hm hn m hs e ht =>
++                  pair a (markedCols_mem_of_step_content h_preprocess h_dispatch hm) hn m
++                    (SBlockIndented.node n .blockIn sp_scan m
++                      (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram m
++                        h_sep_all (h_flow_all (n + 1)) hs)) e ht⟩
++              · exact Or.inr trivial) (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_start sp_block sp_scan' _ n h_line
+              (fun _ sp_final h_ssl =>
+                h_close_old sp_final
+                  (SBlockIndented.node n .blockIn sp_scan sp_final
+@@ -37649,7 +37767,12 @@
+         (fun h_fld' => folded_blockNode h_sep_all (GOpt.none sp_prep) h_fld')
+     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+-           PendingNode.pendingBlockContent (h_run := GStar.nil _) (h_gate := fun _ => blockScalar_park_gate (preprocess_some_peek h_preprocess) h_dispatch hbs) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_start sp_block sp_scan' _ n h_line
++           PendingNode.pendingBlockContent (h_pairContent := by
++              rcases h_pairSeq_old with ⟨own, pair⟩ | _
++              · exact Or.inl ⟨own, fun a hm hn m hs e ht =>
++                  pair a (markedCols_mem_of_step_content h_preprocess h_dispatch hm) hn m
++                    (SBlockIndented.node n .blockIn sp_scan m (h_nodeAt m hs)) e ht⟩
++              · exact Or.inr trivial) (h_run := GStar.nil _) (h_gate := fun _ => blockScalar_park_gate (preprocess_some_peek h_preprocess) h_dispatch hbs) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_start sp_block sp_scan' _ n h_line
+              (fun _ sp_final h_ssl =>
+                h_close_old sp_final
+                  (SBlockIndented.node n .blockIn sp_scan sp_final
+@@ -37731,7 +37854,14 @@
+     -- the entry's own index; arm 1's park with the fixed-index node.
+     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+-           PendingNode.pendingBlockContent (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_start sp_block sp_scan' _ n h_line
++           PendingNode.pendingBlockContent (h_pairContent := by
++              rcases h_pairSeq_old with ⟨own, pair⟩ | _
++              · exact Or.inl ⟨own, fun a hm hn m hs e ht =>
++                  pair a (markedCols_mem_of_step_content h_preprocess h_dispatch hm) hn m
++                    (SBlockIndented.node n .blockIn sp_scan m
++                      (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf m
++                        h_sep_all h_node_f hs)) e ht⟩
++              · exact Or.inr trivial) (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_start sp_block sp_scan' _ n h_line
+              (fun _ sp_final h_ssl =>
+                h_close_old sp_final
+                  (SBlockIndented.node n .blockIn sp_scan sp_final
+@@ -40928,14 +41058,14 @@
+                          (content_park_nic_any (preprocess_some_peek h_preprocess)
+                            h_flow_disp h_not_doc h_dispatch hcorr_result) (Or.inr trivial),
+                        hcorr_result⟩
+-  | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old h_kslot92 h_closeF99 _ h_seqF167 h_kslotUp190 h_closeFV198 h_park_top_old h_offer_b h_nextB =>
++  | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old h_kslot92 h_closeF99 _ h_seqF167 h_kslotUp190 h_closeFV198 h_park_top_old h_offer_b h_nextB _ h_pairSeq =>
+     -- Item 22 split this arm on the pending's own index because every content
+     -- reading was stated at 0; item 23 gave the nonzero side its own arm, and
+     -- item 179 retired the split: the indented arm's splitter answers at every
+     -- index, the root's extra readings (the props run, the block scalar) have
+     -- been its cases since items 24/26, and the root entry is the `n = 0`
+     -- instance — faces included.
+-    exact accum_content_on_pendingBlock_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
++    exact accum_content_on_pendingBlock_indented (h_pairSeq_old := h_pairSeq) (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+       s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_kslot92
+       h_closeF99 h_seqF167 h_floor_old h_park_top_old h_col_old h_sk_old
+       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch

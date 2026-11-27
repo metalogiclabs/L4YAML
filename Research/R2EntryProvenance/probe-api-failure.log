@@ -1,0 +1,3 @@
+../l4yaml-research/Research/R2EntryProvenance/ReachableEntryProbe.lean:30:92: error(lean.invalidField): Invalid field `flatten`: The environment does not contain `Option.flatten`, so it is not possible to project the field `flatten` from an expression
+  (scanNextToken_dispatchBlockIndicators dis c).toOption
+of type `Option (Option ScannerState)`

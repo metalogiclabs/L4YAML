@@ -1,0 +1,71 @@
+{"case":"owner-witness","event":"input","parser_accepts":true,"source":"? ? a\n  : - b"}
+{"case":"owner-witness","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"owner-witness","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"owner-witness","char":":","column":2,"dashes_before":0,"event":"landing","explicit_value":true,"line":1,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"owner-witness","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":4}
+{"case":"owner-witness-complete","event":"input","parser_accepts":true,"source":"? ? a\n  : - b\n: c"}
+{"case":"owner-witness-complete","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"owner-witness-complete","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"owner-witness-complete","char":":","column":2,"dashes_before":0,"event":"landing","explicit_value":true,"line":1,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"owner-witness-complete","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":4}
+{"case":"owner-witness-complete","char":":","column":0,"dashes_before":1,"event":"landing","explicit_value":true,"line":2,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":6}
+{"case":"sibling-after-value","event":"input","parser_accepts":true,"source":"? ? a\n  : - b\n    - c\n: d"}
+{"case":"sibling-after-value","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"sibling-after-value","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"sibling-after-value","char":":","column":2,"dashes_before":0,"event":"landing","explicit_value":true,"line":1,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"sibling-after-value","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":4}
+{"case":"sibling-after-value","char":"-","column":4,"dashes_before":1,"event":"landing","explicit_value":false,"line":2,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":6}
+{"case":"sibling-after-value","char":":","column":0,"dashes_before":2,"event":"landing","explicit_value":true,"line":3,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":8}
+{"case":"nested-after-value","event":"input","parser_accepts":true,"source":"? ? a\n  : -\n      - b\n: c"}
+{"case":"nested-after-value","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"nested-after-value","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"nested-after-value","char":":","column":2,"dashes_before":0,"event":"landing","explicit_value":true,"line":1,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"nested-after-value","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":4}
+{"case":"nested-after-value","char":"-","column":6,"dashes_before":1,"event":"landing","explicit_value":false,"line":2,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":5}
+{"case":"nested-after-value","char":":","column":0,"dashes_before":2,"event":"landing","explicit_value":true,"line":3,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":7}
+{"case":"compact-after-value","event":"input","parser_accepts":true,"source":"? ? a\n  : - - b\n: c"}
+{"case":"compact-after-value","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"compact-after-value","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"compact-after-value","char":":","column":2,"dashes_before":0,"event":"landing","explicit_value":true,"line":1,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"compact-after-value","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":4}
+{"case":"compact-after-value","char":"-","column":6,"dashes_before":1,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":5}
+{"case":"compact-after-value","char":":","column":0,"dashes_before":2,"event":"landing","explicit_value":true,"line":2,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":7}
+{"case":"sequence-key","event":"input","parser_accepts":true,"source":"? ? - a\n  : - b\n: c"}
+{"case":"sequence-key","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"sequence-key","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"sequence-key","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":2}
+{"case":"sequence-key","char":":","column":2,"dashes_before":1,"event":"landing","explicit_value":true,"line":1,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":4}
+{"case":"sequence-key","char":"-","column":4,"dashes_before":1,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":5}
+{"case":"sequence-key","char":":","column":0,"dashes_before":2,"event":"landing","explicit_value":true,"line":2,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":7}
+{"case":"sibling-key","event":"input","parser_accepts":true,"source":"? ? -\n    - a\n  : - b\n: c"}
+{"case":"sibling-key","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"sibling-key","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"sibling-key","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":2}
+{"case":"sibling-key","char":"-","column":4,"dashes_before":1,"event":"landing","explicit_value":false,"line":1,"marks_after":[0,2],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"sibling-key","char":":","column":2,"dashes_before":2,"event":"landing","explicit_value":true,"line":2,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":5}
+{"case":"sibling-key","char":"-","column":4,"dashes_before":2,"event":"landing","explicit_value":false,"line":2,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":6}
+{"case":"sibling-key","char":":","column":0,"dashes_before":3,"event":"landing","explicit_value":true,"line":3,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":8}
+{"case":"nested-key","event":"input","parser_accepts":true,"source":"? ? -\n      - a\n  : - b\n: c"}
+{"case":"nested-key","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"nested-key","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"nested-key","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":2}
+{"case":"nested-key","char":"-","column":6,"dashes_before":1,"event":"landing","explicit_value":false,"line":1,"marks_after":[0,2],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"nested-key","char":":","column":2,"dashes_before":2,"event":"landing","explicit_value":true,"line":2,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":5}
+{"case":"nested-key","char":"-","column":4,"dashes_before":2,"event":"landing","explicit_value":false,"line":2,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":6}
+{"case":"nested-key","char":":","column":0,"dashes_before":3,"event":"landing","explicit_value":true,"line":3,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":8}
+{"case":"compact-key","event":"input","parser_accepts":true,"source":"? ? - - a\n  : - b\n: c"}
+{"case":"compact-key","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"compact-key","char":"?","column":2,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":1}
+{"case":"compact-key","char":"-","column":4,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":2}
+{"case":"compact-key","char":"-","column":6,"dashes_before":1,"event":"landing","explicit_value":false,"line":0,"marks_after":[0,2],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":3}
+{"case":"compact-key","char":":","column":2,"dashes_before":2,"event":"landing","explicit_value":true,"line":1,"marks_after":[0],"marks_before":[0,2],"marks_prepared":[0,2],"questions_before":[0,2],"step":5}
+{"case":"compact-key","char":"-","column":4,"dashes_before":2,"event":"landing","explicit_value":false,"line":1,"marks_after":[0],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":6}
+{"case":"compact-key","char":":","column":0,"dashes_before":3,"event":"landing","explicit_value":true,"line":2,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0,2],"step":8}
+{"case":"implicit-colon-control","event":"input","parser_accepts":true,"source":"? a: b\n: c"}
+{"case":"implicit-colon-control","char":"?","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[0],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"implicit-colon-control","char":":","column":0,"dashes_before":0,"event":"landing","explicit_value":true,"line":1,"marks_after":[],"marks_before":[0],"marks_prepared":[0],"questions_before":[0],"step":4}
+{"case":"flow-control","event":"input","parser_accepts":true,"source":"[a, {b: c}]"}
+{"case":"root-control","event":"input","parser_accepts":true,"source":"- a\n- b"}
+{"case":"root-control","char":"-","column":0,"dashes_before":0,"event":"landing","explicit_value":false,"line":0,"marks_after":[],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":0}
+{"case":"root-control","char":"-","column":0,"dashes_before":1,"event":"landing","explicit_value":false,"line":1,"marks_after":[],"marks_before":[],"marks_prepared":[],"questions_before":[],"step":2}
+{"accepted":12,"critical_retirement_claimed":false,"event":"summary","explicit_values_with_ancestors":9,"inner_values_before_any_sequence":5,"proof_disjunct_observation":false}

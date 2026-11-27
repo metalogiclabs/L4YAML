@@ -1,0 +1,8 @@
+⚠ [238/239] Built L4YAML.Proofs.Production.StreamAccum (38s)
+warning: L4YAML/Proofs/Production/StreamAccum.lean:19688:5: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Build completed successfully (239 jobs).
