@@ -1,0 +1,224 @@
+name: Qualify exact PR 384 plus item 541
+on:
+  push:
+    branches: [test/content-slot-item541-qualification]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: pr-384-item541-qualification
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      LEAN_NUM_THREADS: 2
+      PR: '384'
+      OLD: 05749b745f8c88fad8f1b6971aaa22b65155f489
+      OWNER: 1383fa62e838576fb9c712b4af89b5e381aaaab4
+      INITIAL_SOURCE: 0c99e81fb076a1eb8569b5be565bc8c9b5bd5cca
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evidence
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 05749b745f8c88fad8f1b6971aaa22b65155f489
+          path: source
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - name: Restore independently verified focused integration
+        working-directory: source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ../results
+          git -C ../evidence rev-parse HEAD HEAD^{tree} > ../results/harness.txt
+          test "$(git rev-parse HEAD)" = "$OLD"
+          test "$(git rev-parse HEAD^{tree})" = 9e5bb329ada408d7a9620dd389b1c7d852244dc1
+          git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$OWNER"
+          test "$(git rev-parse "$OWNER^{tree}")" = 0c7dced413db0510b0a0a144ca2ca74111cf6a77
+          test "$(git merge-base "$OLD" "$OWNER")" = 2540115c885d3badf65237cc45f1737a596f7ec9
+          git rev-parse "$OLD" "$OLD^{tree}" "$OWNER" "$OWNER^{tree}" > ../results/inputs.txt
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15230217033/zip > "$RUNNER_TEMP/focused-price.zip"
+          echo "534c4ca816c603b950612398ad98fb0cf1805919146562b2be85bf6d093a8837  $RUNNER_TEMP/focused-price.zip" | sha256sum -c -
+          unzip -t "$RUNNER_TEMP/focused-price.zip" > ../results/prior-crc.txt
+          unzip -q "$RUNNER_TEMP/focused-price.zip" -d ../results/prior-price
+          test "$(cat ../results/prior-price/proof-build.exit)" = 0
+          test "$(cat ../results/prior-price/capstone-path.exit)" = 0
+          echo '1e376678613e46eeb68df199008462fb6c332a8260a135246ce6f05e7f0afe72  ../results/prior-price/diagnostic.bundle' | sha256sum -c -
+          echo 'cda37143b912b64224bb0cbe633ef6c713f39dd8284a39d01560c57fbd10b42e  ../results/prior-price/merged-provisional.patch' | sha256sum -c -
+          git bundle verify ../results/prior-price/diagnostic.bundle > ../results/restore-bundle.log 2>&1
+          git fetch ../results/prior-price/diagnostic.bundle HEAD
+          git checkout --detach "$INITIAL_SOURCE"
+          test "$(git rev-parse HEAD^{tree})" = bee798ac9dfa32cf95495c77bd657f2417e40e50
+          test "$(git rev-list --parents -n 1 HEAD)" = "$INITIAL_SOURCE $OLD $OWNER"
+          git diff --binary "$OLD" HEAD > ../results/restored.patch
+          cmp ../results/restored.patch ../results/prior-price/merged-provisional.patch
+          git diff --exit-code "$OWNER" HEAD -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules .github/workflows
+          git hash-object L4YAML/Proofs/Production/StreamAccum.lean > ../results/restored-stream.blob
+          cmp ../results/restored-stream.blob ../results/prior-price/merged-stream.blob
+          cmp ../results/prior-price/axioms-before.log ../results/prior-price/axioms-after.log
+          cmp ../results/prior-price/root-axioms-before.log ../results/prior-price/root-axioms-after.log
+          cp ../results/prior-price/axioms-after.log ../results/axioms-before.log
+          cp ../results/prior-price/root-axioms-after.log ../results/root-axioms-before.log
+          cp ../results/prior-price/{AxiomAudit,RootAudit}.lean ../results/
+          cp Tests/Guards/Proofs/DeadDeclarationRoster.lean ../results/initial-roster.lean
+          git config user.name 'Metalogic research'
+          git config user.email 'research@example.invalid'
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        with:
+          path: source/.lake
+          key: pr-refresh-item541-384-${{ github.run_id }}
+          restore-keys: |
+            pr-refresh-item540-384-45937399083
+            pr-refresh-item540-384-
+      - name: Prepare unchanged measured snapshot reader
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          awk '$0 != "module" && $0 != "@[expose] public section Blanket"' Scripts/Pins.lean > ../results/CorrectedRepin.lean
+          cat ../evidence/Research/IntegrationRefresh/RootRefreshRepinDriver.lean >> ../results/CorrectedRepin.lean
+      - name: Build and remeasure only compiler-reported snapshots
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lean --version | tee ../results/lean-version.txt
+          lake build scripts-repin scripts-dead-census > ../results/instruments-build.log 2>&1
+          passed=false
+          for round in $(seq 1 12); do
+            echo "BUILD_ROUND $round"
+            if lake build > "../results/build-$round.log" 2>&1; then passed=true; break; fi
+            tail -100 "../results/build-$round.log"
+            lean --run ../results/CorrectedRepin.lean "../results/build-$round.log" . > "../results/repin-$round.log" 2>&1
+            cat "../results/repin-$round.log"
+            grep -Eq '^MEASURED_REPIN_EDITS [1-9][0-9]*$' "../results/repin-$round.log"
+          done
+          test "$passed" = true
+          lake build tests demo limittests > ../results/extra-build.log 2>&1
+          lake run dead-census -- --write > ../results/census-write.log 2>&1
+          lake build > ../results/final-build.log 2>&1
+          lake run dead-census -- --check > ../results/census-check.log 2>&1
+          cmp ../results/initial-roster.lean Tests/Guards/Proofs/DeadDeclarationRoster.lean
+          git diff --check
+          git diff --binary > ../results/measured-snapshots.patch
+          git diff --exit-code -- . ':(exclude)Tests/Guards/Proofs/*.lean'
+          lake run capstone-path > ../results/capstone-path.log 2>&1
+          grep -E '^CAPSTONE-PATH .* on=7 ' ../results/capstone-path.log
+      - name: Run native suites and all repository gates
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs/reports
+          lake exe adversarialinstantiation > ../results/adversarial.log 2>&1
+          lake run run-all-tests -- docs/reports > ../results/native-suites.log 2>&1
+          lake exe eventscore --suite yaml-test-suite > ../results/eventscore.log 2>&1
+          for gate in check-theorem-keyword check-import-closure check-reflection-index check-doc-graphs check-closure-log check-gate-vocab check-scripts-lean check-pack-births check-serialization-proofs; do
+            lake run "$gate" > "../results/$gate.log" 2>&1
+          done
+          lake run census-dashboard -- --check --md ../results/dashboard.md > ../results/dashboard-check.log 2>&1
+          lake run census-dashboard -- --diff "$OWNER" > ../results/dashboard-diff.log 2>&1
+          lake run census-dashboard -- --diff "$OLD" > ../results/dashboard-root-delta.log 2>&1
+          lake exe collect-stats > ../results/collect-stats.log 2>&1
+          lake run check-hygiene -- docs/reports/stats.json > ../results/hygiene.log 2>&1
+          cp docs/reports/stats.json ../results/stats.json
+      - name: Build and test language bindings
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev python3-venv
+          python3 -m venv "$RUNNER_TEMP/bindings-venv"
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pip install --quiet pytest
+          export PYTHONNOUSERSITE=1
+          mkdir -p "$RUNNER_TEMP/bindings-venv/empty"
+          export PYTHONPATH="$RUNNER_TEMP/bindings-venv/empty"
+          export L4YAML_LIB="$PWD/ffi/out/libl4yaml.so"
+          export LD_LIBRARY_PATH="$PWD/ffi/out:$(lean --print-prefix)/lib/lean:${LD_LIBRARY_PATH:-}"
+          cmake -B ffi/out -S ffi > ../results/cmake-config.log 2>&1
+          cmake --build ffi/out --parallel 2 > ../results/cmake-build.log 2>&1
+          test -f ffi/out/libl4yaml.so && test -x ffi/out/tryparse_c
+          cargo build --manifest-path rust/l4yaml/Cargo.toml --release --example tryparse --jobs 2 > ../results/rust-build.log 2>&1
+          cargo test --manifest-path rust/Cargo.toml --workspace --release --locked --jobs 2 -- --test-threads=1 > ../results/rust-tests.log 2>&1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pytest Tests/test_python_ffi.py -q > ../results/python-ffi.log 2>&1
+          "$RUNNER_TEMP/bindings-venv/bin/python3" -m pytest python/tests/ -q > ../results/python-package.log 2>&1
+          export PATH="$RUNNER_TEMP/bindings-venv/bin:$PATH"
+          lake run cross-lang-compare -- docs/reports > ../results/cross-language.log 2>&1
+      - name: Check exact final axiom profiles
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          lake env lean ../results/AxiomAudit.lean > ../results/axioms-after.log 2>&1
+          lake env lean ../results/RootAudit.lean > ../results/root-axioms-after.log 2>&1
+          cmp ../results/axioms-before.log ../results/axioms-after.log
+          cmp ../results/root-axioms-before.log ../results/root-axioms-after.log
+      - name: Freeze verified source and preserve exact candidate bundle
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --exit-code -- . ':(exclude)Tests/Guards/Proofs/*.lean'
+          git diff --check
+          git add Tests/Guards/Proofs
+          if ! git diff --cached --quiet; then git commit -m "test(guards): measure PR $PR on exact current owner"; fi
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git merge-base --is-ancestor "$OLD" HEAD
+          git merge-base --is-ancestor "$OWNER" HEAD
+          git rev-parse HEAD HEAD^{tree} > ../results/qualified-source.txt
+          git diff --binary "$INITIAL_SOURCE" HEAD > ../results/final-snapshot.patch
+          git bundle create ../results/qualified.bundle HEAD ^"$OLD" ^"$OWNER"
+          git bundle verify ../results/qualified.bundle > ../results/bundle-verify.log 2>&1
+          sha256sum ../results/qualified.bundle ../results/final-snapshot.patch > ../results/qualified.sha256
+          printf 'NATIVE_QUALIFIED PR=%s SOURCE=%s TREE=%s\n' "$PR" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})"
+      - name: Build Verso and API documentation on the frozen candidate
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          (cd doc && lake build l4yaml-doc) > ../results/verso-build.log 2>&1
+          (cd doc && lake exe l4yaml-doc) > ../results/verso-render.log 2>&1
+          test -f doc/_out/html-single/index.html
+          lake build :docs > ../results/api-docs.log 2>&1
+          git diff --exit-code
+          printf 'QUALIFIED SOURCE=%s TREE=%s; native, guards, bindings, Verso, API; no publication\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" > ../results/qualification.txt
+          cat ../results/qualification.txt
+      - name: Record full patch and summaries for independent review
+        working-directory: source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --binary "$OLD" HEAD > ../results/publication.patch
+          git diff --binary "$OWNER" HEAD > ../results/owner-delta.patch
+          git diff --name-only "$OLD" HEAD > ../results/publication-paths.txt
+          git ls-tree -r HEAD > ../results/qualified-tree.txt
+          for name in native-suites.log hygiene.log eventscore.log final-build.log dashboard-diff.log dashboard-root-delta.log python-ffi.log python-package.log rust-tests.log cross-language.log verso-build.log api-docs.log; do
+            echo "QUALIFICATION_SUMMARY $name"
+            tail -12 "../results/$name"
+          done
+          sha256sum ../results/publication.patch ../results/owner-delta.patch > ../results/patches.sha256
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: source/.lake
+          key: pr-refresh-item541-384-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-384-item541-qualification-evidence
+          path: results/
+          if-no-files-found: error
