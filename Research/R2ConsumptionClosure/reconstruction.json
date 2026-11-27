@@ -1,0 +1,25 @@
+{
+  "exact": true,
+  "steps": [
+    {
+      "patch": "Research/R2EntryPreservation/retention-original.patch",
+      "exit": 0,
+      "source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60"
+    },
+    {
+      "patch": "Research/R2EntryPreservation/retention-strict-delta.patch",
+      "exit": 0,
+      "source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa"
+    },
+    {
+      "patch": "Research/R2SurvivorDomain/retention-refinements.patch",
+      "exit": 0,
+      "source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500"
+    },
+    {
+      "patch": "Research/R2ConsumptionClosure/producer-domain.patch",
+      "exit": 0,
+      "source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943"
+    }
+  ]
+}

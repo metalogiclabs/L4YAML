@@ -1,0 +1,19 @@
+Research/R2ConsumptionClosure/ConcreteSuppliers.lean:183:66: error: Tactic `decide` failed to reduce
+  @decide ((TokenParser.parseYaml input4).isOk = true) (instDecidableEqBool (TokenParser.parseYaml input4).isOk true)
+to `true` or `false`.
+
+Reduction got stuck at
+  match TokenParser.parseYaml input4 with
+  | Except.ok a => true
+  | Except.error a => false
+Research/R2ConsumptionClosure/ConcreteSuppliers.lean:184:66: error: Tactic `decide` failed to reduce
+  @decide ((TokenParser.parseYaml input6).isOk = true) (instDecidableEqBool (TokenParser.parseYaml input6).isOk true)
+to `true` or `false`.
+
+Reduction got stuck at
+  match TokenParser.parseYaml input6 with
+  | Except.ok a => true
+  | Except.error a => false
+'R2ConcreteSuppliers.actual_value_domain6' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcreteSuppliers.actual_6_2_0_consumption' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcreteSuppliers.actual_value_domain4' depends on axioms: [propext, Classical.choice, Quot.sound]

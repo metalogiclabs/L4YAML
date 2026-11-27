@@ -1,0 +1,309 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1026,6 +1026,216 @@
+     ∀ mid i c : SurfPos, SSLComments gram mid → SIndent own mid i → GLit ':' i c →
+     ∀ v : SurfPos, SBlockIndented own .blockOut c v → ExplValueLine start a v
+ 
++
++end L4YAML.Proofs.StreamAccum
++
++open L4YAML L4YAML.Scanner L4YAML.Surface
++open L4YAML.Proofs.StreamAccum
++open L4YAML.Proofs.NodeProduction
++
++namespace L4YAML.Proofs.R2ConsumptionClosure
++
++-- Both ways of completing this actual entry retain its mapping's own tail.
++-- The result can itself await every enclosing entry.
++def EntryStep (P : SurfPos → Prop) (own : Nat) (e : SurfPos) : Prop :=
++  (∀ z, SCompactMapTail own e z → P z) ∧
++  (∀ i c, SIndent own e i → GLit ':' i c →
++    ∀ v, SBlockIndented own .blockOut c v →
++      ∀ z, SCompactMapTail own v z → P z)
++
++-- Recursion is over grammar columns; membership is read from the real state.
++-- No independent list, snapshot or fourth-kind index is carried.
++def ValuesBelow (sc : ScannerState) (P : SurfPos → Prop) : Nat → SurfPos → Prop
++  | 0, e => P e
++  | n + 1, e =>
++    if n ∈ RegisterWitness.markedCols sc then EntryStep (ValuesBelow sc P n) n e
++    else ValuesBelow sc P n e
++
++def columnCeiling (sc : ScannerState) : Nat :=
++  (RegisterWitness.markedCols sc).foldr (fun x n => max (x + 1) n) 0
++
++def EntryValues (sc : ScannerState) (P : SurfPos → Prop) (e : SurfPos) : Prop :=
++  ValuesBelow sc P (columnCeiling sc) e
++
++lemma marked_lt_ceiling {sc : ScannerState} {own : Nat}
++    (h : own ∈ RegisterWitness.markedCols sc) : own < columnCeiling sc := by
++  have bound : ∀ xs : List Nat, ∀ x ∈ xs,
++      x + 1 ≤ xs.foldr (fun x n => max (x + 1) n) 0 := by
++    intro xs
++    induction xs with
++    | nil => simp
++    | cons a xs ih =>
++      intro x hx
++      rcases List.mem_cons.mp hx with rfl | hx
++      · exact Nat.le_max_left _ _
++      · exact Nat.le_trans (ih x hx) (Nat.le_max_right _ _)
++  exact Nat.lt_of_succ_le (bound _ own h)
++
++lemma ceiling_le_of_marks_lt {sc : ScannerState} {upper : Nat}
++    (h : ∀ x ∈ RegisterWitness.markedCols sc, x < upper) : columnCeiling sc ≤ upper := by
++  have bound : ∀ xs : List Nat, (∀ x ∈ xs, x < upper) →
++      xs.foldr (fun x n => max (x + 1) n) 0 ≤ upper := by
++    intro xs
++    induction xs with
++    | nil => simp
++    | cons a xs ih =>
++      intro hs
++      exact Nat.max_le.mpr ⟨hs a (by simp), ih (fun x hx => hs x (by simp [hx]))⟩
++  exact bound _ h
++
++lemma EntryStep.map {P Q : SurfPos → Prop} {own : Nat} {e : SurfPos}
++    (step : EntryStep P own e) (f : ∀ z, P z → Q z) : EntryStep Q own e :=
++  ⟨fun z tail => f z (step.1 z tail),
++   fun i c indent colon v value z tail => f z (step.2 i c indent colon v value z tail)⟩
++
++lemma ValuesBelow.close {sc : ScannerState} {P : SurfPos → Prop} {upper : Nat}
++    {e : SurfPos} (h : ValuesBelow sc P upper e) : P e := by
++  induction upper with
++  | zero => exact h
++  | succ n ih =>
++    unfold ValuesBelow at h
++    split at h
++    · exact ih (h.1 e (SCompactMapTail.nil n e))
++    · exact ih h
++
++lemma ValuesBelow.at {sc : ScannerState} {P : SurfPos → Prop} {upper own : Nat}
++    {e : SurfPos} (h : ValuesBelow sc P upper e)
++    (marked : own ∈ RegisterWitness.markedCols sc) (lt : own < upper) :
++    EntryStep (ValuesBelow sc P own) own e := by
++  induction upper with
++  | zero => omega
++  | succ n ih =>
++    by_cases eq : own = n
++    · subst own
++      simpa only [ValuesBelow, if_pos marked] using h
++    · have below : own < n := by omega
++      unfold ValuesBelow at h
++      split at h
++      · exact ih (h.1 e (SCompactMapTail.nil n e)) below
++      · exact ih h below
++
++lemma ValuesBelow.truncate {sc : ScannerState} {P : SurfPos → Prop} {upper lower : Nat}
++    {e : SurfPos} (h : ValuesBelow sc P upper e) (le : lower ≤ upper) :
++    ValuesBelow sc P lower e := by
++  induction upper with
++  | zero =>
++    have : lower = 0 := by omega
++    subst lower
++    exact h
++  | succ n ih =>
++    by_cases eq : lower = n + 1
++    · subst lower; exact h
++    · have le' : lower ≤ n := by omega
++      unfold ValuesBelow at h
++      split at h
++      · exact ih (h.1 e (SCompactMapTail.nil n e)) le'
++      · exact ih h le'
++
++lemma ValuesBelow.narrow {before after : ScannerState} {P : SurfPos → Prop} {upper : Nat}
++    {e : SurfPos} (h : ValuesBelow before P upper e)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    ValuesBelow after P upper e := by
++  induction upper generalizing e with
++  | zero => exact h
++  | succ n ih =>
++    by_cases hm : n ∈ RegisterWitness.markedCols after
++    · have old := back n hm
++      simp only [ValuesBelow, if_pos old] at h
++      simp only [ValuesBelow, if_pos hm]
++      exact h.map (fun z hz => ih hz)
++    · simp only [ValuesBelow, if_neg hm]
++      unfold ValuesBelow at h
++      split at h
++      · exact ih (h.1 e (SCompactMapTail.nil n e))
++      · exact ih h
++
++lemma EntryValues.consume {before after : ScannerState} {P : SurfPos → Prop}
++    {e i c v : SurfPos} {own : Nat} (h : EntryValues before P e)
++    (ownMark : own ∈ RegisterWitness.markedCols before)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before)
++    (smaller : ∀ x ∈ RegisterWitness.markedCols after, x < own)
++    (indent : SIndent own e i) (colon : GLit ':' i c)
++    (value : SBlockIndented own .blockOut c v) : EntryValues after P v := by
++  have step := ValuesBelow.at h ownMark (marked_lt_ceiling ownMark)
++  have rest := step.2 i c indent colon v value v (SCompactMapTail.nil own v)
++  exact rest.narrow back |>.truncate (ceiling_le_of_marks_lt smaller)
++
++lemma ValuesBelow.valueLine {sc : ScannerState} {start e : SurfPos} {upper own : Nat}
++    (h : ValuesBelow sc (SLYamlStream start) upper e)
++    (marked : own ∈ RegisterWitness.markedCols sc) (lt : own < upper) :
++    ExplValueLine start own e := by
++  intro i c indent colon v value
++  have step := h.at marked lt
++  exact ResumeFrames.level own [] v (by simp)
++    (fun z tail => ResumeFrames.bottom z (step.2 i c indent colon v value z tail).close)
++
++-- Consuming any marked owner leaves a continuation for every smaller owner.
++-- Taking a nil tail here closes only the consumed mapping, not outer entries.
++lemma EntryValues.pair {sc : ScannerState} {start e i c v : SurfPos} {own a : Nat}
++    (h : EntryValues sc (SLYamlStream start) e)
++    (ownMark : own ∈ RegisterWitness.markedCols sc)
++    (aMark : a ∈ RegisterWitness.markedCols sc) (lt : a < own)
++    (indent : SIndent own e i) (colon : GLit ':' i c)
++    (value : SBlockIndented own .blockOut c v) : ExplValueLine start a v := by
++  have step := ValuesBelow.at h ownMark (marked_lt_ceiling ownMark)
++  exact (step.2 i c indent colon v value v (SCompactMapTail.nil own v)).valueLine aMark lt
++
++-- A real question and whole entry route construct both branches. In
++-- particular, omission uses explicitEmpty only after its actual key ends.
++lemma entryStep_of_question {P : SurfPos → Prop} {n : Nat} {q key e : SurfPos}
++    (question : GLit '?' q key)
++    (route : ∀ v, SBlockMapEntry n q v →
++      ∀ z, SCompactMapTail n v z → P z)
++    (content : SBlockIndented n .blockOut key e) : EntryStep P n e := by
++  constructor
++  · exact route e (SBlockMapEntry.explicitEmpty n q key e question content)
++  · intro i c indent colon v value
++    exact route v (SBlockMapEntry.explicit n q key e i c v question content indent colon value)
++
++-- This is the exact colon → value-node boundary. The retained result remains
++-- open; the consumed value's block node is supplied by the actual scanner arm.
++lemma colon_value_domain {P : SurfPos → Prop} {n : Nat} {keyEnd i colon : SurfPos}
++    (step : EntryStep P n keyEnd) (indent : SIndent n keyEnd i)
++    (literal : GLit ':' i colon) :
++    ∀ e, SBlockNode (n + 1) .blockIn colon e → P e := by
++  intro e node
++  exact step.2 i colon indent literal e
++    (SBlockIndented.node n .blockOut colon e (SBlockNode_blockIn_to_blockOut node))
++    e (SCompactMapTail.nil n e)
++
++
++end L4YAML.Proofs.R2ConsumptionClosure
++
++namespace L4YAML.Proofs.StreamAccum
++open L4YAML.Proofs.CloseStaleExplicitKey
++open L4YAML.Surface
++open L4YAML.Scanner
++open L4YAML.Proofs.BlockScalarFlowGuard
++open L4YAML.Proofs.BlockScalarIndentFloor
++open L4YAML.Proofs.PreprocessIndentStable
++open L4YAML.Proofs.CouplingBridge
++open L4YAML.Proofs.FlowIndexLift
++open L4YAML.Proofs.FlowKeyLift
++open L4YAML.Proofs.ScalarFoldAt
++open L4YAML.Proofs.LandingTab
++open L4YAML.Proofs.TabIndentBridge
++open L4YAML.Proofs.SurfaceSpan
++open L4YAML.Proofs.ScanStrictCoupling
++open L4YAML.Proofs.ScannerCoupling
++open L4YAML.Proofs.ScalarCoupling
++open L4YAML.Proofs.StructureCoupling
++open L4YAML.Proofs.PreprocessProduction
++open L4YAML.Proofs.StructureProduction
++open L4YAML.Proofs.EntryBoundaryLayout
++open L4YAML.Proofs.LineOpenGuard
++open L4YAML.Proofs.NodeProduction
++open L4YAML.Proofs.ScalarProduction
++open L4YAML.Proofs.NodeProduction
++open L4YAML.CharPredicates
++open L4YAML.Proofs.FlowAdjacency
++open L4YAML.Proofs.PropsRunLineCoupling
++open L4YAML.Proofs.IndentStackCover (FrameLevel)
++open L4YAML.Proofs.R2ConsumptionClosure
+ 
+ /-- **The enclosing sequence's own remaining tail** (item 167) — the SEQUENCE
+     lane's bottom, and `ExplValueLine`'s twin on it.
+@@ -38064,6 +38274,9 @@
+       ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
+     -- Item 99: the park's resume frames, both faces (`pendingMapValue`'s
+     -- `h_closeF`/`h_frames`), threaded for the pack lemmas' resume twins.
++    -- Mandatory, consumption-closed context over the actual marked columns.
++    (h_entries : ∀ sp_m, SBlockNode (n + 1) .blockIn sp_scan sp_m →
++      EntryValues sc (SLYamlStream sp_start) sp_m)
+     (h_closeF99 : (∃ ks : List FrameLevel, (∀ fr ∈ ks, fr.width ≤ n) ∧
+       -- Item 148: the cover rides this face, which is the one the pack
+       -- lemma's NESTED branch reads.
+@@ -38357,16 +38570,9 @@
+                · refine Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                    (fun nv hm => single nv (hd.mem hm)), ?_⟩
+                  intro own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi
+-                 rcases h_expl with ⟨sp_q, h_qlit, route, h_chainUp⟩ | h_notQuestion
+-                 · rcases h_chainUp with up | h_noChain
+-                   · by_cases howner : own = n
+-                     · subst own
+-                       exact up a (marks_step_content h_preprocess h_dispatch a ha) (by omega) sp_v
+-                         (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
+-                           (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl))) h_iv h_lit h_sbi)
+-                     · first | assumption | (trace_state; fail "R2_KEY_FLOW_SURVIVING_OWNER")
+-                   · first | assumption | (trace_state; fail "R2_KEY_FLOW_NO_CHAIN")
+-                 · first | assumption | (trace_state; fail "R2_KEY_FLOW_NO_QUESTION")
++                 exact EntryValues.pair (h_entries sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl))
++                   (marks_step_content h_preprocess h_dispatch own hown)
++                   (marks_step_content h_preprocess h_dispatch a ha) hn h_iv h_lit h_sbi
+                · exact Or.inr h_alt)
+               (content_park_arm (preprocess_some_peek h_preprocess)
+                 h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -38573,16 +38779,9 @@
+                · refine Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                    (fun nv hm => single nv (hd.mem hm)), ?_⟩
+                  intro own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi
+-                 rcases h_expl with ⟨sp_q, h_qlit, route, h_chainUp⟩ | h_notQuestion
+-                 · rcases h_chainUp with up | h_noChain
+-                   · by_cases howner : own = n
+-                     · subst own
+-                       exact up a (marks_step_content h_preprocess h_dispatch a ha) (by omega) sp_v
+-                         (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
+-                           (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (h_nodeAt sp_mid h_ssl))) h_iv h_lit h_sbi)
+-                     · first | assumption | (trace_state; fail "R2_KEY_SCALAR_SURVIVING_OWNER")
+-                   · first | assumption | (trace_state; fail "R2_KEY_SCALAR_NO_CHAIN")
+-                 · first | assumption | (trace_state; fail "R2_KEY_SCALAR_NO_QUESTION")
++                 exact EntryValues.pair (h_entries sp_mid (h_nodeAt sp_mid h_ssl))
++                   (marks_step_content h_preprocess h_dispatch own hown)
++                   (marks_step_content h_preprocess h_dispatch a ha) hn h_iv h_lit h_sbi
+                · exact Or.inr h_alt)
+                (content_park_arm (preprocess_some_peek h_preprocess)
+                  h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -38704,16 +38903,9 @@
+                · refine Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                    (fun nv hm => single nv (hd.mem hm)), ?_⟩
+                  intro own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi
+-                 rcases h_expl with ⟨sp_q, h_qlit, route, h_chainUp⟩ | h_notQuestion
+-                 · rcases h_chainUp with up | h_noChain
+-                   · by_cases howner : own = n
+-                     · subst own
+-                       exact up a (marks_step_content h_preprocess h_dispatch a ha) (by omega) sp_v
+-                         (SBlockMapEntry.explicit n sp_q sp_scan sp_mid sp_i sp_c sp_v h_qlit
+-                           (SBlockIndented_blockIn_to_blockOut (SBlockIndented.node n .blockIn sp_scan sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl))) h_iv h_lit h_sbi)
+-                     · first | assumption | (trace_state; fail "R2_KEY_MULTILINE_SURVIVING_OWNER")
+-                   · first | assumption | (trace_state; fail "R2_KEY_MULTILINE_NO_CHAIN")
+-                 · first | assumption | (trace_state; fail "R2_KEY_MULTILINE_NO_QUESTION")
++                 exact EntryValues.pair (h_entries sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl))
++                   (marks_step_content h_preprocess h_dispatch own hown)
++                   (marks_step_content h_preprocess h_dispatch a ha) hn h_iv h_lit h_sbi
+                · exact Or.inr h_alt)
+               (content_park_arm (preprocess_some_peek h_preprocess)
+                 h_flow_disp h_not_doc h_dispatch hcorr_result)
+@@ -40977,7 +41169,8 @@
+     -- Item 179 retired the 0/nonzero split, as at the `pendingBlock` arm
+     -- above: the mapping twin answers at every index and the root entry is
+     -- the `n = 0` instance.
+-    exact accum_content_on_pendingMapValue_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextMV (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_mv h_base h_preprocess) sc sp_start sp_block sp_scan n_old
++    exact accum_content_on_pendingMapValue_indented
++      (h_entries := by trace_state; fail "R2_VALUE_COMPLETION_ENTRY_VALUES") (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextMV (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_mv h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+       s_prep s' c sp_prep sp_scan' h_stream_block (fun sp h => h_close_old sp (SBlockNode_blockIn_to_blockOut h)) h_floor_old h_col0_old
+       -- Item 209: the content lane reads the SLOT and not the top beside it,
+       -- so the top is projected away here rather than restated downstream — a
+@@ -42899,3 +43092,9 @@
+ end Blanket
+ 
+ #print axioms L4YAML.Proofs.StreamAccum.colon_open_map_explicit
++
++#print axioms L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented
++
++run_cmd do
++  let axioms ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented
++  Lean.logInfo s!"RAW-PRODUCER-AXIOMS {repr axioms}"

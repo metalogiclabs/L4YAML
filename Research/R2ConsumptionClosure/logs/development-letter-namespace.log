@@ -1,0 +1,8 @@
+Research/R2ConsumptionClosure/ConcreteSuppliers.lean:33:56: error(lean.unknownIdentifier): Unknown identifier `isIndicatorProp`
+
+Note: It is not possible to treat `isIndicatorProp` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+Research/R2ConsumptionClosure/ConcreteSuppliers.lean:48:6: warning: declaration uses `sorry`
+Research/R2ConsumptionClosure/ConcreteSuppliers.lean:158:6: warning: declaration uses `sorry`
+'R2ConcreteSuppliers.actual_value_domain6' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ConcreteSuppliers.actual_6_2_0_consumption' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ConcreteSuppliers.actual_value_domain4' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

@@ -1,0 +1,8 @@
+Research/R2ConsumptionClosure/EntryValues.lean:63:31: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2ConsumptionClosure/EntryValues.lean:110:46: error(lean.unknownIdentifier): Unknown identifier `SBlockNode_blockIn_to_blockOut`
+'L4YAML.Proofs.R2ConsumptionClosure.EntryValues.pair' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2ConsumptionClosure.entryStep_of_question' does not depend on any axioms
+'L4YAML.Proofs.R2ConsumptionClosure.colon_value_domain' depends on axioms: [propext, sorryAx]

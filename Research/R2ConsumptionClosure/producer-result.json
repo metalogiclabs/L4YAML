@@ -1,0 +1,103 @@
+{
+  "state": "UNKNOWN_GLOBAL_RETENTION; WARRANTED_CONDITIONAL_REAL_PRODUCER",
+  "exit": 1,
+  "source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943",
+  "prior_source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500",
+  "log_sha256": "3440cf7a6a253762363a3615c2adcbce77c041007e2f3ed6c38d942ef4ce7b95",
+  "labelled_demands": 14,
+  "additional_type_errors": 0,
+  "retained_old_demands": 13,
+  "new_mandatory_supplier_demands": 1,
+  "old_use_sites_elaborated_under_stronger_premise": [
+    "R2_KEY_FLOW_NO_CHAIN",
+    "R2_KEY_FLOW_NO_QUESTION",
+    "R2_KEY_FLOW_SURVIVING_OWNER",
+    "R2_KEY_MULTILINE_NO_CHAIN",
+    "R2_KEY_MULTILINE_NO_QUESTION",
+    "R2_KEY_MULTILINE_SURVIVING_OWNER",
+    "R2_KEY_SCALAR_NO_CHAIN",
+    "R2_KEY_SCALAR_NO_QUESTION",
+    "R2_KEY_SCALAR_SURVIVING_OWNER"
+  ],
+  "new_mandatory_premise_is_not_paid_supplier": true,
+  "errors": [
+    {
+      "line": 20473,
+      "column": 617,
+      "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+    },
+    {
+      "line": 20706,
+      "column": 616,
+      "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+    },
+    {
+      "line": 29998,
+      "column": 80,
+      "label": "R2_OTHER_BLOCK_CONTENT_PAIR"
+    },
+    {
+      "line": 30804,
+      "column": 78,
+      "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+    },
+    {
+      "line": 31378,
+      "column": 86,
+      "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+    },
+    {
+      "line": 31410,
+      "column": 84,
+      "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+    },
+    {
+      "line": 31472,
+      "column": 77,
+      "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+    },
+    {
+      "line": 31565,
+      "column": 37,
+      "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+    },
+    {
+      "line": 40497,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+    },
+    {
+      "line": 40582,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+    },
+    {
+      "line": 40868,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+    },
+    {
+      "line": 40996,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+    },
+    {
+      "line": 41116,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+    },
+    {
+      "line": 41173,
+      "column": 36,
+      "label": "R2_VALUE_COMPLETION_ENTRY_VALUES"
+    }
+  ],
+  "actual_producer_declaration": "L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented",
+  "actual_producer_elaborated": true,
+  "raw_axioms_byte_identical": true,
+  "raw_axioms_sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a",
+  "raw_axioms_count": 48,
+  "producer_contains_sorryAx": false,
+  "whole_variant_accepted": false,
+  "critical_positions_retired": 0
+}
