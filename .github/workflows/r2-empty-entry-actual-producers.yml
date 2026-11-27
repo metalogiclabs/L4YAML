@@ -158,7 +158,9 @@ jobs:
                   '          omega',
                   '        have h_pay : lo ≤ s_prep.col ∧ s_prep.currentIndent = (s_prep.col : Int) ∧',
                   '            (∀ top, s_prep.indents.back? = some top → top.isSequence = false) := by',
-                  '          first | exact ⟨by omega, by omega, by assumption⟩ | trace_state; fail "'+tag+'_COVER_SIDE_CONDITIONS"',
+                  '          first',
+                  '          | exact ⟨by omega, by omega, by assumption⟩',
+                  '          | (trace_state; fail "'+tag+'_COVER_SIDE_CONDITIONS")',
                   '        exact landing_frame_of_cover h_dispatch (noflow_disp_of_noflow h_noflow)',
                   '          ((IndentStackCover.preprocess_cover h_preprocess hC).of_indents_eq (by split <;> rfl))',
                   '          (by split <;> exact h_scol) (by split <;> exact h_pay.1)',
@@ -170,22 +172,27 @@ jobs:
                   '    cases hb <;> first',
                   '      | exact SBlockMapEntry.emptyKeyNode _ _ _ _ hl (by assumption)',
                   '      | exact SBlockMapEntry.emptyKeyEmpty _ _ _ _ hl (by assumption)',
-                  '      | trace_state; fail "'+tag+'_ENTRY_CONSTRUCTOR"',
+                  '      | (trace_state; fail "'+tag+'_ENTRY_CONSTRUCTOR")',
                   '  exact resumeFrameRouteK h_ind resume m h_entry',
                   '· trace_state',
                   '  fail "'+tag+'_FRAMES_UNAVAILABLE"']
               return '\n'.join(indent+x for x in code)
+          anchors=[]
           for label in ('SEED','SEQ'):
-              for reason,indent in [('OWNER_MISMATCH','                            '),('UNAVAILABLE','                          ')]:
-                  old=indent+'trace_state\n'+indent+'first | assumption | fail "R2_'+label+'_'+reason+'"'
-                  # The original bullet precedes trace_state by two columns.
-                  old=indent[:-2]+'· trace_state\n'+indent+'first | assumption | fail "R2_'+label+'_'+reason+'"'
-                  assert s.count(old)==1,(label,reason,s.count(old))
+              for reason in ('OWNER_MISMATCH','UNAVAILABLE'):
+                  tag='R2_'+label+'_'+reason
+                  pat=r'(?m)^( +)· trace_state\n\1  first \| assumption \| fail "'+tag+r'"'
+                  matches=list(re.finditer(pat,s))
+                  assert len(matches)==1,(tag,len(matches))
+                  m=matches[0]
+                  indent=m.group(1)+'  '
+                  anchors.append({'tag':tag,'bullet_indent':len(m.group(1)),'line':s.count('\n',0,m.start())+1})
                   attempt=frame_attempt(label,reason,indent)
-                  # Put the first tactic on the original bullet, retaining all nested alignment.
                   first_line, rest=attempt.split('\n',1)
-                  new=indent[:-2]+'· '+first_line[len(indent):]+'\n'+rest
-                  s=s.replace(old,new,1)
+                  new=m.group(1)+'· '+first_line[len(indent):]+'\n'+rest
+                  s=s[:m.start()]+new+s[m.end():]
+          assert len(anchors)==4
+          out.joinpath('landing-anchor-roster.json').write_text(json.dumps(anchors,indent=2)+'\n')
           p.write_text(s)
           out.joinpath('candidate.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
           out.joinpath('scope.txt').write_text('root_domain=actual_markedCols_empty_from_item540\nmandatory_pair_sites=two\nkeyframes_landing_ownership=diagnostic\nempty_key_syntax_only_not_semantic_association\nno_new_optional_fallback=true\ncritical_retirement=NOT_CLAIMED\n')
