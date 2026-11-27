@@ -1,0 +1,5 @@
+{
+  "path": "L4YAML/Proofs/Production/StreamAccum.lean",
+  "old": "             | Or.inr _ => Or.inr trivial⟩)\n           -- Item 209: and the slot's own stack top, the caller's measurement.",
+  "new": "             | Or.inr _ => Or.inl (by\n                 intro nv hnv hne sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi\n                 rcases h_resV_land with hall | h_noResume\n                 · obtain ⟨_, _, contV⟩ := hall nv hnv hne\n                   exact resumeFrameRouteK h_ind contV sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi\n                 · rcases h_explUp_chain with ⟨ns, up⟩ | h_noChain\n                   · have hmem : nv ∈ ns := by\n                       first | assumption | (trace_state; fail \"R2_QUESTION_ANCESTOR_DOMAIN\")\n                     exact up nv hmem sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi\n                   · first | assumption | (trace_state; fail \"R2_QUESTION_ANCESTOR_NO_CHAIN\"))⟩)\n           -- Item 209: and the slot's own stack top, the caller's measurement."
+}

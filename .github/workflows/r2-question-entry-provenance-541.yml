@@ -1,0 +1,101 @@
+name: Price question-entry provenance at item 541
+on:
+  push:
+    branches: [test/r2-question-entry-provenance-541]
+    paths: [.github/workflows/r2-question-entry-provenance-541.yml]
+permissions:
+  contents: read
+jobs:
+  provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nasa-jpl/L4YAML
+          ref: 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          path: source
+          submodules: recursive
+          persist-credentials: false
+      - name: Bind exact item 541 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cd source
+          test "$(git rev-parse HEAD)" = 9f1f7bc60cf54741c1bf5d0c0618ee680268ed15
+          test "$(git rev-parse HEAD^{tree})" = 0c7dced413db0510b0a0a144ca2ca74111cf6a77
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test "$(git hash-object Tests/AdversarialInstantiation.lean)" = 0b88efceaddb9f3b6e06433f86aa1685d6aa3ac5
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: r2-question-provenance-541-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Reproduce actual scanner transitions and semantic controls
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../harness/Research/RootComposition/question-entry-provenance-541.lean R2QuestionProvenance.lean
+          cp R2QuestionProvenance.lean ../results/
+          status=0
+          lake build L4YAML.Proofs.Scanner.RegisterWitness L4YAML.Output.Events L4YAML.Output.EventsIx > ../results/trace-build.log 2>&1 || status=$?
+          echo "$status" > ../results/trace-build.exit
+          if [ "$status" = 0 ]; then
+            status=0
+            lake env lean R2QuestionProvenance.lean > ../results/scanner-trace.log 2>&1 || status=$?
+            echo "$status" > ../results/scanner-trace.exit
+            cat ../results/scanner-trace.log
+          else
+            tail -50 ../results/trace-build.log
+          fi
+          rm R2QuestionProvenance.lean
+      - name: Demand actual associated ancestor continuation at question producer
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../harness/Research/RootComposition/question-entry-provenance-541.json ../results/spec.json
+          python3 - <<'PY'
+          import json, pathlib, hashlib
+          out=pathlib.Path('../results')
+          spec=json.loads((out/'spec.json').read_text())
+          p=pathlib.Path(spec['path'])
+          s=p.read_text()
+          assert s.count(spec['old']) == 1
+          i=s.index(spec['old'])
+          assert s.index('lemma question_open_map') < i < s.index('lemma question_open_map')+25000
+          out.joinpath('anchor.txt').write_text(str(s.count('\n',0,i)+1)+'\n')
+          p.write_text(s.replace(spec['old'],spec['new'],1))
+          out.joinpath('candidate.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
+          PY
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/actual-producer.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/actual-producer.log 2>&1 || status=$?
+          echo "$status" > ../results/actual-producer.exit
+          grep -E 'error:|R2_QUESTION_|Build completed' ../results/actual-producer.log | tail -80 || true
+          printf '%s\n' 'Diagnostic only: existing question entry and actual surviving marks; no empty-key surrogate, no new optional fallback, no critical-position retirement claimed.' > ../results/verification-boundary.txt
+          git restore -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 599a99c516f298e676fc06486159df51daa517f0
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: question-entry-provenance-541
+          path: results/
+          if-no-files-found: error
