@@ -1,0 +1,133 @@
+{
+  "state": "UNKNOWN_GLOBAL_RETENTION",
+  "exit_code": 1,
+  "source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500",
+  "prior_source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa",
+  "log_sha256": "4951f1304b056a01e4f7b22d334929f5a4b0b56ed8ce3c2132ed08d481280189",
+  "labelled_demands": 22,
+  "additional_type_errors": 0,
+  "labels_identical_to_prior": true,
+  "new_demands_discharged": 0,
+  "errors": [
+    {
+      "line": 20263,
+      "column": 617,
+      "message": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+    },
+    {
+      "line": 20496,
+      "column": 616,
+      "message": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+    },
+    {
+      "line": 29788,
+      "column": 80,
+      "message": "R2_OTHER_BLOCK_CONTENT_PAIR"
+    },
+    {
+      "line": 30594,
+      "column": 78,
+      "message": "R2_OTHER_PENDING_BLOCK_PAIR"
+    },
+    {
+      "line": 31168,
+      "column": 86,
+      "message": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+    },
+    {
+      "line": 31200,
+      "column": 84,
+      "message": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+    },
+    {
+      "line": 31262,
+      "column": 77,
+      "message": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+    },
+    {
+      "line": 31355,
+      "column": 37,
+      "message": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+    },
+    {
+      "line": 38367,
+      "column": 58,
+      "message": "R2_KEY_FLOW_SURVIVING_OWNER"
+    },
+    {
+      "line": 38368,
+      "column": 56,
+      "message": "R2_KEY_FLOW_NO_CHAIN"
+    },
+    {
+      "line": 38369,
+      "column": 54,
+      "message": "R2_KEY_FLOW_NO_QUESTION"
+    },
+    {
+      "line": 38583,
+      "column": 58,
+      "message": "R2_KEY_SCALAR_SURVIVING_OWNER"
+    },
+    {
+      "line": 38584,
+      "column": 56,
+      "message": "R2_KEY_SCALAR_NO_CHAIN"
+    },
+    {
+      "line": 38585,
+      "column": 54,
+      "message": "R2_KEY_SCALAR_NO_QUESTION"
+    },
+    {
+      "line": 38714,
+      "column": 58,
+      "message": "R2_KEY_MULTILINE_SURVIVING_OWNER"
+    },
+    {
+      "line": 38715,
+      "column": 56,
+      "message": "R2_KEY_MULTILINE_NO_CHAIN"
+    },
+    {
+      "line": 38716,
+      "column": 54,
+      "message": "R2_KEY_MULTILINE_NO_QUESTION"
+    },
+    {
+      "line": 40305,
+      "column": 94,
+      "message": "R2_RETAIN_PROPS_KEY_1_PAIR"
+    },
+    {
+      "line": 40390,
+      "column": 94,
+      "message": "R2_RETAIN_PROPS_KEY_2_PAIR"
+    },
+    {
+      "line": 40676,
+      "column": 94,
+      "message": "R2_RETAIN_PROPS_KEY_3_PAIR"
+    },
+    {
+      "line": 40804,
+      "column": 94,
+      "message": "R2_RETAIN_PROPS_KEY_4_PAIR"
+    },
+    {
+      "line": 40924,
+      "column": 94,
+      "message": "R2_RETAIN_PROPS_KEY_5_PAIR"
+    }
+  ],
+  "other_colon_goals_have_no_own_premise": true,
+  "five_property_goals_quantify_actual_output_marks": true,
+  "colon_helper_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound",
+    "L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_2",
+    "L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_3"
+  ],
+  "whole_variant_accepted": false
+}

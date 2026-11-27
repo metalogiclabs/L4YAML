@@ -1,0 +1,186 @@
+Research/R2SurvivorDomain/ScannerControls.lean:19:2: error(lean.unknownIdentifier): Unknown identifier `markedColsOf`
+Research/R2SurvivorDomain/ScannerControls.lean:45:71: error: unexpected identifier; expected '}'
+Research/R2SurvivorDomain/ScannerControls.lean:82:17: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  BEq (Except ScanError (Array YamlDocument))
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+Research/R2SurvivorDomain/ScannerControls.lean:84:26: error(lean.unknownIdentifier): Unknown identifier `landings`
+Research/R2SurvivorDomain/ScannerControls.lean:104:56: error(lean.unknownIdentifier): Unknown identifier `landings`
+Research/R2SurvivorDomain/ScannerControls.lean:87:17: error(lean.invalidField): Invalid field notation: Type of
+  trace
+is not known; cannot resolve field `map`
+
+Hint: Consider replacing the field projection with a call to one of the following:
+  • `Array.map`
+  • `BaseIO.map`
+  • `EIO.map`
+  • `EStateM.map`
+  • `Except.map`
+  • `ExceptT.map`
+  • `Functor.map`
+  • `List.map`
+  • `Option.map`
+  • `Prod.map`
+  • `StateT.map`
+  • `String.map`
+  • `Sum.map`
+  • `Task.map`
+  • `Thunk.map`
+  • `Vector.map`
+  • `Array.mapFinIdxM.map`
+  • `Array.mapM.map`
+  • `AnchorIndex.map`
+  • `Lean.AttributeExtensionState.map`
+  • `Lean.ClosedTermCache.map`
+  • `Lean.PersistentArray.map`
+  • `Lean.PersistentHashMap.map`
+  • `Lean.RBNode.map`
+  • `List.IsInfix.map`
+  • `List.IsPrefix.map`
+  • `List.IsSuffix.map`
+  • `List.Pairwise.map`
+  • `List.Perm.map`
+  • `List.Sublist.map`
+  • `Std.DHashMap.map`
+  • `Std.DTreeMap.map`
+  • `Std.ExtDHashMap.map`
+  • `Std.ExtDTreeMap.map`
+  • `Std.ExtHashMap.map`
+  • `Std.ExtTreeMap.map`
+  • `Std.HashMap.map`
+  • `Std.Iter.map`
+  • `Std.IterM.map`
+  • `Std.TreeMap.map`
+  • `Vector.mapFinIdxM.map`
+  • `Lean.Language.SnapshotTask.map`
+  • `Lean.Meta.CustomEliminators.map`
+  • `Lean.Meta.FVarSubst.map`
+  • `Lean.Meta.KExprMap.map`
+  • `Lean.Meta.MVarRenaming.map`
+  • `Lean.Omega.Coeffs.map`
+  • `Lean.Omega.Constraint.map`
+  • `Lean.ScopedEnvExtension.ScopedEntries.map`
+  • `Lean.Widget.TaggedText.map`
+  • `Std.Async.AsyncTask.map`
+  • `Std.Async.BaseAsync.map`
+  • `Std.Async.EAsync.map`
+  • `Std.Async.ETask.map`
+  • `Std.Async.MaybeTask.map`
+  • `Std.DHashMap.Equiv.map`
+  • `Std.DHashMap.Raw.map`
+  • `Std.DTreeMap.Equiv.map`
+  • `Std.DTreeMap.Raw.map`
+  • `Std.Do.Spec.map`
+  • `Std.Do.WP.map`
+  • `Std.HashMap.Equiv.map`
+  • `Std.HashMap.Raw.map`
+  • `Std.Http.Headers.map`
+  • `Std.Internal.Small.map`
+  • `Std.IterM.Equiv.map`
+  • `Std.IterM.InternalCombinators.map`
+  • `Std.Iterators.HetT.map`
+  • `Std.Iterators.PostconditionT.map`
+  • `Std.TreeMap.Equiv.map`
+  • `Std.TreeMap.Raw.map`
+  • `Std.WP.Spec.map`
+  • `Std.WP.Triple.map`
+  • `Proofs.IndentStackCover.FrameLevel.map`
+  • `Proofs.ParserGrammable.FlowSubrangesOk.map`
+  • `Lean.Compiler.CSimp.State.map`
+  • `Lean.Compiler.LCNF.Probe.map`
+  • `Lean.Meta.Grind.SymbolPriorities.map`
+  • `Lean.Meta.Grind.VarRename.map`
+  • `Lean.Meta.Match.MatchEqnsExtState.map`
+  • `Lean.Meta.Match.Overlaps.map`
+  • `Lean.Meta.Simp.UsedSimps.map`
+  • `Std.DHashMap.Internal.AssocList.map`
+  • `Std.DHashMap.Internal.Raw₀.map`
+  • `Std.DHashMap.Raw.Equiv.map`
+  • `Std.DHashMap.Raw.WF.map`
+  • `Std.DTreeMap.Internal.Impl.map`
+  • `Std.DTreeMap.Raw.Equiv.map`
+  • `Std.HashMap.Raw.Equiv.map`
+  • `Std.HashMap.Raw.WF.map`
+  • `Std.Internal.List.DistinctKeys.map`
+  • `Std.Sat.AIG.RefVec.map`
+  • `Std.Sat.AIG.relabelNat.map`
+  • `Std.TreeMap.Raw.Equiv.map`
+  • `Lean.Compiler.LCNF.CSE.State.map`
+  • `Lean.Compiler.LCNF.NormLevelParam.State.map`
+  • `Lean.Compiler.LCNF.Simp.FunDeclInfoMap.map`
+  • `Lean.Meta.Grind.UnitLike.State.map`
+  • `Lean.Meta.Match.Extension.State.map`
+  • `Lean.Meta.Tactic.BVDecide.UnsatProver.map`
+  • `Std.DTreeMap.Internal.Impl.Balanced.map`
+  • `Std.DTreeMap.Internal.Impl.Equiv.map`
+  • `Std.DTreeMap.Internal.Impl.WF.map`
+  • `Std.Sat.AIG.RelabelNat.State.map`
+  • `Std.Tactic.BVDecide.BVExpr.Cache.map`
+Research/R2SurvivorDomain/ScannerControls.lean:89:18: error(lean.invalidField): Invalid field notation: Type of
+  row
+is not known; cannot resolve field `explicit`
+
+Hint: Consider replacing the field projection with a call to one of the following:
+  • `Lean.OpenDecl.explicit`
+  • `Lean.pp.explicit`
+  • `Landing.explicit`
+  • `Surface.SBlockMapEntry.explicit`
+  • `Surface.SLAnyDocument.explicit`
+  • `Lean.Elab.DelabTermInfo.explicit`
+  • `Lean.Meta.AltVarNames.explicit`
+  • `Lean.Parser.Term.explicit`
+  • `Surface.SBlockMapEntry.below.explicit`
+  • `Lean.Parser.Tactic.rcasesPat.explicit`
+  • `Lean.Elab.Tactic.RCases.RCasesPatt.explicit`
+  • `Lean.Elab.Term.CollectPatternVars.Context.explicit`
+  • `Lean.Elab.Term.ElabAppArgs.Context.explicit`
+  • `Lean.Elab.Term.StructInst.SourcesView.explicit`
+Research/R2SurvivorDomain/ScannerControls.lean:90:19: error(lean.invalidField): Invalid field notation: Type of
+  row
+is not known; cannot resolve field `prepared`
+
+Hint: Consider replacing the field projection `.prepared` with a call to the function `Landing.prepared`.
+Research/R2SurvivorDomain/ScannerControls.lean:91:19: error(lean.invalidField): Invalid field notation: Type of
+  row
+is not known; cannot resolve field `after`
+
+Hint: Consider replacing the field projection with a call to one of the following:
+  • `CommentPosition.after`
+  • `Landing.after`
+  • `Lean.Elab.MacroStackElem.after`
+  • `Lean.Server.Completion.HoverInfo.after`
+Research/R2SurvivorDomain/ScannerControls.lean:91:45: error(lean.invalidField): Invalid field notation: Type of
+  row
+is not known; cannot resolve field `owner`
+
+Hint: Consider replacing the field projection `.owner` with a call to the function `Landing.owner`.
+Research/R2SurvivorDomain/ScannerControls.lean:93:20: error(lean.invalidField): Invalid field notation: Type of
+  row
+is not known; cannot resolve field `after`
+
+Hint: Consider replacing the field projection with a call to one of the following:
+  • `CommentPosition.after`
+  • `Landing.after`
+  • `Lean.Elab.MacroStackElem.after`
+  • `Lean.Server.Completion.HoverInfo.after`
+Research/R2SurvivorDomain/ScannerControls.lean:94:19: error(lean.invalidField): Invalid field notation: Type of
+  row
+is not known; cannot resolve field `after`
+
+Hint: Consider replacing the field projection with a call to one of the following:
+  • `CommentPosition.after`
+  • `Landing.after`
+  • `Lean.Elab.MacroStackElem.after`
+  • `Lean.Server.Completion.HoverInfo.after`
+Research/R2SurvivorDomain/ScannerControls.lean:85:12: error(lean.invalidDottedIdent): Invalid dotted identifier notation: The expected type of `.ok` could not be determined
+
+Hint: Using one of these would be unambiguous:
+  [apply] `Except.ok`
+  [apply] `EST.Out.ok`
+  [apply] `EStateM.Result.ok`
+  [apply] `Lean.Meta.DefEqArgsFirstPassResult.ok`
+  [apply] `Std.Http.Response.ok`
+  [apply] `Std.Http.Status.ok`
+  [apply] `Lean.Grind.CommRing.InvAtoms.ok`
+  [apply] `Lean.Grind.CommRing.InvVars.ok`
+  [apply] `Lean.Meta.Grind.CheckCoverageResult.ok`

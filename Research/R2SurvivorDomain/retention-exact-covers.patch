@@ -1,0 +1,62 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -40299,9 +40299,9 @@
+                          -- and the ride keeps the value line open — the pack's
+                          -- node is `h_closable`'s own (`? &p a⏎: - w`).
+                          (match h_kslot_p with
+-                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
++                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s', fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+-                                kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
++                                kslot nv ((MarkedColsIn.step_content h_preprocess h_dispatch hdom).mem hmem) sp_mid (h_nodeAtG sp_mid h_ssl)
+                                   sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_1_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+@@ -40384,9 +40384,9 @@
+                          -- landing feeds the park's own twin, and
+                          -- `? &p |⏎  x⏎: - w` composes.
+                          (match h_kslot_p with
+-                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
++                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s', fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+-                                kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
++                                kslot nv ((MarkedColsIn.step_content h_preprocess h_dispatch hdom).mem hmem) sp_mid (h_nodeAtG sp_mid h_ssl)
+                                   sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_2_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+@@ -40670,9 +40670,9 @@
+                          -- Item 91: as at the `n = 0` arm, one index up
+                          -- (`k:⏎  ? &p a⏎  : - w`).
+                          (match h_kslot_p with
+-                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
++                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s', fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+-                                kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
++                                kslot nv ((MarkedColsIn.step_content h_preprocess h_dispatch hdom).mem hmem) sp_mid (h_nodeAtG sp_mid h_ssl)
+                                   sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_3_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+@@ -40798,9 +40798,9 @@
+                          -- landing feeds the park's twin
+                          -- (`k:⏎  ? &p |⏎      x⏎  : - w`).
+                          (match h_kslot_p with
+-                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
++                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s', fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+-                                kslot nv hmem sp_mid (h_nodeAt sp_mid h_ssl)
++                                kslot nv ((MarkedColsIn.step_content h_preprocess h_dispatch hdom).mem hmem) sp_mid (h_nodeAt sp_mid h_ssl)
+                                   sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_4_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)
+@@ -40918,9 +40918,9 @@
+                            hcorr_result)
+                          -- Item 91: the fixed-index twin (`k:⏎  ? &p "a"⏎  : - w`).
+                          (match h_kslot_p with
+-                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hdom, fun nv hmem =>
++                          | Or.inl ⟨ns, hdom, kslot⟩ => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s', fun nv hmem =>
+                               (fun sp_mid sp_i sp_c h_ssl h_ind h_lit sp_v h_sbi =>
+-                                kslot nv hmem sp_mid (h_nodeAtG sp_mid h_ssl)
++                                kslot nv ((MarkedColsIn.step_content h_preprocess h_dispatch hdom).mem hmem) sp_mid (h_nodeAtG sp_mid h_ssl)
+                                   sp_i sp_c h_ind h_lit sp_v h_sbi), (by first | assumption | fail "R2_RETAIN_PROPS_KEY_5_PAIR")⟩
+                           | Or.inr h => Or.inr (PackAlt.step_content h_preprocess h_dispatch h))
+                            (content_park_arm (preprocess_some_peek h_preprocess)

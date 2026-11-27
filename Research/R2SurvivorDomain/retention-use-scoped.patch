@@ -1,0 +1,47 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -24997,7 +24997,7 @@
+       (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨
+       (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv))
+     (h_mono_out : IndentStackMono.Mono s')
+-    (h_pairAt : R2KeyPairAt s' sp_start sp_scan nv) :
++    (h_pairAt : nv ∉ RegisterWitness.markedCols s' → R2KeyPairAt s' sp_start sp_scan nv) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -25047,7 +25047,7 @@
+            (if h_noOwn : nv ∉ RegisterWitness.markedCols s' then
+               Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                 fun a hm m h_node =>
+-                  h_pairAt a hm (by
++                  h_pairAt h_noOwn a hm (by
+                     have hle := markedCols_le_of_top h_mono_out h_top_in a hm
+                     have hne : a ≠ nv := fun he => h_noOwn (he ▸ hm)
+                     omega)
+@@ -28466,7 +28466,7 @@
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+-            (h_pairAt := fun a hm hn => pair a (h_markBack a hm (by simp)) hn)
++            (h_pairAt := fun _ a hm hn => pair a (h_markBack a hm (by simp)) hn)
+             sp_start sp_gram sp_mid _ k s_prep s'
+             sp_scan' h_stream_new hvp h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+             -- Item 76: the explicit VALUE line measures on the same datum the
+@@ -29785,7 +29785,7 @@
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+-              (h_pairAt := by first | assumption | (trace_state; fail "R2_OTHER_BLOCK_CONTENT_PAIR"))
++              (h_pairAt := by intro h_noOwn; first | assumption | (trace_state; fail "R2_OTHER_BLOCK_CONTENT_PAIR"))
+               sp_start sp_gram sp_mid _ k s_prep s'
+               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+               (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+@@ -30591,7 +30591,7 @@
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+-            (h_pairAt := by first | assumption | (trace_state; fail "R2_OTHER_PENDING_BLOCK_PAIR"))
++            (h_pairAt := by intro h_noOwn; first | assumption | (trace_state; fail "R2_OTHER_PENDING_BLOCK_PAIR"))
+             sp_start sp_scan sp_mid _ k s_prep s'
+             sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+             (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>

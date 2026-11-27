@@ -1,0 +1,109 @@
+import L4YAML.Parser.Composition
+import L4YAML.Parser.IndexedComposition
+import L4YAML.Proofs.Scanner.RegisterWitness
+
+set_option autoImplicit false
+open L4YAML L4YAML.Scanner L4YAML.TokenParser
+
+namespace R2SurvivorDomain
+
+structure Landing where
+  explicit : Bool
+  owner : Nat
+  before : List Nat
+  prepared : List Nat
+  after : List Nat
+  deriving Repr, BEq
+
+def marks (s : ScannerState) : List Nat :=
+  markedColsOf s.pendingKeys s.indentColumns
+
+-- Same initialization and fuel budget as the actual public scanner.
+def seed (input : String) : ScannerState :=
+  let s := (ScannerState.mk' input).emit .streamStart
+  match s.peek? with
+  | some '\uFEFF' => s.consumeBOM
+  | _ => s
+
+def landings (input : String) : Except String (List Landing) :=
+  let rec go (s : ScannerState) (fuel : Nat) (acc : List Landing) :=
+    match fuel with
+    | 0 => .error "scanner trace fuel exhausted"
+    | fuel + 1 =>
+      match scanNextToken s with
+      | .error e => .error (reprStr e)
+      | .ok none => .ok acc.reverse
+      | .ok (some s') =>
+        let hit := s'.tokens.size > s.tokens.size &&
+          s'.tokens.back?.any (fun t => t.val == .value)
+        if hit then
+          match scanNextToken_preprocess s with
+          | .ok (some (sp, _)) =>
+            let cleared := scanValueClearKey sp
+            let explicit := cleared.explicitKeyLine.isSome && !cleared.simpleKey.possible &&
+              (sp.inFlow || (sp.col : Int) == cleared.explicitKeyCol)
+            go s' fuel ({ explicit, owner := sp.col, before := marks s,
+              prepared := marks sp, after := marks s' } :: acc)
+          | _ => .error "value token without a preprocessed landing"
+        else go s' fuel acc
+  go (seed input) ((input.utf8ByteSize + 1) * 4) []
+
+-- Every subset containing root 0, sorted in actual consumption order.
+def schedules : Nat → List (List Nat)
+  | 0 => []
+  | 1 => [[0]]
+  | n + 2 =>
+    let prev := schedules (n + 1)
+    prev ++ prev.map (fun xs => (n + 1) :: xs)
+
+def source (depth : Nat) (owners : List Nat) (value : String) : String :=
+  String.intercalate " " (List.replicate depth "?") ++ " a\n" ++
+    String.join (owners.map fun j =>
+      String.ofList (List.replicate (2 * j) ' ') ++ ": " ++ value ++ "\n")
+
+def isContiguous (xs : List Nat) : Bool :=
+  match xs with
+  | [] => false
+  | x :: _ => xs == (List.range (x + 1)).reverse
+
+def require (condition : Bool) (message : String) : IO Unit :=
+  unless condition do throw (IO.userError message)
+
+def run : IO Unit := do
+  let mut rows := 0
+  let mut oldRows := 0
+  let mut omittedAfterConsumption := 0
+  let mut actualLandings := 0
+  for depth in [2, 3, 4, 5, 6] do
+    for owners in schedules depth do
+      for value in ["b", "[b]", "- b"] do
+        let input := source depth owners value
+        require ((parseYaml input).isOk) s!"parser rejected {repr input}"
+        require (parseYaml input == L4YAML.TokenParser.Indexed.parseYamlIx input)
+          s!"indexed parser disagrees on {repr input}"
+        let trace ← match landings input with
+          | .ok trace => pure trace
+          | .error e => throw (IO.userError e)
+        require (trace.map (·.owner) == owners.map (2 * ·)) s!"wrong owners: {repr trace}"
+        for row in trace do
+          require row.explicit s!"implicit landing: {repr row}"
+          require (row.prepared.contains row.owner) s!"missing actual owner: {repr row}"
+          require (row.after == (List.range (row.owner / 2)).map (2 * ·))
+            s!"wrong surviving marks: {repr row}"
+          require (!row.after.contains row.owner) s!"own mark survived: {repr row}"
+          require (row.after.all (fun a => a < row.owner)) s!"nonancestor survived: {repr row}"
+          actualLandings := actualLandings + 1
+        rows := rows + 1
+        if isContiguous owners then oldRows := oldRows + 1
+        else omittedAfterConsumption := omittedAfterConsumption + 1
+        IO.println s!"ROW depth={depth} owners={repr owners} value={repr value} parser=ACCEPT trace={repr trace}"
+  require (rows == 186 && oldRows == 60 && omittedAfterConsumption == 126)
+    s!"unexpected coverage: {rows}/{oldRows}/{omittedAfterConsumption}"
+  for (depth, owners) in [(3, [2, 0]), (4, [3, 1, 0]), (4, [3, 2, 0])] do
+    let input := source depth owners "b"
+    IO.println s!"MIXED input={repr input} trace={repr (landings input)}"
+  IO.println s!"SUMMARY rows={rows} prior_rows={oldRows} additional_rows={omittedAfterConsumption} actual_explicit_landings={actualLandings} failures=0"
+
+end R2SurvivorDomain
+
+def main : IO Unit := R2SurvivorDomain.run
