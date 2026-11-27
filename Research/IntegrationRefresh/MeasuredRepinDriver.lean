@@ -239,6 +239,30 @@ def retiredOffcolRoster (ls body : Array String) : IO (Array String × Nat) := d
 
 def knownListFormats (file : String) (ls body : Array String) : IO (Array String × Nat) := do
   let title := body[0]?.getD ""
+  -- Exact negative archive 15164020984, build-6.log: preserve leading and
+  -- trailing whitespace, and accept only the single measured root payment.
+  if file == "Tests/Guards/Proofs/RouteShapes.lean" &&
+      (title == "a spine's sites moved:" || title == "an exit's hand-off moved:") then
+    let isSpine := title == "a spine's sites moved:"
+    let name := if isSpine then "expectedSpines" else "expectedSites"
+    let before := if isSpine then
+      "  stream=0 carry=12 fwd=0 punt=2 closed=0 SBlockIndented(_,blockIn) > SCompactSeqTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Resume(map(_)::[])▹Stream  ← pendingBlock.h_kslot, pendingBlock.h_kslotUp"
+      else "  accum_block_on_noPending: nil park=pendingBlock stream=param:h_stream_block closedBy=[] h_close=carry,h_close_entry=carry,h_kslot=punt,h_closeF=carry,h_closeF=closed,h_seqF=punt,h_kslotUp=punt,h_closeFV=punt"
+    let after := if isSpine then
+      "  stream=0 carry=12 fwd=0 punt=1 closed=1 SBlockIndented(_,blockIn) > SCompactSeqTail(_) > SIndent(_) > GLit(':') > SBlockIndented(_,blockOut) ⇒ Resume(map(_)::[])▹Stream  ← pendingBlock.h_kslot, pendingBlock.h_kslotUp"
+      else "  accum_block_on_noPending: nil park=pendingBlock stream=param:h_stream_block closedBy=[] h_close=carry,h_close_entry=carry,h_kslot=closed,h_closeF=carry,h_closeF=closed,h_seqF=punt,h_kslotUp=punt,h_closeFV=punt"
+    let some sp := measuredSpan ls name | return (ls,0)
+    let some old := oldValues? ls sp | return (ls,0)
+    let fresh := (body.toList.drop 1).takeWhile (fun l => l.startsWith "  ")
+    if (old.filter (· == before)).length != 1 ||
+        fresh != old.map (fun x => if x == before then after else x) then
+      IO.eprintln s!"MEASURED_REPIN_SKIP {name}: unexpected exact row identity or bytes"
+      return (ls,0)
+    match replaceMeasured ls name fresh false with
+    | .error e => IO.eprintln s!"MEASURED_REPIN_SKIP {e}"; return (ls,0)
+    | .ok (next, changed) =>
+      if changed then IO.println s!"MEASURED_REPIN {name} from exact single-row root payment"
+      return (next, if changed then 1 else 0)
   let name :=
     if file == "Tests/Guards/Proofs/DispatchPrice.lean" && title == "the per-function reading moved:" then
       some "expectedPerFn"
