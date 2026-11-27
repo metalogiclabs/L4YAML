@@ -303,6 +303,8 @@ def expectedSummary : String := "carriers=64 snapshot=9 ghost=74 or=139"
 -- scalar 63 → 62) — the cover is now `Floor lo n ks` at the park's own level.
 -- 2026-10-30 (item 407, flow carrier `pendingKeys` conjunct): FlowStackK prop 5 → 6 — the carrier gains `(0 < fl → sc.pendingKeys = s0.pendingKeys)`, an implication whose body is a STATE equality (classed `prop` like its indents twin); ghost 3 → 3, no proof-side list.
 -- 2026-11-17 (item 520, review round 2): the `KmSound`-bearing carrier rows lose the two `∨ True` stamp conjuncts.
+-- 2026-11-27: the value slot carries its proved non-question own-mark exclusion.
+-- PendingNode prop 298 → 299; snapshot=0, ghost=24 and or=66 are unchanged.
 def expectedTally : List String :=
   ["BareLandingFacts: surface=0 state=2 prop=0 scalar=1 snapshot=0 ghost=0 or=0",
    "BlockStack: surface=2 state=0 prop=0 scalar=0 snapshot=0 ghost=0 or=0",
@@ -347,7 +349,7 @@ def expectedTally : List String :=
    "ParkCore: surface=0 state=2 prop=5 scalar=6 snapshot=0 ghost=1 or=0",
    "ParkFloor: surface=0 state=2 prop=4 scalar=4 snapshot=0 ghost=0 or=0",
    "ParkSlot: surface=0 state=2 prop=3 scalar=7 snapshot=0 ghost=0 or=1",
-   "PendingNode: surface=141 state=1 prop=298 scalar=66 snapshot=0 ghost=24 or=66",
+   "PendingNode: surface=141 state=1 prop=299 scalar=66 snapshot=0 ghost=24 or=66",
    "PropsKeyPack: surface=13 state=1 prop=14 scalar=7 snapshot=0 ghost=3 or=5",
    "PropsNodeRoute: surface=6 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0",
    "PropsRideRoute: surface=7 state=0 prop=1 scalar=0 snapshot=0 ghost=0 or=0",

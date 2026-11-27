@@ -413,7 +413,7 @@ def expectedModuleTallyP : String :=
 -- Item 519 (review round): constants / decls +2 (the two `vslot` fallback `match` auxiliaries), READ +8 (the ancestors' covers and `h_expl`'s route / third conjunct read again at the open).
   -- 2026-11-22 (Lean v4.36.0): constants 1760 → 1747 and nothing else — the thirteen generated equation lemmas
   -- `HypothesisReaderCensus.expectedModuleTally` names, seen through this peel.
-  "constants=1745 decls=1389 eta=611 FIELD=201 READ=1484 RELAY=2700 RETURN=175 UNUSED=24"
+  "constants=1745 decls=1388 eta=611 FIELD=199 READ=1465 RELAY=2706 RETURN=175 UNUSED=24"
 
 -- Item 287: `accum_block_on_closeThenBlock`'s `h_vslot`, a READ one, left the
 -- `_ ∨ True` population — its sibling's move, under this peel.  Item 288: and
@@ -734,7 +734,7 @@ def expectedDead : List String :=
    "L4YAML.Proofs.StreamAccum.PackAlt.step_value#5 (_h_noflow) [lane stub]",
    "L4YAML.Proofs.StreamAccum.PackAlt.step_value#6 (_h) [lane stub]",
    "L4YAML.Proofs.StreamAccum.PackAltG.ofPark#2 (_h) [lane stub]",
-   "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#18 (h_alt) [family uniformity]",
+   "L4YAML.Proofs.StreamAccum.accum_content_on_noPending#19 (h_alt) [family uniformity]",
    "L4YAML.Proofs.StreamAccum.accum_step_flow#15 (h_mono) [family uniformity]",
    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_inline#12 (_h_res) [class marker]",
    "L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack#10 (_h_src) [class marker]",

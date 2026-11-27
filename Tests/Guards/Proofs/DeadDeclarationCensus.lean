@@ -88,7 +88,7 @@ namespace L4YAML.Tests.Guards.DeadDeclarationCensus
 -- wrapper and singleton helper: population 14050 -> 14049, thm 10170 -> 10169.
 -- The compiler leaves the unreached classes, B-roster and cluster roots unchanged.
 def expectedDeadCensus : String :=
-  "population=14049 thm=10169 def=2513 roots=capstone:27+export:37+blueprint:223(unresolved=5) unreached=5948 thm=4244 A-campaign=1124 A-orphan=103 C-api=1244 D-test-only=272 B-roster=3308 thm=2961 cluster-roots=1459"
+  "population=14055 thm=10175 def=2513 roots=capstone:27+export:37+blueprint:223(unresolved=5) unreached=5948 thm=4244 A-campaign=1124 A-orphan=103 C-api=1244 D-test-only=272 B-roster=3308 thm=2961 cluster-roots=1459"
 
 /-- `B-roster=N` out of the summary. -/
 def rosterCount (summary : String) : Option Nat := do
