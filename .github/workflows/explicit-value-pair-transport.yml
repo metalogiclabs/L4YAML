@@ -1,0 +1,93 @@
+name: Transport explicit value pair through actual sequence and content constructors
+on:
+  push:
+    branches: [test/explicit-value-pair-transport]
+    paths:
+      - Research/RootComposition/explicit-value-pair-transport.json
+      - .github/workflows/explicit-value-pair-transport.yml
+permissions:
+  contents: read
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: harness
+      - uses: actions/checkout@v4
+        with:
+          repository: metalogiclabs/L4YAML
+          ref: 12f27421d70b7e5039fc01ed946a19141156773e
+          submodules: recursive
+          path: source
+      - name: Bind exact compact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cp harness/Research/RootComposition/explicit-value-pair-transport.json results/spec.json
+          cd source
+          test "$(git rev-parse HEAD)" = 12f27421d70b7e5039fc01ed946a19141156773e
+          test "$(git rev-parse HEAD^{tree})" = c5b769ae96bdb8015a2148f9f274826126c0f114
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 7f731ef53f93aebc969b9790ad03bc14b7cd029e
+          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
+          git rev-parse HEAD HEAD^{tree} > ../results/source.txt
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: source/.lake
+          key: pair-transport-12f27421-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
+            r2-own-retirement-lean4360-${{ runner.os }}-45879351495
+      - name: Baseline and anchored producer transport
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build L4YAML > ../results/baseline-build.log 2>&1
+          lake run capstone-path > ../results/baseline-capstone.log 2>&1
+          grep -E '^CAPSTONE-PATH .* on=7 ' ../results/baseline-capstone.log
+          python3 - <<'PY'
+          import json, pathlib, hashlib
+          spec=json.load(open('../results/spec.json'))
+          p=pathlib.Path(spec['path'])
+          s=p.read_text()
+          for e in spec['edits']:
+              assert s.count(e['old'])==1, e['label']
+              s=s.replace(e['old'],e['new'],1)
+              print('APPLIED',e['label'])
+          p.write_text(s)
+          print('CANDIDATE_SHA256',hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+          git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/transport.patch
+          status=0
+          lake build L4YAML.Proofs.Production.StreamAccum > ../results/transport-build.log 2>&1 || status=$?
+          echo "$status" > ../results/transport-build.exit
+          grep -E 'error:|warning:|Build completed' ../results/transport-build.log | tail -100 || true
+          if test "$status" = 0; then
+            status=0
+            lake build L4YAML > ../results/combined-build.log 2>&1 || status=$?
+            echo "$status" > ../results/combined-build.exit
+            grep -E 'error:|warning:|Build completed' ../results/combined-build.log | tail -100 || true
+            if test "$status" = 0; then
+              lake run capstone-path > ../results/candidate-capstone.log 2>&1 || true
+              lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms.log 2>&1 || true
+            fi
+          fi
+          printf '%s\n' 'conditional_transport_only=true' 'critical_retirement=NOT_CLAIMED' > ../results/scope.txt
+          git restore -- L4YAML/Proofs/Production/StreamAccum.lean
+          test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 7f731ef53f93aebc969b9790ad03bc14b7cd029e
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-pair-transport-evidence
+          path: results/
+          if-no-files-found: error

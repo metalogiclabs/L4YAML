@@ -1,0 +1,88 @@
+{
+  "source": "12f27421d70b7e5039fc01ed946a19141156773e",
+  "tree": "c5b769ae96bdb8015a2148f9f274826126c0f114",
+  "blob": "7f731ef53f93aebc969b9790ad03bc14b7cd029e",
+  "path": "L4YAML/Proofs/Production/StreamAccum.lean",
+  "edits": [
+    {
+      "label": "carrier definitions",
+      "old": "d h_lit h_val))\n  · exact up nv hmem hne sp_m (SBlockMapEntry.explicitEmpty n sp_q sp_scan sp_m h_qlit h_key)\n      sp_i sp_c h_ind h_lit sp_v h_val\n\n/-- **Two optional funders, one chain** (item 192).  Where a park holds both\n    its own frame's value line a",
+      "new": "d h_lit h_val))\n  · exact up nv hmem hne sp_m (SBlockMapEntry.explicitEmpty n sp_q sp_scan sp_m h_qlit h_key)\n      sp_i sp_c h_ind h_lit sp_v h_val\n\n/- Research-only transport: conditional availability, not capstone retirement. -/\ndef R2PairLine (start : SurfPos) (own outer : Nat) (e : SurfPos) : Prop :=\n  ∀ i c : SurfPos, SIndent own e i → GLit ':' i c →\n    ∀ v : SurfPos, SBlockIndented own .blockOut c v →\n      ExplValueLine start outer v\n\ndef R2PairSeed (sc : ScannerState) (start keyStart : SurfPos) : Prop :=\n  ∃ own : Nat, ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →\n    ∀ e : SurfPos, SBlockIndented own .blockOut keyStart e →\n      R2PairLine start own outer e\n\ndef R2PairSeq (sc : ScannerState) (start entry : SurfPos) (n : Nat) : Prop :=\n  ∃ own : Nat, ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →\n    ∀ m : SurfPos, SBlockIndented n .blockIn entry m →\n    ∀ e : SurfPos, SCompactSeqTail n m e →\n      R2PairLine start own outer e\n\ndef R2PairContent (sc : ScannerState) (start gram : SurfPos) (n : Nat) : Prop :=\n  ∃ own : Nat, ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →\n    ∀ m : SurfPos, SSLComments gram m →\n    ∀ e : SurfPos, SCompactSeqTail n m e →\n      R2PairLine start own outer e\n\ndef R2PairValue (sc : ScannerState) (start colon : SurfPos) (own : Nat) : Prop :=\n  ∀ outer ∈ RegisterWitness.markedCols sc, outer ≠ own →\n    ∀ m : SurfPos, SBlockIndented own .blockOut colon m →\n      ExplValueLine start outer m\n\n/-- **Two optional funders, one chain** (item 192).  Where a park holds both\n    its own frame's value line a"
+    },
+    {
+      "label": "content carrier",
+      "old": "ite sp_gram sp_scan)\n      (h_gate : sp_gram = sp_scan → sc.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#'))\n      (h_live : InlineResidue sp_scan ':' → sc.simpleKey.possible = true) :\n      PendingNode sc false sp_start sp_block sp_scan\n  /-- Block indicator scanned (`-`, `?`, `:`).\n      The",
+      "new": "ite sp_gram sp_scan)\n      (h_gate : sp_gram = sp_scan → sc.col ≠ 0 → ¬ (CommentOk sc ∧ sc.peek? = some '#'))\n      (h_live : InlineResidue sp_scan ':' → sc.simpleKey.possible = true)\n      (h_pairContent : R2PairContent sc sp_start sp_gram n ∨ True := Or.inr trivial) :\n      PendingNode sc false sp_start sp_block sp_scan\n  /-- Block indicator scanned (`-`, `?`, `:`).\n      The"
+    },
+    {
+      "label": "sequence carrier",
+      "old": "— the indicator that parked here is the last consumed char.\n      (h_next : sc.inFlow = false → NextIsSep sc) (h_seqTop : ∃ e, sc.indents.back? = some e ∧ (e.isSequence = true ∨ e.column = (n : Int))) :\n      PendingNode sc false sp_start sp_block sp_scan\n  /-- A KEYLESS block-mapping entry opened at column 0, ",
+      "new": "— the indicator that parked here is the last consumed char.\n      (h_next : sc.inFlow = false → NextIsSep sc) (h_seqTop : ∃ e, sc.indents.back? = some e ∧ (e.isSequence = true ∨ e.column = (n : Int)))\n      (h_pairSeq : R2PairSeq sc sp_start sp_scan n ∨ True := Or.inr trivial) :\n      PendingNode sc false sp_start sp_block sp_scan\n  /-- A KEYLESS block-mapping entry opened at column 0, "
+    },
+    {
+      "label": "seed parameter",
+      "old": "s' ns)\n    -- Item 366: the park state's soundness, for the K7 pay at the landed `:` (decided in this lemma).\n    (h_sound : PendingKeySound.Sound sc) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' ",
+      "new": "s' ns)\n    -- Item 366: the park state's soundness, for the K7 pay at the landed `:` (decided in this lemma).\n    (h_sound : PendingKeySound.Sound sc)\n    (h_pairSeed : R2PairSeed sc sp_start sp_gram ∨ True := Or.inr trivial) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' "
+    },
+    {
+      "label": "question producer",
+      "old": "l_pos h_col0_mv) (GStar.nil _) (fun _ _ => (h_nextM (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep\n    · exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'\n        h_close_pending\n        -- ═══ **Item 192: this park's OWN frame and the one above it, in ONE\n        -- list.**  Item 189 handed the second to a parame",
+      "new": "l_pos h_col0_mv) (GStar.nil _) (fun _ _ => (h_nextM (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep\n    · exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne)\n        (h_pairSeed := by\n          rcases h_expl51 with ⟨sp_q, hq, _, hup⟩ | _\n          · rcases hup with up | _\n            · exact Or.inl ⟨nmv, fun a hm hn e hk i c hi hl v hv =>\n                up a hm hn v (SBlockMapEntry.explicit nmv sp_q sp_scan e i c v hq hk hi hl hv)⟩\n            · exact Or.inr trivial\n          · exact Or.inr trivial) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'\n        h_close_pending\n        -- ═══ **Item 192: this park's OWN frame and the one above it, in ONE\n        -- list.**  Item 189 handed the second to a parame"
+    },
+    {
+      "label": "landed sequence birth",
+      "old": "mid, sp_mid, sp_scan', h_stream_new,\n           BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,\n           PendingNode.pendingBlock (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_bas",
+      "new": "mid, sp_mid, sp_scan', h_stream_new,\n           BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,\n           PendingNode.pendingBlock (h_pairSeq := by\n                rcases h_pairSeed with ⟨own, pair⟩ | _\n                · by_cases hw : own ≤ k\n                  · exact Or.inl ⟨own, fun a hm hn m hb e ht =>\n                      pair a (h_markBack a hm (fun h => absurd h (by decide))) hn e\n                        (slotLandedSeq hw h_ssl\n                          (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot hb ht))⟩\n                  · exact Or.inr trivial\n                · exact Or.inr trivial) (h_seqTop := indicator_seqTop_dash_at_col (by have := SIndent_col h_ind; omega) hcorr_prep (IndentStackBase.preprocess_bas"
+    },
+    {
+      "label": "content projection parameter",
+      "old": "d sp_end →\n      KeyFrames (ExplValueLine sp_start nv) ks sp_end) ∨ PackAlt sc)\n    -- Item 284: what the token behind this landing pays a property run's\n    -- slot face with (`SlotGateAt`).\n    (h_next : NextIsSep sc)\n    (h_src : SlotGateAt s_prep) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' sp_block' ∧\n      FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧\n      PendingNode s' fal",
+      "new": "d sp_end →\n      KeyFrames (ExplValueLine sp_start nv) ks sp_end) ∨ PackAlt sc)\n    -- Item 284: what the token behind this landing pays a property run's\n    -- slot face with (`SlotGateAt`).\n    (h_next : NextIsSep sc)\n    (h_src : SlotGateAt s_prep)\n    (h_pairSeq_old : R2PairSeq sc sp_start sp_scan n ∨ True := Or.inr trivial) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' sp_block' ∧\n      FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧\n      PendingNode s' fal"
+    },
+    {
+      "label": "content constructor",
+      "old": "sp_gramf, h_node_f, h_tws_f, h_gate_f, h_sep_all, h_line, hna, hnt⟩ | h_ded\n  · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,\n           BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,\n           PendingNode.pendingBlockContent (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_sta",
+      "new": "sp_gramf, h_node_f, h_tws_f, h_gate_f, h_sep_all, h_line, hna, hnt⟩ | h_ded\n  · exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,\n           BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,\n           PendingNode.pendingBlockContent (h_pairContent := by\n              rcases h_pairSeq_old with ⟨own, pair⟩ | _\n              · exact Or.inl ⟨own, fun a hm hn m hs e ht =>\n                  pair a (markedCols_mem_of_step_content h_preprocess h_dispatch hm) hn m\n                    (SBlockIndented.node n .blockIn sp_scan m\n                      (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram m\n                        h_sep_all (h_flow_all (n + 1)) hs)) e ht⟩\n              · exact Or.inr trivial) (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_sta"
+    },
+    {
+      "label": "bind sequence field",
+      "old": "_old h_floor_old h_sk_old h_col_old h_kslot92 h_closeF99 _ h_seqF167 h_kslotUp190 h_closeFV198 h_park_top_old h_offer_b h_nextB =>\n    -- Item 22 split this arm on the pending's own index because every content\n    -- reading was stated at 0",
+      "new": "_old h_floor_old h_sk_old h_col_old h_kslot92 h_closeF99 _ h_seqF167 h_kslotUp190 h_closeFV198 h_park_top_old h_offer_b h_nextB _ h_pairSeq =>\n    -- Item 22 split this arm on the pending's own index because every content\n    -- reading was stated at 0"
+    },
+    {
+      "label": "pass sequence field",
+      "old": " -- been its cases since items 24/26, and the root entry is the `n = 0`\n    -- instance — faces included.\n    exact accum_content_on_pendingBlock_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_",
+      "new": " -- been its cases since items 24/26, and the root entry is the `n = 0`\n    -- instance — faces included.\n    exact accum_content_on_pendingBlock_indented (h_pairSeq_old := h_pairSeq) (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_"
+    },
+    {
+      "label": "content caller parameter",
+      "old": "e : c ≠ '?' → ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →\n      RegisterWitness.MarkedColsIn s' ns)\n    (h_cf : ColFloor.ColFloor sc) (h_lkt : ScalarWalkColFloor.LiveKeyTop sc) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' ",
+      "new": "e : c ≠ '?' → ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →\n      RegisterWitness.MarkedColsIn s' ns)\n    (h_cf : ColFloor.ColFloor sc) (h_lkt : ScalarWalkColFloor.LiveKeyTop sc)\n    (h_pairContent_old : R2PairContent sc sp_start sp_gram n ∨ True := Or.inr trivial) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' "
+    },
+    {
+      "label": "bind content field",
+      "old": "_old h_key_old h_stale47 h_arm77 h_kslot92 h_closeF99 _ h_tail139 h_seqF167 h_kslotUp190 h_closeFV198 h_nic0B h_runBC h_gateBC h_live290 =>\n    -- Item 22: the pending's own entry index rides through; the `n ≠ 0`\n    -- deferral this arm used to ope",
+      "new": "_old h_key_old h_stale47 h_arm77 h_kslot92 h_closeF99 _ h_tail139 h_seqF167 h_kslotUp190 h_closeFV198 h_nic0B h_runBC h_gateBC h_live290 h_pairContent =>\n    -- Item 22: the pending's own entry index rides through; the `n ≠ 0`\n    -- deferral this arm used to ope"
+    },
+    {
+      "label": "pass content field",
+      "old": "l this arm used to open is gone with it.\n    -- Item 37: and what is left of the escape is `[154]`'s `:`.\n    exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_scan s_prep s' c\n      sp_prep sp_scan' n_old h_stream_block (fun hd _ => h_closableBC h",
+      "new": "l this arm used to open is gone with it.\n    -- Item 37: and what is left of the escape is `[154]`'s `:`.\n    exact accum_block_on_pendingBlockContent (h_pairContent_old := h_pairContent) sc sp_start sp_block sp_scan s_prep s' c\n      sp_prep sp_scan' n_old h_stream_block (fun hd _ => h_closableBC h"
+    },
+    {
+      "label": "colon helper parameter",
+      "old": "arkedColsIn s_prep [nv] ∧\n      (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨\n      (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv)) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' ",
+      "new": "arkedColsIn s_prep [nv] ∧\n      (s_prep.simpleKey.possible = true → s_prep.simpleKey.pos.col = s_prep.col)) ∨\n      (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv))\n    (h_pairValue : R2PairValue s' sp_start sp_scan' nv ∨ True := Or.inr trivial) :\n    ∃ sp_gram' sp_block' sp_flow' sp_scan',\n      SLYamlStream sp_start sp_gram' ∧\n      BlockStack sp_gram' "
+    },
+    {
+      "label": "consume pair in existing mapping slot",
+      "old": "kOut sp_scan' sp_m h_ssl')⟩)\n             -- Item 108: nor a value-line-bottomed stack, for the same reason.\n             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))\n             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))\n           (nodir",
+      "new": "kOut sp_scan' sp_m h_ssl')⟩)\n             -- Item 108: nor a value-line-bottomed stack, for the same reason.\n             (match h_pairValue with\n             | Or.inl pair => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',\n                 fun a hm m h_node => pair a hm (by intro he; subst a; exact h_noOwn hm) m\n                   (SBlockIndented.node nv .blockOut sp_scan' m\n                     (SBlockNode_blockIn_to_blockOut h_node))⟩\n             | Or.inr _ => h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))\n             (h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))\n           (nodir"
+    },
+    {
+      "label": "spend at actual caller",
+      "old": "dented k .blockOut sp_c sp_v →\n              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>\n            colon_open_map_explicit\n            (h_sound_in := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)\n            (h_mono_in := IndentStackMono.prepr",
+      "new": "dented k .blockOut sp_c sp_v →\n              ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>\n            colon_open_map_explicit\n            (h_pairValue := by\n              rcases h_pairContent_old with ⟨own, pair⟩ | _\n              · by_cases he : own = k\n                · subst own\n                  have hp : s_prep.peek? = some ':' := preprocess_some_peek h_preprocess\n                  have hpeek_disp : (if s_prep.allowDirectives then\n                      { s_prep with allowDirectives := false, documentEverStarted := true }\n                    else s_prep).peek? = some ':' := by\n                    split <;> exact hp\n                  obtain ⟨sp_colon, hl, hcorr_colon⟩ :=\n                    dispatchBlockValue_full_prod _ sp_sc\n                      (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch\n                  have heq := ScannerSurfCorr_unique hcorr_colon hcorr_result\n                  rw [heq] at hl\n                  exact Or.inl (fun a hm hn m hb =>\n                    pair a (h_markBack a hm (by simp)) hn sp_mid h_ssl sp_mid\n                      (SCompactSeqTail.nil n sp_mid) sp_sc sp_scan' h_ind hl m hb)\n                · exact Or.inr trivial\n              · exact Or.inr trivial)\n            (h_sound_in := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)\n            (h_mono_in := IndentStackMono.prepr"
+    }
+  ]
+}
