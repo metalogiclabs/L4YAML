@@ -1,7 +1,7 @@
-name: Price root and actual empty-entry R2 continuations
+name: Price actual landing ownership with KeyFrames
 on:
   push:
-    branches: [test/r2-empty-entry-actual-producers]
+    branches: [test/r2-keyframes-landing-ownership]
     paths: [.github/workflows/r2-empty-entry-actual-producers.yml]
 permissions:
   contents: read
@@ -46,7 +46,7 @@ jobs:
           restore-keys: |
             actual-on-kslot-9f59de2e-lean4360-${{ runner.os }}-
             r2-own-retirement-lean4360-${{ runner.os }}-45879351495
-      - name: Price actual empty-entry continuation at both mandatory callers
+      - name: Price actual map-frame membership and continuation at both mandatory callers
         working-directory: source
         shell: bash
         run: |
@@ -132,30 +132,77 @@ jobs:
           assert part.count(needle)==1,part.count(needle)
           part=part.replace(needle,'exact accum_block_on_pendingBlock (h_pairSeq_old := h_pairSeqBlock) ',1)
           s=s[:a]+part+s[b:]
+          assert hashlib.sha256(s.encode()).hexdigest()=='2cced53d0dfc468d5e006441c7a5cd759db3913b255dd4ac8bb858381e185bed'
+          # Diagnostic only: preserve the already checked same-owner composition.
+          # Ask whether the actual landing's mapping frame is named in the existing
+          # per-ancestor stack. Spend only its real compact tail. An empty-key
+          # syntax route is not a claim that explicit-key association is preserved.
+          def frame_attempt(label, reason, indent):
+              seq=label=='SEQ'
+              carrier='h_closeFV_old' if seq else 'h_mapFV'
+              unpack='⟨ks, _, hcov, cont⟩' if seq else '⟨ks, hcov, cont⟩'
+              frame='cont sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl) sp_mid (SCompactSeqTail.nil n sp_mid)' if seq else 'cont sp_mid h_ssl'
+              cov='⟨lo, _, hC⟩' if seq else '⟨lo, _, _, hC⟩'
+              tag='R2_'+label+'_'+reason
+              code=[
+                  'rcases '+carrier+' with hall | h_noFrames',
+                  '· obtain '+unpack+' := hall a (h_markBack a hm (by simp))',
+                  '  have h_landingFrame : FrameLevel.map k ∈ ks := by',
+                  '    by_cases hmem : FrameLevel.map k ∈ ks',
+                  '    · exact hmem',
+                  '    · rcases hcov with '+cov+' | h_noCover',
+                  '      · have h_scol : s_prep.col = k := by',
+                  '          rw [← hcorr_prep.col_eq]',
+                  '          have h := SIndent_col h_ind',
+                  '          rw [hcol_mid] at h',
+                  '          omega',
+                  '        have h_pay : lo ≤ s_prep.col ∧ s_prep.currentIndent = (s_prep.col : Int) ∧',
+                  '            (∀ top, s_prep.indents.back? = some top → top.isSequence = false) := by',
+                  '          first | exact ⟨by omega, by omega, by assumption⟩ | trace_state; fail "'+tag+'_COVER_SIDE_CONDITIONS"',
+                  '        exact landing_frame_of_cover h_dispatch (noflow_disp_of_noflow h_noflow)',
+                  '          ((IndentStackCover.preprocess_cover h_preprocess hC).of_indents_eq (by split <;> rfl))',
+                  '          (by split <;> exact h_scol) (by split <;> exact h_pay.1)',
+                  '          (by split <;> exact h_pay.2.1) (Or.inr (by split <;> exact h_pay.2.2))',
+                  '      · trace_state',
+                  '        fail "'+tag+'_FRAME_NOT_NAMED_NO_COVER"',
+                  '  obtain ⟨ksNew, _, resume⟩ := ('+frame+').resumeAtMap h_landingFrame',
+                  '  have h_entry : SBlockMapEntry k sp_sc m := by',
+                  '    cases hb <;> first',
+                  '      | exact SBlockMapEntry.emptyKeyNode _ _ _ _ hl (by assumption)',
+                  '      | exact SBlockMapEntry.emptyKeyEmpty _ _ _ _ hl (by assumption)',
+                  '      | trace_state; fail "'+tag+'_ENTRY_CONSTRUCTOR"',
+                  '  exact resumeFrameRouteK h_ind resume m h_entry',
+                  '· trace_state',
+                  '  fail "'+tag+'_FRAMES_UNAVAILABLE"']
+              return '\n'.join(indent+x for x in code)
+          for label in ('SEED','SEQ'):
+              for reason,indent in [('OWNER_MISMATCH','                            '),('UNAVAILABLE','                          ')]:
+                  old=indent+'trace_state\n'+indent+'first | assumption | fail "R2_'+label+'_'+reason+'"'
+                  # The original bullet precedes trace_state by two columns.
+                  old=indent[:-2]+'· trace_state\n'+indent+'first | assumption | fail "R2_'+label+'_'+reason+'"'
+                  assert s.count(old)==1,(label,reason,s.count(old))
+                  attempt=frame_attempt(label,reason,indent)
+                  # Put the first tactic on the original bullet, retaining all nested alignment.
+                  first_line, rest=attempt.split('\n',1)
+                  new=indent[:-2]+'· '+first_line[len(indent):]+'\n'+rest
+                  s=s.replace(old,new,1)
           p.write_text(s)
           out.joinpath('candidate.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest()+'\n')
-          out.joinpath('scope.txt').write_text('root_domain=actual_markedCols_empty_from_item540\nmandatory_pair_sites=two\nno_new_optional_fallback=true\ncritical_retirement=NOT_CLAIMED\n')
+          out.joinpath('scope.txt').write_text('root_domain=actual_markedCols_empty_from_item540\nmandatory_pair_sites=two\nkeyframes_landing_ownership=diagnostic\nempty_key_syntax_only_not_semantic_association\nno_new_optional_fallback=true\ncritical_retirement=NOT_CLAIMED\n')
           PY
           git diff -- L4YAML/Proofs/Production/StreamAccum.lean > ../results/actual-producer.patch
           status=0
           lake build L4YAML.Proofs.Production.StreamAccum > ../results/actual-producer.log 2>&1 || status=$?
           echo "$status" > ../results/actual-producer.exit
           grep -E 'error:|R2_SEED_|R2_SEQ_|Build completed' ../results/actual-producer.log | tail -100 || true
-          if test "$status" = 0; then
-            status=0
-            lake build L4YAML > ../results/combined-build.log 2>&1 || status=$?
-            echo "$status" > ../results/combined-build.exit
-            if test "$status" = 0; then
-              lake run capstone-path > ../results/candidate-capstone.log 2>&1
-              lake env lean Research/ContentSlot/AxiomAudit.lean > ../results/axioms.log 2>&1
-            fi
-          fi
+          # Syntax-route diagnostic only; no capstone or promotion before review.
+          echo "No capstone promotion from empty-key syntax probe." > ../results/verification-boundary.txt
           git restore -- L4YAML/Proofs/Production/StreamAccum.lean
           test "$(git hash-object L4YAML/Proofs/Production/StreamAccum.lean)" = 7f731ef53f93aebc969b9790ad03bc14b7cd029e
           test -z "$(git status --porcelain)"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: actual-empty-entry-producer-price
+          name: actual-keyframes-landing-ownership
           path: results/
           if-no-files-found: error
