@@ -1,0 +1,24 @@
+R2_SUPPLY_TALLY edges=640 skipped=41 [DECLINE=234, FIELD=60, LOCAL=26, PAY=53, RELAY=64, SPLIT=175, VIA=28]
+R2_SUPPLY_SPLITS survived=175 leaves=412 PAY=193 DECLINE=208
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.rootMapRoute_or_refused binder=7 how=RELAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.rootMapRouteF_or_refused binder=7 how=RELAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.frameChainUnion binder=2 how=RELAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.frameChainUnion binder=3 how=SPLIT _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.question_open_map.match_1_6 leaves=[PAY,
+ DECLINE]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=15 how=PAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=16 how=SPLIT _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.question_open_map.match_1_8 leaves=[PAY,
+ DECLINE]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=17 how=PAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=18 how=PAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=19 how=SPLIT _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.question_open_map.match_1_6 leaves=[PAY,
+ DECLINE]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=20 how=SPLIT _private.L4YAML.Proofs.Production.StreamAccum.0.L4YAML.Proofs.StreamAccum.question_open_map.match_1_6 leaves=[PAY,
+ DECLINE]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.question_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=22 how=DECLINE leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.compact_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=15 how=PAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.compact_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=16 how=DECLINE leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.compact_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=17 how=PAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.compact_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=18 how=PAY leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.compact_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=19 how=DECLINE leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.compact_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=20 how=DECLINE leaves=[]
+R2_SUPPLY_ROW caller=L4YAML.Proofs.StreamAccum.compact_open_map callee=L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue binder=22 how=DECLINE leaves=[]

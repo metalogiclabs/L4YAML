@@ -1,0 +1,21 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -24779,9 +24779,15 @@
+                  rcases List.mem_cons.1 hmem with h | h
+                  · exact absurd h hne
+                  · exact up _ h sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi)
+-             -- Item 412: the ancestors' chain was declined upstream — re-declined here (a `?`
+-             -- ARMS the register, so no refusal transports across it).
+-             | Or.inr _ => Or.inr trivial⟩)
++             -- The resume supplier also holds the actual full entry route.
++             -- Retain it here when the domained nested supplier declines.
++             | Or.inr _ =>
++                 match h_resV_land with
++                 | Or.inl hall => Or.inl (fun nv hnv hne sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi => by
++                     obtain ⟨_, _, contV⟩ := hall nv hnv hne
++                     exact resumeFrameRouteK h_ind contV
++                       sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi)
++                 | Or.inr _ => Or.inr trivial⟩)
+            -- Item 209: and the slot's own stack top, the caller's measurement.
+            (Or.inl ⟨h_top_in, park_col_of_indicator hcol_land h_ind h_lit,
+              fun sp_v h_sbi =>

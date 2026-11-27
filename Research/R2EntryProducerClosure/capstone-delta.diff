@@ -1,0 +1,8 @@
+--- baseline-capstone
++++ combined-capstone
+@@ -1,4 +1,4 @@
+-CAPSTONE-PATH positions=252 on=7 off=178 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=14 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=49 PackAltG=7 pack-declines: on=0 off=0 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=227 relays=138 drop-set=8/8
++CAPSTONE-PATH positions=252 on=7 off=178 unresolved=67 on-drop=3 on-via=0 on-relay=4 on-conclusion=0 off-honest=90 off-unread=55 off-conclusion=19 off-unreached=0 on-drop-nested=0 on-via-nested=0 on-relay-nested=0 off-honest-nested=14 nested-unresolved=67 on-by-alt: True=0 PackAlt=7 PackAltG=0 off-by-alt: True=122 PackAlt=49 PackAltG=7 pack-declines: on=0 off=0 consumed=scan_content_gives_stream_v2 streamAccum-reached=1152/1262 unrooted-arms=94 arms=229 relays=138 drop-set=8/8
+ reached constants: 16370
+ ON by family:
+   L4YAML.Proofs.StreamAccum.PendingNode.pendingContent: [9].h_vpack ∨ PackAlt on-relay

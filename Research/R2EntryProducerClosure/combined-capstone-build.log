@@ -1,0 +1,23 @@
+⚠ [237/253] Replayed L4YAML.Proofs.Production.StreamAccum
+warning: L4YAML/Proofs/Production/StreamAccum.lean:19649:5: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+✔ [240/262] Built Scripts.Lean.BuildLog (1.0s)
+✔ [241/262] Built L4YAML.Proofs.Production.DocumentProduction (2.2s)
+✔ [244/262] Built leansqlite/leansqlite.o (136ms)
+✔ [245/262] Built UnicodeBasic/UnicodeCLib (1.0s)
+✔ [248/262] Built leansqlite/shathree.o (81ms)
+✔ [249/262] Built Scripts.Lean.BuildLog:c.o (667ms)
+✔ [250/262] Built Scripts.Pack.Residue (1.0s)
+✔ [252/262] Built Scripts.Path.CapstonePath (4.6s)
+✔ [254/262] Built Scripts.Pack.Residue:c.o (1.4s)
+✔ [255/262] Built Scripts.Main.CapstonePath (1.6s)
+✔ [257/262] Built leansqlite/sqlite.o (6.4s)
+✔ [258/262] Built leansqlite/leansqlite.static (36ms)
+✔ [260/262] Built Scripts.Main.CapstonePath:c.o (1.9s)
+✔ [261/262] Built Scripts.Path.CapstonePath:c.o (4.5s)
+✔ [262/262] Built «scripts-capstone-path»:exe (1.4s)
+Build completed successfully (262 jobs).

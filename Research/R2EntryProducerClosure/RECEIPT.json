@@ -1,0 +1,159 @@
+{
+  "state": "WARRANTED_BOUNDED_LOCAL",
+  "source_commit": "9f1f7bc60cf54741c1bf5d0c0618ee680268ed15",
+  "source_tree": "0c7dced413db0510b0a0a144ca2ca74111cf6a77",
+  "streamaccum_blob": "599a99c516f298e676fc06486159df51daa517f0",
+  "lean_version": "4.36.0",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "manifest_sha256": "46b88cd0d84a93a7f2bf897a1dbceb727e53597b3e85c9108244497f046b68ef",
+  "relay_guard_source_sha256": "86333d1cc6e6fa7be3b82be17263b0e554e98b53005138eba2bf27d8e070a3b0",
+  "baseline": {
+    "stream_build_jobs": 239,
+    "stream_build_exit": 0,
+    "strict_relay_guard_jobs": 241,
+    "strict_relay_guard_exit": 0,
+    "capstone_build_jobs": 262,
+    "capstone_build_exit": 0
+  },
+  "question_resume_supplier": {
+    "source_sha256": "052225fb1d33cebfa338fc35c09f6a8b7ce4477fdd3a54bf55bd245d091f5f79",
+    "stream_build_exit": 0,
+    "jobs": 239,
+    "statement_changed": false,
+    "new_field_or_alternative": false
+  },
+  "combined_with_compact_supplier": {
+    "source_sha256": "f0a34efa038af3e465dc0df43614faf049dd055c0ba04574962792b8febae17e",
+    "stream_build_exit": 0,
+    "stream_jobs": 239,
+    "capstone_build_exit": 0,
+    "capstone_jobs": 262
+  },
+  "axiom_comparison": {
+    "declarations": [
+      "question_open_map",
+      "compact_open_map",
+      "colon_open_map_explicit",
+      "accum_content_on_pendingMapValue_indented",
+      "accum_block_pending",
+      "scan_content_gives_stream_v2"
+    ],
+    "all_three_logs_byte_identical": true,
+    "sha256": "1a9678d0651eab9f975adc28f47013037ab6256389526a5b37367d88d7261718"
+  },
+  "supply_audit": {
+    "all_reported_readings_byte_identical": true,
+    "sha256": "68d489124adfa74c6859506fcf5ba284d13c588226f19fde065096058c201aac",
+    "edges": 640,
+    "skipped": 41,
+    "direct_declines": 234,
+    "split_declines": 208,
+    "split_payments": 193,
+    "directed_reduction_observed": false
+  },
+  "capstone_comparison": {
+    "equal_except_arm_count": true,
+    "positions_before_after": [
+      252,
+      252
+    ],
+    "critical_positions_before_after": [
+      7,
+      7
+    ],
+    "arms_before_after": [
+      227,
+      229
+    ],
+    "pack_decline_output_before_after": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "zero_reading_interpretation": "Already occurs on unmodified source; not evidence of paid critical declines."
+  },
+  "new_native_controls": {
+    "accepted_inputs": 5,
+    "exit": 0,
+    "includes_two_values_after_completed_inner": true,
+    "proof_disjuncts_observed": false
+  },
+  "key_completion_price": {
+    "state": "UNKNOWN_statement_not_proved",
+    "build_exit": 1,
+    "source_sha256": "f0cceb32ba92fc06d4724ecc2cdcc7f1ad493625fe7fedcb2120765621dec8cd",
+    "anchor_line_before_insertion": 38233,
+    "errors": [
+      {
+        "line": 38255,
+        "column": 12,
+        "label": "R2_KEY_READY_CHAIN_UNAVAILABLE"
+      },
+      {
+        "line": 38257,
+        "column": 10,
+        "label": "R2_KEY_READY_OWNER_MISMATCH"
+      },
+      {
+        "line": 38259,
+        "column": 8,
+        "label": "R2_KEY_READY_NO_ENTRY"
+      }
+    ],
+    "scope": "Temporary local typed demand at actual key-completion producer; no new carrier or optional fallback. Same-owner/held-chain explicit construction emits no immediate error; not a standalone new theorem."
+  },
+  "lineage": [
+    "85f3188f36060141b8eb6c30df65948150f3201f",
+    "45968133262",
+    "45968167777",
+    "45946458630"
+  ],
+  "not_claimed": [
+    "critical retirement",
+    "universal ordered ancestor continuation",
+    "full default qualification",
+    "candidate strict relay guard qualification",
+    "documentation/binding qualification",
+    "fresh owner CI"
+  ],
+  "production_refs_changed": false,
+  "new_hosted_workflows": false,
+  "reconciled_completed_experiments": [
+    {
+      "run": 45973205488,
+      "harness": "0b3157c74cdbd992973a5b83fd3be86d2c60780c",
+      "artifact": 15186012540,
+      "sha256": "c3e269cbedef206adc11b320be88bb18e806f5097287ea36c7c8cffa53f078a1",
+      "crcs_verified": 12,
+      "stream_build_jobs": 239,
+      "stream_build_exit": 0,
+      "candidate_source_sha256": "d4c9a6c9b9f2312f162755ea8e24a88ee875dacd229e114768996ccc30f1f82c",
+      "three_profiles_match_local_baseline": true,
+      "critical_positions": 7,
+      "unrooted_arms": 97,
+      "local_unmodified_unrooted_arms": 94,
+      "boundary": "Available landed route fed to three existing consumers. Broader overlapping candidate; unrooted-arm change remains unqualified."
+    },
+    {
+      "run": 45973926202,
+      "harness": "3660b3c70efe81a387a4a20e6a91ab9bea388d85",
+      "artifact": 15186248757,
+      "sha256": "bccf9c20ae2939af87472c82c252d921b9343088edc618756b33ac3d3cfc3452",
+      "crcs_verified": 13,
+      "same_owner_phase_exit": 0,
+      "same_owner_jobs": 239,
+      "same_owner_source_sha256": "d49f9e78d0ba1ed18d20743ba5d31d0db714a8f7253cc42d4ec0329f806800a3",
+      "retention_phase_exit": 1,
+      "retention_source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60",
+      "total_retention_error_sites": 26,
+      "labelled_proof_errors": 11,
+      "other_type_migration_errors": 15,
+      "boundary": "Local own-column composition compiled at three actual key writers. Global retained carrier migration did not compile. It quantifies all different marks; local price quantifies strictly smaller ancestors. These domains differ on the skipped-question control."
+    }
+  ]
+}

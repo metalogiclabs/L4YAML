@@ -1,0 +1,36 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -38230,6 +38230,33 @@
+     -- the two numbers it already holds, so `  :⏎    a: 1` composes and only the
+     -- dedent ~~takes the deferral~~ takes the pack's dedent branch (Reflection
+     -- 666; served there since items 99, 296 and 297).
++    -- Research price: full ordered value continuation at the actual completed key.
++    have h_ready_entry : ∀ own ∈ RegisterWitness.markedCols s',
++        ∀ outer ∈ RegisterWitness.markedCols s', outer < own →
++        ∀ sp_end : SurfPos, SSLComments sp_gram sp_end →
++        ∀ sp_i sp_c : SurfPos, SIndent own sp_end sp_i → GLit ':' sp_i sp_c →
++        ∀ sp_v : SurfPos, SBlockIndented own .blockOut sp_c sp_v →
++          ExplValueLine sp_start outer sp_v := by
++      intro own hown outer houter hlt sp_end h_ssl sp_i sp_c h_iv h_clit sp_v h_val
++      rcases h_expl with ⟨sp_q, h_qlit, route, chainUp⟩ | h_noEntry
++      · by_cases he : own = n
++        · subst own
++          rcases chainUp with up | h_noChain
++          · have h_key : SBlockIndented n .blockOut sp_scan sp_end :=
++              SBlockIndented_blockIn_to_blockOut
++                (SBlockIndented.node n .blockIn sp_scan sp_end
++                  (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_end
++                    h_sep_all (h_flow_all (n + 1)) h_ssl))
++            exact up outer (marks_step_content h_preprocess h_dispatch outer houter)
++              (by omega) sp_v
++              (SBlockMapEntry.explicit n sp_q sp_scan sp_end sp_i sp_c sp_v
++                h_qlit h_key h_iv h_clit h_val)
++          · trace_state
++            fail "R2_KEY_READY_CHAIN_UNAVAILABLE"
++        · trace_state
++          fail "R2_KEY_READY_OWNER_MISMATCH"
++      · trace_state
++        fail "R2_KEY_READY_NO_ENTRY"
+     exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+            BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+            PendingNode.pendingContent (sp_gram := sp_gram) (h_run := h_trailing_ws) (h_gate := h_gate) (h_live := live_of_dispatch h_dispatch hna hnt (by rw [allowDirectives_update_simpleKey]; exact (preprocess_saved_key_fresh h_ska (noflow_of_noflow_disp h_flow_disp) h_preprocess).1) hcorr_result) sp_start sp_block sp_scan' h_line
