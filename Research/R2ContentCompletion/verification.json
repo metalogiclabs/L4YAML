@@ -1,0 +1,52 @@
+{
+  "parent_commit": "5481fcd2b8186e08414b29df742882c44a5bc237",
+  "branch": "test/r2-content-completion",
+  "toolchain": "Lean 4.36.0",
+  "toolchain_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_threads": 4,
+  "accepted_continuation_source_sha256": "f1eece1acca9f124666aa8fcc8fe5b591c316df35b292b32ed28af491a25772a",
+  "standalone_exit_codes": {
+    "Controls": 0,
+    "CompletedValues": 0,
+    "ConcreteCompletion": 0,
+    "DependencyAudit": 0,
+    "BaselineAudit": 0
+  },
+  "independent_dependency_audits": [
+    {
+      "root": "initialized_completed_family",
+      "constants": 6189
+    },
+    {
+      "root": "actual_completed_sibling_ancestor",
+      "constants": 6211
+    }
+  ],
+  "standalone_allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "development": [
+    "First baseline audit counted constructor references in binder/let types; corrected value-expression traversal matches three ordinary plus three decorated source constructors",
+    "Two property-ride type errors at n=ne+1 prevented the new reader from elaborating; the consumption audit rejected the missing reader, not just syntax",
+    "Existing coupling now explicitly rewrites both node domains; no new assumption or alternative was added"
+  ],
+  "compressed_artifacts": [
+    {
+      "path": "logs/development-property-index.log.xz",
+      "uncompressed_bytes": 481542,
+      "uncompressed_sha256": "73cd1dd97c5cc809de3801afd1d92ba9a3f264bd0f9868b25476fdd607b6d36a"
+    },
+    {
+      "path": "logs/completion-final.log.xz",
+      "uncompressed_bytes": 480900,
+      "uncompressed_sha256": "8a89c28e99170f2ce57ec04bcad65c2851ae5d418a518323e097bf83cf2fe767"
+    },
+    {
+      "path": "lineage/property-index-from-final.patch.xz",
+      "uncompressed_bytes": 3591,
+      "uncompressed_sha256": "dfc0500c3d8fc6689e896c4555224274a54e741019e5fd980115d4efb9663cb1"
+    }
+  ]
+}

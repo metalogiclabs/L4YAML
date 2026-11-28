@@ -1,0 +1,71 @@
+{
+  "exact": true,
+  "base_commit": "9f1f7bc6",
+  "steps": [
+    {
+      "patch": "Research/R2EntryPreservation/retention-original.patch",
+      "exit": 0,
+      "source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60"
+    },
+    {
+      "patch": "Research/R2EntryPreservation/retention-strict-delta.patch",
+      "exit": 0,
+      "source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa"
+    },
+    {
+      "patch": "Research/R2SurvivorDomain/retention-refinements.patch",
+      "exit": 0,
+      "source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500"
+    },
+    {
+      "patch": "Research/R2ConsumptionClosure/producer-domain.patch",
+      "exit": 0,
+      "source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943"
+    },
+    {
+      "patch": "Research/R2InvariantPayload/invariant-payload.patch",
+      "exit": 0,
+      "source_sha256": "34a785b2d813c429a948fd6cab467f10c92a63dbdb37a3e38d6fab07cb9d3345"
+    },
+    {
+      "patch": "Research/R2CompactSlot/compact-slot.patch",
+      "exit": 0,
+      "source_sha256": "819993c47d13b998e91e6c1c757499d83c63c69ff5a951cbced23dcfabf1e831"
+    },
+    {
+      "patch": "Research/R2SequenceContext/sequence-context.patch",
+      "exit": 0,
+      "source_sha256": "02fd3926d541cf5d70c64798ce1bffbb3ea7b226aafa3d2c22539ffd002e9ca1"
+    },
+    {
+      "patch": "Research/R2ContentCompletion/content-completion.patch",
+      "exit": 0,
+      "source_sha256": "f33f9acc4d080c2c0d4c59998a10272b9b13b2f9458ae12b655a93f559b5d845"
+    }
+  ],
+  "development_phases_verified": [
+    {
+      "phase": "property-index-coupling",
+      "source_sha256": "daa5ece432438e3c4ee9516d9d863507530b2b6a4cc5998e3a474edaa3936a6a",
+      "reverse_from_final_patch": "lineage/property-index-from-final.patch.xz",
+      "labelled_demands": 22,
+      "additional_errors": [
+        {
+          "line": 40561,
+          "column": 56,
+          "label": "Application type mismatch: The argument"
+        },
+        {
+          "line": 40713,
+          "column": 56,
+          "label": "Application type mismatch: The argument"
+        },
+        {
+          "line": 43714,
+          "column": 0,
+          "label": "L4YAML.Proofs.StreamAccum.accum_content_pending omits L4YAML.Proofs.R2ContentCompletion.NodeSequenceValues.restrict_state"
+        }
+      ]
+    }
+  ]
+}

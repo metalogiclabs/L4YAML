@@ -1,0 +1,151 @@
+{
+  "state": "WARRANTED_BOUNDED_COMPLETED_CONTENT_SUPPLIER; UNKNOWN_FULL_MIGRATION",
+  "exit": 1,
+  "source_sha256": "f33f9acc4d080c2c0d4c59998a10272b9b13b2f9458ae12b655a93f559b5d845",
+  "parent_diagnostic_source_sha256": "02fd3926d541cf5d70c64798ce1bffbb3ea7b226aafa3d2c22539ffd002e9ca1",
+  "log_sha256": "8a89c28e99170f2ce57ec04bcad65c2851ae5d418a518323e097bf83cf2fe767",
+  "labelled_demands": 22,
+  "additional_type_errors": 0,
+  "retained_continuation_demands": 13,
+  "remaining_other_constructor_demands": 8,
+  "remaining_sequence_family_demands": 1,
+  "removed_demand": "R2_SEQUENCE_COMPLETED_FAMILY",
+  "new_supplier_labels": [],
+  "other_parent_labels_unchanged": true,
+  "strengthened_existing_fields": [
+    "PendingNode.pendingBlockContent.h_closable_entry",
+    "PendingNode.pendingProps.h_routeE (existing informative arm)"
+  ],
+  "completed_content_construction_expressions": 6,
+  "ordinary_constructions": 3,
+  "decorated_constructions": 3,
+  "property_relay_expressions": 2,
+  "new_external_context_parameters": 0,
+  "ordinary_completion_profile_byte_identical": true,
+  "ordinary_completion_axioms": 48,
+  "ordinary_completion_axioms_sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a",
+  "compact_profile_byte_identical": true,
+  "compact_axioms": 7,
+  "compact_axioms_sha256": "aa7c1dbfb75ca64c008974e967eb5baa72230b99356e770f929882dc526f10bb",
+  "map_value_completion_profile_byte_identical": true,
+  "map_value_completion_axioms": 48,
+  "map_value_completion_axioms_sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a",
+  "ordinary_completion_sorryAx": false,
+  "completed_content_sibling_consumer_still_has_retained_failure": true,
+  "whole_variant_accepted": false,
+  "critical_positions_retired": 0,
+  "critical_roster_remeasured_on_failed_variant": false,
+  "arbitrary_enclosing_sequence_tails_through_h_seqF_proved": false,
+  "errors": [
+    {
+      "line": 20830,
+      "column": 617,
+      "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+    },
+    {
+      "line": 21063,
+      "column": 616,
+      "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+    },
+    {
+      "line": 25036,
+      "column": 33,
+      "label": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+    },
+    {
+      "line": 25316,
+      "column": 19,
+      "label": "R2_NODE_QUESTION_ANCESTORS"
+    },
+    {
+      "line": 25613,
+      "column": 19,
+      "label": "R2_SLOT_EXPLICIT_COLON_DOMAIN"
+    },
+    {
+      "line": 25649,
+      "column": 33,
+      "label": "R2_NODE_EXPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 26507,
+      "column": 35,
+      "label": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+    },
+    {
+      "line": 26508,
+      "column": 33,
+      "label": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 26746,
+      "column": 35,
+      "label": "R2_NODE_PROPS_COLON_NO_TAIL"
+    },
+    {
+      "line": 26747,
+      "column": 33,
+      "label": "R2_NODE_PROPS_COLON_ANCESTORS"
+    },
+    {
+      "line": 28953,
+      "column": 32,
+      "label": "R2_SEQUENCE_LANDED_FAMILY"
+    },
+    {
+      "line": 30482,
+      "column": 80,
+      "label": "R2_OTHER_BLOCK_CONTENT_PAIR"
+    },
+    {
+      "line": 31303,
+      "column": 29,
+      "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+    },
+    {
+      "line": 31877,
+      "column": 86,
+      "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+    },
+    {
+      "line": 31909,
+      "column": 84,
+      "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+    },
+    {
+      "line": 31987,
+      "column": 77,
+      "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+    },
+    {
+      "line": 32080,
+      "column": 37,
+      "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+    },
+    {
+      "line": 41014,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+    },
+    {
+      "line": 41099,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+    },
+    {
+      "line": 41385,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+    },
+    {
+      "line": 41513,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+    },
+    {
+      "line": 41633,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+    }
+  ]
+}

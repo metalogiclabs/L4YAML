@@ -1,0 +1,346 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1485,6 +1485,60 @@
+ end L4YAML.Proofs.R2SequenceContext
+ 
+ open L4YAML.Proofs.R2SequenceContext
++
++open L4YAML.Proofs.R2SequenceContext
++
++namespace L4YAML.Proofs.R2ContentCompletion
++
++def CompletedValues (sc : ScannerState) (start : SurfPos) (n : Nat) (gram : SurfPos) : Prop :=
++  ∀ e, SSLComments gram e →
++    ∀ z, SCompactSeqTail n e z → EntryValues sc (SLYamlStream start) z
++
++def NodeSequenceValues (sc : ScannerState) (start : SurfPos) (n : Nat) (slot : SurfPos) : Prop :=
++  ∀ e, SBlockNode (n + 1) .blockIn slot e →
++    ∀ z, SCompactSeqTail n e z → EntryValues sc (SLYamlStream start) z
++
++lemma SequenceValues.complete {before after : ScannerState}
++    {start slot gram : SurfPos} {n : Nat} (payload : SequenceValues before start n slot)
++    (reader : ∀ e, SSLComments gram e → SBlockIndented n .blockIn slot e)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    CompletedValues after start n gram :=
++  fun e comments z tail => EntryValues.restrict_state (payload e (reader e comments) z tail) back
++
++lemma NodeSequenceValues.complete {before after : ScannerState}
++    {start slot gram : SurfPos} {n : Nat} (payload : NodeSequenceValues before start n slot)
++    (reader : ∀ e, SSLComments gram e → SBlockNode (n + 1) .blockIn slot e)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    CompletedValues after start n gram :=
++  fun e comments z tail => EntryValues.restrict_state (payload e (reader e comments) z tail) back
++
++lemma NodeSequenceValues.restrict_state {before after : ScannerState}
++    {start slot : SurfPos} {n : Nat} (payload : NodeSequenceValues before start n slot)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    NodeSequenceValues after start n slot :=
++  fun e node z tail => EntryValues.restrict_state (payload e node z tail) back
++
++lemma SequenceValues.nodes {before after : ScannerState}
++    {start slot : SurfPos} {n : Nat} (payload : SequenceValues before start n slot)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    NodeSequenceValues after start n slot := by
++  intro e node z tail
++  exact EntryValues.restrict_state
++    (payload e (SBlockIndented.node n .blockIn slot e node) z tail) back
++
++lemma CompletedValues.sibling {before after : ScannerState}
++    {start gram land dash slot : SurfPos} {n : Nat}
++    (payload : CompletedValues before start n gram) (comments : SSLComments gram land)
++    (indent : SIndent n land dash) (literal : GLit '-' dash slot) (notNs : GNot SNsChar slot)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    SequenceValues after start n slot := by
++  intro e node z tail
++  exact EntryValues.restrict_state (payload land comments z
++    (SCompactSeqTail.cons n land dash slot e z indent literal notNs node tail)) back
++
++end L4YAML.Proofs.R2ContentCompletion
++
++open L4YAML.Proofs.R2ContentCompletion
+ 
+ 
+ open L4YAML.Proofs.R2CompactSlot
+@@ -2901,7 +2955,7 @@
+       (h_routeE : (∃ ne : Nat, n = ne + 1 ∧
+         ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
+         ∀ sp_end : SurfPos, SCompactSeqTail ne sp_m sp_end →
+-        SLYamlStream sp_start sp_end) ∨ PackAlt sc)
++        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end) ∨ PackAlt sc)
+       (h_kslotE : (∃ ne : Nat, n = ne + 1 ∧
+         ∀ nv ∈ RegisterWitness.markedCols sc,
+         ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
+@@ -3223,7 +3277,8 @@
+         SLYamlStream sp_start sp_mid)
+       (h_closable_entry : ∀ sp_mid,
+         SSLComments sp_gram sp_mid →
+-        ∀ sp_end, SCompactSeqTail n sp_mid sp_end → SLYamlStream sp_start sp_end)
++        ∀ sp_end, SCompactSeqTail n sp_mid sp_end →
++          SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
+       (h_key : sc.simpleKey.possible = true → sc.simpleKey.pos.line = sc.line →
+         ImplicitKeyPack sc sp_start sp_scan ∨ KeyPackPunt sc)
+       -- Item 47: `pendingContent`'s stale-tail coupling, verbatim.
+@@ -29919,7 +29974,8 @@
+       ∀ sp_mid, SSLComments sp_gram sp_mid → SLYamlStream sp_start sp_mid)
+     (h_line : sp_scan.col = 0 ∨ LineNodeStop sp_scan.chars)
+     (h_entry_old : ∀ (sp : SurfPos), SSLComments sp_gram sp →
+-      ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end)
++      ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end →
++        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
+     -- Item 92: the park's value-line pack (`pendingBlockContent.h_kslot`) —
+     -- `h_entry_old`'s twin.  The landed `:` at the frame's own column spends
+     -- it (`? - a⏎: - w`), and a sibling `-` re-parks it with the tail consed.
+@@ -30043,6 +30099,11 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  have h_completedContext : CompletedValues sc sp_start n sp_gram :=
++    fun e comments z tail => (h_entry_old e comments z tail).2
++  have h_entry_old : ∀ e, SSLComments sp_gram e →
++      ∀ z, SCompactSeqTail n e z → SLYamlStream sp_start z :=
++    fun e comments z tail => (h_entry_old e comments z tail).1
+   -- Item 38: the same-line `:` may fire the pack instead — `- a: 1` is
+   -- `[195] ns-l-compact-mapping` inside `[185]`'s compact alternative, whose
+   -- key is the content THIS pending parked.  Everything else is the close-and-
+@@ -30135,16 +30196,12 @@
+                  (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                    h_cont sp_final (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_final
+                      h_ind h_dash2 h_gnot2 h_indented (SCompactSeqTail.nil k sp_final)))
+-                 (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+-                   fun sp_end h_tail =>
+-                     h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
+-                       h_ind h_dash2 h_gnot2 h_indented h_tail))) e node z tail, by
+-                 by_cases empty : RegisterWitness.markedCols s' = []
+-                 · exact EntryValues.of_no_marks empty (((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+-                   fun sp_end h_tail =>
+-                     h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
+-                       h_ind h_dash2 h_gnot2 h_indented h_tail))) e node z tail)
+-                 · trace_state; fail "R2_SEQUENCE_COMPLETED_FAMILY"⟩)
++                 (fun e node z tail =>
++                   ⟨h_cont z (SCompactSeqTail.cons k sp_mid _ sp_scan' e z
++                     h_ind h_dash2 h_gnot2 node tail),
++                     (CompletedValues.sibling h_completedContext h_ssl h_ind h_dash2 h_gnot2
++                       (fun x hx => (h_mcstep_ne (by decide) _
++                         (RegisterWitness.MarkedColsIn.self sc)).mem hx)) e node z tail⟩)
+                  (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                  (park_col_of_indicator hcol_mid h_ind h_dash2)
+@@ -37775,7 +37832,8 @@
+     (h_stream_block : SLYamlStream sp_start sp_block)
+     (h_close_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+     (h_close_entry_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp →
+-      ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end)
++      ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end →
++        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
+     -- Item 92: the park's value-line pack, transported onto whatever this
+     -- content step parks — the entry's node rides in exactly as it does for
+     -- `h_close_entry_old` (`? - a⏎: - w`, `? - &a x⏎: - w`).
+@@ -37875,6 +37933,11 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  have h_sequenceContext : SequenceValues sc sp_start n sp_scan :=
++    fun e node z tail => (h_close_entry_old e node z tail).2
++  have h_close_entry_old : ∀ e, SBlockIndented n .blockIn sp_scan e →
++      ∀ z, SCompactSeqTail n e z → SLYamlStream sp_start z :=
++    fun e node z tail => (h_close_entry_old e node z tail).1
+   -- Item 365: the park chain's K7 fact at the content step is a projection of the PARK's
+   -- own state `sc` (Rule 8: no carrier) — dead register when no slot is marked, the
+   -- named `nested-?` decline when an enclosing `?` holds one (K8c-b, the composition).
+@@ -37908,12 +37971,16 @@
+                    (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_final
+                      h_sep_all (h_flow_all (n + 1))
+                      h_ssl)))
+-             (fun sp_final h_ssl =>
++             (fun e comments z tail => ⟨((fun sp_final h_ssl =>
+                h_close_entry_old sp_final
+                  (SBlockIndented.node n .blockIn sp_scan sp_final
+                    (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_final
+                      h_sep_all (h_flow_all (n + 1))
+-                     h_ssl)))
++                     h_ssl)))) e comments z tail, (SequenceValues.complete h_sequenceContext (fun sp_final h_ssl =>
++               (SBlockIndented.node n .blockIn sp_scan sp_final
++                   (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_final
++                     h_sep_all (h_flow_all (n + 1))
++                     h_ssl))) (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
+              (entryKeyPack_of_dispatch (h_gate := h_gatePark) (h_dead := h_dead) (h_alt := h_refused.elim (fun h => PackAlt.ofRefused h) (fun _ => trivial)) sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
+                (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
+                -- Item 106: the same field on the LANDED face — the key's
+@@ -38230,8 +38297,9 @@
+              -- slot and the tail rides (`k:⏎  - &p a⏎  - y`).  Item 179: the
+              -- face names the raw column beside the shifted route.
+              (Or.inl ⟨n, rfl, fun sp_m h_bn sp_end h_tail =>
+-               h_close_entry_old sp_m
+-                 (SBlockIndented.node n .blockIn sp_scan sp_m h_bn) sp_end h_tail⟩)
++               ⟨h_close_entry_old sp_m
++                 (SBlockIndented.node n .blockIn sp_scan sp_m h_bn) sp_end h_tail,
++                 (SequenceValues.nodes h_sequenceContext (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) sp_m h_bn sp_end h_tail⟩⟩)
+              -- Item 114: the entry-level pack, tail RIDING — item 113's shape
+              -- at the props park (`? - &p a⏎  - y⏎: v`).
+              (match h_kslot_old with
+@@ -38291,10 +38359,12 @@
+                h_close_old sp_final
+                  (SBlockIndented.node n .blockIn sp_scan sp_final
+                    (h_nodeAt sp_final h_ssl)))
+-             (fun sp_final h_ssl =>
++             (fun e comments z tail => ⟨((fun sp_final h_ssl =>
+                h_close_entry_old sp_final
+                  (SBlockIndented.node n .blockIn sp_scan sp_final
+-                   (h_nodeAt sp_final h_ssl)))
++                   (h_nodeAt sp_final h_ssl)))) e comments z tail, (SequenceValues.complete h_sequenceContext (fun sp_final h_ssl =>
++               (SBlockIndented.node n .blockIn sp_scan sp_final
++                   (h_nodeAt sp_final h_ssl))) (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
+              (fun h_poss _ => absurd h_poss
+                (by rw [dispatchContent_blockScalar_simpleKey_false hbs h_dispatch]; simp))
+              (stale_of_dispatch h_dispatch hna hnt
+@@ -38375,12 +38445,16 @@
+                    (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_final
+                      h_sep_all h_node_f
+                      h_ssl)))
+-             (fun sp_final h_ssl =>
++             (fun e comments z tail => ⟨((fun sp_final h_ssl =>
+                h_close_entry_old sp_final
+                  (SBlockIndented.node n .blockIn sp_scan sp_final
+                    (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_final
+                      h_sep_all h_node_f
+-                     h_ssl)))
++                     h_ssl)))) e comments z tail, (SequenceValues.complete h_sequenceContext (fun sp_final h_ssl =>
++               (SBlockIndented.node n .blockIn sp_scan sp_final
++                   (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_final
++                     h_sep_all h_node_f
++                     h_ssl))) (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
+              (entryKeyPack_of_dispatch (h_gate := h_gatePark) (h_dead := h_dead) (h_alt := h_refused.elim (fun h => PackAlt.ofRefused h) (fun _ => trivial)) sc sp_start sp_scan n s_prep s' c sp_prep sp_scan'
+                (fun sp h_bn => h_close_old sp (SBlockIndented.node n .blockIn sp_scan sp h_bn))
+                -- Item 106: the same field on the LANDED face — the key's
+@@ -40480,7 +40554,17 @@
+                    (h_kslot_p.imp (fun ⟨ns, hd, k⟩ => ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, k⟩) (PackAlt.step_content h_preprocess h_dispatch))
+                    -- Item 114: nor do the park's resume faces — the anchor
+                    -- lives inside the same awaited node.
+-                   (h_routeE_p.imp id (PackAlt.step_content h_preprocess h_dispatch)) (h_kslotE_p.imp (fun ⟨ne, hne, r⟩ => ⟨ne, hne,
++                   (h_routeE_p.imp (by
++                     rintro ⟨ne, coupling, route⟩
++                     refine ⟨ne, coupling, ?_⟩
++                     intro e node z tail
++                     have payload : NodeSequenceValues sc sp_start ne sp_node := by
++                       intro e' node' z' tail'
++                       exact (route e' (by simpa only [coupling] using node') z' tail').2
++                     exact ⟨(route e node z tail).1,
++                       (NodeSequenceValues.restrict_state payload (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx))
++                         e (by simpa only [coupling] using node) z tail⟩)
++                     (PackAlt.step_content h_preprocess h_dispatch)) (h_kslotE_p.imp (fun ⟨ne, hne, r⟩ => ⟨ne, hne,
+                      fun nv hmem => r nv (markedCols_mem_of_step_content h_preprocess h_dispatch hmem)⟩)
+                      (PackAlt.step_content h_preprocess h_dispatch))
+                    -- Item 155: the ENTRY face steps with them, on the same reading.
+@@ -40627,7 +40711,17 @@
+                      (dispatchContent_tag_simpleKey h_dispatch).2
+                      (h_kslot_p.imp (fun ⟨ns, hd, k⟩ => ⟨ns, MarkedColsIn.step_content h_preprocess h_dispatch hd, k⟩) (PackAlt.step_content h_preprocess h_dispatch))
+                      -- Item 114: the faces ride the extension, as at `&`.
+-                     (h_routeE_p.imp id (PackAlt.step_content h_preprocess h_dispatch)) (h_kslotE_p.imp (fun ⟨ne, hne, r⟩ => ⟨ne, hne,
++                     (h_routeE_p.imp (by
++                     rintro ⟨ne, coupling, route⟩
++                     refine ⟨ne, coupling, ?_⟩
++                     intro e node z tail
++                     have payload : NodeSequenceValues sc sp_start ne sp_node := by
++                       intro e' node' z' tail'
++                       exact (route e' (by simpa only [coupling] using node') z' tail').2
++                     exact ⟨(route e node z tail).1,
++                       (NodeSequenceValues.restrict_state payload (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx))
++                         e (by simpa only [coupling] using node) z tail⟩)
++                     (PackAlt.step_content h_preprocess h_dispatch)) (h_kslotE_p.imp (fun ⟨ne, hne, r⟩ => ⟨ne, hne,
+                      fun nv hmem => r nv (markedCols_mem_of_step_content h_preprocess h_dispatch hmem)⟩)
+                      (PackAlt.step_content h_preprocess h_dispatch))
+                      -- Item 155: the ENTRY face steps with them, on the same reading.
+@@ -41045,7 +41139,7 @@
+               -- coupling each face carries.
+               have h_routeE_k : (∀ sp_m : SurfPos, SBlockNode (k + 1) .blockIn sp_node sp_m →
+                   ∀ sp_end : SurfPos, SCompactSeqTail k sp_m sp_end →
+-                  SLYamlStream sp_start sp_end) ∨ PackAlt sc := by
++                  SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end) ∨ PackAlt sc := by
+                 rcases h_routeE_p with ⟨ne, hne, r⟩ | h_alt
+                 · obtain rfl : ne = k := by omega
+                   exact Or.inl r
+@@ -41220,8 +41314,8 @@
+                          PendingNode.pendingBlockContent (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hamp hbang (by rw [allowDirectives_update_simpleKey, h_inherit]; exact h_possP) hcorr_result) sp_start sp_block sp_scan' _ k
+                            h_line
+                            (fun h_nd sp_mid h_ssl => h_route (h_nd_rel h_nd) sp_mid (h_nodeAtG sp_mid h_ssl))
+-                           (fun sp_mid h_ssl sp_end h_tail =>
+-                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)
++                           (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
++                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2) h_nodeAtG (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
+                            h_key
+                            (stale_of_dispatch h_dispatch hamp hbang
+                              (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+@@ -41347,8 +41441,8 @@
+                          PendingNode.pendingBlockContent (h_run := GStar.nil _) (h_gate := fun _ hcol h => (scanBlockScalar_park (dispatchContent_blockScalar_scan _ hbs h_dispatch)).elim (fun h0 => hcol h0) (fun hne => hne h.2)) (h_live := live_of_dispatch h_dispatch hamp hbang (by rw [allowDirectives_update_simpleKey, h_inherit]; exact h_possP) hcorr_result) sp_start sp_block sp_scan' _ k
+                            h_line
+                            (fun h_nd sp_mid h_ssl => h_route (h_nd_rel h_nd) sp_mid (h_nodeAt sp_mid h_ssl))
+-                           (fun sp_mid h_ssl sp_end h_tail =>
+-                             routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)
++                           (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
++                             routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2) h_nodeAt (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
+                            (fun h_poss _ => absurd h_poss
+                              (by rw [dispatchContent_blockScalar_simpleKey_false hbs h_dispatch]
+                                  simp))
+@@ -41475,8 +41569,8 @@
+                          PendingNode.pendingBlockContent (h_run := ‹_›) (h_gate := ‹_›) (h_live := live_of_dispatch h_dispatch hamp hbang (by rw [allowDirectives_update_simpleKey, h_inherit]; exact h_possP) hcorr_result) sp_start sp_block sp_scan' _ k
+                            h_line
+                            (fun h_nd sp_mid h_ssl => h_route (h_nd_rel h_nd) sp_mid (h_nodeAtG sp_mid h_ssl))
+-                           (fun sp_mid h_ssl sp_end h_tail =>
+-                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)
++                           (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
++                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2) h_nodeAtG (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
+                            h_key
+                            (stale_of_dispatch h_dispatch hamp hbang
+                              (by split <;> exact nic_false_of_flow_disp (sc := sc) (s_prep := s_prep) h_preprocess h_flow_disp)
+@@ -41580,8 +41674,7 @@
+     -- been its cases since items 24/26, and the root entry is the `n = 0`
+     -- instance — faces included.
+     exact accum_content_on_pendingBlock_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+-      s_prep s' c sp_prep sp_scan' h_stream_block h_close_old
+-      (fun e node z tail => (h_close_entry_old e node z tail).1) h_kslot92
++      s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_kslot92
+       h_closeF99 h_seqF167 h_floor_old h_park_top_old h_col_old h_sk_old
+       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
+       h_base h_mono
+@@ -43623,3 +43716,41 @@
+       throwError "external context premise added to the consumer"
+     parameterCursor := tail
+   Lean.logInfo "SEQUENCE-CONTEXT-AUDIT stored=h_close_entry consumers=4/4 new_external_context=absent"
++
++run_cmd do
++  let axioms ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented
++  Lean.logInfo s!"RAW-SEQUENCE-COMPLETION-AXIOMS {repr axioms}"
++
++run_cmd do
++  let env ← Lean.getEnv
++  for (ctorName, field) in [(`L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent,`h_closable_entry),
++      (`L4YAML.Proofs.StreamAccum.PendingNode.pendingProps,`h_routeE)] do
++    let some ci := env.find? ctorName | throwError "missing actual constructor"
++    let mut cursor := ci.type
++    let mut stored := false
++    while let .forallE name domain body _ := cursor do
++      if name == field && domain.getUsedConstants.contains
++          `L4YAML.Proofs.R2ConsumptionClosure.EntryValues then stored := true
++      cursor := body
++    unless stored do throwError "whole family absent from {ctorName}.{field}"
++  let rows := [(`L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented,
++      [`L4YAML.Proofs.R2ContentCompletion.SequenceValues.complete,
++       `L4YAML.Proofs.R2ContentCompletion.SequenceValues.nodes]),
++    (`L4YAML.Proofs.StreamAccum.accum_content_pending,
++      [`L4YAML.Proofs.R2ContentCompletion.NodeSequenceValues.complete,
++       `L4YAML.Proofs.R2ContentCompletion.NodeSequenceValues.restrict_state]),
++    (`L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent,
++      [`L4YAML.Proofs.R2ContentCompletion.CompletedValues.sibling])]
++  for (name, readers) in rows do
++    let some ci := env.find? name | throwError "missing actual reader"
++    let some body := ci.value? (allowOpaque := true) | throwError "missing actual reader body"
++    for reader in readers do
++      unless body.getUsedConstants.contains reader do throwError "{name} omits {reader}"
++    let mut parameterCursor := ci.type
++    while let .forallE name _ tail _ := parameterCursor do
++      if name == `h_completedContext || name == `h_sequenceContext then
++        throwError "new external context premise on an actual reader"
++      parameterCursor := tail
++  let axioms ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented
++  if axioms.contains `sorryAx then throwError "ordinary completion producer contains sorryAx"
++  Lean.logInfo "COMPLETION-CONTEXT-AUDIT stored=2 readers=5/5 new_external_context=absent ordinary_sorryAx=absent"

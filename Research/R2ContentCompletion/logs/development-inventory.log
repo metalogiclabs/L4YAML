@@ -1,0 +1,2 @@
+COMPLETION-INVENTORY L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented: 3
+Research/R2ContentCompletion/BaselineAudit.lean:17:0: error: wrong completed-content inventory L4YAML.Proofs.StreamAccum.accum_content_pending: 7

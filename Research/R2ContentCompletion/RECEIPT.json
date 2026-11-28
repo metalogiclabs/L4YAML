@@ -1,0 +1,121 @@
+{
+  "parent_commit": "5481fcd2b8186e08414b29df742882c44a5bc237",
+  "scope": "Research/R2ContentCompletion only; full failed invariant retained",
+  "files": [
+    {
+      "path": "Research/R2ContentCompletion/BaselineAudit.lean",
+      "bytes": 2316,
+      "sha256": "368d4f95bfdf65da1e707f37c77c1bfedc49e26264a58be0d21c2a0cfe68bb2c"
+    },
+    {
+      "path": "Research/R2ContentCompletion/CompletedValues.lean",
+      "bytes": 3327,
+      "sha256": "f55e61c58d0c6b51de7a7e9b9c327f1e9310feafce8dc794a758cc1fffa12795"
+    },
+    {
+      "path": "Research/R2ContentCompletion/ConcreteCompletion.lean",
+      "bytes": 3695,
+      "sha256": "fe53d2ebc669d41f7dbe11ea0317991cfe42cb2933738fc4a4f0c10a2a858204"
+    },
+    {
+      "path": "Research/R2ContentCompletion/Controls.lean",
+      "bytes": 2172,
+      "sha256": "8afcb69bf68a889158584f06533cab04cf6e08852801289f8bdb0696f089ca79"
+    },
+    {
+      "path": "Research/R2ContentCompletion/DependencyAudit.lean",
+      "bytes": 2887,
+      "sha256": "3c36143b88196daaf7cf32fb8149ebcd1949412dfbd4210d86182c300283c96d"
+    },
+    {
+      "path": "Research/R2ContentCompletion/Predictions.md",
+      "bytes": 2030,
+      "sha256": "e9e015a3a47860306f8760af7216507fc637422d6c08b633e3ad1f47a016b806"
+    },
+    {
+      "path": "Research/R2ContentCompletion/REPORT.md",
+      "bytes": 9149,
+      "sha256": "cd081154cec2cb0bdcac8b17535631668720479efa0d41d1abbd548559894ab3"
+    },
+    {
+      "path": "Research/R2ContentCompletion/completion-result.json",
+      "bytes": 4150,
+      "sha256": "bd9b297a65a1160e5b15cfa19f782e3c092af2557e04064a71354173acd665f5"
+    },
+    {
+      "path": "Research/R2ContentCompletion/constructor-inventory.json",
+      "bytes": 2802,
+      "sha256": "304507ee12369a7e687532c86ef49e763ca94d601b50671df9d14417ab72ef4e"
+    },
+    {
+      "path": "Research/R2ContentCompletion/content-completion.patch",
+      "bytes": 24519,
+      "sha256": "ef2e69c08aae59d76edeb4622cf0d29f3615cdbcb9415ad80a583483362d4c00"
+    },
+    {
+      "path": "Research/R2ContentCompletion/lineage/BaselineAudit-all-type-positions.lean.txt",
+      "bytes": 2366,
+      "sha256": "38790ae016ad6d23c09401a2413583f2948bf9b9fd03386e0aed22de03746667"
+    },
+    {
+      "path": "Research/R2ContentCompletion/lineage/property-index-from-final.patch.xz",
+      "bytes": 740,
+      "sha256": "36236b932d688c295f2c038f2b6ad5067c1fd4ecb531a09859a6b027bfd542cc"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/baseline-audit.log",
+      "bytes": 28864,
+      "sha256": "ef3c1f4d69228a3f2181d4a2d1230a20ce2d3769bb80c511536841e36f55f773"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/completion-final.log.xz",
+      "bytes": 12396,
+      "sha256": "bba9142f25975a2af5c016bfffa4ed4a4862c6d5531f058a994cf1168eeac3a4"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/concrete-completion.log",
+      "bytes": 227,
+      "sha256": "ef270d5f3502d126ff4a56992d65266a51e9a2ef5381cbabc1535f04eb90c822"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/dependency-audit.log",
+      "bytes": 325,
+      "sha256": "5dc1d218e8f018aac57af06949ebbdb371979303e663fd25d023f00891095f70"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/development-inventory.log",
+      "bytes": 235,
+      "sha256": "82dd6e4dff6911979f3e2e10e04780cc78c39d7ea2cb7f5807bf6b5e3d0e502a"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/development-property-index.log.xz",
+      "bytes": 12540,
+      "sha256": "2c9ff3b1d48ab5137ab4ecf4304ab54ef90b04b409c570193cab6c10f026e424"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/helpers.log",
+      "bytes": 610,
+      "sha256": "b6bb4fed6f441b9a7df6cea9632613482c2edb3244c25ce337787aa4b33b5d9c"
+    },
+    {
+      "path": "Research/R2ContentCompletion/logs/ordinary-completion-raw-axioms.log",
+      "bytes": 13575,
+      "sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a"
+    },
+    {
+      "path": "Research/R2ContentCompletion/reconstruction.json",
+      "bytes": 2391,
+      "sha256": "c8a3aa79ba9fa700ba5f224776e9c808cae1f5271d764c34ff5eb69ff98b848d"
+    },
+    {
+      "path": "Research/R2ContentCompletion/verification.json",
+      "bytes": 1896,
+      "sha256": "b901045b487dafb0591f95ab114735b112860a874a0773d6170437fdeed29ecb"
+    }
+  ]
+}
