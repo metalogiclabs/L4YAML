@@ -1,0 +1,13 @@
+--- a/Countermodel.lean
++++ b/Countermodel.lean
+@@ -25,9 +25,7 @@
+       | succ i =>
+         rw [Array.getElem?_eq_none (by simp [counterfeit, bad])] at marked
+         cases marked
+-  reg := fun _ => by
+-    rw [innermostPendingKey_eq, innermost_eq_go]
+-    simp [go, counterfeit, bad, ScannerState.indentColumns]
++  reg := fun _ => by rw [innermostPendingKey_eq, innermost_eq_go]; rfl
+   base := by
+     intro pos
+     have zero : counterfeit.flowLevel = 0 := rfl

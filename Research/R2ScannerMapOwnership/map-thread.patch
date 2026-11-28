@@ -1,0 +1,429 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -5,6 +5,8 @@
+ 
+ module
+ 
++public import Research.R2ScannerMapOwnership.Reachable
++
+ public import L4YAML.Proofs.Production.PreprocessProduction
+ public import L4YAML.Proofs.Scanner.ScanStrictCoupling
+ public import L4YAML.Proofs.Production.StructureProduction
+@@ -14542,6 +14544,7 @@
+     (h_pending : PendingNode sc false sp_start sp_block sp_scan)
+     (h_corr : ScannerSurfCorr sc sp_scan)
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+     (hcorr_open : ScannerSurfCorr s' sp_open)
+@@ -20489,6 +20492,7 @@
+     (h_pending : sc.flowLevel = 0 → PendingNode sc false sp_start sp_flow sp_scan)
+     (h_corr : ScannerSurfCorr sc sp_scan)
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     -- Item 362: `Sound` on the closed state (`preprocess_sound`) is what the two
+     -- depth-0 closes read their register fact against.
+     (h_mono : IndentStackMono.Mono sc)
+@@ -20582,7 +20586,7 @@
+       have h_pos := h_flow.pos_eq_of_depth_zero
+       subst h_pos
+       obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6, q7, q8⟩ :=
+-        accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
++        accum_flow_open_depth0 (h_maps := h_maps) sc sp_start sp_gram _ sp_scan sp_prep sp_open
+           s_prep _ '[' h_stream h_stack (h_pending h0) h_corr h_sound h_preprocess hcorr_prep
+           hcorr_open (by rw [h_fl, h_ad0])
+           (by rw [ScannerFlowCollection.scanFlowSequenceStart_pushes_true, h_ad_ks0]; rfl)
+@@ -20642,7 +20646,7 @@
+           have h_pos := h_flow.pos_eq_of_depth_zero
+           subst h_pos
+           obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6, q7, q8⟩ :=
+-            accum_flow_open_depth0 sc sp_start sp_gram _ sp_scan sp_prep sp_open
++            accum_flow_open_depth0 (h_maps := h_maps) sc sp_start sp_gram _ sp_scan sp_prep sp_open
+               s_prep _ '{' h_stream h_stack (h_pending h0) h_corr h_sound h_preprocess hcorr_prep
+               hcorr_open (by rw [h_fl, h_ad0])
+               (by rw [ScannerFlowCollection.scanFlowMappingStart_pushes_false, h_ad_ks0]; rfl)
+@@ -27927,7 +27931,8 @@
+     -- The accumulation already carries the scanner's slot/register invariant.
+     -- A fresh root sequence owes no explicit-key value line: derive that
+     -- empty domain from the actual state instead of supplying PackAlt.
+-    (h_sound : PendingKeySound.Sound sc) :
++    (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc} :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -28525,7 +28530,8 @@
+     (h_mcstep_ne : c ≠ '?' → ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
+       RegisterWitness.MarkedColsIn s' ns)
+     -- Item 366: the park state's soundness, for the K7 pay at the landed `:` (decided in this lemma).
+-    (h_sound : PendingKeySound.Sound sc) :
++    (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc} :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -29607,7 +29613,8 @@
+     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+     (hcorr_result : ScannerSurfCorr s' sp_scan')
+     (h_corr : ScannerSurfCorr sc sp_scan)
+-    (h_sound : PendingKeySound.Sound sc) (h_mono : IndentStackMono.Mono sc)
++    (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc} (h_mono : IndentStackMono.Mono sc)
+     (h_noflow : s_prep.inFlow = false)
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
+     (h_dispatch : scanNextToken_dispatchBlockIndicators
+@@ -29831,7 +29838,8 @@
+     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+     (hcorr_result : ScannerSurfCorr s' sp_scan')
+     (h_corr : ScannerSurfCorr sc sp_scan)
+-    (h_sound : PendingKeySound.Sound sc) (h_mono : IndentStackMono.Mono sc)
++    (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc} (h_mono : IndentStackMono.Mono sc)
+     (h_noflow : s_prep.inFlow = false)
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
+     (h_dispatch : scanNextToken_dispatchBlockIndicators
+@@ -30194,6 +30202,7 @@
+       RegisterWitness.MarkedColsIn s' ns)
+     -- Item 366: the park state's soundness, for the K7 pay at the landed `:` (decided in this lemma).
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_cf : ColFloor.ColFloor sc) (h_lkt : ScalarWalkColFloor.LiveKeyTop sc) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+@@ -30221,9 +30230,9 @@
+           ((seqF sp_mid h_ssl sp_mid (SCompactMapTail.nil kk sp_mid)).close sp_fin h_t)⟩) id
+   by_cases hc : c = ':'
+   · subst hc
+-    exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
++    exact colon_fires_implicit_key (h_maps := h_maps) sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
+       h_stream_block h_key h_stale h_park h_kbc h_scf h_live
+-      (fun h_inl => accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' ':'
++      (fun h_inl => accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' ':'
+         sp_prep sp_scan' h_close_pending
+         (h_vpack.imp (fun ⟨ns, single, pair⟩ => ⟨ns,
+           fun nv hm m i c comments indent literal v value => (single nv hm m i c comments indent literal v value).1,
+@@ -30250,7 +30259,7 @@
+   · -- Item 37: `c ≠ ':'` at a park that follows a complete node — §7.5 left
+     -- the rest of the line at `NodeStop`, and neither remaining indicator is
+     -- in it.  The escape is REFUSED here, not paid (`"a" - b`, `[1] ? b`).
+-    exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c
++    exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c
+       sp_prep sp_scan' h_close_pending
+       -- Item 307: the pack is the park's own stack (`h_mapFV108`, handed on below),
+       -- closed at the landing — the third γ root of item 301.
+@@ -30348,6 +30357,7 @@
+     -- is what turns a floored top into a statement about every level, which is
+     -- the cover the landing's opener pays.
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_mono : IndentStackMono.Mono sc)
+     (h_tail139 : CompletedTail sc)
+     -- **Item 167 (LAST): the park's ENCLOSING collection**
+@@ -30612,7 +30622,7 @@
+         -- them: `nestedBlockSeq` has no node to fill and a dedent has no frame
+         -- to resume.  Both take the `:`/`?` arm's route below, which the
+         -- indicator siblings have used at every width since item 13.
+-        exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' '-'
++        exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' '-'
+           _ sp_scan' h_close_pending
+           -- Item 307: the pack, from the stack — the entry is complete and the sequence
+           -- at `n` ends at the landing (`accum_block_on_pendingBlock`'s note).
+@@ -30944,7 +30954,7 @@
+       · exact (block_indicator_exhausted h_dispatch hc hcv).elim
+   by_cases hc0 : c = ':'
+   · subst hc0
+-    exact colon_fires_implicit_key sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
++    exact colon_fires_implicit_key (h_maps := h_maps) sc sp_start sp_block sp_scan s_prep s' sp_prep sp_scan'
+       h_stream_block h_key h_stale h_park h_kbc h_scf h_live h_generic hcorr_prep hcorr_result h_corr h_sound h_mono
+       h_noflow h_preprocess h_dispatch h_cf h_lkt
+   · exact h_generic (fun h_res _ => (nodeStop_refutes_inline_residue h_line
+@@ -31000,6 +31010,7 @@
+     -- Item 147: the stack's SHAPE beside its base, as at the other two landing
+     -- arms — the cover the landing's opener pays needs both.
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_mono : IndentStackMono.Mono sc)
+     -- **Item 167 (LAST): the park's ENCLOSING collection** (`pendingBlock.h_seqF`).
+     -- The DEDENT arm below is where it is spent: `nestedBlockSeq`'s `m` cannot
+@@ -31381,7 +31392,7 @@
+         -- the sequence at `k` as `[211]`'s document continuation.  Item 287:
+         -- the branch is a LANDED one, so the break it crossed refutes the
+         -- inline residue.
+-        exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' '-'
++        exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' '-'
+           _ sp_scan' h_close_pending
+           -- ═══ **Item 307: the pack, from the stack.**  The awaited entry closes EMPTY
+           -- on the landing's comments and the sequence at `n` ends there (the landing
+@@ -32050,6 +32061,7 @@
+     -- Item 357: the slot invariant and the column floor, so the block step can
+     -- transport the marked-column domain (`h_mcstep` below) to the producers.
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_cf : ColFloor.ColFloor sc) (h_lkt : ScalarWalkColFloor.LiveKeyTop sc) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+@@ -32123,7 +32135,7 @@
+         h_corr h_from h_ok
+   cases h_pending with
+   | noPending _ _ h_col h_arm h_nodoc h_noek h_ntop208 =>
+-    exact accum_block_on_noPending (h_sound := h_sound) sc sp_start sp_block s_prep s' c sp_prep sp_scan'
++    exact accum_block_on_noPending (h_maps := h_maps) (h_sound := h_sound) sc sp_start sp_block s_prep s' c sp_prep sp_scan'
+       -- Item 223: the landing wants the flag alone; the park now carries the
+       -- cleared register beside it and this site projects it off.
+       h_stream_block (h_col.resolve_right (by simp [sc_noflow_of_prep h_preprocess h_noflow])) hcorr_prep hcorr_result h_corr h_col (h_arm.imp_left And.left)
+@@ -32144,7 +32156,7 @@
+     -- l-document-suffix`, exactly the content skeleton's payment (item 117),
+     -- so `...⏎- y` and `...⏎? k` land their collection in `suffixContinue`'s
+     -- own slot. ═══
+-    exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
++    exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+       h_close_pending
+       (Or.inr (PackAlt.ofRefused h_noekE)) (Or.inr (fun h_res _ => (docEnd_refutes_inline_residue h_line
+         (block_indicator_char h_dispatch) h_res).elim)) hcorr_prep hcorr_result h_corr h_noflow
+@@ -32170,7 +32182,7 @@
+     -- ═══ Item 48: the marker still on the line refutes all three indicators
+     -- — B1/B2's `markerOnLine` for `-`/`?`, B4 for `:` — so the arm's
+     -- inline residue is EMPTY and only the landed close remains. ═══
+-    exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
++    exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+       h_close_pending
+       (Or.inr (PackAlt.ofRefused h_noekS)) (Or.inr (fun _ h_pay =>
+         (dispatch_refutes_sameLine h_nic48 h_real48 (Or.inr (Or.inl h_docline48))
+@@ -32206,7 +32218,7 @@
+     -- Item 173: and it is one of the two that PAY the sibling resume — its
+     -- `h_framesS` (the cover is forgotten at the door; the resume arm's park
+     -- punts its own, the recorded residue).
+-    exact accum_block_on_pendingContent (h_sound := h_sound) sc sp_start sp_block sp_scan s_prep s' c
++    exact accum_block_on_pendingContent (h_maps := h_maps) (h_sound := h_sound) sc sp_start sp_block sp_scan s_prep s' c
+       sp_prep sp_scan' sp_gramO h_stream_block h_runO h_gateO
+       h_closableO h_line h_key (h_vpack51.imp (fun ⟨ns, _, k, pair⟩ => ⟨ns, k, pair⟩) id) hcorr_prep hcorr_result h_corr
+       h_noflow h_kbc h_scf h_stale47 h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_mono
+@@ -32245,9 +32257,9 @@
+       · exact Or.inr trivial
+     by_cases hc48 : c = ':'
+     · subst hc48
+-      exact colon_fires_props_key sc sp_start sp_block sp_p sp_scan s_prep s'
++      exact colon_fires_props_key (h_maps := h_maps) sc sp_start sp_block sp_p sp_scan s_prep s'
+         sp_prep sp_scan' h_stream_block h_nic48 h_ska79 h_real48 h_kbc h_key48
+-        (fun h_inl => accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' ':'
++        (fun h_inl => accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' ':'
+           sp_prep sp_scan' h_close_pending
+           -- Item 91: the landed `:` is the frame's VALUE line — the run
+           -- closes as `propsEmpty` into the `?`'s key, and the pack routes
+@@ -32291,7 +32303,7 @@
+         rcases PropsRun.ha_or_ht h_run with hha | hht
+         · exact lastTokenIsNodePropertyOnLine_of_run_any (h_anchor48 hha)
+         · exact lastTokenIsNodePropertyOnLine_of_run_any (h_tag48 hht)
+-      exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
++      exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+         h_close_pending
+         (match h_kslot91 with
+            | Or.inl ⟨ns, domain, kslot⟩ => Or.inl ⟨ns,
+@@ -32329,7 +32341,7 @@
+         -- Item 208: a property run holds a column, so the premise is refuted.
+         (nic0_of_col_pos h_col0_p) (GStar.nil _) (fun _ _ => (h_nextP (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep
+   | pendingFlow _ _ _ _ h_arm77 _ h_nic0F _ h_gateF =>
+-    exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
++    exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+       (fun _ _ => dropClose h_stream_block h_gateF.choose) (Or.inr trivial) (Or.inr (fun h_res _ => block_dispatch_deferred_inline sp_start sp_block sp_scan' h_stream_block h_preprocess h_dispatch hcorr_result h_res ⟨sp_scan', GStar.nil _, fun _ _ => (dispatchBlock_next_of_some h_noflow (preprocess_some_peek h_preprocess) h_dispatch).gate⟩)) hcorr_prep
+       hcorr_result h_corr h_noflow h_arm77 h_preprocess h_dispatch
+       (Or.inr trivial)
+@@ -32387,7 +32399,7 @@
+     -- the stamp (`pendingMapValue.h_vslot`'s right half), so its same-line
+     -- indicator is the stamped branch's refusal again. ═══
+     rcases h_ivl48 with h_ivl48 | _
+-    · exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
++    · exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+         h_close_pending
+         -- Item 93: an IMPLICIT `:` whose value never arrived — the landing
+         -- closes the inner entry with `[72]`'s empty node, and the park's
+@@ -32444,7 +32456,7 @@
+         (h_closeFV108.imp (fun hall => ⟨nmv, fun nv hm => let ⟨ks, h_le, _, fV⟩ := hall nv hm; ⟨ks, h_le, fV⟩⟩) id)
+         -- Item 208: refuted from the park's own column, as above.
+         (nic0_of_col_pos h_col0_mv) (GStar.nil _) (fun _ _ => (h_nextM (sc_noflow_of_prep h_preprocess h_noflow)).gate) h_mcstep
+-    · exact accum_block_on_closeThenBlock (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
++    · exact accum_block_on_closeThenBlock (h_maps := h_maps) (h_sound := h_sound) (h_mcstep_ne := h_mcstep_ne) sc sp_start sp_scan s_prep s' c sp_prep sp_scan'
+         h_close_pending
+         -- ═══ **Item 192: this park's OWN frame and the one above it, in ONE
+         -- list.**  Item 189 handed the second to a parameter of its own
+@@ -32550,7 +32562,7 @@
+     -- Item 22: the pending's own entry index rides through; the `n ≠ 0`
+     -- deferral this arm used to open is gone with it.
+     -- Item 37: and what is left of the escape is `[154]`'s `:`.
+-    exact accum_block_on_pendingBlockContent sc sp_start sp_block sp_scan s_prep s' c
++    exact accum_block_on_pendingBlockContent (h_maps := h_maps) sc sp_start sp_block sp_scan s_prep s' c
+       sp_prep sp_scan' n_old h_stream_block (fun hd _ => h_closableBC hd) h_line
+       h_entry_old h_kslot92 h_key_old h_stale47 h_kbc h_scf hcorr_prep hcorr_result h_corr h_noflow
+       h_arm77 h_preprocess h_dispatch h_bare h_dn h_fv h_base h_sound h_mono h_tail139 h_seqF167
+@@ -32566,7 +32578,7 @@
+       h_nic0B h_live290 h_runBC h_gateBC h_mcstep h_mcstep_ne h_cf h_lkt
+   | pendingBlock _ _ _ n_old _h_close h_close_entry_old h_floor208 h_sk_old h_col_old h_kslot92
+       h_closeF369 _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 _ h_nextB =>
+-    exact accum_block_on_pendingBlock (h_closeF_old := h_closeF369) sc sp_start sp_block sp_scan s_prep s' c sp_prep
++    exact accum_block_on_pendingBlock (h_maps := h_maps) (h_closeF_old := h_closeF369) sc sp_start sp_block sp_scan s_prep s' c sp_prep
+       sp_scan' n_old h_stream_block h_close_pending h_close_entry_old h_kslot92
+       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_nextB h_preprocess h_dispatch h_bare
+       h_dn h_fv h_base h_sound h_mono h_seqF167
+@@ -32621,6 +32633,7 @@
+     -- level, and that is the cover the `:`/`?` openers pay to the frames.
+     (h_mono : IndentStackMono.Mono sc)
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_cf : ColFloor.ColFloor sc) (h_lkt : ScalarWalkColFloor.LiveKeyTop sc) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+@@ -32655,7 +32668,7 @@
+       rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess, h0]
+       simp
+     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
+-      accum_block_pending sc sp_start sp_flow sp_scan s_prep s' c
++      accum_block_pending (h_maps := h_maps) sc sp_start sp_flow sp_scan s_prep s' c
+         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+         h_kbc h_scf (h_pending h0) h_corr h_noflow h_preprocess h_dispatch h_bare h_dn h_fv h_base
+         h_mono h_sound h_cf h_lkt
+@@ -38280,7 +38293,8 @@
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+     (h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep [])
+     -- Item 365: `Sound` and the block level, for the 3 `h_alt` sites (paid by `accum_content_pending`).
+-    (h_sound : PendingKeySound.Sound sc) (h_fl0 : sc.flowLevel = 0)
++    (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc} (h_fl0 : sc.flowLevel = 0)
+     (h_not_doc : (if s_prep.allowDirectives then
+           { s_prep with allowDirectives := false, documentEverStarted := true }
+         else s_prep).col = 0 →
+@@ -39279,7 +39293,8 @@
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+     (h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep [])
+   -- Item 365: `Sound` and the block level, for the 3 `h_alt` sites (paid by `accum_content_pending`).
+-    (h_sound : PendingKeySound.Sound sc) (h_fl0 : sc.flowLevel = 0)
++    (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc} (h_fl0 : sc.flowLevel = 0)
+     (h_not_doc : (if s_prep.allowDirectives then
+           { s_prep with allowDirectives := false, documentEverStarted := true }
+         else s_prep).col = 0 →
+@@ -39949,6 +39964,7 @@
+     (h_dead : s_prep.col = 0 → ExplicitValueRefused s_prep ∧ RegisterWitness.MarkedColsIn s_prep [])
+     -- Item 365: the park state's soundness, for `refused_of_markedCols_nil` at the 4 `h_alt` sites.
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     -- Item 47: the adjacent-value check's success, from the step's own chain.
+     (h_adj : scanNextToken_checkAdjacentValue
+         (if s_prep.allowDirectives then
+@@ -42099,7 +42115,7 @@
+     -- index, the root's extra readings (the props run, the block scalar) have
+     -- been its cases since items 24/26, and the root entry is the `n = 0`
+     -- instance — faces included.
+-    exact accum_content_on_pendingBlock_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
++    exact accum_content_on_pendingBlock_indented (h_maps := h_maps) (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+       s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_kslot92
+       h_closeF99 h_seqF167 h_floor_old h_park_top_old h_col_old h_sk_old
+       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
+@@ -42112,7 +42128,7 @@
+     -- Item 179 retired the 0/nonzero split, as at the `pendingBlock` arm
+     -- above: the mapping twin answers at every index and the root entry is
+     -- the `n = 0` instance.
+-    exact accum_content_on_pendingMapValue_indented
++    exact accum_content_on_pendingMapValue_indented (h_maps := h_maps)
+       (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextMV (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_mv h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+       s_prep s' c sp_prep sp_scan' h_stream_block (fun sp h => h_close_old sp (SBlockNode_blockIn_to_blockOut h)) h_floor_old h_top_old h_col0_old
+       -- Item 209: the content lane reads the SLOT and not the top beside it,
+@@ -42239,6 +42255,7 @@
+         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     -- **Item 157: §9.2's DANGLING refusal, threaded from `scanNextToken`.**  It
+     -- runs BEFORE every dispatch, so its success reaches all four of them
+     -- unchanged; what the landing turns it into is the park's own face.
+@@ -42344,7 +42361,7 @@
+         (L4YAML.Proofs.PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
+         (by rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess]; exact h0) h_refused⟩
+     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
+-      accum_content_pending (h_dead := h_dead) (h_sound := h_sound) sc sp_start sp_flow sp_scan h0 s_prep s' c
++      accum_content_pending (h_maps := h_maps) (h_dead := h_dead) (h_sound := h_sound) sc sp_start sp_flow sp_scan h0 s_prep s' c
+         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+         (h_pending h0) h_corr h_preprocess h_adj h_bare h_dn h_fv h_base h_mono h_not_doc h_dispatch
+     exact ⟨g', bl', fl', sn', q1, q2, ⟨0, 0, #[], none, _, q3.retail, rfl, fun h => absurd h (by omega), fun h => absurd h (by omega), Nat.zero_le _, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
+@@ -43216,6 +43233,7 @@
+         LastTokenReal sc.tokens ∧ sc.allowDirectives = false)
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, c)))
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     -- **Item 157: §9.2's DANGLING refusal, threaded from `scanNextToken`.**  It
+     -- runs BEFORE every dispatch, so its success reaches all four of them
+     -- unchanged; what the landing turns it into is the park's own face.
+@@ -43290,7 +43308,7 @@
+           { s_prep with allowDirectives := false, documentEverStarted := true }
+         else s_prep).currentIndent + 1) ∧
+                 SFlowNode m .flowIn sp_prep sp_flow' ∧ GStar SSWhite sp_flow' sp_scan') := by
+-  obtain ⟨g, b, f, sn, q1, q2, q3, q4, q5, q6, q7⟩ := accum_step_content_core (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_prep s' c h_stream h_stack h_flowK h_pending h_corr h_interior h_preprocess h_dn h_fv h_flow_none h_blk_none h_adj h_bare h_base h_mono h_dispatch h_str_none h_not_doc
++  obtain ⟨g, b, f, sn, q1, q2, q3, q4, q5, q6, q7⟩ := accum_step_content_core (h_maps := h_maps) (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_prep s' c h_stream h_stack h_flowK h_pending h_corr h_interior h_preprocess h_dn h_fv h_flow_none h_blk_none h_adj h_bare h_base h_mono h_dispatch h_str_none h_not_doc
+   obtain ⟨sp_prep, hcorr_prep⟩ :=
+     scanNextToken_preprocess_corr sc sp_scan h_corr s_prep c h_preprocess
+   have hcorr_ad := corr_of_allowDirectives_update hcorr_prep
+@@ -43360,6 +43378,7 @@
+     -- the loop together; `ColFloor.scanNextToken_sound_colfloor` pays the
+     -- `PreprocessFloor` premise item 338 left STARVED.
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_cf : ColFloor.ColFloor sc)
+     (h_lkt : ScalarWalkColFloor.LiveKeyTop sc)
+     (h_ok : scanNextToken sc = .ok (some s')) :
+@@ -43446,7 +43465,7 @@
+               · rename_i s_flow_out h_flow_disp
+                 have h := Except.ok.inj h_ok; injection h with h; subst h
+                 obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
+-                  accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
++                  accum_step_flow (h_maps := h_maps) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
+                     h_stream h_stack h_flow h_pending h_corr h_sound h_mono h_interior h_pre h_dn h_fv h_str_eq
+                     h_flow_disp h_bare h_base
+                 exact ⟨g', bl', fl', sn', false, q1, q2, q3.1, q4, fun h => Bool.noConfusion h, q5, q6, h_sc'.1, h_sc'.2, h_lkt'⟩
+@@ -43457,7 +43476,7 @@
+                   · rename_i s_blk h_blk
+                     have h := Except.ok.inj h_ok; injection h with h; subst h
+                     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6, _⟩ :=
+-                      accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
++                      accum_step_block (h_maps := h_maps) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
+                         h_stream h_kbc h_scf h_stack h_flow h_pending h_corr h_interior h_pre
+                         h_dn h_fv h_str_eq h_blk h_bare h_base h_mono h_sound h_cf h_lkt
+                     exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6, h_sc'.1, h_sc'.2, h_lkt'⟩
+@@ -43493,7 +43512,7 @@
+                             exact dispatchStructural_none_not_doc_boundary h_str_eq hcol
+                           · exact dispatchStructural_none_not_doc_boundary h_str_eq
+                         obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6, _⟩ :=
+-                          accum_step_content (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
++                          accum_step_content (h_maps := h_maps) (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
+                             h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_dn
+                             h_fv h_flow_none h_blk_none h_adj h_bare h_base h_mono h_cnt
+                             h_str_eq h_not_doc
+@@ -43598,6 +43617,7 @@
+     -- seeded by `mk'` (`ColFloor.seed_sound`/`seed_colfloor`) and
+     -- re-established at every step by `scanNextToken_accum_step`.
+     (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc}
+     (h_cf : ColFloor.ColFloor sc)
+     (h_lkt : ScalarWalkColFloor.LiveKeyTop sc)
+     (h_ok : scanLoop sc fuel = .ok tokens) :
+@@ -43649,10 +43669,10 @@
+       rename_i s_next h_next
+       obtain ⟨sp_gram', sp_block', sp_flow', sp_scan', b', h_stream', h_stack', h_flow',
+               h_pending', h_flag', h_corr', h_interior', h_sound', h_cf', h_lkt'⟩ :=
+-        scanNextToken_accum_step sc sp_start sp_gram sp_block sp_flow sp_scan s_next
++        scanNextToken_accum_step (h_maps := h_maps) sc sp_start sp_gram sp_block sp_flow sp_scan s_next
+           h_stream h_kbc h_scf h_stack h_flow h_pending h_dir_flag h_corr h_interior h_base
+           h_mono h_sound h_cf h_lkt h_next
+-      exact ih s_next sp_gram' sp_block' sp_flow' sp_scan' tokens
++      exact ih (h_maps := h_maps.next h_next h_sound h_mono h_base (ColFloor.preprocessFloor h_cf h_base)) s_next sp_gram' sp_block' sp_flow' sp_scan' tokens
+         h_stream'
+         (ScannerCorrectness.scanNextToken_preserves_KeysBehindCursor sc s_next h_next h_kbc)
+         (StaleCursorFloor.scanNextToken_preserves_StaleKeyCursorFloor sc s_next h_next h_scf)
+@@ -43748,7 +43768,7 @@
+   unfold scan at h
+   simp only [] at h
+   obtain ⟨sp, h_stream, h_corr, h_col, h_prefix⟩ := initial_stream_and_prefix input
+-  refine scanLoop_grammar_prod _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
++  refine scanLoop_grammar_prod (h_maps := R2MapOwnership.seed_maps input) _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
+     h_stream
+     -- Item 81: the seed's keys are vacuously behind — `mk'` saves nothing and
+     -- neither the `streamStart` emission nor §5.2's BOM touches key or stack.

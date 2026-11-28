@@ -1,0 +1,22 @@
+[
+  {
+    "module": "Controls",
+    "source_path": "/workspace/scratch/3565f874b77f/l4yaml-continuation-contract/Research/R2JointFrames/Controls.lean",
+    "sha256": "ac2b6bcb61e58a565ce65518038b0d9980ca97064311cf18981d8b93f77402ad"
+  },
+  {
+    "module": "Joint",
+    "source_path": "/workspace/scratch/3565f874b77f/l4yaml-continuation-contract/Research/R2JointFrames/Joint.lean",
+    "sha256": "f4e50ceec993bf456a29b01c2914540e48c68e378d6699acc6bb96a88dfd2635"
+  },
+  {
+    "module": "State",
+    "source_path": "/workspace/scratch/3565f874b77f/l4yaml-continuation-contract/Research/R2JointFrames/State.lean",
+    "sha256": "632df670fb5712536d5d88e5c9f6555f61bdb7b326b564b9b67d5f50ec01cc15"
+  },
+  {
+    "module": "Slots",
+    "source_path": "/workspace/scratch/3565f874b77f/l4yaml-continuation-contract/Research/R2JointFrames/Slots.lean",
+    "sha256": "ccc413e2c34ef169d07bb9e81be24e2f62ef32253b003bbbf93ff5465a49cbc2"
+  }
+]

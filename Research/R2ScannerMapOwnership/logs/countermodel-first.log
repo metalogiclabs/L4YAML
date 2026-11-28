@@ -1,0 +1,30 @@
+Research/R2ScannerMapOwnership/Countermodel.lean:26:64: error: No goals to be solved
+Research/R2ScannerMapOwnership/Countermodel.lean:28:21: error: Tactic `decide` failed to reduce
+  @decide ((counterfeit.explicitKeyLine, counterfeit.explicitKeyCol) = counterfeit.innermostPendingKey)
+    (instDecidableEqProd (counterfeit.explicitKeyLine, counterfeit.explicitKeyCol) counterfeit.innermostPendingKey)
+to `true` or `false`.
+
+Reduction got stuck at
+  match
+    (match
+        Array.findSomeRev?
+          (fun i =>
+            Option.map (fun l => (l, counterfeit.indentColumns[i]?.getD (-1))) (counterfeit.pendingKeys[i]?.getD none))
+          (Array.range counterfeit.pendingKeys.size) with
+      | some (l, c) => (some l, c)
+      | none => (none, -1)).fst with
+  | none => isFalse ⋯
+  | some b =>
+    match instDecidableEqNat 0 b with
+    | { decide := true, reflects_decide := h } => isTrue ⋯
+    | { decide := false, reflects_decide := n } => isFalse ⋯
+Research/R2ScannerMapOwnership/Countermodel.lean:29:79: error: No goals to be solved
+Research/R2ScannerMapOwnership/Countermodel.lean:29:21: error: unsolved goals
+pos : 0 < counterfeit.flowLevel
+this : counterfeit.flowLevel = 0
+⊢ counterfeit.explicitKeyStack[0]? = some counterfeit.innermostPendingKey
+Research/R2ScannerMapOwnership/Countermodel.lean:30:14: error: failed to synthesize
+  Decidable (StackOk counterfeit)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+'R2MapOwnership.sound_does_not_imply_maps' depends on axioms: [propext, sorryAx]

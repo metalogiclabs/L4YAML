@@ -1,0 +1,4 @@
+'R2JointFrames.Slot.compact_sequence' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Slot.compact_question' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Slot.nodes' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Context.landed_sequence' depends on axioms: [propext, Classical.choice, Quot.sound]

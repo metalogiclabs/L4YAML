@@ -1,0 +1,4 @@
+'R2MapOwnership.Maps.scan_key' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2MapOwnership.Maps.preprocess' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2MapOwnership.Maps.dispatch_structural' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2MapOwnership.Maps.dispatch_block' depends on axioms: [propext, Classical.choice, Quot.sound]

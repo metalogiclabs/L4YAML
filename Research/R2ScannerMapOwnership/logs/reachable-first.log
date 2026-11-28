@@ -1,0 +1,49 @@
+Research/R2ScannerMapOwnership/Reachable.lean:37:2: error: Tactic `split` failed: Could not split an `if` or `match` expression in the goal
+
+Hint: Use `set_option trace.split.failure true` to display additional diagnostic information
+
+input : String
+mono : Mono ((ScannerState.mk' input).emit YamlToken.streamStart)
+base : SentinelBase ((ScannerState.mk' input).emit YamlToken.streamStart)
+maps : Maps ((ScannerState.mk' input).emit YamlToken.streamStart)
+⊢ Sound
+      (have s := (ScannerState.mk' input).emit YamlToken.streamStart;
+      match s.peek? with
+      | some '﻿' => s.consumeBOM
+      | x => s) ∧
+    Mono
+        (have s := (ScannerState.mk' input).emit YamlToken.streamStart;
+        match s.peek? with
+        | some '﻿' => s.consumeBOM
+        | x => s) ∧
+      SentinelBase
+          (have s := (ScannerState.mk' input).emit YamlToken.streamStart;
+          match s.peek? with
+          | some '﻿' => s.consumeBOM
+          | x => s) ∧
+        ColFloor.ColFloor
+            (have s := (ScannerState.mk' input).emit YamlToken.streamStart;
+            match s.peek? with
+            | some '﻿' => s.consumeBOM
+            | x => s) ∧
+          Maps
+            (have s := (ScannerState.mk' input).emit YamlToken.streamStart;
+            match s.peek? with
+            | some '﻿' => s.consumeBOM
+            | x => s)
+'R2MapOwnership.initialized_facts' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]
+'R2MapOwnership.initialized_maps' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

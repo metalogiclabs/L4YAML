@@ -1,0 +1,14 @@
+'R2MapOwnership.initialized_facts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2]
+'R2MapOwnership.initialized_maps' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1,
+ _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2]

@@ -1,0 +1,9 @@
+Research/R2ScannerMapOwnership/Countermodel.lean:28:67: error: Tactic `rfl` failed: The left-hand side
+  (counterfeit.explicitKeyLine, counterfeit.explicitKeyCol)
+is not definitionally equal to the right-hand side
+  go counterfeit.indentColumns counterfeit.pendingKeys counterfeit.pendingKeys.size
+
+x✝ : counterfeit.flowLevel = 0
+⊢ (counterfeit.explicitKeyLine, counterfeit.explicitKeyCol) =
+    go counterfeit.indentColumns counterfeit.pendingKeys counterfeit.pendingKeys.size
+'R2MapOwnership.sound_does_not_imply_maps' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

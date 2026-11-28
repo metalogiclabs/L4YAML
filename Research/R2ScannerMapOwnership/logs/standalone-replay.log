@@ -1,0 +1,12 @@
+CHECKED own/Controls
+CHECKED own/Scanner
+CHECKED own/Step
+CHECKED own/Reachable
+CHECKED own/Countermodel
+CHECKED snapshot/Controls
+CHECKED snapshot/Joint
+CHECKED snapshot/State
+CHECKED snapshot/Slots
+CHECKED own/Bridge
+CHECKED own/Audit
+CHECKED own/Verify

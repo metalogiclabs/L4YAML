@@ -1,0 +1,27 @@
+Research/R2ScannerMapOwnership/Scanner.lean:27:39: error: Application type mismatch: The argument
+  marked
+has type
+  some s.pendingKeys[i] = some (some l)
+but is expected to have type
+  s.pendingKeys[i]? = some (some l)
+in the application
+  h i l marked
+Research/R2ScannerMapOwnership/Scanner.lean:30:4: error: Type mismatch
+  atOld
+has type
+  s.indents[i]? = some old
+but is expected to have type
+  some s.indents[i] = some old
+Research/R2ScannerMapOwnership/Scanner.lean:74:15: error: Type mismatch
+  h
+has type
+  Maps s
+but is expected to have type
+  Maps (closeStaleExplicitKey (closeStaleExplicitKey s))
+Research/R2ScannerMapOwnership/Scanner.lean:94:55: warning: Variable name `slots` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _slots
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+'R2MapOwnership.Maps.scan_key' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

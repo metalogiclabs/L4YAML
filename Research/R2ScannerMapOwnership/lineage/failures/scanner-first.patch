@@ -1,0 +1,193 @@
+--- a/Scanner.lean
++++ b/Scanner.lean
+@@ -1,7 +1,4 @@
+-module
+-public import Research.R2ScannerMapOwnership.Controls
+-
+-@[expose] public section MapOwnershipScanner
++import Research.R2ScannerMapOwnership.Controls
+ 
+ set_option autoImplicit false
+ set_option maxRecDepth 100000
+@@ -27,10 +24,9 @@
+   rw [keys] at marked
+   by_cases before : i < s.pendingKeys.size
+   · rw [Array.getElem?_push_lt before] at marked
+-    obtain ⟨old, atOld, kind⟩ := h i l (by rw [Array.getElem?_eq_getElem before]; exact marked)
++    obtain ⟨old, atOld, kind⟩ := h i l marked
+     refine ⟨old, ?_, kind⟩
+     rw [indents, Array.getElem?_push_lt (Array.getElem?_eq_some_iff.mp atOld).1]
+-    rw [Array.getElem?_eq_getElem (Array.getElem?_eq_some_iff.mp atOld).1] at atOld
+     exact atOld
+   · by_cases last : i = s.pendingKeys.size
+     · subst i
+@@ -75,7 +71,7 @@
+ 
+ lemma Maps.close_stale {s : ScannerState} (h : Maps s) : Maps (closeStaleExplicitKey s) := by
+   rcases L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_cases s with eq | ⟨_, _, eq⟩
+-  · rw [eq]; exact h
++  · exact eq ▸ h
+   · rw [eq]
+     exact h.close_stale_at _
+ 
+@@ -95,7 +91,7 @@
+   unfold unwindIndents
+   exact h.unwind_loop _ _ _ slots
+ 
+-lemma Maps.scan_key {s t : ScannerState} (h : Maps s)
++lemma Maps.scan_key {s t : ScannerState} (h : Maps s) (slots : SlotsOk s)
+     (base : SentinelBase s) (floor : s.inFlow = false → s.currentIndent ≤ (s.col : Int))
+     (step : scanKey s = .ok t) : Maps t := by
+   by_cases flow : s.inFlow = true
+@@ -133,151 +129,10 @@
+     · obtain ⟨entry, atEntry, kind⟩ := kept i l marked
+       exact ⟨entry, indents ▸ atEntry, kind⟩
+ 
+-lemma Maps.value_prepare (s : ScannerState) (h : Maps s) : Maps (scanValuePrepare s) := by
+-  unfold scanValuePrepare
+-  split
+-  · split
+-    · split
+-      · exact h.push_none _ rfl rfl
+-      · exact h
+-    · exact h
+-  · split
+-    · exact h
+-    · split
+-      · exact h.push_mapping s _
+-      · exact h
+-
+-lemma Maps.scan_value {s t : ScannerState} (h : Maps s)
+-    (step : scanValue s = .ok t) : Maps t := by
+-  have clear := scanValueClearKey_core s
+-  have cleared : Maps (scanValueClearKey s) := h.of_eq clear.2.1 clear.1
+-  have prepared := cleared.value_prepare _
+-  have advanced : Maps (((scanValuePrepare (scanValueClearKey s)).emit .value).advance) :=
+-    prepared.of_eq (by rw [advance_preserves_pendingKeys, emit_pendingKeys])
+-      (by rw [L4YAML.Proofs.EmitterScannability.advance_preserves_indents]; rfl)
+-  unfold scanValue at step
+-  simp only [bind, Except.bind] at step
+-  split at step <;> try contradiction
+-  split at step <;> try contradiction
+-  split at step <;> try contradiction
+-  simp only [Except.ok.injEq] at step
+-  subst t
+-  split
+-  · exact advanced
+-  · split
+-    · exact advanced
+-    · exact advanced.clear_at _
+-
+-lemma Maps.scan_block_entry {s t : ScannerState} (h : Maps s)
+-    (noflow : s.inFlow = false) (step : scanBlockEntry s = .ok t) : Maps t :=
+-  (h.push_sequence s _).of_eq (scanBlockEntry_pendingKeys noflow step)
+-    (scanBlockEntry_indents noflow step)
+-
+-lemma Maps.document_start (s : ScannerState) (h : Maps s) (slots : SlotsOk s) :
+-    Maps (scanDocumentStart s) := by
+-  apply (h.unwind s (-1) slots).of_eq
+-  · unfold scanDocumentStart
+-    simp [advanceN_preserves_pendingKeys, emit_pendingKeys]
+-  · unfold scanDocumentStart
+-    simp [L4YAML.Proofs.IndentStackBase.advanceN_preserves_indents]
+-
+-lemma Maps.document_end {s t : ScannerState} (h : Maps s) (slots : SlotsOk s)
+-    (step : scanDocumentEnd s = .ok t) : Maps t := by
+-  unfold scanDocumentEnd at step
+-  simp only [bind, Except.bind] at step
+-  repeat (any_goals (split at step))
+-  all_goals (try contradiction)
+-  all_goals (simp only [Except.ok.injEq] at step; subst t)
+-  all_goals apply (h.unwind s (-1) slots).of_eq
+-  all_goals simp [advanceN_preserves_pendingKeys, emit_pendingKeys,
+-    L4YAML.Proofs.IndentStackBase.advanceN_preserves_indents]
+-
+-lemma Maps.preprocess {s t : ScannerState} {c : Char} (h : Maps s) (slots : SlotsOk s)
+-    (step : scanNextToken_preprocess s = .ok (some (t,c))) : Maps t := by
+-  unfold scanNextToken_preprocess at step
+-  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at step
+-  split at step
+-  · contradiction
+-  · rename_i skipped skip
+-    have indents := skipToContent_preserves_indents s skipped skip
+-    have keys := skipToContent_preserves_pendingKeys s skipped skip
+-    have kept : Maps skipped := h.of_eq keys indents
+-    have keptSlots : SlotsOk skipped := slots.of_eq keys indents
+-    split at step
+-    · simp at step
+-    · split at step
+-      · split at step
+-        · contradiction
+-        · split at step
+-          · simp at step
+-          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at step
+-            obtain ⟨rfl,rfl⟩ := step
+-            apply Maps.close_stale
+-            exact (kept.unwind _ _ keptSlots).of_eq (saveSimpleKey_preserves_pendingKeys _)
+-              (saveSimpleKey_preserves_indents _)
+-      · split at step
+-        · contradiction
+-        · split at step
+-          · simp at step
+-          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at step
+-            obtain ⟨rfl,rfl⟩ := step
+-            apply Maps.close_stale
+-            exact kept.of_eq (saveSimpleKey_preserves_pendingKeys _)
+-              (saveSimpleKey_preserves_indents _)
+-
+-lemma Maps.dispatch_structural {s t : ScannerState} {c : Char} (h : Maps s) (slots : SlotsOk s)
+-    (step : scanNextToken_dispatchStructural s c = .ok (some t)) : Maps t := by
+-  unfold scanNextToken_dispatchStructural at step
+-  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at step
+-  repeat (any_goals (split at step))
+-  any_goals contradiction
+-  all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at *)
+-  any_goals contradiction
+-  all_goals (try subst_vars)
+-  all_goals first
+-    | exact h.document_start s slots
+-    | exact h.document_end slots (by assumption)
+-    | exact h.of_eq (scanDirective_preserves_pendingKeys (by assumption))
+-        (L4YAML.Proofs.IndentStackBase.scanDirective_preserves_indents (by assumption))
+-
+-lemma Maps.dispatch_flow {s t : ScannerState} {c : Char} (h : Maps s)
+-    (step : scanNextToken_dispatchFlowIndicators s c = .ok (some t)) : Maps t :=
+-  h.of_eq (dispatchFlowIndicators_preserves_pendingKeys step)
+-    (L4YAML.Proofs.FlowIndentStable.dispatchFlowIndicators_preserves_indents step)
+-
+-lemma Maps.dispatch_block {s t : ScannerState} {c : Char} (h : Maps s)
+-    (base : SentinelBase s) (floor : s.inFlow = false → s.currentIndent ≤ (s.col : Int))
+-    (step : scanNextToken_dispatchBlockIndicators s c = .ok (some t)) : Maps t := by
+-  by_cases flow : s.inFlow = true
+-  · exact h.of_eq (dispatchBlockIndicators_preserves_pendingKeys flow step)
+-      (L4YAML.Proofs.FlowIndentStable.dispatchBlockIndicators_preserves_indents flow step)
+-  · have noflow : s.inFlow = false := by simpa using flow
+-    unfold scanNextToken_dispatchBlockIndicators at step
+-    simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at step
+-    repeat (any_goals (split at step))
+-    any_goals contradiction
+-    all_goals (try simp only [Except.ok.injEq, Option.some.injEq] at *)
+-    any_goals contradiction
+-    all_goals (try subst_vars)
+-    all_goals first
+-      | exact h.scan_block_entry noflow (by assumption)
+-      | exact h.scan_key base floor (by assumption)
+-      | exact h.scan_value (by assumption)
+-
+-lemma Maps.dispatch_content {s t : ScannerState} {c : Char} (h : Maps s)
+-    (step : scanNextToken_dispatchContent s c = .ok t) : Maps t :=
+-  h.of_eq (dispatchContent_pendingKeys step)
+-    (L4YAML.Proofs.IndentStackBase.dispatchContent_preserves_indents step)
+-
+ lemma Maps.initial (input : String) : Maps (ScannerState.mk' input) := by
+   intro i l marked
+   cases i <;> simp [ScannerState.mk'] at marked
+ 
+ #print axioms Maps.scan_key
+-#print axioms Maps.preprocess
+-#print axioms Maps.dispatch_structural
+-#print axioms Maps.dispatch_block
+ 
+ end R2MapOwnership
+-
+-end MapOwnershipScanner

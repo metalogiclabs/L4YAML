@@ -1,0 +1,111 @@
+--- a/StreamAccum.lean
++++ b/StreamAccum.lean
+@@ -24418,7 +24418,8 @@
+     (`preprocess_markedCols`, `scanValue_markedCols` — the `:` arm of the dispatcher IS `scanValue`); the
+     slots fact `scanValue_markedCols` needs is `Sound`'s, carried across preprocessing by `preprocess_sound`. -/
+ lemma RegisterWitness.MarkedColsIn.step_value {sc s_prep s' : ScannerState} {ns : List Nat}
+-    (h_sound : PendingKeySound.Sound sc) (h_mono : IndentStackMono.Mono sc)
++    (h_sound : PendingKeySound.Sound sc)
++    {h_maps : R2MapOwnership.Maps sc} (h_mono : IndentStackMono.Mono sc)
+     (h_preprocess : scanNextToken_preprocess sc = .ok (some (s_prep, ':')))
+     (h_dispatch : scanNextToken_dispatchBlockIndicators (if s_prep.allowDirectives then
+       { s_prep with allowDirectives := false, documentEverStarted := true }
+@@ -29767,7 +29768,7 @@
+         h_dispatch
+         -- Item 409: the pack's chain PAID — domained at the park, transported across the `:`.
+         (h_kslot_pk.imp (fun ⟨ns, hdom, routes⟩ =>
+-          ⟨ns, RegisterWitness.MarkedColsIn.step_value h_sound h_mono h_preprocess h_dispatch hdom, routes⟩)
++          ⟨ns, RegisterWitness.MarkedColsIn.step_value (h_maps := h_maps) h_sound h_mono h_preprocess h_dispatch hdom, routes⟩)
+           id) h_cf h_lkt
+ 
+ /-- **The same-line `:` firing the pack** (items 15–17), lifted out of
+@@ -30019,7 +30020,7 @@
+             (PackAlt.step_value h_preprocess h_dispatch h_noflow)
+             -- Item 409: the pack's chain PAID — domained at the park, transported across the `:`.
+             (h_kslot_pk.imp (fun ⟨ns, hdom, routes⟩ =>
+-              ⟨ns, RegisterWitness.MarkedColsIn.step_value h_sound h_mono h_preprocess h_dispatch hdom, routes⟩)
++              ⟨ns, RegisterWitness.MarkedColsIn.step_value (h_maps := h_maps) h_sound h_mono h_preprocess h_dispatch hdom, routes⟩)
+               id)
+             (implicit_colon_top_le h_lkt h_cf h_preprocess (by rw [h_inh]; exact h_poss)
+               (by rw [h_inh, h_line_pp]; exact h_kline)
+@@ -42115,7 +42116,7 @@
+     -- index, the root's extra readings (the props run, the block scalar) have
+     -- been its cases since items 24/26, and the root entry is the `n = 0`
+     -- instance — faces included.
+-    exact accum_content_on_pendingBlock_indented (h_maps := h_maps) (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
++    exact accum_content_on_pendingBlock_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+       s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_kslot92
+       h_closeF99 h_seqF167 h_floor_old h_park_top_old h_col_old h_sk_old
+       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
+@@ -42128,7 +42129,7 @@
+     -- Item 179 retired the 0/nonzero split, as at the `pendingBlock` arm
+     -- above: the mapping twin answers at every index and the root entry is
+     -- the `n = 0` instance.
+-    exact accum_content_on_pendingMapValue_indented (h_maps := h_maps)
++    exact accum_content_on_pendingMapValue_indented
+       (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextMV (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_mv h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+       s_prep s' c sp_prep sp_scan' h_stream_block (fun sp h => h_close_old sp (SBlockNode_blockIn_to_blockOut h)) h_floor_old h_top_old h_col0_old
+       -- Item 209: the content lane reads the SLOT and not the top beside it,
+@@ -42361,7 +42362,7 @@
+         (L4YAML.Proofs.PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
+         (by rw [preprocess_preserves_flowLevel sc s_prep c h_preprocess]; exact h0) h_refused⟩
+     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5⟩ :=
+-      accum_content_pending (h_maps := h_maps) (h_dead := h_dead) (h_sound := h_sound) sc sp_start sp_flow sp_scan h0 s_prep s' c
++      accum_content_pending (h_dead := h_dead) (h_sound := h_sound) sc sp_start sp_flow sp_scan h0 s_prep s' c
+         (absorb_stacksB sp_start sp_gram sp_block sp_flow h_stream h_stack h_flow)
+         (h_pending h0) h_corr h_preprocess h_adj h_bare h_dn h_fv h_base h_mono h_not_doc h_dispatch
+     exact ⟨g', bl', fl', sn', q1, q2, ⟨0, 0, #[], none, _, q3.retail, rfl, fun h => absurd h (by omega), fun h => absurd h (by omega), Nat.zero_le _, fun h => absurd h (by omega)⟩, fun _ => q4, q5,
+@@ -43308,7 +43309,7 @@
+           { s_prep with allowDirectives := false, documentEverStarted := true }
+         else s_prep).currentIndent + 1) ∧
+                 SFlowNode m .flowIn sp_prep sp_flow' ∧ GStar SSWhite sp_flow' sp_scan') := by
+-  obtain ⟨g, b, f, sn, q1, q2, q3, q4, q5, q6, q7⟩ := accum_step_content_core (h_maps := h_maps) (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_prep s' c h_stream h_stack h_flowK h_pending h_corr h_interior h_preprocess h_dn h_fv h_flow_none h_blk_none h_adj h_bare h_base h_mono h_dispatch h_str_none h_not_doc
++  obtain ⟨g, b, f, sn, q1, q2, q3, q4, q5, q6, q7⟩ := accum_step_content_core (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_prep s' c h_stream h_stack h_flowK h_pending h_corr h_interior h_preprocess h_dn h_fv h_flow_none h_blk_none h_adj h_bare h_base h_mono h_dispatch h_str_none h_not_doc
+   obtain ⟨sp_prep, hcorr_prep⟩ :=
+     scanNextToken_preprocess_corr sc sp_scan h_corr s_prep c h_preprocess
+   have hcorr_ad := corr_of_allowDirectives_update hcorr_prep
+@@ -43465,7 +43466,7 @@
+               · rename_i s_flow_out h_flow_disp
+                 have h := Except.ok.inj h_ok; injection h with h; subst h
+                 obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6⟩ :=
+-                  accum_step_flow (h_maps := h_maps) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
++                  accum_step_flow sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_flow_out c_pre
+                     h_stream h_stack h_flow h_pending h_corr h_sound h_mono h_interior h_pre h_dn h_fv h_str_eq
+                     h_flow_disp h_bare h_base
+                 exact ⟨g', bl', fl', sn', false, q1, q2, q3.1, q4, fun h => Bool.noConfusion h, q5, q6, h_sc'.1, h_sc'.2, h_lkt'⟩
+@@ -43476,7 +43477,7 @@
+                   · rename_i s_blk h_blk
+                     have h := Except.ok.inj h_ok; injection h with h; subst h
+                     obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6, _⟩ :=
+-                      accum_step_block (h_maps := h_maps) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
++                      accum_step_block sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_blk c_pre
+                         h_stream h_kbc h_scf h_stack h_flow h_pending h_corr h_interior h_pre
+                         h_dn h_fv h_str_eq h_blk h_bare h_base h_mono h_sound h_cf h_lkt
+                     exact ⟨g', bl', fl', sn', false, q1, q2, q3, q4, fun h => Bool.noConfusion h, q5, q6, h_sc'.1, h_sc'.2, h_lkt'⟩
+@@ -43512,7 +43513,7 @@
+                             exact dispatchStructural_none_not_doc_boundary h_str_eq hcol
+                           · exact dispatchStructural_none_not_doc_boundary h_str_eq
+                         obtain ⟨g', bl', fl', sn', q1, q2, q3, q4, q5, q6, _⟩ :=
+-                          accum_step_content (h_maps := h_maps) (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
++                          accum_step_content (h_sound := h_sound) sc sp_start sp_gram sp_block sp_flow sp_scan s_pre s_cnt c_pre
+                             h_stream h_stack h_flow h_pending h_corr h_interior h_pre h_dn
+                             h_fv h_flow_none h_blk_none h_adj h_bare h_base h_mono h_cnt
+                             h_str_eq h_not_doc
+@@ -43669,7 +43670,7 @@
+       rename_i s_next h_next
+       obtain ⟨sp_gram', sp_block', sp_flow', sp_scan', b', h_stream', h_stack', h_flow',
+               h_pending', h_flag', h_corr', h_interior', h_sound', h_cf', h_lkt'⟩ :=
+-        scanNextToken_accum_step (h_maps := h_maps) sc sp_start sp_gram sp_block sp_flow sp_scan s_next
++        scanNextToken_accum_step sc sp_start sp_gram sp_block sp_flow sp_scan s_next
+           h_stream h_kbc h_scf h_stack h_flow h_pending h_dir_flag h_corr h_interior h_base
+           h_mono h_sound h_cf h_lkt h_next
+       exact ih (h_maps := h_maps.next h_next h_sound h_mono h_base (ColFloor.preprocessFloor h_cf h_base)) s_next sp_gram' sp_block' sp_flow' sp_scan' tokens
+@@ -43768,7 +43769,7 @@
+   unfold scan at h
+   simp only [] at h
+   obtain ⟨sp, h_stream, h_corr, h_col, h_prefix⟩ := initial_stream_and_prefix input
+-  refine scanLoop_grammar_prod (h_maps := R2MapOwnership.seed_maps input) _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
++  refine scanLoop_grammar_prod _ ⟨input.toList, 0⟩ sp sp sp sp _ tokens
+     h_stream
+     -- Item 81: the seed's keys are vacuously behind — `mk'` saves nothing and
+     -- neither the `streamStart` emission nor §5.2's BOM touches key or stack.

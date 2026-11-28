@@ -1,0 +1,29 @@
+--- a/Scanner.lean
++++ b/Scanner.lean
+@@ -1,7 +1,4 @@
+-module
+-public import Research.R2ScannerMapOwnership.Controls
+-
+-@[expose] public section MapOwnershipScanner
++import Research.R2ScannerMapOwnership.Controls
+ 
+ set_option autoImplicit false
+ set_option maxRecDepth 100000
+@@ -189,8 +186,9 @@
+   all_goals (try contradiction)
+   all_goals (simp only [Except.ok.injEq] at step; subst t)
+   all_goals apply (h.unwind s (-1) slots).of_eq
+-  all_goals simp [advanceN_preserves_pendingKeys, emit_pendingKeys,
+-    L4YAML.Proofs.IndentStackBase.advanceN_preserves_indents]
++  all_goals first
++    | simp [advanceN_preserves_pendingKeys, emit_pendingKeys]
++    | simp [L4YAML.Proofs.IndentStackBase.advanceN_preserves_indents]
+ 
+ lemma Maps.preprocess {s t : ScannerState} {c : Char} (h : Maps s) (slots : SlotsOk s)
+     (step : scanNextToken_preprocess s = .ok (some (t,c))) : Maps t := by
+@@ -279,5 +277,3 @@
+ #print axioms Maps.dispatch_block
+ 
+ end R2MapOwnership
+-
+-end MapOwnershipScanner

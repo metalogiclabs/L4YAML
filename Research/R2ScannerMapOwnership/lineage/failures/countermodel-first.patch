@@ -1,0 +1,23 @@
+--- a/Countermodel.lean
++++ b/Countermodel.lean
+@@ -23,16 +23,11 @@
+       cases i with
+       | zero => exact ⟨0, by decide +kernel, by decide⟩
+       | succ i =>
+-        rw [Array.getElem?_eq_none (by simp [counterfeit, bad])] at marked
++        rw [Array.getElem?_eq_none (by simp [counterfeit, bad]; omega)] at marked
+         cases marked
+-  reg := fun _ => by
+-    rw [innermostPendingKey_eq, innermost_eq_go]
+-    simp [go, counterfeit, bad, ScannerState.indentColumns]
+-  base := by
+-    intro pos
+-    have zero : counterfeit.flowLevel = 0 := rfl
+-    exact (Nat.not_lt_zero _ (zero ▸ pos)).elim
+-  stack := rfl
++  reg := fun _ => by decide +kernel
++  base := fun pos => by have : counterfeit.flowLevel = 0 := by decide +kernel; omega
++  stack := by decide +kernel
+ 
+ lemma counterfeit_not_maps : ¬Maps counterfeit := by
+   intro maps
