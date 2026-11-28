@@ -1,23 +1,24 @@
-name: Replay only API documentation on frozen item 541 candidate
+name: Restore and upload frozen item 541 qualified source
 on:
   push:
     branches: [test/content-slot-item541-qualification]
 permissions:
-  contents: read
+  contents: write
   actions: read
 concurrency:
   group: pr-384-item541-qualification
   cancel-in-progress: false
 jobs:
-  api-docs:
+  restore-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 15
     env:
-      LEAN_NUM_THREADS: 1
       OLD: 05749b745f8c88fad8f1b6971aaa22b65155f489
       OWNER: 1383fa62e838576fb9c712b4af89b5e381aaaab4
+      INITIAL_SOURCE: 0c99e81fb076a1eb8569b5be565bc8c9b5bd5cca
       SOURCE: f667f7a7ec78931e2ac308bf31a29d9e37d6c75c
       TREE: 1db95bdc6b769fbd94199617cbd2e07f6c5f0d00
+      EVIDENCE_BRANCH: test/content-slot-owner-qualified
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,60 +26,69 @@ jobs:
           ref: 05749b745f8c88fad8f1b6971aaa22b65155f489
           path: source
           fetch-depth: 0
-          submodules: recursive
-          persist-credentials: false
-      - name: Restore exact frozen native-qualified source
+      - name: Restore and verify both qualification boundaries without rebuilding
         working-directory: source
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          mkdir -p ../results ../replay
-          git rev-parse HEAD HEAD^{tree} > ../replay/initial.txt
+          mkdir -p ../native ../api ../receipt
           test "$(git rev-parse HEAD)" = "$OLD"
+          git config core.abbrev 8
           git fetch --no-tags https://github.com/nasa-jpl/L4YAML.git "$OWNER"
-          test "$(git rev-parse "$OWNER^{tree}")" = 0c7dced413db0510b0a0a144ca2ca74111cf6a77
-          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15235219972/zip > "$RUNNER_TEMP/prior.zip"
-          echo "2ad21b81badd79aa6eaaec48739d521ae0e35aeccd01a7ee4777cd559fe6e5da  $RUNNER_TEMP/prior.zip" | sha256sum -c -
-          unzip -t "$RUNNER_TEMP/prior.zip" > ../replay/prior-crc.log
-          unzip -q "$RUNNER_TEMP/prior.zip" -d ../results
-          sha256sum -c ../results/qualified.sha256 | tee ../replay/qualified-digests.txt
-          git bundle verify ../results/qualified.bundle > ../replay/bundle-verify.log 2>&1
-          git fetch ../results/qualified.bundle HEAD
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15235219972/zip > "$RUNNER_TEMP/native.zip"
+          gh api repos/metalogiclabs/L4YAML/actions/artifacts/15240091516/zip > "$RUNNER_TEMP/api.zip"
+          echo "2ad21b81badd79aa6eaaec48739d521ae0e35aeccd01a7ee4777cd559fe6e5da  $RUNNER_TEMP/native.zip" | sha256sum -c -
+          echo "c110a267ea4c32a49b9df0af87f0d726b61bb9d92cc5498799321129a3fd1228  $RUNNER_TEMP/api.zip" | sha256sum -c -
+          unzip -t "$RUNNER_TEMP/native.zip" > ../receipt/native-crc.txt
+          unzip -t "$RUNNER_TEMP/api.zip" > ../receipt/api-crc.txt
+          unzip -q "$RUNNER_TEMP/native.zip" -d ../native
+          unzip -q "$RUNNER_TEMP/api.zip" -d ../api
+          echo 'ad8f28ab57bbd89802ae43280884b014268101cd64544ddea7620561607fae3d  ../native/qualified.bundle' | sha256sum -c -
+          echo 'cff119277fa85cb4c3e890eb3b600924cbb9081c670b818c0f56b293cb289a91  ../native/final-snapshot.patch' | sha256sum -c -
+          echo '5ae545b2d8e9b58e87955bd1e9df1fb5d485780d8744a5f7456cf2fec0bf7316  ../api/publication.patch' | sha256sum -c -
+          cmp ../native/axioms-before.log ../native/axioms-after.log
+          cmp ../native/root-axioms-before.log ../native/root-axioms-after.log
+          grep -Fx "API_DOCS_QUALIFIED SOURCE=$SOURCE TREE=$TREE; prior native/bindings/Verso retained; no publication" ../api/qualification.txt
+          grep -F 'Build completed successfully (4050 jobs).' ../api/api-docs.log
+          grep -F 'Exit status: 0' ../api/api-docs.log
+          git bundle verify ../native/qualified.bundle > ../receipt/bundle-verify.txt 2>&1
+          git fetch ../native/qualified.bundle HEAD
           git checkout --detach "$SOURCE"
           test "$(git rev-parse HEAD)" = "$SOURCE"
           test "$(git rev-parse HEAD^{tree})" = "$TREE"
+          test "$(git show -s --format=%P "$SOURCE")" = "$INITIAL_SOURCE"
+          test "$(git show -s --format=%P "$INITIAL_SOURCE")" = "$OLD $OWNER"
           git merge-base --is-ancestor "$OLD" HEAD
           git merge-base --is-ancestor "$OWNER" HEAD
+          git ls-tree -r HEAD > ../receipt/tree.txt
+          cmp ../receipt/tree.txt ../api/qualified-tree.txt
+          git diff --binary "$OLD" HEAD > ../receipt/publication.patch
+          cmp ../receipt/publication.patch ../api/publication.patch
+          git diff --binary "$OWNER" HEAD > ../receipt/owner-delta.patch
+          cmp ../receipt/owner-delta.patch ../api/owner-delta.patch
           git diff --exit-code "$OWNER" HEAD -- lean-toolchain lake-manifest.json doc/lean-toolchain doc/lake-manifest.json .gitmodules .github/workflows
-          cmp ../results/axioms-before.log ../results/axioms-after.log
-          cmp ../results/root-axioms-before.log ../results/root-axioms-after.log
-          git rev-parse HEAD HEAD^{tree} > ../replay/source.txt
-          git diff --binary "$OLD" HEAD > ../replay/publication.patch
-          git diff --binary "$OWNER" HEAD > ../replay/owner-delta.patch
-          git ls-tree -r HEAD > ../replay/qualified-tree.txt
-          test "$(cat lean-toolchain)" = leanprover/lean4:v4.36.0
-          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
-      - uses: actions/cache/restore@v4
-        with:
-          path: source/.lake
-          key: pr-refresh-item541-384-46068890855
-      - name: Replay API documentation only with one Lean thread
+          git diff --check "$OLD" HEAD
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git rev-parse HEAD HEAD^{tree} > ../receipt/source.txt
+      - name: Upload the exact source to an evidence branch with no production ref mutation
         working-directory: source
         run: |
           set -Eeuo pipefail
-          lean --version | tee ../replay/lean-version.txt
-          free -h > ../replay/memory-before.txt
-          /usr/bin/time -v lake build :docs > ../replay/api-docs.log 2>&1
-          tail -30 ../replay/api-docs.log
-          git diff --exit-code
-          test "$(git rev-parse HEAD^{tree})" = "$TREE"
-          printf 'API_DOCS_QUALIFIED SOURCE=%s TREE=%s; prior native/bindings/Verso retained; no publication\n' "$SOURCE" "$TREE" | tee ../replay/qualification.txt
+          live_owner="$(git ls-remote https://github.com/nasa-jpl/L4YAML.git refs/heads/fix-a-grammar-completeness | cut -f1)"
+          test "$live_owner" = "$OWNER"
+          printf '%s\n' "$live_owner" > ../receipt/live-owner.txt
+          live_head="$(git ls-remote origin refs/heads/fix/content-slot-state-domain | cut -f1)"
+          test "$live_head" = "$OLD"
+          printf '%s\n' "$live_head" > ../receipt/live-pr-head.txt
+          evidence_head="$(git ls-remote origin "refs/heads/$EVIDENCE_BRANCH" | cut -f1)"
+          if test -n "$evidence_head"; then test "$evidence_head" = "$SOURCE"; fi
+          git push origin "$SOURCE:refs/heads/$EVIDENCE_BRANCH"
+          test "$(git ls-remote origin "refs/heads/$EVIDENCE_BRANCH" | cut -f1)" = "$SOURCE"
+          printf 'UPLOADED SOURCE=%s TREE=%s BRANCH=%s; native/API evidence retained; production ref unchanged\n' "$SOURCE" "$TREE" "$EVIDENCE_BRANCH" | tee ../receipt/outcome.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pr-384-item541-api-docs-only-evidence
-          path: replay/
+          name: item541-exact-source-upload-receipt
+          path: receipt/
           if-no-files-found: error
