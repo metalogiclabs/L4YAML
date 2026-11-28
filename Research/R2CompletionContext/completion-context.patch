@@ -1,0 +1,180 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -2160,0 +2161,17 @@
++def Completed (s : ScannerState) (P : SurfPos → Prop) (n : Nat) (gram : SurfPos) : Prop :=
++  ∀ e, SSLComments gram e → ∀ z, SCompactSeqTail n e z → Context s P z
++lemma context_content {s prep t : ScannerState} {P : SurfPos → Prop} {e : SurfPos} {c : Char}
++    (preprocess : scanNextToken_preprocess s = .ok (some (prep,c)))
++    (step : scanNextToken_dispatchContent (dispatchState prep) c = .ok t)
++    (context : Context s P e) : Context t P e :=
++  context_transport (context_dispatch (context_preprocess preprocess context))
++    (dispatchContent_pendingKeys step) (IndentStackBase.dispatchContent_preserves_indents step)
++
++lemma pair_completed {s : ScannerState} {start gram : SurfPos} {k : Nat}
++    (old : ∀ e, SSLComments gram e → ∀ z, SCompactSeqTail k e z →
++      SLYamlStream start z ∧ L4YAML.Proofs.R2ConsumptionClosure.EntryValues s (SLYamlStream start) z)
++    (whole : Completed s (SLYamlStream start) k gram) :
++    ∀ e, SSLComments gram e → ∀ z, SCompactSeqTail k e z →
++      SLYamlStream start z ∧ (L4YAML.Proofs.R2ConsumptionClosure.EntryValues s (SLYamlStream start) z ∧ Context s (SLYamlStream start) z) :=
++  fun e comments z tail => ⟨(old e comments z tail).1,(old e comments z tail).2,whole e comments z tail⟩
++
+@@ -3682 +3699 @@
+-        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end) ∨ PackAlt sc)
++        SLYamlStream sp_start sp_end ∧ (EntryValues sc (SLYamlStream sp_start) sp_end ∧ R2JointFrames.Context sc (SLYamlStream sp_start) sp_end)) ∨ PackAlt sc)
+@@ -4005 +4022 @@
+-          SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
++          SLYamlStream sp_start sp_end ∧ (EntryValues sc (SLYamlStream sp_start) sp_end ∧ R2JointFrames.Context sc (SLYamlStream sp_start) sp_end))
+@@ -30761 +30778 @@
+-        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
++        SLYamlStream sp_start sp_end ∧ (EntryValues sc (SLYamlStream sp_start) sp_end ∧ R2JointFrames.Context sc (SLYamlStream sp_start) sp_end))
+@@ -30896,0 +30914,2 @@
++  have h_wholeCompletedContext : R2MandatoryContext.Completed sc (SLYamlStream sp_start) n sp_gram :=
++    fun e comments z tail => (h_entry_old e comments z tail).2.2
+@@ -30898 +30917 @@
+-    fun e comments z tail => (h_entry_old e comments z tail).2
++    fun e comments z tail => (h_entry_old e comments z tail).2.1
+@@ -31000 +31019,9 @@
+-(by trace_state; fail "R2_WHOLE_COMPLETED_SEQUENCE"))
++(by
++      apply R2MandatoryContext.sequence_step h_preprocess
++        (dispatchBlockIndicators_dash_scan h_dispatch).2
++        (dispatchBlockIndicators_dash_scan h_dispatch).1 h_sound h_mono
++        (by have hcol := hcorr_prep.col_eq; have hi := SIndent_col h_ind;
++            unfold R2ActualJointStep.dispatchState; split <;> change s_prep.col = _ <;> omega)
++      intro e node z tail
++      exact h_wholeCompletedContext sp_mid h_ssl z
++        (SCompactSeqTail.cons k sp_mid _ sp_scan' e z h_ind h_dash2 h_gnot2 node tail)))
+@@ -38886 +38913 @@
+-             (fun e comments z tail => ⟨((fun sp_final h_ssl =>
++             (R2MandatoryContext.pair_completed (fun e comments z tail => ⟨((fun sp_final h_ssl =>
+@@ -38895,0 +38923,7 @@
++(by
++      intro e comments z tail
++      exact R2MandatoryContext.context_content h_preprocess h_dispatch
++        (h_wholeSequenceContext e
++          (SBlockIndented.node n .blockIn sp_scan e
++            (SBlockNode.flowInBlock (n+1) .blockIn sp_scan sp_prep sp_gram e
++              h_sep_all (h_flow_all (n+1)) comments)) z tail)))
+@@ -39215 +39249,3 @@
+-                 (SequenceValues.nodes h_sequenceContext (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) sp_m h_bn sp_end h_tail⟩⟩)
++                 (SequenceValues.nodes h_sequenceContext (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) sp_m h_bn sp_end h_tail,
++                 R2MandatoryContext.context_content h_preprocess h_dispatch
++                   (h_wholeSequenceContext sp_m (SBlockIndented.node n .blockIn sp_scan sp_m h_bn) sp_end h_tail)⟩⟩)
+@@ -39275 +39311 @@
+-             (fun e comments z tail => ⟨((fun sp_final h_ssl =>
++             (R2MandatoryContext.pair_completed (fun e comments z tail => ⟨((fun sp_final h_ssl =>
+@@ -39280,0 +39317,4 @@
++(by
++      intro e comments z tail
++      exact R2MandatoryContext.context_content h_preprocess h_dispatch
++        (h_wholeSequenceContext e (SBlockIndented.node n .blockIn sp_scan e (h_nodeAt e comments)) z tail)))
+@@ -39361 +39401 @@
+-             (fun e comments z tail => ⟨((fun sp_final h_ssl =>
++             (R2MandatoryContext.pair_completed (fun e comments z tail => ⟨((fun sp_final h_ssl =>
+@@ -39370,0 +39411,6 @@
++(by
++      intro e comments z tail
++      exact R2MandatoryContext.context_content h_preprocess h_dispatch
++        (h_wholeSequenceContext e
++          (SBlockIndented.node n .blockIn sp_scan e
++            (SBlockNode.flowInBlock (n+1) .blockIn sp_scan sp_prep sp_gramf e h_sep_all h_node_f comments)) z tail)))
+@@ -41484 +41530 @@
+-                       exact (route e' (by simpa only [coupling] using node') z' tail').2
++                       exact (route e' (by simpa only [coupling] using node') z' tail').2.1
+@@ -41487 +41533,2 @@
+-                         e (by simpa only [coupling] using node) z tail⟩)
++                         e (by simpa only [coupling] using node) z tail,
++                       R2MandatoryContext.context_content h_preprocess h_dispatch (route e node z tail).2.2⟩)
+@@ -41644 +41691 @@
+-                       exact (route e' (by simpa only [coupling] using node') z' tail').2
++                       exact (route e' (by simpa only [coupling] using node') z' tail').2.1
+@@ -41647 +41694,2 @@
+-                         e (by simpa only [coupling] using node) z tail⟩)
++                         e (by simpa only [coupling] using node) z tail,
++                       R2MandatoryContext.context_content h_preprocess h_dispatch (route e node z tail).2.2⟩)
+@@ -42066 +42114 @@
+-                  SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end) ∨ PackAlt sc := by
++                  SLYamlStream sp_start sp_end ∧ (EntryValues sc (SLYamlStream sp_start) sp_end ∧ R2JointFrames.Context sc (SLYamlStream sp_start) sp_end)) ∨ PackAlt sc := by
+@@ -42241,2 +42289,3 @@
+-                           (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
+-                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2) h_nodeAtG (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
++                           (R2MandatoryContext.pair_completed (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
++                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2.1) h_nodeAtG (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
++(by intro e comments z tail; exact R2MandatoryContext.context_content h_preprocess h_dispatch (routeE e (h_nodeAtG e comments) z tail).2.2))
+@@ -42273 +42322 @@
+-                                  AncestorValue.of_entries (routeE sp_m (h_nodeAtG sp_m h_ssl) sp_e h_tail).2
++                                  AncestorValue.of_entries (routeE sp_m (h_nodeAtG sp_m h_ssl) sp_e h_tail).2.1
+@@ -42370,2 +42419,3 @@
+-                           (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
+-                             routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2) h_nodeAt (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
++                           (R2MandatoryContext.pair_completed (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
++                             routeE sp_mid (h_nodeAt sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2.1) h_nodeAt (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
++(by intro e comments z tail; exact R2MandatoryContext.context_content h_preprocess h_dispatch (routeE e (h_nodeAt e comments) z tail).2.2))
+@@ -42404 +42454 @@
+-                                  AncestorValue.of_entries (routeE sp_m (h_nodeAt sp_m h_ssl) sp_e h_tail).2
++                                  AncestorValue.of_entries (routeE sp_m (h_nodeAt sp_m h_ssl) sp_e h_tail).2.1
+@@ -42500,2 +42550,3 @@
+-                           (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
+-                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2) h_nodeAtG (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
++                           (R2MandatoryContext.pair_completed (fun e comments z tail => ⟨(((fun sp_mid h_ssl sp_end h_tail =>
++                             routeE sp_mid (h_nodeAtG sp_mid h_ssl) sp_end h_tail)) e comments z tail).1, (NodeSequenceValues.complete (fun e node z tail => (routeE e node z tail).2.1) h_nodeAtG (fun x hx => markedCols_mem_of_step_content h_preprocess h_dispatch hx)) e comments z tail⟩)
++(by intro e comments z tail; exact R2MandatoryContext.context_content h_preprocess h_dispatch (routeE e (h_nodeAtG e comments) z tail).2.2))
+@@ -42532 +42583 @@
+-                                  AncestorValue.of_entries (routeE sp_m (h_nodeAtG sp_m h_ssl) sp_e h_tail).2
++                                  AncestorValue.of_entries (routeE sp_m (h_nodeAtG sp_m h_ssl) sp_e h_tail).2.1
+@@ -44765,0 +44817,55 @@
++
++run_cmd do
++  let env := (← Lean.getEnv).setExporting false
++  let completed := `L4YAML.Proofs.StreamAccum.PendingNode.pendingBlockContent
++  let props := `L4YAML.Proofs.StreamAccum.PendingNode.pendingProps
++  let producers := #[
++    `L4YAML.Proofs.StreamAccum.accum_flow_open_depth0,
++    `L4YAML.Proofs.StreamAccum.accum_step_flow,
++    `L4YAML.Proofs.StreamAccum.block_dispatch_deferred,
++    `L4YAML.Proofs.StreamAccum.content_dispatch_routed,
++    `L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented,
++    `L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented,
++    `L4YAML.Proofs.StreamAccum.accum_content_pending]
++  let mut completedCount := 0
++  let mut propsContextWrites := 0
++  for (ctor,field) in #[(completed,`h_closable_entry),(props,`h_routeE)] do
++    let some ci := env.find? ctor | throwError "missing actual constructor {ctor}"
++    let some index := R2MandatoryProductionAudit.fieldIndex field ci.type 0
++      | throwError "missing actual field {field}"
++    let mut cursor := ci.type
++    let mut whole := false
++    while let .forallE name domain body _ := cursor do
++      if name == field then whole := domain.getUsedConstants.contains `R2JointFrames.Context
++      cursor := body
++    unless whole do throwError "field lost whole context {field}"
++    for producer in producers do
++      let some info := env.find? producer | throwError "missing producer {producer}"
++      let some body := info.value? (allowOpaque := true) | throwError "missing actual body {producer}"
++      let terms := R2MandatoryProductionAudit.arguments ctor (R2MandatoryProductionAudit.arity ci.type) index body
++      let mut enriched := 0
++      for term in terms do
++        unless ← R2MandatoryProductionAudit.clean term do throwError "sorry-dependent actual field {producer}/{field}"
++        if term.getUsedConstants.contains `R2MandatoryContext.context_content then enriched := enriched+1
++      if field == `h_closable_entry then
++        unless enriched == terms.size do throwError "completed field bypassed actual scanner transport"
++        completedCount := completedCount + terms.size
++      else propsContextWrites := propsContextWrites + enriched
++      if !terms.isEmpty then
++        Lean.logInfo s!"COMPLETION-FIELD {producer} {field} terms={terms.size} context_transports={enriched} sorry_terms=0"
++  unless completedCount > 0 && propsContextWrites > 0 do throwError "missing actual context writes"
++  let some sibling := env.find? `L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent
++    | throwError "completed sibling reader absent"
++  let some siblingBody := sibling.value? (allowOpaque := true) | throwError "reader body absent"
++  unless siblingBody.getUsedConstants.contains `R2MandatoryContext.sequence_step do
++    throwError "completed sibling did not spend actual scanner adapter"
++  let pureAxioms ← Lean.collectAxioms `R2MandatoryContext.context_content
++  unless pureAxioms.size == 3 && pureAxioms.all (#[`propext,`Classical.choice,`Quot.sound].contains ·) do
++    throwError "context transport axiom boundary {pureAxioms}"
++  for name in [
++      `L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented,
++      `L4YAML.Proofs.StreamAccum.accum_content_pending] do
++    let axs ← Lean.collectAxioms name
++    if axs.contains `sorryAx then throwError "actual completion producer contains sorryAx {name}"
++    Lean.logInfo s!"COMPLETION-PRODUCER {name} axioms={repr axs}"
++  Lean.logInfo s!"COMPLETION-CONTEXT-AUDIT completed_terms={completedCount} property_context_writes={propsContextWrites} sorry_terms=0 actual_sibling_reader=connected critical_retirements=0"
