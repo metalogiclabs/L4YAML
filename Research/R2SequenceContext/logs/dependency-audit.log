@@ -1,0 +1,2 @@
+SEQUENCE-PROOF-AUDIT R2ConcreteSequences.SequenceQuestion.actual_sequence_question_consumption: constants=6223 required=6 readers=2 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+SEQUENCE-PROOF-AUDIT R2ConcreteSequences.Sibling.actual_sibling_then_ancestor: constants=6193 required=6 readers=2 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]

@@ -1,0 +1,159 @@
+{
+  "state": "WARRANTED_BOUNDED_SEQUENCE_CONTEXT; UNKNOWN_FULL_MIGRATION",
+  "exit": 1,
+  "source_sha256": "02fd3926d541cf5d70c64798ce1bffbb3ea7b226aafa3d2c22539ffd002e9ca1",
+  "parent_diagnostic_source_sha256": "819993c47d13b998e91e6c1c757499d83c63c69ff5a951cbced23dcfabf1e831",
+  "log_sha256": "dd5889c6e74eb8f010753fbee47c43b1142225432957b81d1ecc3af5c93537ac",
+  "labelled_demands": 23,
+  "additional_type_errors": 0,
+  "retained_continuation_demands": 13,
+  "remaining_parent_constructor_demands": 8,
+  "new_sequence_family_demands": 2,
+  "counts_are_changed_contract_not_debt_score": true,
+  "removed_demand": "R2_SLOT_PENDING_BLOCK_SUPPLIER",
+  "new_demands": [
+    "R2_SEQUENCE_LANDED_FAMILY",
+    "R2_SEQUENCE_COMPLETED_FAMILY"
+  ],
+  "stored_field": "PendingNode.pendingBlock.h_close_entry",
+  "actual_consumer": "accum_block_on_pendingBlock",
+  "new_external_consumer_context_premises": 0,
+  "actual_body_helper_readers": [
+    "SequenceValues.slot",
+    "SequenceValues.sibling",
+    "SequenceValues.nested",
+    "SequenceValues.compact"
+  ],
+  "actual_constructor_sites": 7,
+  "family_construction_sites": 5,
+  "open_nonempty_family_sites": 2,
+  "old_pair_demand_refined_to_unmarked_before_case": true,
+  "compact_raw_axioms_byte_identical": true,
+  "compact_raw_axioms_count": 7,
+  "compact_raw_axioms_sha256": "aa7c1dbfb75ca64c008974e967eb5baa72230b99356e770f929882dc526f10bb",
+  "value_completion_raw_axioms_byte_identical": true,
+  "value_completion_raw_axioms_count": 48,
+  "value_completion_raw_axioms_sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a",
+  "pending_block_consumer_still_has_retained_labelled_failure": true,
+  "whole_variant_accepted": false,
+  "critical_positions_retired": 0,
+  "critical_roster_remeasured_on_failed_variant": false,
+  "enclosing_sequence_tail_transport_through_h_seqF_proved": false,
+  "errors": [
+    {
+      "line": 20775,
+      "column": 617,
+      "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+    },
+    {
+      "line": 21008,
+      "column": 616,
+      "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+    },
+    {
+      "line": 24981,
+      "column": 33,
+      "label": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+    },
+    {
+      "line": 25261,
+      "column": 19,
+      "label": "R2_NODE_QUESTION_ANCESTORS"
+    },
+    {
+      "line": 25558,
+      "column": 19,
+      "label": "R2_SLOT_EXPLICIT_COLON_DOMAIN"
+    },
+    {
+      "line": 25594,
+      "column": 33,
+      "label": "R2_NODE_EXPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 26452,
+      "column": 35,
+      "label": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+    },
+    {
+      "line": 26453,
+      "column": 33,
+      "label": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 26691,
+      "column": 35,
+      "label": "R2_NODE_PROPS_COLON_NO_TAIL"
+    },
+    {
+      "line": 26692,
+      "column": 33,
+      "label": "R2_NODE_PROPS_COLON_ANCESTORS"
+    },
+    {
+      "line": 28898,
+      "column": 32,
+      "label": "R2_SEQUENCE_LANDED_FAMILY"
+    },
+    {
+      "line": 30147,
+      "column": 32,
+      "label": "R2_SEQUENCE_COMPLETED_FAMILY"
+    },
+    {
+      "line": 30425,
+      "column": 80,
+      "label": "R2_OTHER_BLOCK_CONTENT_PAIR"
+    },
+    {
+      "line": 31246,
+      "column": 29,
+      "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+    },
+    {
+      "line": 31820,
+      "column": 86,
+      "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+    },
+    {
+      "line": 31852,
+      "column": 84,
+      "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+    },
+    {
+      "line": 31930,
+      "column": 77,
+      "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+    },
+    {
+      "line": 32023,
+      "column": 37,
+      "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+    },
+    {
+      "line": 40920,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+    },
+    {
+      "line": 41005,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+    },
+    {
+      "line": 41291,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+    },
+    {
+      "line": 41419,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+    },
+    {
+      "line": 41539,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+    }
+  ]
+}

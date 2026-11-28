@@ -1,0 +1,4 @@
+'R2ConcreteSequences.SequenceQuestion.actual_sequence_question_consumption' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'R2ConcreteSequences.Sibling.actual_sibling_then_ancestor' depends on axioms: [propext, Classical.choice, Quot.sound]

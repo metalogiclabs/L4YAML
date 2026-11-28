@@ -1,0 +1,136 @@
+{
+  "parent_commit": "801aa32c222fa8590c91dff70950027232e19ace",
+  "scope": "Research/R2SequenceContext only; full failed invariant retained",
+  "files": [
+    {
+      "path": "Research/R2SequenceContext/BaselineAudit.lean",
+      "bytes": 2242,
+      "sha256": "f0aa8e04494d7a6bc874064f4ee54d64002062805554ba086f4a6a1c376a2b6b"
+    },
+    {
+      "path": "Research/R2SequenceContext/ConcreteContexts.lean",
+      "bytes": 7539,
+      "sha256": "ed5864388484ad41ae80b505ba5d1ffc0a1fc64cd5968dcde723b646c43f9b44"
+    },
+    {
+      "path": "Research/R2SequenceContext/Controls.lean",
+      "bytes": 2435,
+      "sha256": "5cc2fb976c29f85ae5b6611d4081609e27ec63d8f67a68481f90e18a68bba4d8"
+    },
+    {
+      "path": "Research/R2SequenceContext/DependencyAudit.lean",
+      "bytes": 3033,
+      "sha256": "7c26851d3973111f47d82b2444a905d42cc8d8bc85eb1a7a78cda96ca5b27aae"
+    },
+    {
+      "path": "Research/R2SequenceContext/Predictions.md",
+      "bytes": 2289,
+      "sha256": "7cd893ce22710a9f4a6a096ca29076012beab2e775aa63db62f0d85b872ff0ac"
+    },
+    {
+      "path": "Research/R2SequenceContext/REPORT.md",
+      "bytes": 9285,
+      "sha256": "b5fdcf3a4f6c697e049988d589758162f3ae959c5454fee9d16ae4775ba22573"
+    },
+    {
+      "path": "Research/R2SequenceContext/SequenceValues.lean",
+      "bytes": 3734,
+      "sha256": "5e4def5ee419195d93bc6089dc2436d8b8bfdd0311bc369f6018e5ea13d8af49"
+    },
+    {
+      "path": "Research/R2SequenceContext/constructor-inventory.json",
+      "bytes": 3906,
+      "sha256": "7ff23a617f5537e2bf6f5d07c582b35750874ae5a0a9d2a9118f41bbdbefd23d"
+    },
+    {
+      "path": "Research/R2SequenceContext/lineage/forward-declaration-from-final.patch.xz",
+      "bytes": 828,
+      "sha256": "811c20b86754082a681a9b3e3c770738a4807a60f8d79a1dd7a6383664867ab7"
+    },
+    {
+      "path": "Research/R2SequenceContext/lineage/scope-failure-from-final.patch.xz",
+      "bytes": 1296,
+      "sha256": "285ba998cfc783f73e10b93e08848a58a80be301073f867faa8c11f603d345f2"
+    },
+    {
+      "path": "Research/R2SequenceContext/lineage/sequence-baseline-development.lean.txt",
+      "bytes": 1732,
+      "sha256": "ec76b3a15a4222aae1ab1e422c54367d2f2279e6a27bdece9542a0f20d7b90dc"
+    },
+    {
+      "path": "Research/R2SequenceContext/lineage/sequence-concrete-development.lean.txt",
+      "bytes": 7522,
+      "sha256": "130fd7c93bee798dbdc4b7fc3a062700749829cadfabe7ed08f22ffeb055178f"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/baseline-audit.log",
+      "bytes": 15316,
+      "sha256": "55b2f4f34eb71b47f25b9eff3beab14a26f4e6958bb51bc95a35660268f4cda3"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/compact-raw-axioms.log",
+      "bytes": 1208,
+      "sha256": "aa7c1dbfb75ca64c008974e967eb5baa72230b99356e770f929882dc526f10bb"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/concrete-contexts.log",
+      "bytes": 255,
+      "sha256": "4978206ef7d202e9db0c5f6f720faea29a92f7ca667f24b81ff06c4a3a098622"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/dependency-audit.log",
+      "bytes": 367,
+      "sha256": "3e7e54a6d7897077f6be46dcab5290270aaac7fd820e2e12ca6e9a922dc9df07"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/development-forward-declaration.log.xz",
+      "bytes": 12472,
+      "sha256": "49c2ddcedf9d97d7a052c1fe7456505a5ed109c2a26949ecf935e433cd341198"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/development-scope.log.xz",
+      "bytes": 20360,
+      "sha256": "e448d3723d29e9742d0de786c2bc236cd0975c25e1cd78ac72a83c762e148cda"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/development-standalone.log.xz",
+      "bytes": 480,
+      "sha256": "312dd4a5e2d9c9d270a83448e1da275a1699f087e6ecfd342d3ebcc3d2b1b0af"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/helpers.log",
+      "bytes": 468,
+      "sha256": "c05c3d9797a9ab20e3258b02b738cbf3fb72e4402b567b782a77757986b13648"
+    },
+    {
+      "path": "Research/R2SequenceContext/logs/sequence-final.log.xz",
+      "bytes": 12428,
+      "sha256": "ae76ef9f0abd0ef293d0587e3756aaa6c5c2bcfff23c6cc40f6cb67e6be488e7"
+    },
+    {
+      "path": "Research/R2SequenceContext/reconstruction.json",
+      "bytes": 14080,
+      "sha256": "541e26d13c7741bba9fb40d5dc726841cc5314c264437ace900107edae72732b"
+    },
+    {
+      "path": "Research/R2SequenceContext/sequence-context.patch",
+      "bytes": 18522,
+      "sha256": "368e3bdcd3d37d721adf539baa982bb44ce3c5f8a64c9eb0ae6e40a422a8b0b2"
+    },
+    {
+      "path": "Research/R2SequenceContext/sequence-result.json",
+      "bytes": 4215,
+      "sha256": "27206c6fb4d65cf574d28233df1489a63f1bb841f47547f64ef4f75b9b6c320d"
+    },
+    {
+      "path": "Research/R2SequenceContext/verification.json",
+      "bytes": 2919,
+      "sha256": "031e8b33a6e506e9c30a845d13ff734e7a10446028397e8f734bf7b75ee38db0"
+    }
+  ]
+}

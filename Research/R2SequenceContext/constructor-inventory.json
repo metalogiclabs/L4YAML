@@ -1,0 +1,71 @@
+{
+  "actual_constructions": 7,
+  "baseline_kernel_inventory": "logs/baseline-audit.log",
+  "prior_prediction": 8,
+  "prediction_state": "REFUTED: one pending-entry sibling constructor, not two",
+  "sites": [
+    {
+      "index": 0,
+      "producer": "accum_block_on_noPending",
+      "class": "root",
+      "source_line": 27278,
+      "stored_field": "h_close_entry",
+      "family_supplier": "constructed from existing root/slot/sequence evidence",
+      "prior_field_expression": "h_rootTail"
+    },
+    {
+      "index": 1,
+      "producer": "accum_block_on_closeThenBlock",
+      "class": "map-slot compact fill",
+      "source_line": 27909,
+      "stored_field": "h_close_entry",
+      "family_supplier": "constructed from existing root/slot/sequence evidence",
+      "prior_field_expression": "(fun sp_final (h_bi : SBlockIndented (nv + 1 + m) .blockIn sp_scan' sp_final) =>\n                   fun sp_end h_tail =>\n                     hvs sp_end\n                       (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_end h_ind\n                         (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_final sp_end\n                           h_dash2 h_gnot2 h_bi h_tail)))"
+    },
+    {
+      "index": 2,
+      "producer": "accum_block_on_closeThenBlock",
+      "class": "landed fill",
+      "source_line": 28512,
+      "stored_field": "h_close_entry",
+      "family_supplier": "explicit missing nonempty-domain family",
+      "prior_field_expression": "h_entryTail"
+    },
+    {
+      "index": 3,
+      "producer": "accum_block_on_pendingBlockContent",
+      "class": "completed-content sibling",
+      "source_line": 29721,
+      "stored_field": "h_close_entry",
+      "family_supplier": "explicit missing nonempty-domain family",
+      "prior_field_expression": "(fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>\n                   fun sp_end h_tail =>\n                     h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end\n                       h_ind h_dash2 h_gnot2 h_indented h_tail))"
+    },
+    {
+      "index": 4,
+      "producer": "accum_block_on_pendingBlock",
+      "class": "pending-entry sibling",
+      "source_line": 30328,
+      "stored_field": "h_close_entry",
+      "family_supplier": "constructed from existing root/slot/sequence evidence",
+      "prior_field_expression": "(fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>\n                 fun sp_end h_tail =>\n                   h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end\n                     h_ind h_dash2 h_gnot2 h_indented h_tail))"
+    },
+    {
+      "index": 5,
+      "producer": "accum_block_on_pendingBlock",
+      "class": "nested sequence",
+      "source_line": 30453,
+      "stored_field": "h_close_entry",
+      "family_supplier": "constructed from existing root/slot/sequence evidence",
+      "prior_field_expression": "(fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>\n                   fun sp_end h_tail =>\n                     h_close_inner sp_end\n                       (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2\n                         h_indented h_tail))"
+    },
+    {
+      "index": 6,
+      "producer": "accum_block_on_pendingBlock",
+      "class": "compact sequence",
+      "source_line": 30990,
+      "stored_field": "h_close_entry",
+      "family_supplier": "constructed from existing root/slot/sequence evidence",
+      "prior_field_expression": "(fun sp_final (h_bi : SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_final) =>\n                 fun sp_end h_tail =>\n                   h_close_old sp_end\n                     (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_end h_ind\n                       (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_final sp_end\n                         h_dash2 h_gnot2 h_bi h_tail)))"
+    }
+  ]
+}

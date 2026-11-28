@@ -1,0 +1,284 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1433,6 +1433,59 @@
+       (fun hm => Nat.le_of_lt (oldBound x hm))
+ 
+ end L4YAML.Proofs.R2CompactSlot
++
++open L4YAML.Proofs.R2CompactSlot
++
++namespace L4YAML.Proofs.R2SequenceContext
++
++def SequenceValues (sc : ScannerState) (start : SurfPos) (n : Nat) (slot : SurfPos) : Prop :=
++  ∀ e, SBlockIndented n .blockIn slot e →
++    ∀ z, SCompactSeqTail n e z → EntryValues sc (SLYamlStream start) z
++
++lemma EntryValues.restrict_state {before after : ScannerState} {P : SurfPos → Prop}
++    {e : SurfPos} (h : EntryValues before P e)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    EntryValues after P e :=
++  ValuesBelow.restrict (EntryValues.below h (columnCeiling after)) (fun x _ => back x)
++
++lemma SequenceValues.slot {sc : ScannerState} {start slot : SurfPos} {n : Nat}
++    (payload : SequenceValues sc start n slot) : SlotValues sc start n .blockIn slot :=
++  fun e node => payload e node e (SCompactSeqTail.nil n e)
++
++lemma SlotValues.compact_sequence {before after : ScannerState}
++    {start slot dash next : SurfPos} {n m : Nat} {ctx : YamlContext}
++    (payload : SlotValues before start n ctx slot)
++    (indent : SIndent m slot dash) (literal : GLit '-' dash next) (notNs : GNot SNsChar next)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    SequenceValues after start (n + 1 + m) next := by
++  intro e node z tail
++  exact EntryValues.restrict_state (payload z
++    (SBlockIndented.compactSeq n ctx m slot dash z indent
++      (SCompactSeq.mk (n + 1 + m) dash next e z literal notNs node tail))) back
++
++lemma SequenceValues.sibling {before after : ScannerState}
++    {start slot land dash next : SurfPos} {n : Nat}
++    (payload : SequenceValues before start n slot)
++    (completed : SBlockIndented n .blockIn slot land)
++    (indent : SIndent n land dash) (literal : GLit '-' dash next) (notNs : GNot SNsChar next)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    SequenceValues after start n next := by
++  intro e node z tail
++  exact EntryValues.restrict_state (payload land completed z
++    (SCompactSeqTail.cons n land dash next e z indent literal notNs node tail)) back
++
++lemma SequenceValues.compact {before after : ScannerState}
++    {start slot dash next : SurfPos} {n m : Nat}
++    (payload : SequenceValues before start n slot)
++    (indent : SIndent m slot dash) (literal : GLit '-' dash next) (notNs : GNot SNsChar next)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    SequenceValues after start (n + 1 + m) next :=
++  SlotValues.compact_sequence (SequenceValues.slot payload) indent literal notNs back
++
++end L4YAML.Proofs.R2SequenceContext
++
++open L4YAML.Proofs.R2SequenceContext
++
+ 
+ open L4YAML.Proofs.R2CompactSlot
+ 
+@@ -3381,7 +3434,8 @@
+         SLYamlStream sp_start sp_mid)
+       (h_close_entry : ∀ sp_mid,
+         SBlockIndented n .blockIn sp_scan sp_mid →
+-        ∀ sp_end, SCompactSeqTail n sp_mid sp_end → SLYamlStream sp_start sp_end)
++        ∀ sp_end, SCompactSeqTail n sp_mid sp_end →
++          SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
+       -- Item 179: the floor is measured at the SHIFTED index — the node this
+       -- entry awaits reads at `n + 1` (`SBlockIndented.node`'s crossing), and
+       -- `[183]`'s push put the stack top AT the indicator's column, so the
+@@ -27449,6 +27503,20 @@
+ -- Block dispatch with noPending: fresh block entry.
+ -- Handles '-' at the LANDING with full closures; the remaining branches
+ -- delegate to block_dispatch_deferred.
++lemma _root_.L4YAML.Proofs.R2SequenceContext.SequenceValues.nested {before after : ScannerState}
++    {start slot land dash next : SurfPos} {n k : Nat}
++    (payload : SequenceValues before start n slot) (lt : n < k)
++    (comments : SSLComments slot land) (indent : SIndent k land dash)
++    (literal : GLit '-' dash next) (notNs : GNot SNsChar next)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    SequenceValues after start k next := by
++  intro e node z tail
++  exact EntryValues.restrict_state (payload z
++    (SBlockIndented.node n .blockIn slot z
++      (nestedBlockSeq lt comments (SBlockSeqEntries_of_compactTail indent literal notNs node tail)))
++    z (SCompactSeqTail.nil n z)) back
++
++
+ lemma accum_block_on_noPending
+     (sc : ScannerState) (sp_start sp_block : SurfPos)
+     (s_prep s' : ScannerState) (c : Char) (sp_prep sp_scan' : SurfPos)
+@@ -27600,7 +27668,10 @@
+                  (GOpt.some sp_block sp_final
+                    (SLAnyDocument.bare sp_block sp_final h_bare))
+                  (GStar.nil _))
+-             h_rootTail
++             (fun e node z tail => ⟨h_rootTail e node z tail,
++               EntryValues.of_no_marks
++                 (List.eq_nil_iff_forall_not_mem.mpr (fun x hx =>
++                   (List.not_mem_nil (h_out.mem hx)))) (h_rootTail e node z tail)⟩)
+              (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+              (park_col_of_indicator hcol_mid h_ind h_dash)
+@@ -28189,12 +28260,12 @@
+                      (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_final h_ind
+                        (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_final sp_final
+                          h_dash2 h_gnot2 h_bi (SCompactSeqTail.nil (nv + 1 + m) sp_final))))
+-                 (fun sp_final (h_bi : SBlockIndented (nv + 1 + m) .blockIn sp_scan' sp_final) =>
++                 (fun e node z tail => ⟨((fun sp_final (h_bi : SBlockIndented (nv + 1 + m) .blockIn sp_scan' sp_final) =>
+                    fun sp_end h_tail =>
+                      hvs sp_end
+                        (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_end h_ind
+                          (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_final sp_end
+-                           h_dash2 h_gnot2 h_bi h_tail)))
++                           h_dash2 h_gnot2 h_bi h_tail)))) e node z tail, (SlotValues.compact_sequence h_slotValues h_ind h_dash2 h_gnot2 (fun x hx => (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem hx)) e node z tail⟩)
+                  (indicator_floor_dash_at_col (by have := SIndent_col h_ind; omega)
+                     hcorr_prep h_preprocess h_dispatch)
+                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+@@ -28821,7 +28892,10 @@
+              -- place that choice is made.
+              (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                h_entryTail sp_final h_indented sp_final (SCompactSeqTail.nil k sp_final))
+-             h_entryTail
++             (fun e node z tail => ⟨(h_entryTail) e node z tail, by
++                 by_cases empty : RegisterWitness.markedCols s' = []
++                 · exact EntryValues.of_no_marks empty ((h_entryTail) e node z tail)
++                 · trace_state; fail "R2_SEQUENCE_LANDED_FAMILY"⟩)
+              (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+              (park_col_of_indicator hcol_mid h_ind h_dash)
+@@ -30061,10 +30135,16 @@
+                  (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                    h_cont sp_final (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_final
+                      h_ind h_dash2 h_gnot2 h_indented (SCompactSeqTail.nil k sp_final)))
+-                 (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
++                 (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                    fun sp_end h_tail =>
+                      h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
+-                       h_ind h_dash2 h_gnot2 h_indented h_tail))
++                       h_ind h_dash2 h_gnot2 h_indented h_tail))) e node z tail, by
++                 by_cases empty : RegisterWitness.markedCols s' = []
++                 · exact EntryValues.of_no_marks empty (((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
++                   fun sp_end h_tail =>
++                     h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
++                       h_ind h_dash2 h_gnot2 h_indented h_tail))) e node z tail)
++                 · trace_state; fail "R2_SEQUENCE_COMPLETED_FAMILY"⟩)
+                  (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                  (park_col_of_indicator hcol_mid h_ind h_dash2)
+@@ -30464,7 +30544,8 @@
+       underIndentedFlowValuePos? sc = none →
+       ∀ sp_mid, SSLComments sp_scan sp_mid → SLYamlStream sp_start sp_mid)
+     (h_close_entry_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp →
+-      ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end → SLYamlStream sp_start sp_end)
++      ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end →
++        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
+     -- Item 92: the park's value-line pack (`pendingBlock.h_kslot`) —
+     -- `h_close_entry_old`'s twin.  The landed `:` closes the awaited entry
+     -- empty and spends it (`? -⏎: - w`); the sibling, nested and inline `-`
+@@ -30576,6 +30657,11 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  have h_sequenceContext : SequenceValues sc sp_start n sp_scan :=
++    fun e node z tail => (h_close_entry_old e node z tail).2
++  have h_close_entry_old : ∀ (e : SurfPos), SBlockIndented n .blockIn sp_scan e →
++      ∀ z, SCompactSeqTail n e z → SLYamlStream sp_start z :=
++    fun e node z tail => (h_close_entry_old e node z tail).1
+   -- Item 19: gate on the landing, not on the park — the entry a bare `-`
+   -- opened is empty either way (`-⏎- b` as much as a column-0 park), and the
+   -- snoc route is the same.
+@@ -30645,10 +30731,10 @@
+                (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                  h_cont sp_final (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_final
+                    h_ind h_dash2 h_gnot2 h_indented (SCompactSeqTail.nil k sp_final)))
+-               (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
++               (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                  fun sp_end h_tail =>
+                    h_cont sp_end (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_final sp_end
+-                     h_ind h_dash2 h_gnot2 h_indented h_tail))
++                     h_ind h_dash2 h_gnot2 h_indented h_tail))) e node z tail, (SequenceValues.sibling h_sequenceContext h_node_old h_ind h_dash2 h_gnot2 (fun x hx => (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem hx)) e node z tail⟩)
+                (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                (park_col_of_indicator hcol_mid h_ind h_dash2)
+@@ -30755,11 +30841,11 @@
+                    h_close_inner sp_final
+                      (SBlockSeqEntries.single k sp_mid _ sp_scan' sp_scan' sp_final
+                        h_ind h_dash2 h_gnot2 h_indented))
+-                 (fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
++                 (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+                    fun sp_end h_tail =>
+                      h_close_inner sp_end
+                        (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2
+-                         h_indented h_tail))
++                         h_indented h_tail))) e node z tail, (SequenceValues.nested h_sequenceContext hlt h_ssl h_ind h_dash2 h_gnot2 (fun x hx => (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem hx)) e node z tail⟩)
+                  (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                  (park_col_of_indicator hcol_mid h_ind h_dash2)
+@@ -31148,7 +31234,16 @@
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+-            (h_pairAt := by intro h_noOwn; first | assumption | (trace_state; fail "R2_OTHER_PENDING_BLOCK_PAIR"))
++            (h_pairAt := by
++              intro h_noOwn a ha hlt mid i colon comments indent literal value content
++              by_cases marked : k ∈ RegisterWitness.markedCols sc
++              · have family := h_sequenceContext mid
++                  (SBlockIndented.empty n .blockIn sp_scan mid comments)
++                  mid (SCompactSeqTail.nil n mid)
++                exact EntryValues.pair family marked
++                  ((h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem ha)
++                  hlt indent literal content
++              · trace_state; fail "R2_OTHER_PENDING_BLOCK_PAIR")
+             sp_start sp_scan sp_mid _ k s_prep s'
+             sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+             (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+@@ -31285,12 +31380,12 @@
+                    (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_final h_ind
+                      (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_final sp_final
+                        h_dash2 h_gnot2 h_bi (SCompactSeqTail.nil (n + 1 + m) sp_final))))
+-               (fun sp_final (h_bi : SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_final) =>
++               (fun e node z tail => ⟨((fun sp_final (h_bi : SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_final) =>
+                  fun sp_end h_tail =>
+                    h_close_old sp_end
+                      (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_end h_ind
+                        (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_final sp_end
+-                         h_dash2 h_gnot2 h_bi h_tail)))
++                         h_dash2 h_gnot2 h_bi h_tail)))) e node z tail, (SequenceValues.compact h_sequenceContext h_ind h_dash2 h_gnot2 (fun x hx => (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem hx)) e node z tail⟩)
+                (indicator_floor_dash_at_col (by have := SIndent_col h_ind; omega)
+                   hcorr_prep h_preprocess h_dispatch)
+                (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+@@ -31442,7 +31537,7 @@
+              | Or.inl ⟨ns, hdom, up⟩ => Or.inl (RegisterWitness.MarkedColsIn.relay hdom fun nv hnv sp_m h_bi =>
+                  up nv hnv sp_m h_bi sp_m (SCompactSeqTail.nil n sp_m))
+              | Or.inr h => Or.inr h)
+-            h_mcstep (by intro hq; trace_state; fail "R2_SLOT_PENDING_BLOCK_SUPPLIER")
++            h_mcstep (fun _ => SequenceValues.slot h_sequenceContext)
+         -- Item 125: the compact `:`'s own stamp source, decided here; the
+         -- undecided shape stays the deferral, and the `?` never reads it.
+         refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
+@@ -41485,7 +41580,8 @@
+     -- been its cases since items 24/26, and the root entry is the `n = 0`
+     -- instance — faces included.
+     exact accum_content_on_pendingBlock_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+-      s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_kslot92
++      s_prep s' c sp_prep sp_scan' h_stream_block h_close_old
++      (fun e node z tail => (h_close_entry_old e node z tail).1) h_kslot92
+       h_closeF99 h_seqF167 h_floor_old h_park_top_old h_col_old h_sk_old
+       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
+       h_base h_mono
+@@ -43499,3 +43595,31 @@
+   let axioms ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.compact_open_map
+   if axioms.contains `sorryAx then throwError "compact producer contains sorryAx"
+   Lean.logInfo "WIDE-SLOT-AUDIT stored=h_vslot compact_reader=present map_slot_reader=present new_map_slot_premise=absent compact_sorryAx=absent"
++
++run_cmd do
++  let env ← Lean.getEnv
++  let some ctor := env.find? `L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock
++    | throwError "missing pending-block constructor"
++  let mut cursor := ctor.type
++  let mut stored := false
++  while let .forallE name domain body _ := cursor do
++    if name == `h_close_entry && domain.getUsedConstants.contains
++        `L4YAML.Proofs.R2ConsumptionClosure.EntryValues then stored := true
++    cursor := body
++  unless stored do throwError "sequence continuation was not stored in its actual field"
++  let some consumer := env.find? `L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock
++    | throwError "missing pending-block consumer"
++  let some body := consumer.value? (allowOpaque := true)
++    | throwError "pending-block consumer has no body"
++  for required in [`L4YAML.Proofs.R2SequenceContext.SequenceValues.slot,
++      `L4YAML.Proofs.R2SequenceContext.SequenceValues.sibling,
++      `L4YAML.Proofs.R2SequenceContext.SequenceValues.nested,
++      `L4YAML.Proofs.R2SequenceContext.SequenceValues.compact] do
++    unless body.getUsedConstants.contains required do
++      throwError "pending-block consumer did not spend {required}"
++  let mut parameterCursor := consumer.type
++  while let .forallE name _ tail _ := parameterCursor do
++    if name == `h_sequenceContext || name == `h_slotValues then
++      throwError "external context premise added to the consumer"
++    parameterCursor := tail
++  Lean.logInfo "SEQUENCE-CONTEXT-AUDIT stored=h_close_entry consumers=4/4 new_external_context=absent"

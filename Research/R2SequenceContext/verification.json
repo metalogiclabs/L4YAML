@@ -1,0 +1,70 @@
+{
+  "parent_commit": "801aa32c222fa8590c91dff70950027232e19ace",
+  "branch": "test/r2-sequence-context",
+  "toolchain": "Lean 4.36.0",
+  "toolchain_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "accepted_source_sha256": "f1eece1acca9f124666aa8fcc8fe5b591c316df35b292b32ed28af491a25772a",
+  "standalone_exit_codes": {
+    "Controls": 0,
+    "SequenceValues": 0,
+    "ConcreteContexts": 0,
+    "DependencyAudit": 0,
+    "BaselineAudit": 0
+  },
+  "dependency_audits": [
+    {
+      "root": "SequenceQuestion.actual_sequence_question_consumption",
+      "constants": 6223
+    },
+    {
+      "root": "Sibling.actual_sibling_then_ancestor",
+      "constants": 6193
+    }
+  ],
+  "standalone_allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "prediction_refutation": "8 construction sites predicted; accepted-environment recursive AST walk and direct source inventory show 7 (1+2+1+3)",
+  "development": [
+    "initial preparation-script syntax error occurred before compiler launch; corrected",
+    "early helper referred to a later private nestedBlockSeq declaration; source/log retained",
+    "closing/reopening the original namespace lost local private aliases; 100-error-limit failure retained; corrected with a root-qualified declaration inside the original scope",
+    "negative inventory first used immediate-child fold and reported zero; corrected to recursive AST traversal, checked 7 actual constructor occurrences",
+    "space-not-ns proof required unfolding the predicate for its decidable instance; corrected",
+    "root namespace syntax probe did not define the intended global name; declaration-level root qualification verified before use"
+  ],
+  "compressed_artifacts": [
+    {
+      "path": "logs/development-forward-declaration.log.xz",
+      "uncompressed_bytes": 486779,
+      "uncompressed_sha256": "ed9e4f790dcaea0ae1eeba75fbb3584b93718a9d841918e6825e4dd63e408434"
+    },
+    {
+      "path": "logs/development-scope.log.xz",
+      "uncompressed_bytes": 294742,
+      "uncompressed_sha256": "576211b5a600b04f4f8267a7763d8c1aab969647090b07189b3b09a9665e4f04"
+    },
+    {
+      "path": "logs/sequence-final.log.xz",
+      "uncompressed_bytes": 486662,
+      "uncompressed_sha256": "dd5889c6e74eb8f010753fbee47c43b1142225432957b81d1ecc3af5c93537ac"
+    },
+    {
+      "path": "logs/development-standalone.log.xz",
+      "uncompressed_bytes": 728,
+      "uncompressed_sha256": "747a8714311d1e93d424829ea438f9dca00b184979156c4eb98725f753ce8cae"
+    },
+    {
+      "path": "lineage/forward-declaration-from-final.patch.xz",
+      "uncompressed_bytes": 2228,
+      "uncompressed_sha256": "eb54f250d20a727dd8c8b19310cd07a19681d68a34c17f896d728e64ac4c3423"
+    },
+    {
+      "path": "lineage/scope-failure-from-final.patch.xz",
+      "uncompressed_bytes": 6603,
+      "uncompressed_sha256": "e20bae1a7ce1d9f1937c94acbe0e380f06b2cfb2e7d0eb95f17ed5351b8c4923"
+    }
+  ]
+}

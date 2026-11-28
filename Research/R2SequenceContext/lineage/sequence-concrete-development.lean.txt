@@ -1,0 +1,149 @@
+import Research.R2SequenceContext.Controls
+import Research.R2SequenceContext.SequenceValues
+
+set_option autoImplicit false
+set_option maxRecDepth 100000
+set_option maxHeartbeats 4000000
+open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
+open L4YAML.Proofs.StreamAccum L4YAML.Proofs.NodeProduction
+open L4YAML.Proofs.R2ConsumptionClosure L4YAML.Proofs.R2InvariantPayload
+open L4YAML.Proofs.R2CompactSlot L4YAML.Proofs.R2SequenceContext
+open L4YAML.CharPredicates R2ConcreteSuppliers R2CompactControls R2SequenceControls
+
+namespace R2ConcreteSequences
+
+lemma space_not_ns (rest : List Char) (col : Nat) : GNot SNsChar ⟨' ' :: rest, col⟩ := by
+  intro e h
+  cases h with
+  | mk _ _ _ hp => exact (by decide : ¬ isNsChar ' ') hp
+
+namespace SequenceQuestion
+
+def q0 : SurfPos := ⟨compactQuestion.toList, 0⟩
+def k0 : SurfPos := ⟨compactQuestion.toList.drop 1, 1⟩
+def dash : SurfPos := ⟨compactQuestion.toList.drop 2, 2⟩
+def slot : SurfPos := ⟨compactQuestion.toList.drop 3, 3⟩
+def q4 : SurfPos := ⟨compactQuestion.toList.drop 4, 4⟩
+def k4 : SurfPos := ⟨compactQuestion.toList.drop 5, 5⟩
+def endA : SurfPos := ⟨[' ', ' ', ' ', ' ', ':', ' ', 'b', '\n', ':', ' ', 'c', '\n'], 0⟩
+def colon4 : SurfPos := ⟨[':', ' ', 'b', '\n', ':', ' ', 'c', '\n'], 4⟩
+def value4 : SurfPos := ⟨[' ', 'b', '\n', ':', ' ', 'c', '\n'], 5⟩
+def endB : SurfPos := ⟨[':', ' ', 'c', '\n'], 0⟩
+def value0 : SurfPos := ⟨[' ', 'c', '\n'], 1⟩
+
+lemma rootMarks : RegisterWitness.markedCols (questionState compactQuestion 0) = [0] := by decide +kernel
+lemma deepMarks : RegisterWitness.markedCols (questionState compactQuestion 1) = [0,4] := by decide +kernel
+lemma consumedMarks : RegisterWitness.markedCols (afterFirstColon compactQuestion) = [0] := by decide +kernel
+example : (nthQuestion compactQuestion 1).isSome = true := by decide +kernel
+example : (questionState compactQuestion 1).offset = 5 ∧ (questionState compactQuestion 1).col = 5 := by decide +kernel
+
+lemma root_slot : SlotValues (questionState compactQuestion 0) q0 0 .blockOut k0 := by
+  apply SlotValues.of_question (GLit.mk _ 0 : GLit '?' q0 k0)
+  · intro v entry z tail
+    exact (nodocMapRouteF (k := 0) (by rfl) (GStar.nil q0) (SIndent.zero q0)
+      v entry z tail).close
+  · intro x hx
+    simpa [rootMarks] using hx
+
+lemma sequence_context : SequenceValues (dashState compactQuestion 0) q0 2 slot := by
+  apply SlotValues.compact_sequence root_slot
+    (SIndent.succ 0 _ 1 dash (SIndent.zero dash) : SIndent 1 k0 dash)
+    (GLit.mk _ 2 : GLit '-' dash slot) (space_not_ns _ _)
+  intro x hx
+  simpa [questionMarks, rootMarks] using hx
+
+-- This is the precise pending-block -> compact-question domain: the stored
+-- sequence family supplies the wide slot, then the actual compact constructor.
+lemma question_context :
+    SlotValues (questionState compactQuestion 1) q0 4 .blockOut k4 ∧
+      NodeValues (questionState compactQuestion 1) q0 4 k4 := by
+  apply SlotValues.compact_question (SequenceValues.slot sequence_context)
+    (SIndent.succ 0 _ 3 q4 (SIndent.zero q4) : SIndent 1 slot q4)
+    (GLit.mk _ 4 : GLit '?' q4 k4)
+  · intro x hx
+    simp only [deepMarks, questionMarks, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢
+    omega
+  · intro x hx
+    simp only [questionMarks, List.mem_singleton] at hx
+    omega
+
+lemma actual_sequence_question_consumption : SLYamlStream q0 ⟨[], 0⟩ := by
+  have key := question_context.1 endA (plainAKey 4 5 endA.chars)
+  have afterB : EntryValues (afterFirstColon compactQuestion) (SLYamlStream q0) endB :=
+    EntryValues.consume key (by simp [deepMarks])
+      (by intro x hx; simp only [consumedMarks, deepMarks, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢; omega)
+      (by intro x hx; simp only [consumedMarks, List.mem_singleton] at hx; omega)
+      (SIndent.succ 3 _ 0 _ (SIndent.succ 2 _ 1 _
+        (SIndent.succ 1 _ 2 _ (SIndent.succ 0 _ 3 _ (SIndent.zero colon4)))))
+      (GLit.mk _ 4) (SBlockIndented.node 4 .blockOut value4 endB
+        (SBlockNode_blockIn_to_blockOut
+          (letterNode 5 5 'b' endB.chars (by unfold isNsPlainSafe isNsChar; decide) (by decide))))
+  have outer := afterB.at (own := 0) (by simp [consumedMarks])
+    (marked_lt_ceiling (by simp [consumedMarks] : 0 ∈ RegisterWitness.markedCols (afterFirstColon compactQuestion)))
+  exact outer.2 endB value0 (SIndent.zero _) (GLit.mk _ 0) ⟨[],0⟩
+    (SBlockIndented.node 0 .blockOut value0 ⟨[],0⟩
+      (SBlockNode_blockIn_to_blockOut
+        (letterNode 1 1 'c' [] (by unfold isNsPlainSafe isNsChar; decide) (by decide))))
+    ⟨[],0⟩ (SCompactMapTail.nil _ _)
+
+end SequenceQuestion
+
+namespace Sibling
+
+def q0 : SurfPos := ⟨siblings.toList,0⟩
+def k0 : SurfPos := ⟨siblings.toList.drop 1,1⟩
+def dash : SurfPos := ⟨siblings.toList.drop 2,2⟩
+def slot : SurfPos := ⟨siblings.toList.drop 3,3⟩
+def endA : SurfPos := ⟨[' ',' ','-',' ','b','\n',':',' ','c','\n'],0⟩
+def nextDash : SurfPos := ⟨['-',' ','b','\n',':',' ','c','\n'],2⟩
+def nextSlot : SurfPos := ⟨[' ','b','\n',':',' ','c','\n'],3⟩
+def endB : SurfPos := ⟨[':',' ','c','\n'],0⟩
+def value0 : SurfPos := ⟨[' ','c','\n'],1⟩
+
+lemma rootMarks : RegisterWitness.markedCols (questionState siblings 0) = [0] := by decide +kernel
+lemma nextMarks : RegisterWitness.markedCols (dashState siblings 1) = [0] := by decide +kernel
+example : (nthDash siblings 1).isSome = true := by decide +kernel
+
+lemma initial_context : SequenceValues (dashState siblings 0) q0 2 slot := by
+  have root : SlotValues (questionState siblings 0) q0 0 .blockOut k0 := by
+    apply SlotValues.of_question (GLit.mk _ 0 : GLit '?' q0 k0)
+    · intro v entry z tail
+      exact (nodocMapRouteF (k := 0) (by rfl) (GStar.nil q0) (SIndent.zero q0)
+        v entry z tail).close
+    · intro x hx
+      simpa [rootMarks] using hx
+  apply SlotValues.compact_sequence root
+    (SIndent.succ 0 _ 1 dash (SIndent.zero dash) : SIndent 1 k0 dash)
+    (GLit.mk _ 2 : GLit '-' dash slot) (space_not_ns _ _)
+  intro x hx
+  simpa [siblingsMarks, rootMarks] using hx
+
+lemma actual_sibling_context : SequenceValues (dashState siblings 1) q0 2 nextSlot := by
+  apply SequenceValues.sibling initial_context
+    (SBlockIndented.node 2 .blockIn slot endA
+      (letterNode 3 3 'a' endA.chars (by unfold isNsPlainSafe isNsChar; decide) (by decide)))
+    (SIndent.succ 1 _ 0 _ (SIndent.succ 0 _ 1 _ (SIndent.zero nextDash)))
+    (GLit.mk _ 2 : GLit '-' nextDash nextSlot) (space_not_ns _ _)
+  intro x hx
+  simpa [nextMarks, siblingsMarks] using hx
+
+-- The sibling helper spends a real non-nil sequence tail before the ancestor.
+lemma actual_sibling_then_ancestor : SLYamlStream q0 ⟨[],0⟩ := by
+  have family := actual_sibling_context endB
+    (SBlockIndented.node 2 .blockIn nextSlot endB
+      (letterNode 3 3 'b' endB.chars (by unfold isNsPlainSafe isNsChar; decide) (by decide)))
+    endB (SCompactSeqTail.nil _ _)
+  have outer := family.at (own := 0) (by simp [nextMarks])
+    (marked_lt_ceiling (by simp [nextMarks] : 0 ∈ RegisterWitness.markedCols (dashState siblings 1)))
+  exact outer.2 endB value0 (SIndent.zero _) (GLit.mk _ 0) ⟨[],0⟩
+    (SBlockIndented.node 0 .blockOut value0 ⟨[],0⟩
+      (SBlockNode_blockIn_to_blockOut
+        (letterNode 1 1 'c' [] (by unfold isNsPlainSafe isNsChar; decide) (by decide))))
+    ⟨[],0⟩ (SCompactMapTail.nil _ _)
+
+end Sibling
+
+#print axioms SequenceQuestion.actual_sequence_question_consumption
+#print axioms Sibling.actual_sibling_then_ancestor
+
+end R2ConcreteSequences

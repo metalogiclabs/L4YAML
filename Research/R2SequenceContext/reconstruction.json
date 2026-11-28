@@ -1,0 +1,523 @@
+{
+  "exact": true,
+  "base_commit": "9f1f7bc6",
+  "steps": [
+    {
+      "patch": "Research/R2EntryPreservation/retention-original.patch",
+      "exit": 0,
+      "source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60"
+    },
+    {
+      "patch": "Research/R2EntryPreservation/retention-strict-delta.patch",
+      "exit": 0,
+      "source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa"
+    },
+    {
+      "patch": "Research/R2SurvivorDomain/retention-refinements.patch",
+      "exit": 0,
+      "source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500"
+    },
+    {
+      "patch": "Research/R2ConsumptionClosure/producer-domain.patch",
+      "exit": 0,
+      "source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943"
+    },
+    {
+      "patch": "Research/R2InvariantPayload/invariant-payload.patch",
+      "exit": 0,
+      "source_sha256": "34a785b2d813c429a948fd6cab467f10c92a63dbdb37a3e38d6fab07cb9d3345"
+    },
+    {
+      "patch": "Research/R2CompactSlot/compact-slot.patch",
+      "exit": 0,
+      "source_sha256": "819993c47d13b998e91e6c1c757499d83c63c69ff5a951cbced23dcfabf1e831"
+    },
+    {
+      "patch": "Research/R2SequenceContext/sequence-context.patch",
+      "exit": 0,
+      "source_sha256": "02fd3926d541cf5d70c64798ce1bffbb3ea7b226aafa3d2c22539ffd002e9ca1"
+    }
+  ],
+  "development_phases_verified": [
+    {
+      "phase": "forward-declaration",
+      "source_sha256": "ddaee648163ba9cec6d9d16d8e3703064e2082cf4387aaa10b144ff27b66244d",
+      "reverse_from_final_patch": "lineage/forward-declaration-from-final.patch.xz",
+      "error_events": 24,
+      "labelled_errors_observed": 23,
+      "truncated_at_error_limit": false,
+      "additional_errors": [
+        {
+          "line": 1487,
+          "column": 7,
+          "label": "Unknown identifier `nestedBlockSeq`"
+        }
+      ]
+    },
+    {
+      "phase": "scope-failure",
+      "source_sha256": "84dd353d0e83070494cc85ebfc73dd51af6b2669b712fa4217d75542217f268e",
+      "reverse_from_final_patch": "lineage/scope-failure-from-final.patch.xz",
+      "error_events": 101,
+      "labelled_errors_observed": 10,
+      "truncated_at_error_limit": true,
+      "additional_errors": [
+        {
+          "line": 27527,
+          "column": 18,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 27528,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 27529,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 27571,
+          "column": 56,
+          "label": "Unknown identifier `CommentOk`"
+        },
+        {
+          "line": 27581,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 27861,
+          "column": 20,
+          "label": "Unknown identifier `currentIndent_of_indents_eq`"
+        },
+        {
+          "line": 27861,
+          "column": 13,
+          "label": "unsolved goals"
+        },
+        {
+          "line": 27993,
+          "column": 38,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 28002,
+          "column": 10,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 28003,
+          "column": 18,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 28004,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 28005,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 28163,
+          "column": 50,
+          "label": "Unknown identifier `CommentOk`"
+        },
+        {
+          "line": 28176,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 28193,
+          "column": 38,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 28202,
+          "column": 10,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 28211,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 28176,
+          "column": 37,
+          "label": "unsolved goals"
+        },
+        {
+          "line": 29212,
+          "column": 14,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 29216,
+          "column": 38,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 29225,
+          "column": 10,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29231,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29232,
+          "column": 18,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29233,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29234,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29249,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29270,
+          "column": 22,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 29296,
+          "column": 22,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 29326,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 29440,
+          "column": 38,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 29449,
+          "column": 10,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29455,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29456,
+          "column": 18,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29457,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29458,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29473,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29481,
+          "column": 22,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 29664,
+          "column": 22,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 29726,
+          "column": 50,
+          "label": "Unknown identifier `CommentOk`"
+        },
+        {
+          "line": 29730,
+          "column": 32,
+          "label": "Unknown identifier `LineNodeStop`"
+        },
+        {
+          "line": 29743,
+          "column": 18,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29744,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29745,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29828,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29922,
+          "column": 32,
+          "label": "Unknown identifier `LineNodeStop`"
+        },
+        {
+          "line": 29942,
+          "column": 18,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29943,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 29944,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30036,
+          "column": 50,
+          "label": "Unknown identifier `CommentOk`"
+        },
+        {
+          "line": 30047,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30057,
+          "column": 38,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 30066,
+          "column": 10,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30072,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30079,
+          "column": 22,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 30563,
+          "column": 18,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30564,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30565,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30661,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 30672,
+          "column": 20,
+          "label": "Unknown identifier `ScannerSurfCorr_unique`"
+        },
+        {
+          "line": 30661,
+          "column": 37,
+          "label": "unsolved goals"
+        },
+        {
+          "line": 31585,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 31621,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 31623,
+          "column": 4,
+          "label": "Unknown identifier `scanNextToken_preprocess_corr`"
+        },
+        {
+          "line": 31622,
+          "column": 9,
+          "label": "Tactic `rcases` failed: `x\u271d : Prop` is not an inductive datatype"
+        },
+        {
+          "line": 32140,
+          "column": 14,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 32143,
+          "column": 8,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 32176,
+          "column": 6,
+          "label": "Unknown identifier `ScannerSurfCorr`"
+        },
+        {
+          "line": 32179,
+          "column": 10,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 32218,
+          "column": 21,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 32229,
+          "column": 26,
+          "label": "Unknown identifier `minContentIndentOf`"
+        },
+        {
+          "line": 32245,
+          "column": 42,
+          "label": "Unknown identifier `CommentOk`"
+        },
+        {
+          "line": 32247,
+          "column": 17,
+          "label": "Unknown identifier `minContentIndentOf`"
+        },
+        {
+          "line": 32367,
+          "column": 23,
+          "label": "Unknown identifier `minContentIndentOf`"
+        },
+        {
+          "line": 32395,
+          "column": 12,
+          "label": "Unknown identifier `scanKey_prod`"
+        },
+        {
+          "line": 32394,
+          "column": 17,
+          "label": "Tactic `rcases` failed: `x\u271d : Prop` is not an inductive datatype"
+        },
+        {
+          "line": 32541,
+          "column": 16,
+          "label": "Unknown identifier `preprocess_inFlow_elim`"
+        },
+        {
+          "line": 32540,
+          "column": 21,
+          "label": "Tactic `rcases` failed: `x\u271d : ?m.1659` is not an inductive datatype"
+        },
+        {
+          "line": 32577,
+          "column": 18,
+          "label": "Unknown identifier `LastTokenReal`"
+        },
+        {
+          "line": 32601,
+          "column": 23,
+          "label": "Unknown identifier `no_colon_dispatch_of_layout`"
+        },
+        {
+          "line": 32624,
+          "column": 84,
+          "label": "Unknown identifier `minContentIndentOf`"
+        },
+        {
+          "line": 32630,
+          "column": 36,
+          "label": "Unknown identifier `KeyAfterValueLayout`"
+        },
+        {
+          "line": 32631,
+          "column": 18,
+          "label": "Unknown identifier `no_colon_dispatch_of_layout`"
+        },
+        {
+          "line": 32641,
+          "column": 23,
+          "label": "Unknown identifier `no_colon_dispatch_after_value_fresh`"
+        },
+        {
+          "line": 32645,
+          "column": 23,
+          "label": "Unknown identifier `no_colon_dispatch_of_layout`"
+        },
+        {
+          "line": 32671,
+          "column": 168,
+          "label": "Invalid field notation: Type of"
+        },
+        {
+          "line": 32695,
+          "column": 183,
+          "label": "Invalid field notation: Type of"
+        },
+        {
+          "line": 32712,
+          "column": 38,
+          "label": "Tactic `rewrite` failed: Did not find an occurrence of the pattern"
+        },
+        {
+          "line": 32710,
+          "column": 74,
+          "label": "unsolved goals"
+        },
+        {
+          "line": 32722,
+          "column": 58,
+          "label": "Invalid field notation: Type of"
+        },
+        {
+          "line": 32751,
+          "column": 188,
+          "label": "Invalid field notation: Type of"
+        },
+        {
+          "line": 32778,
+          "column": 13,
+          "label": "maximum number of errors (100; from option `maxErrors`) reached, exiting"
+        }
+      ]
+    }
+  ]
+}
