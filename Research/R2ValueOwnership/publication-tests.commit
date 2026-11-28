@@ -1,0 +1,6 @@
+tree e95078c78c80f12b52802fa35d2caeca00498559
+parent 1383fa62e838576fb9c712b4af89b5e381aaaab4
+author Heath Sanchez <heathsanchez@gmail.com> 1795830070 +1300
+committer Heath Sanchez <heathsanchez@gmail.com> 1795830070 +1300
+
+test(row 12): exercise block-colon ownership with surviving ancestors

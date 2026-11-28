@@ -1,0 +1,80 @@
+{
+  "state": "WARRANTED bounded production and local qualification",
+  "owner": "1383fa62e838576fb9c712b4af89b5e381aaaab4",
+  "source": "bea84871310b2b00518629638607bd46f7a2ebba",
+  "tree": "d51baacfe26343122a74632026042b74f0734ce2",
+  "test_commit": "ad12628f7927a1be1abca9653f669dfbe0424d5b",
+  "test_tree": "e95078c78c80f12b52802fa35d2caeca00498559",
+  "identity": "Heath Sanchez <heathsanchez@gmail.com>",
+  "lean": "4.36.0",
+  "default_jobs": 2645,
+  "standing_warnings": 11,
+  "adversarial": {
+    "passed": 62477,
+    "total": 62477,
+    "new_checks": 115
+  },
+  "matrix": {
+    "pass": 869,
+    "fail": 0,
+    "skip": 151
+  },
+  "eventscore": {
+    "correct": 347,
+    "total": 358
+  },
+  "hygiene": {
+    "theorems": 11868,
+    "sorries": 0,
+    "custom_axioms": 0
+  },
+  "new_reached_declarations": 7,
+  "new_helpers": 6,
+  "optional_positions": 252,
+  "critical_positions": 7,
+  "literal_fallbacks": {
+    "before": 460,
+    "after": 459
+  },
+  "directed_moves": {
+    "toward": 1,
+    "other": 0
+  },
+  "population_moves": 30,
+  "orphans": 103,
+  "protected_roster": 3308,
+  "yaml_test_suite": "478062b90533880678b1c9243891957c0f2a1b2b",
+  "positive_exit_files": [
+    "build-final",
+    "adversarial-first",
+    "all-native-second",
+    "suiterunner",
+    "eventscore",
+    "dependency-final",
+    "production-axioms-final",
+    "hygiene",
+    "dead-final",
+    "dashboard",
+    "check-closure-log-final",
+    "check-gate-vocab-final",
+    "check-theorem-keyword",
+    "check-import-closure",
+    "check-reflection-index",
+    "check-doc-graphs",
+    "check-serialization-proofs",
+    "check-pack-births",
+    "check-scripts-lean"
+  ],
+  "hosted_native_bindings_docs": "not replayed for this source; owner CI pending",
+  "unresolved": "generic consumption-closed ancestor continuation; seven critical positions",
+  "source_file_hashes": {
+    "L4YAML/Proofs/Production/StreamAccum.lean": "695b4080d6086b1d8d78c9459c5c12d9850947be3811cba45fbedd12fd1ad62f",
+    "Tests/AdversarialInstantiation.lean": "3575a6bfa145ece4d6d47d48510fcc430a872a9e754c66f81217894b3de51998"
+  },
+  "archive": {
+    "sha256": "652def304e98b3a927a2cbcc701da567330b7dfcc449c5ae55d79bafa5aa9a6b",
+    "entries": 124,
+    "bytes": 715388,
+    "base64_bytes": 966403
+  }
+}
