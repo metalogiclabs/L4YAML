@@ -1,0 +1,141 @@
+{
+  "parent_commit": "e7faf3f9c7ea1ccbc61903c426de253faa513e0c",
+  "scope": "Research/R2CompactSlot only; failed whole invariant retained",
+  "files": [
+    {
+      "path": "Research/R2CompactSlot/CompactAxiomBaseline.lean",
+      "bytes": 1149,
+      "sha256": "3ff528d140dbdfd52993993a984844efcb72179db2b7593c70bdd9d2a0baf91a"
+    },
+    {
+      "path": "Research/R2CompactSlot/ConcreteSlots.lean",
+      "bytes": 5096,
+      "sha256": "b8422564654f5215b88f9a63fc0edc8abcc40f510df9e3410dd9cdac2902c3f2"
+    },
+    {
+      "path": "Research/R2CompactSlot/Controls.lean",
+      "bytes": 2333,
+      "sha256": "3e090dc25e375b8fd207ae84d83c758f025c957c228a42864ac200c16c383662"
+    },
+    {
+      "path": "Research/R2CompactSlot/DependencyAudit.lean",
+      "bytes": 2637,
+      "sha256": "1bddd9dcbcbefca48c7b2fe6e0e5b0842a691d292145d728d278f0e9df5f102c"
+    },
+    {
+      "path": "Research/R2CompactSlot/JointSibling.lean",
+      "bytes": 4835,
+      "sha256": "6be484b32091fb7693583a69bda30df08735e5e3e6e4c363cae8b62cc47107fc"
+    },
+    {
+      "path": "Research/R2CompactSlot/Predictions.md",
+      "bytes": 1946,
+      "sha256": "d9c03537792111b72a946dc25175207507c604a6c69af18a9fe6e3c34d9775be"
+    },
+    {
+      "path": "Research/R2CompactSlot/REPORT.md",
+      "bytes": 8501,
+      "sha256": "d9754a23ecb903094e2ee5f1220387f8b6bbc1ab1eea6b3779b0e9ba0ade591d"
+    },
+    {
+      "path": "Research/R2CompactSlot/SlotValues.lean",
+      "bytes": 5907,
+      "sha256": "b821d8550ee447b8381081ec2ab4b2a5f93c26ab4237151fb1b95f8d57f31eed"
+    },
+    {
+      "path": "Research/R2CompactSlot/compact-result.json",
+      "bytes": 3805,
+      "sha256": "4ba29a456cac3cf296641e01fa8728f0f60af9be2dd10c10fcfff0ccd5494a75"
+    },
+    {
+      "path": "Research/R2CompactSlot/compact-slot.patch",
+      "bytes": 24254,
+      "sha256": "35184afe102d6e88a255ff954f9eb78e2478055ccc23ab94bf6ba59151c07c7c"
+    },
+    {
+      "path": "Research/R2CompactSlot/lineage/compact-concrete-development.lean.txt",
+      "bytes": 5022,
+      "sha256": "bf50103f2d880798c679b6501dcd52e029c1aa09f2898ff95628c3e1a147380d"
+    },
+    {
+      "path": "Research/R2CompactSlot/lineage/compact-helper-development.lean.txt",
+      "bytes": 5842,
+      "sha256": "b0eaab06cf13e09ad469d28ca6c9f976fcce06d4e163970865f63a991807d67f"
+    },
+    {
+      "path": "Research/R2CompactSlot/lineage/first-integration-from-final.patch.xz",
+      "bytes": 1512,
+      "sha256": "92e8c8a03a5958741ffeb0f114dcf9ab7845d027547b9a48737122538e7ef0a5"
+    },
+    {
+      "path": "Research/R2CompactSlot/lineage/stale-reference-from-final.patch.xz",
+      "bytes": 1116,
+      "sha256": "e2e3bd50798c7c37cf50c4be15b1f4e84893eb806e52f3217ea7d9a2c43f3069"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/baseline-control.log",
+      "bytes": 1292,
+      "sha256": "4e5b6f9eb0e27dea6fc476bacba2783816f64dff3c45ec63df34eb847a5c6012"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/compact-final.log.xz",
+      "bytes": 11644,
+      "sha256": "fff1fd3f47fce6ce089bfdc881cf9e75257ff4439111aef4f423d880253f339d"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/compact-raw-axioms.log",
+      "bytes": 1208,
+      "sha256": "aa7c1dbfb75ca64c008974e967eb5baa72230b99356e770f929882dc526f10bb"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/concrete-slots.log",
+      "bytes": 289,
+      "sha256": "630173167a18c53205ea174237f3e91bc34b94df055734920a60b25fff06615e"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/dependency-audit.log",
+      "bytes": 421,
+      "sha256": "63987ec058e0189e5ef16557ee899c93b4454f92b3d01df538a1a51f9b086022"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/development-first.log.xz",
+      "bytes": 12056,
+      "sha256": "f9e3b795049535d23cb58bf9026920021080fba0422ff53a61c4b95c44fe4dbd"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/development-reference.log.xz",
+      "bytes": 11636,
+      "sha256": "0dc3c36c1fbde8e2aca2a9d79bb2ee3da6a9dbe6c785da7a8e7f54651cd90e7a"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/development-standalone.log.xz",
+      "bytes": 1408,
+      "sha256": "592b1248a1a335763d9252ec0b3b9da3e6e2bc29b1639e73bff70f3356a83eb1"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/joint-sibling.log",
+      "bytes": 105,
+      "sha256": "33e2dc32f6df2e08f9d09d15fa2d518d1b44df19387a9351af4164f39cdb40c6"
+    },
+    {
+      "path": "Research/R2CompactSlot/logs/slot-values.log",
+      "bytes": 229,
+      "sha256": "aece23e9fb58f5a4146e6288bcb0938806d1cfcae105451c8bfe0aef68668bb6"
+    },
+    {
+      "path": "Research/R2CompactSlot/reconstruction.json",
+      "bytes": 2857,
+      "sha256": "85491dd03fad3a0d7207da20f8bfd47b7aa7b0ef0013112c00b3e6939e15933c"
+    },
+    {
+      "path": "Research/R2CompactSlot/verification.json",
+      "bytes": 2533,
+      "sha256": "640714a79b8055ee47305c2809ddeee0256b7ca77d1dd19cdcdce9fd583698c9"
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "state": "WARRANTED_BOUNDED_COMPACT_CONSTRUCTOR; UNKNOWN_FULL_INVARIANT",
+  "exit": 1,
+  "source_sha256": "819993c47d13b998e91e6c1c757499d83c63c69ff5a951cbced23dcfabf1e831",
+  "parent_diagnostic_source_sha256": "34a785b2d813c429a948fd6cab467f10c92a63dbdb37a3e38d6fab07cb9d3345",
+  "log_sha256": "9ae2d9aede393f70a576105ee008ff51f3b23112602e21e69accff044dc07561",
+  "labelled_demands": 22,
+  "additional_type_errors": 0,
+  "retained_old_continuation_demands": 13,
+  "remaining_prior_constructor_demands": 7,
+  "new_wide_supplier_demands": 2,
+  "counts_are_changed_contract_not_debt_score": true,
+  "replaced_constructor_demand": "R2_NODE_COMPACT_QUESTION_ANCESTORS",
+  "new_demands": [
+    "R2_SLOT_EXPLICIT_COLON_DOMAIN",
+    "R2_SLOT_PENDING_BLOCK_SUPPLIER"
+  ],
+  "stored_field": "PendingNode.pendingMapValue.h_vslot",
+  "new_optional_alternatives": 0,
+  "actual_compact_producer_elaborated": true,
+  "map_slot_caller_reads_stored_family": true,
+  "map_slot_caller_new_external_premise": false,
+  "compact_raw_axioms_byte_identical": true,
+  "compact_raw_axioms_count": 7,
+  "compact_raw_axioms_sha256": "aa7c1dbfb75ca64c008974e967eb5baa72230b99356e770f929882dc526f10bb",
+  "value_completion_raw_axioms_byte_identical": true,
+  "value_completion_raw_axioms_count": 48,
+  "value_completion_raw_axioms_sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a",
+  "compact_producer_sorryAx": false,
+  "whole_variant_accepted": false,
+  "critical_positions_retired": 0,
+  "critical_roster_remeasured_on_failed_variant": false,
+  "errors": [
+    {
+      "line": 20721,
+      "column": 617,
+      "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+    },
+    {
+      "line": 20954,
+      "column": 616,
+      "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+    },
+    {
+      "line": 24927,
+      "column": 33,
+      "label": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+    },
+    {
+      "line": 25207,
+      "column": 19,
+      "label": "R2_NODE_QUESTION_ANCESTORS"
+    },
+    {
+      "line": 25504,
+      "column": 19,
+      "label": "R2_SLOT_EXPLICIT_COLON_DOMAIN"
+    },
+    {
+      "line": 25540,
+      "column": 33,
+      "label": "R2_NODE_EXPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 26398,
+      "column": 35,
+      "label": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+    },
+    {
+      "line": 26399,
+      "column": 33,
+      "label": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 26637,
+      "column": 35,
+      "label": "R2_NODE_PROPS_COLON_NO_TAIL"
+    },
+    {
+      "line": 26638,
+      "column": 33,
+      "label": "R2_NODE_PROPS_COLON_ANCESTORS"
+    },
+    {
+      "line": 30345,
+      "column": 80,
+      "label": "R2_OTHER_BLOCK_CONTENT_PAIR"
+    },
+    {
+      "line": 31151,
+      "column": 78,
+      "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+    },
+    {
+      "line": 31445,
+      "column": 48,
+      "label": "R2_SLOT_PENDING_BLOCK_SUPPLIER"
+    },
+    {
+      "line": 31725,
+      "column": 86,
+      "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+    },
+    {
+      "line": 31757,
+      "column": 84,
+      "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+    },
+    {
+      "line": 31835,
+      "column": 77,
+      "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+    },
+    {
+      "line": 31928,
+      "column": 37,
+      "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+    },
+    {
+      "line": 40825,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+    },
+    {
+      "line": 40910,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+    },
+    {
+      "line": 41196,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+    },
+    {
+      "line": 41324,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+    },
+    {
+      "line": 41444,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "exact": true,
+  "base_commit": "9f1f7bc6",
+  "steps": [
+    {
+      "patch": "Research/R2EntryPreservation/retention-original.patch",
+      "exit": 0,
+      "source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60"
+    },
+    {
+      "patch": "Research/R2EntryPreservation/retention-strict-delta.patch",
+      "exit": 0,
+      "source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa"
+    },
+    {
+      "patch": "Research/R2SurvivorDomain/retention-refinements.patch",
+      "exit": 0,
+      "source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500"
+    },
+    {
+      "patch": "Research/R2ConsumptionClosure/producer-domain.patch",
+      "exit": 0,
+      "source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943"
+    },
+    {
+      "patch": "Research/R2InvariantPayload/invariant-payload.patch",
+      "exit": 0,
+      "source_sha256": "34a785b2d813c429a948fd6cab467f10c92a63dbdb37a3e38d6fab07cb9d3345"
+    },
+    {
+      "patch": "Research/R2CompactSlot/compact-slot.patch",
+      "exit": 0,
+      "source_sha256": "819993c47d13b998e91e6c1c757499d83c63c69ff5a951cbced23dcfabf1e831"
+    }
+  ],
+  "development_phases_verified": [
+    {
+      "phase": "first-integration",
+      "source_sha256": "1691dffb4af81a919f69bbf412fb3a639e4ccc66722dc109840885bc77e42d6e",
+      "reverse_from_final_patch": "lineage/first-integration-from-final.patch.xz",
+      "labelled_demands": 22,
+      "additional_errors": [
+        {
+          "line": 1383,
+          "column": 45,
+          "label": "Unknown identifier `NodeValues`"
+        },
+        {
+          "line": 1388,
+          "column": 8,
+          "label": "Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce"
+        },
+        {
+          "line": 1408,
+          "column": 10,
+          "label": "Unknown constant `L4YAML.Proofs.R2ConsumptionClosure.ValuesBelow.of_no_lower_marks`"
+        },
+        {
+          "line": 1422,
+          "column": 6,
+          "label": "Unknown identifier `NodeValues`"
+        },
+        {
+          "line": 25302,
+          "column": 57,
+          "label": "Unknown identifier `h_nodeContext`"
+        },
+        {
+          "line": 25949,
+          "column": 19,
+          "label": "Invalid `\u27e8...\u27e9` notation: The expected type `Nat` has more than one constructor"
+        }
+      ]
+    },
+    {
+      "phase": "stale-reference",
+      "source_sha256": "db2aa98f3c49c3f15b09d3323c7aa060029cc9d62e813b717064b7f2597eddec",
+      "reverse_from_final_patch": "lineage/stale-reference-from-final.patch.xz",
+      "labelled_demands": 22,
+      "additional_errors": [
+        {
+          "line": 25304,
+          "column": 57,
+          "label": "Unknown identifier `h_nodeContext`"
+        }
+      ]
+    }
+  ]
+}

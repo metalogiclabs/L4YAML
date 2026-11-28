@@ -1,0 +1,128 @@
+import Research.R2InvariantPayload.NodeValues
+
+set_option autoImplicit false
+open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
+open L4YAML.Proofs.StreamAccum L4YAML.Proofs.NodeProduction
+open L4YAML.Proofs.R2ConsumptionClosure L4YAML.Proofs.R2InvariantPayload
+
+namespace L4YAML.Proofs.R2CompactSlot
+
+-- Same wide grammar domain as the slot which actually funds compact maps.
+def SlotValues (sc : ScannerState) (start : SurfPos) (n : Nat)
+    (ctx : YamlContext) (slot : SurfPos) : Prop :=
+  ∀ e, SBlockIndented n ctx slot e → EntryValues sc (SLYamlStream start) e
+
+lemma EntryValues.below {sc : ScannerState} {P : SurfPos → Prop} {e : SurfPos}
+    (h : EntryValues sc P e) (upper : Nat) : ValuesBelow sc P upper e := by
+  induction upper with
+  | zero => exact h.truncate (Nat.zero_le _)
+  | succ n ih =>
+    by_cases lt : n < columnCeiling sc
+    · exact h.truncate (by omega)
+    · have absent : n ∉ RegisterWitness.markedCols sc := by
+        intro hm
+        have := marked_lt_ceiling hm
+        omega
+      simpa only [ValuesBelow, ite_eq_right absent] using ih
+
+lemma ValuesBelow.restrict {before after : ScannerState} {P : SurfPos → Prop}
+    {upper : Nat} {e : SurfPos} (h : ValuesBelow before P upper e)
+    (back : ∀ x < upper, x ∈ RegisterWitness.markedCols after →
+      x ∈ RegisterWitness.markedCols before) : ValuesBelow after P upper e := by
+  induction upper generalizing e with
+  | zero => exact h
+  | succ n ih =>
+    have below := fun x hx => back x (Nat.lt_trans hx (Nat.lt_succ_self n))
+    by_cases hm : n ∈ RegisterWitness.markedCols after
+    · have old := back n (Nat.lt_succ_self n) hm
+      simp only [ValuesBelow, ite_eq_left old] at h
+      simp only [ValuesBelow, ite_eq_left hm]
+      exact h.map (fun z hz => ih hz below)
+    · simp only [ValuesBelow, ite_eq_right hm]
+      unfold ValuesBelow at h
+      split at h
+      · exact ih (h.1 e (SCompactMapTail.nil n e)) below
+      · exact ih h below
+
+lemma ValuesBelow.of_top_step {sc : ScannerState} {P : SurfPos → Prop}
+    {own upper : Nat} {e : SurfPos}
+    (bound : ∀ x ∈ RegisterWitness.markedCols sc, x ≤ own)
+    (step : EntryStep (ValuesBelow sc P own) own e) : ValuesBelow sc P upper e := by
+  induction upper with
+  | zero => exact (step.1 e (SCompactMapTail.nil own e)).truncate (Nat.zero_le _)
+  | succ n ih =>
+    by_cases lt : n < own
+    · exact (step.1 e (SCompactMapTail.nil own e)).truncate (by omega)
+    · by_cases eq : n = own
+      · subst n
+        by_cases hm : own ∈ RegisterWitness.markedCols sc
+        · simpa only [ValuesBelow, ite_eq_left hm] using step
+        · simpa only [ValuesBelow, ite_eq_right hm] using
+            step.1 e (SCompactMapTail.nil own e)
+      · have absent : n ∉ RegisterWitness.markedCols sc := by
+          intro hm
+          have := bound n hm
+          omega
+        simpa only [ValuesBelow, ite_eq_right absent] using ih
+
+-- One actual entry route funds the wide slot and its node-domain projection.
+-- The route returns the whole lower family after every sibling tail.
+lemma question_payload {sc : ScannerState} {start q slot : SurfPos} {own : Nat}
+    (literal : GLit '?' q slot)
+    (route : ∀ v, SBlockMapEntry own q v →
+      ∀ z, SCompactMapTail own v z → ValuesBelow sc (SLYamlStream start) own z)
+    (bound : ∀ x ∈ RegisterWitness.markedCols sc, x ≤ own) :
+    SlotValues sc start own .blockOut slot ∧ NodeValues sc start own slot := by
+  have wide : SlotValues sc start own .blockOut slot := by
+    intro e content
+    exact ValuesBelow.of_top_step bound (entryStep_of_question literal route content)
+  refine ⟨wide, ?_⟩
+  intro e node
+  have content := SBlockIndented.node own .blockOut slot e
+    (SBlockNode_blockIn_to_blockOut node)
+  refine ⟨wide e content, ?_⟩
+  intro consumed
+  have ceiling : columnCeiling sc ≤ own := ceiling_le_of_marks_lt (fun x hx => by
+    have := bound x hx
+    have ne : x ≠ own := fun eq => consumed (eq ▸ hx)
+    omega)
+  exact KeyFrames.mapLevel own [] e (by simp) (fun z tail =>
+    KeyFrames.bottom z (((entryStep_of_question literal route content).1 z tail).truncate ceiling))
+
+lemma SlotValues.of_question {sc : ScannerState} {start q slot : SurfPos} {own : Nat}
+    (literal : GLit '?' q slot)
+    (route : ∀ v, SBlockMapEntry own q v →
+      ∀ z, SCompactMapTail own v z → SLYamlStream start z)
+    (only : ∀ x ∈ RegisterWitness.markedCols sc, x = own) :
+    SlotValues sc start own .blockOut slot := by
+  apply (question_payload literal ?_ ?_).1
+  · intro v entry z tail
+    exact ValuesBelow.of_no_lower_marks (fun x hx hm => by have := only x hm; omega)
+      (route v entry z tail)
+  · intro x hx
+    exact Nat.le_of_eq (only x hx)
+
+-- The actual compact grammar constructor consumes the wide input context.
+lemma SlotValues.compact_question {before after : ScannerState}
+    {start entry q slot : SurfPos} {n m : Nat} {ctx : YamlContext}
+    (payload : SlotValues before start n ctx entry)
+    (indent : SIndent m entry q) (literal : GLit '?' q slot)
+    (back : ∀ x ∈ RegisterWitness.markedCols after,
+      x = n + 1 + m ∨ x ∈ RegisterWitness.markedCols before)
+    (oldBound : ∀ x ∈ RegisterWitness.markedCols before, x < n + 1 + m) :
+    SlotValues after start (n + 1 + m) .blockOut slot ∧
+      NodeValues after start (n + 1 + m) slot := by
+  apply question_payload literal
+  · intro v content z tail
+    have old := payload z (SBlockIndented.compactMap n ctx m entry q z indent
+      (SCompactMap.mk (n + 1 + m) q v z content tail))
+    exact ValuesBelow.restrict (EntryValues.below old (n + 1 + m)) (fun x hx hm =>
+      (back x hm).elim (fun eq => by omega) id)
+  · intro x hx
+    exact (back x hx).elim (fun eq => Nat.le_of_eq eq)
+      (fun hm => Nat.le_of_lt (oldBound x hm))
+
+#print axioms SlotValues.of_question
+#print axioms SlotValues.compact_question
+
+end L4YAML.Proofs.R2CompactSlot

@@ -1,0 +1,419 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1312,6 +1312,130 @@
+ 
+ 
+ end L4YAML.Proofs.R2InvariantPayload
++
++open L4YAML.Proofs.R2InvariantPayload
++
++namespace L4YAML.Proofs.R2CompactSlot
++
++-- Same wide grammar domain as the slot which actually funds compact maps.
++def SlotValues (sc : ScannerState) (start : SurfPos) (n : Nat)
++    (ctx : YamlContext) (slot : SurfPos) : Prop :=
++  ∀ e, SBlockIndented n ctx slot e → EntryValues sc (SLYamlStream start) e
++
++lemma EntryValues.below {sc : ScannerState} {P : SurfPos → Prop} {e : SurfPos}
++    (h : EntryValues sc P e) (upper : Nat) : ValuesBelow sc P upper e := by
++  induction upper with
++  | zero => exact h.truncate (Nat.zero_le _)
++  | succ n ih =>
++    by_cases lt : n < columnCeiling sc
++    · exact h.truncate (by omega)
++    · have absent : n ∉ RegisterWitness.markedCols sc := by
++        intro hm
++        have := marked_lt_ceiling hm
++        omega
++      simpa only [ValuesBelow, ite_eq_right absent] using ih
++
++lemma ValuesBelow.restrict {before after : ScannerState} {P : SurfPos → Prop}
++    {upper : Nat} {e : SurfPos} (h : ValuesBelow before P upper e)
++    (back : ∀ x < upper, x ∈ RegisterWitness.markedCols after →
++      x ∈ RegisterWitness.markedCols before) : ValuesBelow after P upper e := by
++  induction upper generalizing e with
++  | zero => exact h
++  | succ n ih =>
++    have below := fun x hx => back x (Nat.lt_trans hx (Nat.lt_succ_self n))
++    by_cases hm : n ∈ RegisterWitness.markedCols after
++    · have old := back n (Nat.lt_succ_self n) hm
++      simp only [ValuesBelow, ite_eq_left old] at h
++      simp only [ValuesBelow, ite_eq_left hm]
++      exact h.map (fun z hz => ih hz below)
++    · simp only [ValuesBelow, ite_eq_right hm]
++      unfold ValuesBelow at h
++      split at h
++      · exact ih (h.1 e (SCompactMapTail.nil n e)) below
++      · exact ih h below
++
++lemma ValuesBelow.of_top_step {sc : ScannerState} {P : SurfPos → Prop}
++    {own upper : Nat} {e : SurfPos}
++    (bound : ∀ x ∈ RegisterWitness.markedCols sc, x ≤ own)
++    (step : EntryStep (ValuesBelow sc P own) own e) : ValuesBelow sc P upper e := by
++  induction upper with
++  | zero => exact (step.1 e (SCompactMapTail.nil own e)).truncate (Nat.zero_le _)
++  | succ n ih =>
++    by_cases lt : n < own
++    · exact (step.1 e (SCompactMapTail.nil own e)).truncate (by omega)
++    · by_cases eq : n = own
++      · subst n
++        by_cases hm : own ∈ RegisterWitness.markedCols sc
++        · simpa only [ValuesBelow, ite_eq_left hm] using step
++        · simpa only [ValuesBelow, ite_eq_right hm] using
++            step.1 e (SCompactMapTail.nil own e)
++      · have absent : n ∉ RegisterWitness.markedCols sc := by
++          intro hm
++          have := bound n hm
++          omega
++        simpa only [ValuesBelow, ite_eq_right absent] using ih
++
++-- One actual entry route funds the wide slot and its node-domain projection.
++-- The route returns the whole lower family after every sibling tail.
++lemma question_payload {sc : ScannerState} {start q slot : SurfPos} {own : Nat}
++    (literal : GLit '?' q slot)
++    (route : ∀ v, SBlockMapEntry own q v →
++      ∀ z, SCompactMapTail own v z → ValuesBelow sc (SLYamlStream start) own z)
++    (bound : ∀ x ∈ RegisterWitness.markedCols sc, x ≤ own) :
++    SlotValues sc start own .blockOut slot ∧ NodeValues sc start own slot := by
++  have wide : SlotValues sc start own .blockOut slot := by
++    intro e content
++    exact ValuesBelow.of_top_step bound (entryStep_of_question literal route content)
++  refine ⟨wide, ?_⟩
++  intro e node
++  have content := SBlockIndented.node own .blockOut slot e
++    (SBlockNode_blockIn_to_blockOut node)
++  refine ⟨wide e content, ?_⟩
++  intro consumed
++  have ceiling : columnCeiling sc ≤ own := ceiling_le_of_marks_lt (fun x hx => by
++    have := bound x hx
++    have ne : x ≠ own := fun eq => consumed (eq ▸ hx)
++    omega)
++  exact KeyFrames.mapLevel own [] e (by simp) (fun z tail =>
++    KeyFrames.bottom z (((entryStep_of_question literal route content).1 z tail).truncate ceiling))
++
++lemma SlotValues.of_question {sc : ScannerState} {start q slot : SurfPos} {own : Nat}
++    (literal : GLit '?' q slot)
++    (route : ∀ v, SBlockMapEntry own q v →
++      ∀ z, SCompactMapTail own v z → SLYamlStream start z)
++    (only : ∀ x ∈ RegisterWitness.markedCols sc, x = own) :
++    SlotValues sc start own .blockOut slot := by
++  apply (question_payload literal ?_ ?_).1
++  · intro v entry z tail
++    exact ValuesBelow.of_no_lower_marks (fun x hx hm => by have := only x hm; omega)
++      (route v entry z tail)
++  · intro x hx
++    exact Nat.le_of_eq (only x hx)
++
++-- The actual compact grammar constructor consumes the wide input context.
++lemma SlotValues.compact_question {before after : ScannerState}
++    {start entry q slot : SurfPos} {n m : Nat} {ctx : YamlContext}
++    (payload : SlotValues before start n ctx entry)
++    (indent : SIndent m entry q) (literal : GLit '?' q slot)
++    (back : ∀ x ∈ RegisterWitness.markedCols after,
++      x = n + 1 + m ∨ x ∈ RegisterWitness.markedCols before)
++    (oldBound : ∀ x ∈ RegisterWitness.markedCols before, x < n + 1 + m) :
++    SlotValues after start (n + 1 + m) .blockOut slot ∧
++      NodeValues after start (n + 1 + m) slot := by
++  apply question_payload literal
++  · intro v content z tail
++    have old := payload z (SBlockIndented.compactMap n ctx m entry q z indent
++      (SCompactMap.mk (n + 1 + m) q v z content tail))
++    exact ValuesBelow.restrict (EntryValues.below old (n + 1 + m)) (fun x hx hm =>
++      (back x hm).elim (fun eq => by omega) id)
++  · intro x hx
++    exact (back x hx).elim (fun eq => Nat.le_of_eq eq)
++      (fun hm => Nat.le_of_lt (oldBound x hm))
++
++end L4YAML.Proofs.R2CompactSlot
++
++open L4YAML.Proofs.R2CompactSlot
++
+ 
+ namespace L4YAML.Proofs.StreamAccum
+ open L4YAML.Proofs.CloseStaleExplicitKey
+@@ -3560,7 +3684,7 @@
+       (h_vslot : (sc.currentIndent ≤ (n : Int) ∧ sp_scan.col = n + 1 ∧
+         ∀ sp_v : SurfPos,
+         SBlockIndented n .blockOut sp_scan sp_v →
+-        SLYamlStream sp_start sp_v) ∨ sc.implicitValueLine = some sc.line)
++        SLYamlStream sp_start sp_v ∧ EntryValues sc (SLYamlStream sp_start) sp_v) ∨ sc.implicitValueLine = some sc.line)
+       -- Item 58 (LAST, same reason): the `?`/`:` scan that parked this pending
+       -- re-armed fresh saves, so a key recorded at the NEXT indicator sits AT
+       -- that indicator — which is the coordinate `tab_refutes_dispatch_inline`
+@@ -14966,7 +15090,7 @@
+                -- compact map this key opens IS the `?`'s key content, and the
+                -- landed `:` closes the `[188]` entry `h_expl` routes
+                -- (`? [1]: b⏎: - w`).
+-               (RegisterWitness.markedCols_congr h_pk' h_ind') ▸ flowKeyRoute_of_open (fun sp h => h_close sp (SBlockNode_blockIn_to_blockOut h)) (h_vslot.imp (fun h => ⟨h.2.2, h.2.1⟩) (fun _ => trivial))
++               (RegisterWitness.markedCols_congr h_pk' h_ind') ▸ flowKeyRoute_of_open (fun sp h => h_close sp (SBlockNode_blockIn_to_blockOut h)) (h_vslot.imp (fun h => ⟨fun e content => (h.2.2 e content).1, h.2.1⟩) (fun _ => trivial))
+                  (match h_expl with
+                   -- Item 408: the pair is owed for EVERY marked column; this arm holds the `?` entry's own
+                   -- route only (a fabricated singleton under any enclosing mark, Priority 70) — DECLINED.
+@@ -25075,9 +25199,11 @@
+   have h_route51F : ∀ sp_k, SBlockMapEntry k sp_ind sp_k →
+       ∀ sp_e, SCompactMapTail k sp_k sp_e → SLYamlStream sp_start sp_e :=
+     fun sp_k h_entry sp_e h_tail => (h_routeF sp_k h_entry sp_e h_tail).close
+-  have h_nodeContext : NodeValues s' sp_start k sp_scan' := by
++  have h_questionContext : SlotValues s' sp_start k .blockOut sp_scan' ∧
++      NodeValues s' sp_start k sp_scan' := by
+     by_cases only : ∀ x ∈ RegisterWitness.markedCols s', x = k
+-    · exact NodeValues.of_question h_lit h_route51F only
++    · exact ⟨SlotValues.of_question h_lit h_route51F only,
++        NodeValues.of_question h_lit h_route51F only⟩
+     · trace_state; fail "R2_NODE_QUESTION_ANCESTORS"
+   -- ═══ **Item 197: the two ancestor readings, unioned.**  `h_explUp_chain` is
+   -- the NESTED one — a caller filled the mapping this `?` heads into an outer
+@@ -25133,12 +25259,13 @@
+                  · exact up _ h sp_v h_entry sp_i sp_c h_iv h_clit sp_w h_sbi)
+              -- Item 412: the ancestors' chain was declined upstream — re-declined here (a `?`
+              -- ARMS the register, so no refusal transports across it).
+-             | Or.inr _ => Or.inr trivial), h_nodeContext⟩)
++             | Or.inr _ => Or.inr trivial), h_questionContext.2⟩)
+            -- Item 209: and the slot's own stack top, the caller's measurement.
+            (Or.inl ⟨h_top_in, park_col_of_indicator hcol_land h_ind h_lit,
+              fun sp_v h_sbi =>
+-               h_route51 sp_v
+-                 (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit h_sbi)⟩)
++               ⟨h_route51 sp_v
++                 (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit h_sbi),
++                 h_questionContext.1 sp_v h_sbi⟩⟩)
+            (scanKey_simpleKeyAllowed (dispatchBlock_question_scanKey h_dispatch))
+            -- Item 68: the same column the slot above carries, stated on its own.
+            (by have := park_col_of_indicator hcol_land h_ind h_lit; omega)
+@@ -25174,7 +25301,7 @@
+                       (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_m h_lit
+                         (SBlockIndented.node k .blockOut sp_scan' sp_m
+                           (SBlockNode_blockIn_to_blockOut h_node)))
+-                      sp_i sp_c h_iv h_clit sp_v h_sbi), h_nodeContext⟩
++                      sp_i sp_c h_iv h_clit sp_v h_sbi), h_questionContext.2⟩
+             | Or.inr _ => Or.inr trivial)
+            -- Item 99: the resume frames — as at `colon_open_map`, with
+            -- `[188]`'s `e-node` value in the empty entry's place
+@@ -25370,6 +25497,11 @@
+   have h_slot : ∀ sp_v, SBlockIndented nv .blockOut sp_scan' sp_v →
+       SLYamlStream sp_start sp_v :=
+     fun sp_v h_sbi => (hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit sp_v h_sbi).close
++  have h_slotContext : SlotValues s' sp_start nv .blockOut sp_scan' := by
++    by_cases empty : RegisterWitness.markedCols s' = []
++    · intro e value
++      exact EntryValues.of_no_marks empty (h_slot e value)
++    · trace_state; fail "R2_SLOT_EXPLICIT_COLON_DOMAIN"
+   exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_mid,
+          BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
+          PendingNode.pendingMapValue (h_next := fun _ => dispatchBlock_colon_next h_noflow_disp hpeek_disp h_dispatch) (h_offer := dispatchBlock_colon_offerPred h_dispatch) sp_start sp_mid sp_scan' nv
+@@ -25382,7 +25514,8 @@
+            (Or.inr ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
+            (Or.inr (dispatchBlock_colon_notQuestion h_dispatch))
+            -- Item 209: and the slot's own stack top, the caller's measurement.
+-           (Or.inl ⟨h_top_in, park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩)
++           (Or.inl ⟨h_top_in, park_col_of_indicator hcol_mid h_ind h_lit,
++             fun e content => ⟨h_slot e content, h_slotContext e content⟩⟩)
+            (scanValue_simpleKeyAllowed (dispatchBlock_colon_scanValue h_dispatch))
+            -- Item 68: the same column the slot above carries, stated on its own.
+            (by have := park_col_of_indicator hcol_mid h_ind h_lit; omega)
+@@ -25563,7 +25696,8 @@
+       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+       ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
+     (h_mcstep : ∀ ns : List Nat, RegisterWitness.MarkedColsIn sc ns →
+-      RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns)) :
++      RegisterWitness.MarkedColsIn s' ((s_prep.col : Int).toNat :: ns))
++    (h_slotValues : c = '?' → SlotValues sc sp_start n ctx sp_entry) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -25663,6 +25797,24 @@
+         (corr_of_allowDirectives_update hcorr_prep) hpeek_disp h_dispatch
+     rw [ScannerSurfCorr_unique hcorr_q hcorr_result] at h_lit
+     exact h_lit
++  have h_questionContext : c = '?' →
++      SlotValues s' sp_start (n + 1 + m) .blockOut sp_scan' ∧
++      NodeValues s' sp_start (n + 1 + m) sp_scan' := by
++    intro hq
++    apply SlotValues.compact_question (h_slotValues hq) h_ind (h_qlit hq)
++    · intro x hx
++      obtain ⟨i, l, cc, hi, hcc, rfl⟩ := RegisterWitness.markedCols_mem.mp hx
++      have hmem := h_mcstep _ (RegisterWitness.MarkedColsIn.self sc) i l cc hi hcc
++      have hk : ((s_prep.col : Nat) : Int).toNat = n + 1 + m := by
++        have h1 := hcorr_prep.col_eq
++        have h2 := SIndent_col h_ind
++        rw [Int.toNat_natCast]
++        omega
++      rw [hk] at hmem
++      exact List.mem_cons.mp hmem
++    · intro x hx
++      have := markedCols_le_of_top h_mono h_top x hx
++      omega
+   have h_park_col' : sp_scan'.col = (n + 1 + m) + 1 := by
+     have h1 := SIndent_col h_ind; rw [hcol_entry] at h1; omega
+   have hpk : s'.needIndentCheck = false ∧ LastTokenReal s'.tokens ∧
+@@ -25767,7 +25919,7 @@
+   have h_vslot105 : (s'.currentIndent ≤ ((n + 1 + m : Nat) : Int) ∧
+       sp_scan'.col = (n + 1 + m) + 1 ∧ ∀ sp_v : SurfPos,
+       SBlockIndented (n + 1 + m) .blockOut sp_scan' sp_v →
+-        SLYamlStream sp_start sp_v) ∨ s'.implicitValueLine = some s'.line :=
++        SLYamlStream sp_start sp_v ∧ EntryValues s' (SLYamlStream sp_start) sp_v) ∨ s'.implicitValueLine = some s'.line :=
+     match hc with
+     | Or.inl h => Or.inr (by
+         subst h
+@@ -25776,7 +25928,8 @@
+     | Or.inr h =>
+       -- Item 209: and the slot's own stack top, the caller's measurement.
+       Or.inl ⟨h_top_in, h_park_col',
+-        (compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).2⟩
++        fun e content => ⟨(compactExplicitKeyFrame h_close_old h_ind (h_qlit h)).2 e content,
++          (h_questionContext h).1 e content⟩⟩
+   exact ⟨sp_block, sp_block, sp_block, sp_scan', h_stream_block,
+          BlockStack.nil sp_block, FlowStackB.nil sp_block .sep,
+          PendingNode.pendingMapValue (h_next := fun _ => by
+@@ -25790,12 +25943,12 @@
+                    (SCompactMapTail.nil (n + 1 + m) sp_v))))
+            h_floor h_top_in
+            hpk.1 hpk.2.1 hpk.2.2.1
+-           (h_expl105.elim
+-             (fun ⟨q, literal, route, chain⟩ => Or.inl ⟨q, literal, route, chain, by
+-               by_cases only : ∀ x ∈ RegisterWitness.markedCols s', x = n + 1 + m
+-               · exact NodeValues.of_question literal route only
+-               · trace_state; fail "R2_NODE_COMPACT_QUESTION_ANCESTORS"⟩)
+-             Or.inr) h_vslot105
++           (hc.elim
++             (fun eq => Or.inr (dispatchBlock_colon_notQuestion (eq ▸ h_dispatch)))
++             (fun hq => h_expl105.elim
++               (fun ⟨q, literal, route, chain⟩ =>
++                 Or.inl ⟨q, literal, route, chain, (h_questionContext hq).2⟩)
++               Or.inr)) h_vslot105
+            hpk.2.2.2
+            -- Item 68: the indicator stands at `s-indent(m)` past the entry's own
+            -- column, and the park is the character after it.
+@@ -27753,7 +27906,7 @@
+       sc.currentIndent ≤ (nv : Int) ∧ sc.needIndentCheck = false ∧
+       sc.simpleKeyAllowed = true ∧ sp_gram = sp_scan ∧ sp_scan.col = nv + 1 ∧
+       (∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_gram sp_v →
+-        SLYamlStream sp_start sp_v) ∧
++        (SLYamlStream sp_start sp_v ∧ EntryValues sc (SLYamlStream sp_start) sp_v)) ∧
+       -- Item 541: the conjunct `hkv` (the slot's own route, owed whether or not `nv` was marked) is gone; this chain
+       -- holds it only where `nv ∈ markedCols sc` (item 521) — a reader of the own route must show that membership.
+       -- **Item 191: a LIST of ancestors** — the park may stand inside several
+@@ -27948,6 +28101,34 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  have h_vslot_saved := h_vslot
++  have h_vslot : (∃ (nv : Nat) (sp_a : SurfPos), SLYamlStream sp_start sp_a ∧
++      sc.currentIndent ≤ (nv : Int) ∧ sc.needIndentCheck = false ∧
++      sc.simpleKeyAllowed = true ∧ sp_gram = sp_scan ∧ sp_scan.col = nv + 1 ∧
++      (∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_gram sp_v →
++        SLYamlStream sp_start sp_v) ∧
++      -- Item 541: the conjunct `hkv` (the slot's own route, owed whether or not `nv` was marked) is gone; this chain
++      -- holds it only where `nv ∈ markedCols sc` (item 521) — a reader of the own route must show that membership.
++      -- **Item 191: a LIST of ancestors** — the park may stand inside several
++      -- open `?` frames at once and the landing names one of them.
++      ((∀ nvU ∈ RegisterWitness.markedCols sc,
++        ∀ sp_m : SurfPos, SBlockIndented nv .blockOut sp_gram sp_m →
++        ∀ sp_i sp_c : SurfPos, SIndent nvU sp_m sp_i → GLit ':' sp_i sp_c →
++        ∀ sp_v : SurfPos, SBlockIndented nvU .blockOut sp_c sp_v →
++        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nvU] sp_v) ∨ PackAlt sc)) ∨
++      (InlineResidue sp_scan c →
++        (sc.needIndentCheck = false → LastTokenReal sc.tokens →
++          s_prep.line = sc.line ∧ s_prep.needIndentCheck = false ∧
++          lastRealToken? s_prep.tokens = lastRealToken? sc.tokens ∧
++          penultRealToken? s_prep.tokens = penultRealToken? sc.tokens) →
++        ∃ sp_gram' sp_block' sp_flow' sp_scan'',
++          SLYamlStream sp_start sp_gram' ∧
++          BlockStack sp_gram' sp_block' ∧
++          FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
++          PendingNode s' false sp_start sp_flow' sp_scan'' ∧
++          ScannerSurfCorr s' sp_scan'') :=
++    h_vslot.imp_left (fun ⟨nv, anchor, stream, top, nic, sk, same, col, slot, chain⟩ =>
++      ⟨nv, anchor, stream, top, nic, sk, same, col, fun e h => (slot e h).1, chain⟩)
+   -- Item 19: the arm is selected by where the step LANDS, not by the column
+   -- the pending was parked at.  A mid-line park that crosses a break lands at
+   -- the identical column-0 line start a column-0 park reaches directly, so
+@@ -27965,10 +28146,13 @@
+   -- second goal at the bottom).
+   refine h_land.elim (fun h_landed => ?_) (fun h_mid => ?_)
+   case' refine_2 =>
+-    rcases h_vslot with
++    rcases h_vslot_saved with
+       ⟨nv, sp_a, h_stream_a, h_top_slot, h_nic_slot, h_sk, h_gs, h_col_vslot,
+-       hvs, hkvUp⟩ | h_inl
+-    · -- ═══ Item 51: the compact fill of the open slot (`? - a`, `? ? b`,
++       hvsWide, hkvUp⟩ | h_inl
++    · have hvs := fun e content => (hvsWide e content).1
++      have h_slotValues : SlotValues sc sp_start nv .blockOut sp_gram :=
++        fun e content => (hvsWide e content).2
++      -- ═══ Item 51: the compact fill of the open slot (`? - a`, `? ? b`,
+       -- `? : v`, and the same three on an explicit `:`'s line) — item 33's
+       -- reading with the slot's own closure in the entry closure's place. ═══
+       obtain ⟨h_mid_eq, h_col_ne, h_pay, h_ids⟩ := h_mid
+@@ -28215,7 +28399,7 @@
+               (match hkvUp with
+                | Or.inl kvU => Or.inl (RegisterWitness.MarkedColsIn.relay (RegisterWitness.MarkedColsIn.self sc) kvU)
+                | Or.inr h => Or.inr h)
+-              h_mcstep
++              h_mcstep (fun _ => h_slotValues)
+           -- Item 125: the compact `:` decides its own stamp source; the one
+           -- undecided shape (a live register at the `:`'s own column) stays
+           -- the deferral it already was, and the `?` never reads it.
+@@ -31258,7 +31442,7 @@
+              | Or.inl ⟨ns, hdom, up⟩ => Or.inl (RegisterWitness.MarkedColsIn.relay hdom fun nv hnv sp_m h_bi =>
+                  up nv hnv sp_m h_bi sp_m (SCompactSeqTail.nil n sp_m))
+              | Or.inr h => Or.inr h)
+-            h_mcstep
++            h_mcstep (by intro hq; trace_state; fail "R2_SLOT_PENDING_BLOCK_SUPPLIER")
+         -- Item 125: the compact `:`'s own stamp source, decided here; the
+         -- undecided shape stays the deferral, and the `?` never reads it.
+         refine hcv.elim (fun hc_colon => ?_) (fun hc_q => ?_)
+@@ -41319,7 +41503,7 @@
+       -- Item 209: the content lane reads the SLOT and not the top beside it,
+       -- so the top is projected away here rather than restated downstream — a
+       -- lemma that asks for more than it reads is a lemma nobody can call.
+-      h_ncol_old h_expl51 (h_vslot51.imp (fun h => ⟨h.2.1, h.2.2⟩) (fun _ => trivial))
++      h_ncol_old h_expl51 (h_vslot51.imp (fun h => ⟨h.2.1, fun e content => (h.2.2 e content).1⟩) (fun _ => trivial))
+       h_kslot93 (h_closeF99.imp (fun ⟨ks, hlt, hcov, f⟩ => ⟨ks, fun fr h => by have := hlt fr h; omega, hcov, fun sp h => f sp (SBlockNode_blockIn_to_blockOut h)⟩) id) h_frames99
+       h_closeFV108 h_framesV108 h_sk58
+       h_ivl101 h_nic101 h_real101 h_mono h_base
+@@ -43274,3 +43458,44 @@
+   let some callerBody := caller.value? (allowOpaque := true) | throwError "caller has no body"
+   unless callerBody.getUsedConstants.contains producerName do throwError "caller bypasses producer"
+   Lean.logInfo s!"STORED-CONTEXT-AUDIT fields={stored.map Lean.Name.toString} frame_spenders=2/2 old_extra_premise=absent scanner_top=connected actual_caller=connected"
++
++#print axioms L4YAML.Proofs.StreamAccum.compact_open_map
++run_cmd do
++  let axioms ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.compact_open_map
++  Lean.logInfo s!"RAW-COMPACT-AXIOMS {repr axioms}"
++
++run_cmd do
++  let env ← Lean.getEnv
++  let some ctor := env.find? `L4YAML.Proofs.StreamAccum.PendingNode.pendingMapValue
++    | throwError "missing actual constructor"
++  let mut cursor := ctor.type
++  let mut wideStored := false
++  while let .forallE name domain body _ := cursor do
++    if name == `h_vslot && domain.getUsedConstants.contains
++        `L4YAML.Proofs.R2ConsumptionClosure.EntryValues then wideStored := true
++    cursor := body
++  unless wideStored do throwError "actual wide slot did not store the whole family"
++  let some compact := env.find? `L4YAML.Proofs.StreamAccum.compact_open_map
++    | throwError "missing compact producer"
++  let some compactBody := compact.value? (allowOpaque := true)
++    | throwError "compact producer has no body"
++  unless compactBody.getUsedConstants.contains
++      `L4YAML.Proofs.R2CompactSlot.SlotValues.compact_question do
++    throwError "compact producer did not spend the actual wide context"
++  let some caller := env.find? `L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock
++    | throwError "missing actual map-slot caller"
++  let mut parameterCursor := caller.type
++  let mut wideRead := false
++  while let .forallE name domain body _ := parameterCursor do
++    if name == `h_vslot && domain.getUsedConstants.contains
++        `L4YAML.Proofs.R2ConsumptionClosure.EntryValues then wideRead := true
++    if name == `h_slotValues then throwError "map-slot caller gained an external context premise"
++    parameterCursor := body
++  unless wideRead do throwError "map-slot caller did not read the stored field"
++  let some callerBody := caller.value? (allowOpaque := true)
++    | throwError "map-slot caller has no body"
++  unless callerBody.getUsedConstants.contains `L4YAML.Proofs.StreamAccum.compact_open_map do
++    throwError "map-slot caller bypasses the compact producer"
++  let axioms ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.compact_open_map
++  if axioms.contains `sorryAx then throwError "compact producer contains sorryAx"
++  Lean.logInfo "WIDE-SLOT-AUDIT stored=h_vslot compact_reader=present map_slot_reader=present new_map_slot_premise=absent compact_sorryAx=absent"

@@ -1,0 +1,73 @@
+{
+  "parent_commit": "e7faf3f9c7ea1ccbc61903c426de253faa513e0c",
+  "branch": "test/r2-compact-slot",
+  "toolchain": "Lean 4.36.0",
+  "toolchain_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "accepted_source_sha256": "f1eece1acca9f124666aa8fcc8fe5b591c316df35b292b32ed28af491a25772a",
+  "standalone_exit_codes": {
+    "Controls": 0,
+    "SlotValues": 0,
+    "ConcreteSlots": 0,
+    "JointSibling": 0,
+    "DependencyAudit": 0,
+    "CompactAxiomBaseline": 0
+  },
+  "dependency_audits": [
+    {
+      "root": "compact_level3",
+      "constants": 6160
+    },
+    {
+      "root": "actual_root_to_consumption",
+      "constants": 6226
+    },
+    {
+      "root": "actual_sibling_then_ancestor",
+      "constants": 6187
+    }
+  ],
+  "concrete_allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "development": [
+    "helper parenthesization/alias field resolution fixed; no lemma refutation",
+    "inline namespace opens and constructor branch case analysis fixed; 22 labels plus six errors preserved",
+    "remaining old context identifier fixed; 22 labels plus one error preserved",
+    "concrete list-nil simplification and final family closure fixed; no contract refutation",
+    "relative preparation-script invocation exited 2 before compilation; corrected absolute path used"
+  ],
+  "compressed_artifacts": [
+    {
+      "path": "logs/development-first.log.xz",
+      "uncompressed_bytes": 455199,
+      "uncompressed_sha256": "c4966eb0c6b66bd8ace1008310360749e53ff3527c5c4d6117807a15670c977e"
+    },
+    {
+      "path": "logs/development-reference.log.xz",
+      "uncompressed_bytes": 453736,
+      "uncompressed_sha256": "d4d6a237a6e6d13a9ce26d44caa57bd75ea5bbad272a84d9c7d18aa2193d54e8"
+    },
+    {
+      "path": "logs/compact-final.log.xz",
+      "uncompressed_bytes": 453747,
+      "uncompressed_sha256": "9ae2d9aede393f70a576105ee008ff51f3b23112602e21e69accff044dc07561"
+    },
+    {
+      "path": "logs/development-standalone.log.xz",
+      "uncompressed_bytes": 7019,
+      "uncompressed_sha256": "147cff6dc5131c18b9b6cfa30e50cfdc7f15995081804c432208ee4d105ba963"
+    },
+    {
+      "path": "lineage/first-integration-from-final.patch.xz",
+      "uncompressed_bytes": 4211,
+      "uncompressed_sha256": "4033a950198b7c7166c7c8bd7951dec9059bea117b1473ee63b591f92183380c"
+    },
+    {
+      "path": "lineage/stale-reference-from-final.patch.xz",
+      "uncompressed_bytes": 3016,
+      "uncompressed_sha256": "b6729460d57e24536dbaf2c3216d3b24448eb3cc188d2ed4884b81533264c689"
+    }
+  ]
+}
