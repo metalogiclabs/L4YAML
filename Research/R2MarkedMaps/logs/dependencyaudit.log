@@ -1,0 +1,3 @@
+ACTUAL-PRODUCER-AUDIT constants=7294 required=7 forbidden=9 missing=0 free_premises=0 axioms=standard3
+REACHABLE-PROJECTION-AUDIT inherited_native_leaves=4 independent_kernel_replays=4 new_axioms=0 semantic_context_still_required=true
+MIGRATION-BOUNDARY production_module_unchanged=true eight_prior_demands_not_replayed=true critical_retirements=0

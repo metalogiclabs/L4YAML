@@ -1,0 +1,5 @@
+INHERITED-NATIVE _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2: independently_kernel_replayed=R2MarkedMaps.lineFeedBool
+INHERITED-NATIVE _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3: independently_kernel_replayed=R2MarkedMaps.carriageReturnBool
+INHERITED-NATIVE _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1: independently_kernel_replayed=R2MarkedMaps.lineFeedProp
+INHERITED-NATIVE _private.L4YAML.Proofs.Production.ScalarProduction.0.L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2: independently_kernel_replayed=R2MarkedMaps.carriageReturnProp
+NATIVE-BOUNDARY inherited_leaves=4 kernel_replays=4 replay_axioms=0 original_profiles_preserved=true

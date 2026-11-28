@@ -1,0 +1,18 @@
+{"state":
+ "WARRANTED_ACTUAL_PRODUCER_COMPOSITION; SUPERSEDED_DUPLICATE_OWNERSHIP; UNKNOWN_FULL_MIGRATION",
+ "reachable_root_inherited_native_leaves": 4,
+ "production_pr_ready": false,
+ "prior_full_diagnostic_demands": 8,
+ "ownership_control_inputs": 19,
+ "new_ownership_discoveries": 0,
+ "initialized_root_axioms": ["propext", "Classical.choice", "Quot.sound"],
+ "initialized_actual_producer_root_free_premises": 0,
+ "independent_kernel_replays_of_native_leaves": 4,
+ "generic_semantic_context_preservation": "UNKNOWN",
+ "full_diagnostic_replayed_in_this_experiment": false,
+ "critical_retirements": 0,
+ "checked_modules": 8,
+ "canonical_ownership_lineage": "262952d4a31c46ba48c914714d40747f1f2e75e5",
+ "all_reachable_prefixes_have_mapping_marks": true,
+ "actual_explicit_colon_rule_checked": true,
+ "actual_compact_question_rule_checked": true}

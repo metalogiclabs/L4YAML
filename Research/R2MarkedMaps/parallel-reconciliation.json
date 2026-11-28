@@ -1,0 +1,24 @@
+{
+  "state": "DUPLICATE_OWNERSHIP_SUPERSEDED; NEW_ACTUAL_PRODUCER_COMPOSITION",
+  "source_parent": "147b1daa886dbfa7f376ad2829c046a6862c069d",
+  "canonical_ownership_commit": "262952d4a31c46ba48c914714d40747f1f2e75e5",
+  "canonical_ownership_tree": "dae64cd8e2501ca5522cd2a549ecafe87f870014",
+  "canonical_report_directly_read": true,
+  "scanner_source_and_bridge_directly_read": true,
+  "fresh_full_parallel_compiler_replay": false,
+  "overlapping_ownership_fact_counted_once": true,
+  "new_ownership_discoveries": 0,
+  "canonical_real_accumulation_threading_reused_by_reference": true,
+  "semantic_context_at_all_pending_births": "UNKNOWN",
+  "joint_dependency_blobs": {
+    "Controls.lean": "0ee8430bc211b37c6e3044a565c29a673da2bb80",
+    "Joint.lean": "e769365c35814aeaf04f653f31bd51e5d72d5222",
+    "Slots.lean": "b6010b7a4d75b8c9a097b78232e686ea0ecac4f7",
+    "State.lean": "d0d81e93614528515589e6b14e930646c7ae74cb"
+  },
+  "prior_diagnostic_demands": 8,
+  "diagnostic_replayed_here": false,
+  "accepted_critical_positions_last_observed": 7,
+  "critical_retirements": 0,
+  "production_pr_ready": false
+}

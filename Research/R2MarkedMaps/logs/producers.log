@@ -1,0 +1,2 @@
+'R2JointFrames.Slot.actual_question' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Context.actual_colon' depends on axioms: [propext, Classical.choice, Quot.sound]
