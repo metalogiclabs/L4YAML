@@ -1,0 +1,12 @@
+EXACT-DIAGNOSTIC Research/R2UnmarkedOwner/logs/paired-diagnostic.log: demands=20 extra=0
+EXACT-DIAGNOSTIC Research/R2UnmarkedOwner/logs/producer-audit.log: demands=20 extra=0
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.colon_open_map_explicit: byte_identical=true
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.compact_open_map: byte_identical=true
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented: byte_identical=true
+ORDINARY-COMPLETION-AXIOMS byte_identical=true
+ACTUAL-READER-ERASURE retained=20 extra_type_mismatch=1
+EXACT-DIAGNOSTIC Research/R2UnmarkedOwner/logs/colon-composition.log: demands=19 extra=0
+COMPOSED-COLON producer_sorryAx=false funded_sequence_callers=2 remaining_close_supplier=1
+EXACT-DIAGNOSTIC Research/R2UnmarkedOwner/logs/integrated-diagnostic.log: demands=20 extra=0
+INTEGRATION exact_parallel_patch=true field_writers=12 standalone_modules=6 critical_retirements=0
+WARRANT unmarked_pair_suppliers=2 field_constructions=12 full_module=false critical_retirements=0

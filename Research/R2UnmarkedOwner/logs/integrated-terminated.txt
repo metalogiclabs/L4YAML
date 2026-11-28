@@ -1,0 +1,6 @@
+exit=137
+compiler_log_bytes=0
+compiler_diagnostics_observed=false
+concurrent_standalone_replay=true
+cause=UNKNOWN; memory pressure suspected
+retry=single Lean compiler thread, no concurrent proof job

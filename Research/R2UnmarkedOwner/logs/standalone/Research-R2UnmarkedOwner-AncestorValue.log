@@ -1,0 +1,3 @@
+'R2UnmarkedOwner.AncestorValue.of_entries' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2UnmarkedOwner.AncestorValue.restrict_state' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2UnmarkedOwner.AncestorValue.pair' depends on axioms: [propext, Classical.choice, Quot.sound]

@@ -1,0 +1,10 @@
+Research/R2UnmarkedOwner/Concrete.lean:17:20: error: Type mismatch: After simplification, term
+  hx
+ has type
+  x = 0
+but is expected to have type
+  x = 0 ∨ x = 2
+Research/R2UnmarkedOwner/Concrete.lean:22:48: error(lean.unknownIdentifier): Unknown identifier `L4YAML.CharPredicates.isNsPlainSafe`
+Research/R2UnmarkedOwner/Concrete.lean:35:42: error(lean.unknownIdentifier): Unknown identifier `L4YAML.CharPredicates.isNsPlainSafe`
+'R2UnmarkedOwner.initialized_unmarked_value' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2UnmarkedOwner.initialized_unmarked_then_ancestor' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

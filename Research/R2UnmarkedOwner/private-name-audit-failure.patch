@@ -1,0 +1,22 @@
+--- a/Research/R2UnmarkedOwner/CompositionAudit.inc.lean
++++ b/Research/R2UnmarkedOwner/CompositionAudit.inc.lean
+@@ -11,17 +11,8 @@
+   let expected := #[`propext, `Classical.choice, `Quot.sound,
+     `L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_2,
+     `L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod._native.native_decide.ax_1_3]
+-  -- These two native leaves are private to the actual source module. Bind
+-  -- the raw names to the loaded dispatch helper; use Lean's own user-name
+-  -- projection only to verify the exact permitted leaf inventory.
+-  let dispatchAxioms ← Lean.collectAxioms
+-    `L4YAML.Proofs.StreamAccum.dispatchBlockValue_full_prod
+-  let userAxioms := dispatchAxioms.map Lean.privateToUserName
+-  unless userAxioms.size == expected.size && userAxioms.all expected.contains &&
+-      expected.all userAxioms.contains do throwError "unexpected dispatch leaves {dispatchAxioms}"
+-  unless axioms.size == dispatchAxioms.size && axioms.all dispatchAxioms.contains &&
+-      dispatchAxioms.all axioms.contains do
+-    throwError "composed colon adds axioms beyond its actual dispatch helper {axioms}"
++  unless axioms.size == expected.size && axioms.all expected.contains && expected.all axioms.contains do
++    throwError "unexpected composed colon axiom profile {axioms}"
+   let some caller := env.find? `L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock
+     | throwError "missing integrated landed caller"
+   let some callerBody := caller.value? (allowOpaque := true) | throwError "missing integrated caller body"

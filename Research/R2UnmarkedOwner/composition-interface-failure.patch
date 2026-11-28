@@ -1,0 +1,38 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -25867,7 +25867,7 @@
+     (dispatchBlock_colon_scanValue h_dispatch)
+     (show PendingKeySound.Sound (if s_prep.allowDirectives then
+       { s_prep with allowDirectives := false, documentEverStarted := true } else s_prep) from by
+-      split <;> exact h_sound_prep.of_eq rfl rfl rfl rfl rfl rfl)
++      split <;> exact h_sound_prep)
+     h_noflow_disp h_mono_out h_top_in
+   have payloads := AncestorValue.payloads
+     (fun e value => hvp_family sp_mid sp_ind sp_scan' h_ssl h_ind h_lit e value)
+@@ -29418,7 +29418,7 @@
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+             (h_pairAt := fun _ a hm hn => pair a (h_markBack a hm (by simp)) hn)
+             sp_start sp_gram sp_mid _ k s_prep s'
+-            sp_scan' h_stream_new (fun mid i c comments indent literal v value => ⟨hvp mid i c comments indent literal v value, by trace_state; fail "R2_COLON_CLOSE_WHOLE_VALUE"⟩) h_ssl hcol_mid h_ind hcorr_prep hcorr_result
++            sp_scan' h_stream_new (by trace_state; fail "R2_COLON_CLOSE_WHOLE_VALUE") h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+             -- Item 76: the explicit VALUE line measures on the same datum the
+             -- keyless opener does — `h_vpack` carries no flag, and the
+             -- landing supplies one for every park off a line start.
+@@ -31677,7 +31677,7 @@
+         · rcases h_kslot with kslot | _
+           · by_cases hknv : k ∈ RegisterWitness.markedCols sc
+             · exact h_explicit (fun mid comments z tail i c indent literal v value =>
+-                    AncestorValue.of_entries (h_sequenceContext mid comments z tail) hknv
++                    AncestorValue.of_entries (h_sequenceContext mid (SBlockIndented.empty n .blockIn sp_scan mid comments) z tail) hknv
+                       (fun x hx => (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem hx)
+                       indent literal value) (h_pairMarked hknv)
+             · rcases h_upSpend with hup | _
+@@ -31689,7 +31689,7 @@
+         · rcases h_kslot with kslot | _
+           · by_cases hknv : k ∈ RegisterWitness.markedCols sc
+             · exact h_explicit (fun mid comments z tail i c indent literal v value =>
+-                    AncestorValue.of_entries (h_sequenceContext mid comments z tail) hknv
++                    AncestorValue.of_entries (h_sequenceContext mid (SBlockIndented.empty n .blockIn sp_scan mid comments) z tail) hknv
+                       (fun x hx => (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem hx)
+                       indent literal value) (h_pairMarked hknv)
+             · -- Item 185: the pack is OFF the landing's column.

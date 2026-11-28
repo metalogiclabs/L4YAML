@@ -1,0 +1,13 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -30597,8 +30597,8 @@
+                     (upU k hU e node z tail i c indent literal v value).1, by
+                   intro a ha hlt mid i colon comments indent literal value content
+                   exact AncestorValue.pair
+-                    (upU k hU mid comments mid (SCompactSeqTail.nil n mid)
+-                      i colon indent literal value content)
++                    ((upU k hU mid comments mid (SCompactSeqTail.nil n mid)
++                      i colon indent literal value content).1)
+                     ((h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem ha) hlt⟩
+               · exact Or.inr ⟨nsU, hU⟩
+             · exact Or.inr ⟨[], List.not_mem_nil⟩

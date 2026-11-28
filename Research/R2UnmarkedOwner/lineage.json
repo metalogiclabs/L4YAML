@@ -1,0 +1,14 @@
+{
+  "publication_parent": "8b390b0a7ee60683665df3716d427dbd1f3d453b",
+  "proof_source_parent": "8d4596f26cf430df50d0e3f1e0dce2ea1104f83d",
+  "parent_diagnostic_source_sha256": "9b7617d47c6e3a8792bfa659a73238a72dd004195b6e78f3a6b82512ae211b83",
+  "reused_ownership_commit": "45db495873471857987ff1e0c71e826e991adc3a",
+  "reused_ownership_blob": "6f23e34f6545301013b303c7bdb77c6c286fa972",
+  "qualified_owner": "bea84871310b2b00518629638607bd46f7a2ebba",
+  "qualified_owner_source_sha256": "695b4080d6086b1d8d78c9459c5c12d9850947be3811cba45fbedd12fd1ad62f",
+  "accepted_library_source_sha256": "f1eece1acca9f124666aa8fcc8fe5b591c316df35b292b32ed28af491a25772a",
+  "compiler": "Lean 4.36.0 / 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "final_integrated_compiler_threads": 1,
+  "full_migration": "UNKNOWN",
+  "critical_roster_remeasured": false
+}

@@ -1,0 +1,145 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1206,6 +1206,43 @@
+ 
+ end L4YAML.Proofs.R2ConsumptionClosure
+ 
++namespace R2UnmarkedOwner
++
++-- Strengthen an existing informative value continuation. This field keeps
++-- its old stream answer and also the entire smaller-column family after
++-- every sibling tail of the consumed owner, whether that owner stays marked.
++def AncestorValue (sc : ScannerState) (start : SurfPos) (own : Nat) (e : SurfPos) : Prop :=
++  ResumeFrames (SLYamlStream start) [FrameLevel.map own] e ∧
++  ∀ z, SCompactMapTail own e z → ValuesBelow sc (SLYamlStream start) own z
++
++lemma AncestorValue.restrict_state {before after : ScannerState}
++    {start e : SurfPos} {own : Nat} (h : AncestorValue before start own e)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    AncestorValue after start own e :=
++  ⟨h.1, fun z tail => (h.2 z tail).narrow back⟩
++
++lemma AncestorValue.of_entries {before after : ScannerState}
++    {start e i c v : SurfPos} {own : Nat}
++    (family : EntryValues before (SLYamlStream start) e)
++    (marked : own ∈ RegisterWitness.markedCols before)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before)
++    (indent : SIndent own e i) (literal : GLit ':' i c)
++    (content : SBlockIndented own .blockOut c v) : AncestorValue after start own v := by
++  have step := ValuesBelow.at family marked (marked_lt_ceiling marked)
++  have retained := step.2 i c indent literal v content
++  exact ⟨ResumeFrames.one (fun z tail => (retained z tail).close),
++    fun z tail => (retained z tail).narrow back⟩
++
++lemma AncestorValue.pair {sc : ScannerState} {start v : SurfPos} {own ancestor : Nat}
++    (h : AncestorValue sc start own v)
++    (marked : ancestor ∈ RegisterWitness.markedCols sc) (lt : ancestor < own) :
++    ExplValueLine start ancestor v :=
++  (h.2 v (SCompactMapTail.nil own v)).valueLine marked lt
++
++end R2UnmarkedOwner
++open R2UnmarkedOwner
++
++
+ open L4YAML.Proofs.R2ConsumptionClosure
+ open L4YAML.Proofs.IndentStackCover (FrameLevel)
+ namespace L4YAML.Proofs.R2InvariantPayload
+@@ -3382,7 +3419,7 @@
+         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++        AncestorValue sc sp_start nv sp_v) ∨ PackAlt sc)
+       -- ═══ **Item 198 — `h_closeF`'s twin at the VALUE-LINE bottom** (LAST, so
+       -- the patterns naming the older fields still bind them), relayed from
+       -- `pendingBlock.h_closeFV`.  `h_closeF` (item 99) is this park's
+@@ -3589,7 +3626,7 @@
+         ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+         ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++        AncestorValue sc sp_start nv sp_v) ∨ PackAlt sc)
+       -- ═══ **Item 198 — `h_closeF`'s twin at the VALUE-LINE bottom** (LAST, so
+       -- the patterns naming the older fields still bind them).  Item 99 gave
+       -- this lane one bottom and item 155 gave it a cover; the stack it holds
+@@ -30045,7 +30082,7 @@
+       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++      AncestorValue sc sp_start nv sp_v) ∨ PackAlt sc)
+     -- **Item 194 (LAST): the park's OWN resume frames** (`pendingBlockContent.h_closeF`,
+     -- item 99), threaded here for the first time.  Item 173 added the `:`/`?`
+     -- opener's resume arm and punted it at this call with "no mapping-lane
+@@ -30099,6 +30136,17 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  have h_kslotUp_family := h_kslotUp
++  have h_kslotUp : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
++      ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →
++      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
++      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
++      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
++      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc :=
++    h_kslotUp.imp_left (fun ⟨ns, domain, route⟩ => ⟨ns, domain,
++      fun nv marked e node z tail i c indent literal v value =>
++        (route nv marked e node z tail i c indent literal v value).1⟩)
++
+   have h_completedContext : CompletedValues sc sp_start n sp_gram :=
+     fun e comments z tail => (h_entry_old e comments z tail).2
+   have h_entry_old : ∀ e, SSLComments sp_gram e →
+@@ -30670,7 +30718,7 @@
+       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++      AncestorValue sc sp_start nv sp_v) ∨ PackAlt sc)
+     -- **Item 198 (LAST): the park's value-line stack** (`pendingBlock.h_closeFV`).
+     -- `h_kslotUp` above answers a LIST of ancestor frames DIRECTLY; this holds
+     -- the levels still open BETWEEN this park and one of them, so a landing
+@@ -30722,6 +30770,17 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  have h_kslotUp_family := h_kslotUp
++  have h_kslotUp : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
++      ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
++      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
++      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
++      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
++      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc :=
++    h_kslotUp.imp_left (fun ⟨ns, domain, route⟩ => ⟨ns, domain,
++      fun nv marked e node z tail i c indent literal v value =>
++        (route nv marked e node z tail i c indent literal v value).1⟩)
++
+   have h_sequenceContext : SequenceValues sc sp_start n sp_scan :=
+     fun e node z tail => (h_close_entry_old e node z tail).2
+   have h_close_entry_old : ∀ (e : SurfPos), SBlockIndented n .blockIn sp_scan e →
+@@ -37921,7 +37980,7 @@
+       ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+       ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+       ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++      AncestorValue sc sp_start nv sp_v) ∨ PackAlt sc)
+     -- **Item 198 (LAST): the park's value-line stack** (`pendingBlock.h_closeFV`),
+     -- relayed onto whatever this content step parks exactly as `h_closeF_old`
+     -- is — the same fold, one bottom over.
+@@ -37941,6 +38000,17 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
++  have h_kslotUp_old_family := h_kslotUp_old
++  have h_kslotUp_old : (∃ ns : List Nat, RegisterWitness.MarkedColsIn sc ns ∧ ∀ nv ∈ ns,
++      ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
++      ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
++      ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
++      ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
++      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc :=
++    h_kslotUp_old.imp_left (fun ⟨ns, domain, route⟩ => ⟨ns, domain,
++      fun nv marked e node z tail i c indent literal v value =>
++        (route nv marked e node z tail i c indent literal v value).1⟩)
++
+   have h_sequenceContext : SequenceValues sc sp_start n sp_scan :=
+     fun e node z tail => (h_close_entry_old e node z tail).2
+   have h_close_entry_old : ∀ e, SBlockIndented n .blockIn sp_scan e →

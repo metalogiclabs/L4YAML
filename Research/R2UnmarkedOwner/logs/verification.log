@@ -1,0 +1,7 @@
+EXACT-DIAGNOSTIC Research/R2UnmarkedOwner/logs/paired-diagnostic.log: demands=20 extra=0
+EXACT-DIAGNOSTIC Research/R2UnmarkedOwner/logs/producer-audit.log: demands=20 extra=0
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.colon_open_map_explicit: byte_identical=true
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.compact_open_map: byte_identical=true
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented: byte_identical=true
+ORDINARY-COMPLETION-AXIOMS byte_identical=true
+WARRANT unmarked_pair_suppliers=2 field_constructions=12 full_module=false critical_retirements=0
