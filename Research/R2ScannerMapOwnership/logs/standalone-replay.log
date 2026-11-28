@@ -10,3 +10,8 @@ CHECKED snapshot/Slots
 CHECKED own/Bridge
 CHECKED own/Audit
 CHECKED own/Verify
+CHECKED own/JointStep
+CHECKED own/JointColon
+CHECKED own/JointFixture
+CHECKED own/JointWitness
+CHECKED own/ConnectedAudit

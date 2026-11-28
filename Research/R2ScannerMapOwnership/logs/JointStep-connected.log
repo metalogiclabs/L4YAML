@@ -1,0 +1,11 @@
+'R2ActualJointStep.context_preprocess' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.scan_sequence_keeps_levels' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.landed_sequence_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.landed_sequence' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.initialized_landed_sequence' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

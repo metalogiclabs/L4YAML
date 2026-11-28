@@ -39,7 +39,7 @@ def main : IO Unit := do
     throw (IO.userError "checked axiom audit missing")
   let replay ← readEvidence "Research/R2ScannerMapOwnership/logs/standalone-replay.log"
   let checked := replay.splitOn "\n" |>.filter (·.startsWith "CHECKED ")
-  unless checked.length == 12 do throw (IO.userError s!"replay inventory changed: {checked}")
+  unless checked.length == 17 do throw (IO.userError s!"replay inventory changed: {checked}")
   IO.FS.writeFile "Research/R2ScannerMapOwnership/result.json" (Json.pretty (Json.mkObj [
     ("state", toJson "WARRANTED_SCANNER_OWNERSHIP; UNKNOWN_SEMANTIC_MIGRATION"),
     ("arbitrary_inputs_and_prefix_lengths", toJson true),
@@ -48,7 +48,7 @@ def main : IO Unit := do
     ("old_sound_implies_maps", toJson false),
     ("remaining_demands", toJson remaining), ("extra_errors", toJson (0 : Nat)),
     ("full_module_accepted", toJson false), ("critical_retirements", toJson (0 : Nat)),
-    ("own_modules_checked", toJson (8 : Nat)), ("snapshot_dependencies_checked", toJson (4 : Nat)),
+    ("own_modules_checked", toJson (13 : Nat)), ("snapshot_dependencies_checked", toJson (4 : Nat)),
     ("new_step_axioms", toJson (0 : Nat)), ("initialized_inherited_native_leaves", toJson (4 : Nat))]))
   IO.println "WARRANT initialized_prefix_ownership=true actual_loop_threaded=true errors=8 full_module=false critical_retirements=0"
 

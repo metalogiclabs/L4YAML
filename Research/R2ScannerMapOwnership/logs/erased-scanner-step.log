@@ -1,0 +1,60 @@
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:13730:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:19681:5: warning: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:26986:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:27578:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:28604:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:28829:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:37152:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:38121:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/erased/L4YAML/Proofs/Production/StreamAccum.lean:42459:26: error: Application type mismatch: The argument
+  h_maps
+has type
+  R2MapOwnership.Maps sc
+but is expected to have type
+  R2MapOwnership.Maps s_next
+in the application
+  @ih s_next sp_gram' sp_block' sp_flow' sp_scan' tokens b' h_stream'
+    (ScannerCorrectness.scanNextToken_preserves_KeysBehindCursor sc s_next h_next h_kbc)
+    (StaleCursorFloor.scanNextToken_preserves_StaleKeyCursorFloor sc s_next h_next h_scf) h_stack' h_flow' h_pending'
+    h_flag' h_corr' h_interior' (IndentStackBase.scanNextToken_base h_next h_base)
+    (IndentStackMono.scanNextToken_mono h_next h_mono h_base) h_sound' h_maps

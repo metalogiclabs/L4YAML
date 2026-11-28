@@ -1,0 +1,48 @@
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:13730:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:19681:5: warning: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:26986:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:27578:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:28604:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:28829:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:37152:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+verification/map-accepted/L4YAML/Proofs/Production/StreamAccum.lean:38121:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`

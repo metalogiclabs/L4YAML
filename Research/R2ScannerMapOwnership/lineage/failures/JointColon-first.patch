@@ -1,0 +1,68 @@
+--- a/JointColon.lean
++++ b/JointColon.lean
+@@ -95,7 +95,7 @@
+   have newMono := mono.of_indents_eq indents
+   have newSound := scanValue_sound step sound
+   have newMaps := maps.scan_value step
+-  have consumed := R2ValueOwnership.scanValue_own_unmarked (own := s.col) step sound flow newMono
++  have consumed := R2ValueOwnership.scanValue_own_unmarked step sound flow newMono
+     (by rw [currentIndent_of_indents_eq indents]; omega)
+   have back : ∀ x ∈ RegisterWitness.markedCols t, x ∈ RegisterWitness.markedCols s :=
+     fun _ marked => (RegisterWitness.scanValue_markedCols step
+@@ -112,56 +112,4 @@
+ #print axioms live_register_marked
+ #print axioms explicit_colon
+ 
+--- Exact initialized, preprocessed and dispatched caller. Structural premises
+--- come from initialized_facts and the real scanner transitions. The sole
+--- unfinished semantic supply is the retained Context at the completed key.
+-lemma initialized_explicit_colon (input : String) (n : Nat)
+-    {s prep t : ScannerState} {line : Nat} {start e i c : SurfPos}
+-    (reached : R2MapOwnership.prefixes input n = some s)
+-    (wholeStep : scanNextToken s = .ok (some t))
+-    (preprocess : scanNextToken_preprocess s = .ok (some (prep,':')))
+-    (step : scanValue (dispatchState prep) = .ok t)
+-    (flow : (dispatchState prep).inFlow = false)
+-    (key : (dispatchState prep).explicitKeyLine = some line)
+-    (cleared : (scanValueClearKey (dispatchState prep)).simpleKey.possible = false)
+-    (column : ((dispatchState prep).col : Int) = (dispatchState prep).explicitKeyCol)
+-    (context : Context s (SLYamlStream start) e)
+-    (indent : SIndent (dispatchState prep).col e i) (literal : GLit ':' i c) :
+-    Slot t (SLYamlStream start) (dispatchState prep).col .blockOut c ∧
+-    NodeValues t start (dispatchState prep).col c ∧
+-    (∀ v, SBlockIndented (dispatchState prep).col .blockOut c v →
+-      SLYamlStream start v ∧ L4YAML.Proofs.R2ConsumptionClosure.EntryValues t (SLYamlStream start) v) := by
+-  obtain ⟨sound, mono, _, _, maps⟩ := R2MapOwnership.initialized_facts input n s reached
+-  have prepSound := PendingKeySound.preprocess_sound preprocess sound mono
+-  have prepMono := IndentStackMono.preprocess_mono preprocess mono
+-  have prepMaps := maps.preprocess sound.slots preprocess
+-  have disSound : Sound (dispatchState prep) := by
+-    unfold dispatchState
+-    split
+-    · exact prepSound.of_eq rfl rfl rfl rfl rfl rfl
+-    · exact prepSound
+-  have disMono : IndentStackMono.Mono (dispatchState prep) := by
+-    unfold dispatchState
+-    split
+-    · exact prepMono.of_indents_eq rfl
+-    · exact prepMono
+-  have disMaps : R2MapOwnership.Maps (dispatchState prep) := by
+-    unfold dispatchState
+-    split
+-    · exact prepMaps.of_eq rfl rfl
+-    · exact prepMaps
+-  have disContext := context_dispatch (context_preprocess preprocess context)
+-  obtain ⟨slot, nodes⟩ := explicit_colon step flow key cleared column disSound disMono disMaps
+-    disContext indent literal
+-  have nextPrefix : R2MapOwnership.prefixes input (n+1) = some t := by
+-    simp [R2MapOwnership.prefixes, reached, wholeStep]
+-  obtain ⟨newSound, newMono, _, _, newMaps⟩ :=
+-    R2MapOwnership.initialized_facts input (n+1) t nextPrefix
+-  refine ⟨slot, nodes, ?_⟩
+-  intro v value
+-  have retained := slot v value
+-  exact ⟨retained.close, retained.entries newMono newSound.slots newMaps⟩
+-
+-#print axioms initialized_explicit_colon
+-
+ end R2ActualJointStep

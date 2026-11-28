@@ -1,0 +1,121 @@
+import Research.R2ScannerMapOwnership.JointColon
+import Research.R2SequenceContext.ConcreteContexts
+
+set_option autoImplicit false
+set_option maxRecDepth 100000
+set_option maxHeartbeats 8000000
+open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
+open L4YAML.Proofs.StreamAccum L4YAML.Proofs.NodeProduction
+open L4YAML.Proofs.IndentStackCover (FrameLevel)
+open L4YAML.Proofs.R2ConsumptionClosure
+open L4YAML.CharPredicates R2ConcreteSuppliers R2CompactControls
+open R2SequenceControls R2ConcreteSequences
+
+deriving instance DecidableEq for YamlPos
+deriving instance DecidableEq for Positioned
+deriving instance DecidableEq for IndentEntry
+deriving instance DecidableEq for SimpleKeyState
+deriving instance DecidableEq for ScannerState
+deriving instance DecidableEq for Except
+
+namespace R2ActualJointWitness
+open R2JointFrames R2ActualJointStep
+
+def source : String := mixed
+def rootState : ScannerState := questionState source 0
+def sequenceState : ScannerState := dashState source 0
+def innerState : ScannerState := questionState source 1
+def consumedState : ScannerState := afterFirstColon source
+def siblingState : ScannerState := dashState source 1
+def finalState : ScannerState := (nthColon source 1).getD (ScannerState.mk' source)
+
+def q0 : SurfPos := ⟨source.toList,0⟩
+def k0 : SurfPos := ⟨source.toList.drop 1,1⟩
+def dash2 : SurfPos := ⟨source.toList.drop 2,2⟩
+def seqSlot : SurfPos := ⟨source.toList.drop 3,3⟩
+def q4 : SurfPos := ⟨source.toList.drop 4,4⟩
+def k4 : SurfPos := ⟨source.toList.drop 5,5⟩
+def endA : SurfPos := ⟨[' ',' ',' ',' ',':',' ','b','\n',' ',' ','-',' ','c','\n',':',' ','d','\n'],0⟩
+def colon4 : SurfPos := ⟨endA.chars.drop 4,4⟩
+def value4 : SurfPos := ⟨endA.chars.drop 5,5⟩
+def endB : SurfPos := ⟨[' ',' ','-',' ','c','\n',':',' ','d','\n'],0⟩
+def nextDash : SurfPos := ⟨endB.chars.drop 2,2⟩
+def nextSlot : SurfPos := ⟨endB.chars.drop 3,3⟩
+def endC : SurfPos := ⟨[':',' ','d','\n'],0⟩
+def value0 : SurfPos := ⟨[' ','d','\n'],1⟩
+
+lemma rootLevels : levels rootState = [FrameLevel.map 0] := by decide +kernel
+lemma sequenceLevels : levels sequenceState = [FrameLevel.seq 2, FrameLevel.map 0] := by decide +kernel
+lemma innerLevels : levels innerState = [FrameLevel.map 4,FrameLevel.seq 2,FrameLevel.map 0] := by decide +kernel
+lemma consumedLevels : levels consumedState = [FrameLevel.map 4,FrameLevel.seq 2,FrameLevel.map 0] := by decide +kernel
+lemma siblingLevels : levels siblingState = [FrameLevel.seq 2,FrameLevel.map 0] := by decide +kernel
+lemma finalLevels : levels finalState = [FrameLevel.map 0] := by decide +kernel
+lemma rootMarks : RegisterWitness.markedCols rootState = [0] := by decide +kernel
+lemma sequenceMarks : RegisterWitness.markedCols sequenceState = [0] := by decide +kernel
+lemma innerMarks : RegisterWitness.markedCols innerState = [0,4] := by decide +kernel
+lemma consumedMarks : RegisterWitness.markedCols consumedState = [0] := by decide +kernel
+lemma siblingMarks : RegisterWitness.markedCols siblingState = [0] := by decide +kernel
+lemma finalMarks : RegisterWitness.markedCols finalState = [] := by decide +kernel
+
+example : (nthQuestion source 1).isSome = true ∧ (nthColon source 1).isSome = true := by decide +kernel
+example : consumedState.input.toList.drop consumedState.offset = value4.chars := by decide +kernel
+example : siblingState.input.toList.drop siblingState.offset = nextSlot.chars := by decide +kernel
+
+lemma root_context : Slot rootState (SLYamlStream q0) 0 .blockOut k0 := by
+  intro e key
+  change Joint rootState (SLYamlStream q0) (levels rootState) e
+  rw [rootLevels]
+  apply Joint.question (by simp [rootMarks]) (GLit.mk _ 0 : GLit '?' q0 k0) ?_ key
+  intro v entry z tail
+  exact (nodocMapRouteF (k := 0) (by rfl) (GStar.nil q0) (SIndent.zero q0)
+    v entry z tail).close
+
+lemma sequence_context : Slot sequenceState (SLYamlStream q0) 2 .blockIn seqSlot := by
+  apply Slot.compact_sequence (n := 0) (m := 1) root_context
+  · simp [sequenceLevels, rootLevels]
+  · intro f hf marked
+    simpa [sequenceMarks, rootMarks] using marked
+  · exact SIndent.succ 0 _ 1 dash2 (SIndent.zero dash2)
+  · exact GLit.mk _ 2
+  · exact space_not_ns _ _
+
+lemma inner_context : Slot innerState (SLYamlStream q0) 4 .blockOut k4 := by
+  apply Slot.compact_question (n := 2) (m := 1) sequence_context
+  · simp [innerLevels, sequenceLevels]
+  · simp [innerMarks]
+  · intro f hf marked
+    simp only [sequenceLevels, List.mem_cons, List.not_mem_nil, or_false] at hf
+    rcases hf with rfl | rfl
+    · simp [innerMarks] at marked
+    · simp [sequenceMarks]
+  · exact SIndent.succ 0 _ 3 q4 (SIndent.zero q4)
+  · exact GLit.mk _ 4
+
+lemma inner_key : Context innerState (SLYamlStream q0) endA :=
+  inner_context endA (plainAKey 4 5 endA.chars)
+
+-- The initial grammar construction above reuses the parallel joint lane's
+-- checked root/compact suppliers. The consumers below use the universal
+-- actual-scanner producers, not its completed-source proof or finite kind guards.
+def prefixState (n : Nat) (present : (R2MapOwnership.prefixes source n).isSome = true) : ScannerState :=
+  (R2MapOwnership.prefixes source n).get present
+
+def stateA : ScannerState := prefixState 4 (by decide +kernel)
+def stateValue4 : ScannerState := prefixState 5 (by decide +kernel)
+def stateB : ScannerState := prefixState 6 (by decide +kernel)
+def stateSibling : ScannerState := prefixState 7 (by decide +kernel)
+def stateC : ScannerState := prefixState 8 (by decide +kernel)
+def stateValue0 : ScannerState := prefixState 9 (by decide +kernel)
+
+def prepA : ScannerState :=
+  (((scanNextToken_preprocess stateA).toOption.get (by decide +kernel)).get (by decide +kernel)).1
+def prepB : ScannerState :=
+  (((scanNextToken_preprocess stateB).toOption.get (by decide +kernel)).get (by decide +kernel)).1
+def prepC : ScannerState :=
+  (((scanNextToken_preprocess stateC).toOption.get (by decide +kernel)).get (by decide +kernel)).1
+
+
+lemma prepA_column : (dispatchState prepA).col = 4 := by decide +kernel
+lemma prepC_column : (dispatchState prepC).col = 0 := by decide +kernel
+
+end R2ActualJointWitness

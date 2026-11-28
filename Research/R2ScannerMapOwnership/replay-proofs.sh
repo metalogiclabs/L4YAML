@@ -29,3 +29,8 @@ for task_module in Bridge Audit Verify; do
     "Research/R2ScannerMapOwnership/$task_module.lean" > "$task_logs/$task_module.log" 2>&1
   printf 'CHECKED own/%s\n' "$task_module"
 done
+for task_module in JointStep JointColon JointFixture JointWitness ConnectedAudit; do
+  "$R2_LEAN_BIN" -j1 -o "$task_out/Research/R2ScannerMapOwnership/$task_module.olean" \
+    "Research/R2ScannerMapOwnership/$task_module.lean" > "$task_logs/$task_module.log" 2>&1
+  printf 'CHECKED own/%s\n' "$task_module"
+done

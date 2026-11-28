@@ -1,0 +1,80 @@
+Research/R2ScannerMapOwnership/JointWitness.lean:123:28: error: failed to synthesize
+  Decidable (scanNextToken stateA = Except.ok (some stateValue4))
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:123:48: error: failed to synthesize
+  Decidable (scanNextToken_preprocess stateA = Except.ok (some (prepA, ':')))
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:124:8: error: failed to synthesize
+  Decidable (scanValue (dispatchState prepA) = Except.ok stateValue4)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:126:8: error: 'change' tactic failed, pattern
+  SIndent 4 endA colon4
+is not definitionally equal to target
+  SIndent (dispatchState prepA).col endA colon4
+Research/R2ScannerMapOwnership/JointWitness.lean:129:2: error: Type mismatch
+  payload.left
+has type
+  Slot stateValue4 (SLYamlStream q0) (dispatchState prepA).col YamlContext.blockOut value4
+but is expected to have type
+  Slot stateValue4 (SLYamlStream q0) 4 YamlContext.blockOut value4
+Research/R2ScannerMapOwnership/JointWitness.lean:145:8: error: failed to synthesize
+  Decidable (scanNextToken_preprocess stateB = Except.ok (some (prepB, '-')))
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:145:28: error: failed to synthesize
+  Decidable (scanBlockEntry prepB = Except.ok stateSibling)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:153:28: error: failed to synthesize
+  Decidable (scanNextToken stateB = Except.ok (some stateSibling))
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:153:48: error: failed to synthesize
+  Decidable (scanNextToken_preprocess stateB = Except.ok (some (prepB, '-')))
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:154:8: error: failed to synthesize
+  Decidable (scanBlockEntry prepB = Except.ok stateSibling)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:167:28: error: failed to synthesize
+  Decidable (scanNextToken stateC = Except.ok (some stateValue0))
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:167:48: error: failed to synthesize
+  Decidable (scanNextToken_preprocess stateC = Except.ok (some (prepC, ':')))
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:168:8: error: failed to synthesize
+  Decidable (scanValue (dispatchState prepC) = Except.ok stateValue0)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2ScannerMapOwnership/JointWitness.lean:170:8: error: 'change' tactic failed, pattern
+  SIndent 0 endC endC
+is not definitionally equal to target
+  SIndent (dispatchState prepC).col endC endC
+Research/R2ScannerMapOwnership/JointWitness.lean:172:2: error: Type mismatch
+  payload.left
+has type
+  Slot stateValue0 (SLYamlStream q0) (dispatchState prepC).col YamlContext.blockOut value0
+but is expected to have type
+  Slot stateValue0 (SLYamlStream q0) 0 YamlContext.blockOut value0
+'R2ActualJointWitness.initialized_complete' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]
+'R2ActualJointWitness.actual_landed_family' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

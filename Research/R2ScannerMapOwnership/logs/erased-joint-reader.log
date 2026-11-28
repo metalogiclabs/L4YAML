@@ -1,0 +1,24 @@
+verification/map-accepted/JointWitness.lean:26:44: error: Application type mismatch: The argument
+  Joint.close actual_inner_key
+has type
+  SLYamlStream q0 endA
+but is expected to have type
+  Context stateA (SLYamlStream q0) endA
+in the application
+  initialized_explicit_colon source 4 ?m.9 ?m.10 ?m.11 ?m.12 ?m.13 ?m.14 ?m.15 ?m.16 (Joint.close actual_inner_key)
+'R2ActualJointWitness.initialized_complete' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]
+'R2ActualJointWitness.actual_landed_family' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

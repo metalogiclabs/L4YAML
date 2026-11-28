@@ -1,0 +1,18 @@
+'R2ActualJointStep.live_register_marked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.explicit_colon' depends on axioms: [propext, Classical.choice, Quot.sound]
+Research/R2ScannerMapOwnership/JointColon.lean:136:67: error: Application type mismatch: The argument
+  base
+has type
+  IndentStackBase.SentinelBase s
+of sort `Prop` but is expected to have type
+  Nat
+of sort `Type` in the application
+  IndentStackMono.preprocess_mono preprocess mono base
+'R2ActualJointStep.initialized_explicit_colon' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

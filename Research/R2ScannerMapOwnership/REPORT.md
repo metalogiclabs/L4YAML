@@ -59,7 +59,7 @@ is allowed. An all-prefixes standard-three-only result is not claimed.
 
 ## Evidence and replay
 
-`replay-proofs.sh` checks the eight new modules and independently checks the
+`replay-proofs.sh` checks thirteen research modules and independently checks the
 four frozen joint-context dependencies. Those four files are a hash-pinned
 snapshot of the parallel `test/r2-joint-frame-context` research lane, not a
 claim of new discovery in this lane. Their original paths and hashes are in
@@ -82,3 +82,7 @@ The consequential residual is preserving the mixed semantic context at the
 actual generic node births and through property, flow and completion writers.
 Ownership is now supplied there by the scanner proof. A new assumed context
 parameter would leave the semantic residual unpaid.
+
+The subsequent accepted-module integration and source-to-EOF scanner-step
+composition are documented in [CONNECTED.md](CONNECTED.md). They retain the
+eight-error full-migration boundary above and the seven-position critical roster.

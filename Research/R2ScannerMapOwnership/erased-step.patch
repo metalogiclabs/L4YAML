@@ -1,0 +1,11 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -42456,7 +42456,7 @@
+         scanNextToken_accum_step (h_maps := h_maps) sc sp_start sp_gram sp_block sp_flow sp_scan s_next
+           h_stream h_kbc h_scf h_stack h_flow h_pending h_dir_flag h_corr h_interior h_base
+           h_mono h_sound h_cf h_lkt h_next
+-      exact ih (h_maps := h_maps.next h_next h_sound h_mono h_base (ColFloor.preprocessFloor h_cf h_base)) s_next sp_gram' sp_block' sp_flow' sp_scan' tokens
++      exact ih (h_maps := h_maps) s_next sp_gram' sp_block' sp_flow' sp_scan' tokens
+         h_stream'
+         (ScannerCorrectness.scanNextToken_preserves_KeysBehindCursor sc s_next h_next h_kbc)
+         (StaleCursorFloor.scanNextToken_preserves_StaleKeyCursorFloor sc s_next h_next h_scf)

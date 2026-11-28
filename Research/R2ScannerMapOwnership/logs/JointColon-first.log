@@ -1,0 +1,10 @@
+Research/R2ScannerMapOwnership/JointColon.lean:99:50: error: omega could not prove the goal:
+a possible counterexample may satisfy the constraints
+  b ≥ 0
+  a ≥ 0
+  a - b ≥ 1
+where
+ a := s.currentIndent
+ b := ↑?m.79
+'R2ActualJointStep.live_register_marked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.explicit_colon' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

@@ -1,0 +1,67 @@
+Research/R2ScannerMapOwnership/JointStep.lean:25:84: error: unsolved goals
+case none
+s t : ScannerState
+e : IndentEntry
+h : t.indents = s.indents.push e
+hf : frame e = none
+⊢ List.filterMap frame [e] ++ (List.filterMap frame s.indents.toList).reverse =
+    (List.filterMap
+        (fun e =>
+          if e.column < 0 then none
+          else some (if e.isSequence = true then FrameLevel.seq e.column.toNat else FrameLevel.map e.column.toNat))
+        s.indents.toList).reverse
+
+case some
+s t : ScannerState
+e : IndentEntry
+h : t.indents = s.indents.push e
+val✝ : FrameLevel
+hf : frame e = some val✝
+⊢ List.filterMap frame [e] ++ (List.filterMap frame s.indents.toList).reverse =
+    val✝ ::
+      (List.filterMap
+          (fun e =>
+            if e.column < 0 then none
+            else some (if e.isSequence = true then FrameLevel.seq e.column.toNat else FrameLevel.map e.column.toNat))
+          s.indents.toList).reverse
+Research/R2ScannerMapOwnership/JointStep.lean:28:31: warning: This simp argument is unused:
+  hf
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [levels, frame]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Research/R2ScannerMapOwnership/JointStep.lean:28:43: warning: This simp argument is unused:
+  frame
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hf, levels]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Research/R2ScannerMapOwnership/JointStep.lean:35:23: error: Application type mismatch: The argument
+  rfl
+has type
+  ?m.23 = ?m.23
+but is expected to have type
+  levels s = [] ++ levels (unwindIndentsLoop s col 0)
+in the application
+  Exists.intro [] rfl
+Research/R2ScannerMapOwnership/JointStep.lean:40:39: error(lean.unknownIdentifier): Unknown constant `Bool.and_eq_true.mp`
+Research/R2ScannerMapOwnership/JointStep.lean:119:6: error: Type mismatch: After simplification, term
+  shape
+ has type
+  @Eq (List FrameLevel) (levels s)
+    ((if ↑s.col < 0 then none else some (FrameLevel.seq s.col)).toList ++ levels previous)
+but is expected to have type
+  @Eq (List FrameLevel) (levels s) (FrameLevel.seq s.col :: levels previous)
+'R2ActualJointStep.context_preprocess' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ActualJointStep.scan_sequence_keeps_levels' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ActualJointStep.landed_sequence' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ActualJointStep.initialized_landed_sequence' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

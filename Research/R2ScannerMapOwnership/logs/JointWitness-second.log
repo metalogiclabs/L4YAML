@@ -1,0 +1,296 @@
+Research/R2ScannerMapOwnership/JointWitness.lean:96:47: error: Tactic `rfl` failed: The left-hand side
+  (R2MapOwnership.prefixes source 4).isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (R2MapOwnership.prefixes source 4).isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:97:52: error: Tactic `rfl` failed: The left-hand side
+  (R2MapOwnership.prefixes source 5).isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (R2MapOwnership.prefixes source 5).isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:98:47: error: Tactic `rfl` failed: The left-hand side
+  (R2MapOwnership.prefixes source 6).isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (R2MapOwnership.prefixes source 6).isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:99:53: error: Tactic `rfl` failed: The left-hand side
+  (R2MapOwnership.prefixes source 7).isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (R2MapOwnership.prefixes source 7).isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:100:47: error: Tactic `rfl` failed: The left-hand side
+  (R2MapOwnership.prefixes source 8).isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (R2MapOwnership.prefixes source 8).isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:101:52: error: Tactic `rfl` failed: The left-hand side
+  (R2MapOwnership.prefixes source 9).isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (R2MapOwnership.prefixes source 9).isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:104:55: error: Tactic `rfl` failed: The left-hand side
+  (scanNextToken_preprocess stateA).toOption.isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (scanNextToken_preprocess stateA).toOption.isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:106:55: error: Tactic `rfl` failed: The left-hand side
+  (scanNextToken_preprocess stateB).toOption.isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (scanNextToken_preprocess stateB).toOption.isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:108:55: error: Tactic `rfl` failed: The left-hand side
+  (scanNextToken_preprocess stateC).toOption.isSome
+is not definitionally equal to the right-hand side
+  true
+
+⊢ (scanNextToken_preprocess stateC).toOption.isSome = true
+Research/R2ScannerMapOwnership/JointWitness.lean:111:34: error: Tactic `rfl` failed: The left-hand side
+  stateA.pendingKeys
+is not definitionally equal to the right-hand side
+  innerState.pendingKeys
+
+⊢ stateA.pendingKeys = innerState.pendingKeys
+Research/R2ScannerMapOwnership/JointWitness.lean:111:43: error: Tactic `rfl` failed: The left-hand side
+  stateA.indents
+is not definitionally equal to the right-hand side
+  innerState.indents
+
+⊢ stateA.indents = innerState.indents
+Research/R2ScannerMapOwnership/JointWitness.lean:117:8: error: Tactic `rfl` failed: The left-hand side
+  R2MapOwnership.prefixes source 4
+is not definitionally equal to the right-hand side
+  some stateA
+
+⊢ R2MapOwnership.prefixes source 4 = some stateA
+Research/R2ScannerMapOwnership/JointWitness.lean:117:17: error: Tactic `rfl` failed: The left-hand side
+  scanNextToken stateA
+is not definitionally equal to the right-hand side
+  Except.ok (some stateValue4)
+
+⊢ scanNextToken stateA = Except.ok (some stateValue4)
+Research/R2ScannerMapOwnership/JointWitness.lean:117:26: error: Tactic `rfl` failed: The left-hand side
+  scanNextToken_preprocess stateA
+is not definitionally equal to the right-hand side
+  Except.ok (some (prepA, ':'))
+
+⊢ scanNextToken_preprocess stateA = Except.ok (some (prepA, ':'))
+Research/R2ScannerMapOwnership/JointWitness.lean:118:8: error: Tactic `rfl` failed: The left-hand side
+  scanValue (dispatchState prepA)
+is not definitionally equal to the right-hand side
+  Except.ok stateValue4
+
+⊢ scanValue (dispatchState prepA) = Except.ok stateValue4
+Research/R2ScannerMapOwnership/JointWitness.lean:118:17: error: Tactic `rfl` failed: The left-hand side
+  (dispatchState prepA).inFlow
+is not definitionally equal to the right-hand side
+  false
+
+⊢ (dispatchState prepA).inFlow = false
+Research/R2ScannerMapOwnership/JointWitness.lean:118:26: error: Tactic `rfl` failed: The left-hand side
+  (dispatchState prepA).explicitKeyLine
+is not definitionally equal to the right-hand side
+  some 0
+
+⊢ (dispatchState prepA).explicitKeyLine = some 0
+Research/R2ScannerMapOwnership/JointWitness.lean:119:8: error: Tactic `rfl` failed: The left-hand side
+  (scanValueClearKey (dispatchState prepA)).simpleKey.possible
+is not definitionally equal to the right-hand side
+  false
+
+⊢ (scanValueClearKey (dispatchState prepA)).simpleKey.possible = false
+Research/R2ScannerMapOwnership/JointWitness.lean:119:17: error: Tactic `rfl` failed: The left-hand side
+  ↑(dispatchState prepA).col
+is not definitionally equal to the right-hand side
+  (dispatchState prepA).explicitKeyCol
+
+⊢ ↑(dispatchState prepA).col = (dispatchState prepA).explicitKeyCol
+Research/R2ScannerMapOwnership/JointWitness.lean:120:8: error: 'change' tactic failed, pattern
+  SIndent 4 endA colon4
+is not definitionally equal to target
+  SIndent (dispatchState prepA).col endA colon4
+Research/R2ScannerMapOwnership/JointWitness.lean:123:2: error: Type mismatch
+  payload.left
+has type
+  Slot stateValue4 (SLYamlStream q0) (dispatchState prepA).col YamlContext.blockOut value4
+but is expected to have type
+  Slot stateValue4 (SLYamlStream q0) 4 YamlContext.blockOut value4
+Research/R2ScannerMapOwnership/JointWitness.lean:131:8: error: Tactic `rfl` failed: The left-hand side
+  stateB.pendingKeys
+is not definitionally equal to the right-hand side
+  stateValue4.pendingKeys
+
+value : SBlockIndented 4 YamlContext.blockOut value4 endB
+⊢ stateB.pendingKeys = stateValue4.pendingKeys
+Research/R2ScannerMapOwnership/JointWitness.lean:131:17: error: Tactic `rfl` failed: The left-hand side
+  stateB.indents
+is not definitionally equal to the right-hand side
+  stateValue4.indents
+
+value : SBlockIndented 4 YamlContext.blockOut value4 endB
+⊢ stateB.indents = stateValue4.indents
+Research/R2ScannerMapOwnership/JointWitness.lean:139:8: error: Tactic `rfl` failed: The left-hand side
+  scanNextToken_preprocess stateB
+is not definitionally equal to the right-hand side
+  Except.ok (some (prepB, '-'))
+
+⊢ scanNextToken_preprocess stateB = Except.ok (some (prepB, '-'))
+Research/R2ScannerMapOwnership/JointWitness.lean:139:17: error: Tactic `rfl` failed: The left-hand side
+  scanBlockEntry prepB
+is not definitionally equal to the right-hand side
+  Except.ok stateSibling
+
+⊢ scanBlockEntry prepB = Except.ok stateSibling
+Research/R2ScannerMapOwnership/JointWitness.lean:139:26: error: Tactic `rfl` failed: The left-hand side
+  prepB.inFlow
+is not definitionally equal to the right-hand side
+  false
+
+⊢ prepB.inFlow = false
+Research/R2ScannerMapOwnership/JointWitness.lean:140:8: error: Tactic `rfl` failed: The left-hand side
+  atSequenceIndent prepB
+is not definitionally equal to the right-hand side
+  true
+
+⊢ atSequenceIndent prepB = true
+Research/R2ScannerMapOwnership/JointWitness.lean:140:17: error: Tactic `rfl` failed: The left-hand side
+  prepB.col
+is not definitionally equal to the right-hand side
+  2
+
+⊢ prepB.col = 2
+Research/R2ScannerMapOwnership/JointWitness.lean:147:8: error: Tactic `rfl` failed: The left-hand side
+  R2MapOwnership.prefixes source 6
+is not definitionally equal to the right-hand side
+  some stateB
+
+⊢ R2MapOwnership.prefixes source 6 = some stateB
+Research/R2ScannerMapOwnership/JointWitness.lean:147:17: error: Tactic `rfl` failed: The left-hand side
+  scanNextToken stateB
+is not definitionally equal to the right-hand side
+  Except.ok (some stateSibling)
+
+⊢ scanNextToken stateB = Except.ok (some stateSibling)
+Research/R2ScannerMapOwnership/JointWitness.lean:147:26: error: Tactic `rfl` failed: The left-hand side
+  scanNextToken_preprocess stateB
+is not definitionally equal to the right-hand side
+  Except.ok (some (prepB, '-'))
+
+⊢ scanNextToken_preprocess stateB = Except.ok (some (prepB, '-'))
+Research/R2ScannerMapOwnership/JointWitness.lean:148:8: error: Tactic `rfl` failed: The left-hand side
+  scanBlockEntry prepB
+is not definitionally equal to the right-hand side
+  Except.ok stateSibling
+
+⊢ scanBlockEntry prepB = Except.ok stateSibling
+Research/R2ScannerMapOwnership/JointWitness.lean:148:17: error: Tactic `rfl` failed: The left-hand side
+  prepB.inFlow
+is not definitionally equal to the right-hand side
+  false
+
+⊢ prepB.inFlow = false
+Research/R2ScannerMapOwnership/JointWitness.lean:148:26: error: Tactic `rfl` failed: The left-hand side
+  atSequenceIndent prepB
+is not definitionally equal to the right-hand side
+  true
+
+⊢ atSequenceIndent prepB = true
+Research/R2ScannerMapOwnership/JointWitness.lean:148:35: error: Tactic `rfl` failed: The left-hand side
+  prepB.col
+is not definitionally equal to the right-hand side
+  2
+
+⊢ prepB.col = 2
+Research/R2ScannerMapOwnership/JointWitness.lean:155:8: error: Tactic `rfl` failed: The left-hand side
+  stateC.pendingKeys
+is not definitionally equal to the right-hand side
+  stateSibling.pendingKeys
+
+⊢ stateC.pendingKeys = stateSibling.pendingKeys
+Research/R2ScannerMapOwnership/JointWitness.lean:155:17: error: Tactic `rfl` failed: The left-hand side
+  stateC.indents
+is not definitionally equal to the right-hand side
+  stateSibling.indents
+
+⊢ stateC.indents = stateSibling.indents
+Research/R2ScannerMapOwnership/JointWitness.lean:161:8: error: Tactic `rfl` failed: The left-hand side
+  R2MapOwnership.prefixes source 8
+is not definitionally equal to the right-hand side
+  some stateC
+
+⊢ R2MapOwnership.prefixes source 8 = some stateC
+Research/R2ScannerMapOwnership/JointWitness.lean:161:17: error: Tactic `rfl` failed: The left-hand side
+  scanNextToken stateC
+is not definitionally equal to the right-hand side
+  Except.ok (some stateValue0)
+
+⊢ scanNextToken stateC = Except.ok (some stateValue0)
+Research/R2ScannerMapOwnership/JointWitness.lean:161:26: error: Tactic `rfl` failed: The left-hand side
+  scanNextToken_preprocess stateC
+is not definitionally equal to the right-hand side
+  Except.ok (some (prepC, ':'))
+
+⊢ scanNextToken_preprocess stateC = Except.ok (some (prepC, ':'))
+Research/R2ScannerMapOwnership/JointWitness.lean:162:8: error: Tactic `rfl` failed: The left-hand side
+  scanValue (dispatchState prepC)
+is not definitionally equal to the right-hand side
+  Except.ok stateValue0
+
+⊢ scanValue (dispatchState prepC) = Except.ok stateValue0
+Research/R2ScannerMapOwnership/JointWitness.lean:162:17: error: Tactic `rfl` failed: The left-hand side
+  (dispatchState prepC).inFlow
+is not definitionally equal to the right-hand side
+  false
+
+⊢ (dispatchState prepC).inFlow = false
+Research/R2ScannerMapOwnership/JointWitness.lean:162:26: error: Tactic `rfl` failed: The left-hand side
+  (dispatchState prepC).explicitKeyLine
+is not definitionally equal to the right-hand side
+  some 0
+
+⊢ (dispatchState prepC).explicitKeyLine = some 0
+Research/R2ScannerMapOwnership/JointWitness.lean:163:8: error: Tactic `rfl` failed: The left-hand side
+  (scanValueClearKey (dispatchState prepC)).simpleKey.possible
+is not definitionally equal to the right-hand side
+  false
+
+⊢ (scanValueClearKey (dispatchState prepC)).simpleKey.possible = false
+Research/R2ScannerMapOwnership/JointWitness.lean:163:17: error: Tactic `rfl` failed: The left-hand side
+  ↑(dispatchState prepC).col
+is not definitionally equal to the right-hand side
+  (dispatchState prepC).explicitKeyCol
+
+⊢ ↑(dispatchState prepC).col = (dispatchState prepC).explicitKeyCol
+Research/R2ScannerMapOwnership/JointWitness.lean:164:8: error: 'change' tactic failed, pattern
+  SIndent 0 endC endC
+is not definitionally equal to target
+  SIndent (dispatchState prepC).col endC endC
+Research/R2ScannerMapOwnership/JointWitness.lean:166:2: error: Type mismatch
+  payload.left
+has type
+  Slot stateValue0 (SLYamlStream q0) (dispatchState prepC).col YamlContext.blockOut value0
+but is expected to have type
+  Slot stateValue0 (SLYamlStream q0) 0 YamlContext.blockOut value0
+'R2ActualJointWitness.initialized_complete' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]
+'R2ActualJointWitness.actual_landed_family' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

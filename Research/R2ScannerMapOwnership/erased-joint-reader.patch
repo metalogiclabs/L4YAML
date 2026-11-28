@@ -1,0 +1,11 @@
+--- a/JointWitness.lean
++++ b/JointWitness.lean
+@@ -23,7 +23,7 @@
+     (start := q0) (e := endA) (i := colon4) (c := value4)
+     (by decide +kernel) (by decide +kernel) (by decide +kernel)
+     (by decide +kernel) (by decide +kernel) (by decide +kernel)
+-    (by decide +kernel) (by decide +kernel) actual_inner_key
++    (by decide +kernel) (by decide +kernel) actual_inner_key.close
+     (by rw [prepA_column]; exact SIndent.succ 3 _ 0 _ (SIndent.succ 2 _ 1 _
+       (SIndent.succ 1 _ 2 _ (SIndent.succ 0 _ 3 _ (SIndent.zero colon4)))))
+     (GLit.mk _ 4)

@@ -1,0 +1,9 @@
+'R2ActualJointStep.live_register_marked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.explicit_colon' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ActualJointStep.initialized_explicit_colon' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_2✝,
+ L4YAML.Proofs.ScalarProduction.consumeNewline_line_succ._native.native_decide.ax_1_3✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_1✝,
+ L4YAML.Proofs.ScalarProduction.isPlainSafe_not_newline._native.native_decide.ax_1_2✝]

@@ -1,0 +1,111 @@
+--- a/JointStep.lean
++++ b/JointStep.lean
+@@ -23,25 +23,21 @@
+ 
+ lemma levels_push {s t : ScannerState} {e : IndentEntry}
+     (h : t.indents = s.indents.push e) : levels t = (frame e).toList ++ levels s := by
+-  change t.indents.toList.reverse.filterMap frame =
+-    (frame e).toList ++ s.indents.toList.reverse.filterMap frame
++  change t.indents.toList.reverse.filterMap frame = _
+   rw [h, Array.toList_push, List.reverse_append, List.filterMap_append]
+-  simp only [List.reverse_cons, List.reverse_nil, List.nil_append,
+-    List.filterMap_cons, List.filterMap_nil]
+-  cases hf : frame e <;> rfl
++  cases hf : frame e <;> simp [hf, levels, frame]
+ 
+ -- Actual unwinding deletes an initial segment of the mixed top-first levels.
+ -- This is stronger than membership preservation and costs no scanner invariant.
+ lemma unwind_prefix (s : ScannerState) (col : Int) (fuel : Nat) :
+     ∃ pre, levels s = pre ++ levels (unwindIndentsLoop s col fuel) := by
+   induction fuel generalizing s with
+-  | zero => exact ⟨[], by simp [unwindIndentsLoop]⟩
++  | zero => exact ⟨[], rfl⟩
+   | succ fuel ih =>
+     unfold unwindIndentsLoop
+     split
+     · rename_i guard
+-      have parts : s.currentIndent > col ∧ s.indents.size > 1 := by simpa using guard
+-      have gt := parts.2
++      have gt : 1 < s.indents.size := (Bool.and_eq_true.mp guard).2 |> of_decide_eq_true
+       let popped : ScannerState := { s.emit .blockEnd with
+         indents := (s.emit .blockEnd).indents.pop,
+         pendingKeys := (s.emit .blockEnd).pendingKeys.pop }
+@@ -107,27 +103,6 @@
+     (fun _ marked => (RegisterWitness.preprocess_markedCols step
+       (RegisterWitness.MarkedColsIn.self s)).mem marked)
+ 
+-lemma context_transport {s t : ScannerState} {P : SurfPos → Prop} {e : SurfPos}
+-    (context : Context s P e) (keys : t.pendingKeys = s.pendingKeys)
+-    (indents : t.indents = s.indents) : Context t P e := by
+-  change Joint t P (levels t) e
+-  rw [levels_indents indents]
+-  exact context.restrict_marks
+-    (fun _ marked => ((RegisterWitness.MarkedColsIn.self s).transport keys indents).mem marked)
+-
+--- This is the scanner's existing flag update between preprocessing and block
+--- dispatch. It introduces no new state or independently stored snapshot.
+-def dispatchState (prep : ScannerState) : ScannerState :=
+-  if prep.allowDirectives then {prep with allowDirectives := false, documentEverStarted := true}
+-  else prep
+-
+-lemma context_dispatch {s : ScannerState} {P : SurfPos → Prop} {e : SurfPos}
+-    (context : Context s P e) : Context (dispatchState s) P e := by
+-  unfold dispatchState
+-  split
+-  · exact context_transport context rfl rfl
+-  · exact context
+-
+ lemma sequence_top {s : ScannerState} (top : atSequenceIndent s = true) :
+     ∃ rest, levels s = FrameLevel.seq s.col :: rest ∧ s.currentIndent = (s.col : Int) := by
+   unfold atSequenceIndent at top
+@@ -141,7 +116,7 @@
+     have pushed : s.indents = previous.indents.push entry := eq
+     have shape := levels_push pushed
+     refine ⟨levels previous, ?_, ?_⟩
+-    · simpa [frame, parts.1, ← parts.2, show ¬(s.col : Int) < 0 by omega] using shape
++    · simpa [frame, parts.1, ← parts.2] using shape
+     · simp [ScannerState.currentIndent, back, ← parts.2]
+ 
+ lemma scan_sequence_keeps_levels {s t : ScannerState}
+@@ -154,33 +129,6 @@
+   unfold pushSequenceIndent
+   simp [eq]
+ 
+-lemma landed_sequence_context {s prep t : ScannerState} {P : SurfPos → Prop}
+-    {land dash next : SurfPos} {k : Nat}
+-    (preprocess : scanNextToken_preprocess s = .ok (some (prep,'-')))
+-    (step : scanBlockEntry prep = .ok t) (flow : prep.inFlow = false)
+-    (active : atSequenceIndent prep = true) (column : prep.col = k)
+-    (context : Context s P land)
+-    (indent : SIndent k land dash) (literal : GLit '-' dash next) (notNs : GNot SNsChar next) :
+-    Slot t P k .blockIn next := by
+-  have atPrep := context_preprocess preprocess context
+-  obtain ⟨rest, shape, unchanged⟩ := sequence_top active
+-  rw [column] at shape
+-  have resultShape : levels t = FrameLevel.seq k :: rest :=
+-    (scan_sequence_keeps_levels flow step active).trans shape
+-  have keys : t.pendingKeys = prep.pendingKeys := by
+-    rw [scanBlockEntry_pendingKeys flow step]
+-    unfold pushSequenceIndent
+-    simp [unchanged]
+-  have indents : t.indents = prep.indents := by
+-    rw [scanBlockEntry_indents flow step]
+-    unfold pushSequenceIndent
+-    simp [unchanged]
+-  have back : ∀ x ∈ RegisterWitness.markedCols t, x ∈ RegisterWitness.markedCols prep :=
+-    fun _ marked => ((RegisterWitness.MarkedColsIn.self prep).transport keys indents).mem marked
+-  intro e node
+-  exact atPrep.resume_sequence (pre := []) (by simpa using shape) resultShape back
+-    indent literal notNs node
+-
+ -- The existing grammar context is the sole semantic input. Both stack-shape
+ -- premises of the pure algebra and the marked-domain step are paid by the
+ -- actual preprocess and actual scanBlockEntry, for arbitrary landing depths.
+@@ -228,7 +176,6 @@
+ 
+ #print axioms context_preprocess
+ #print axioms scan_sequence_keeps_levels
+-#print axioms landed_sequence_context
+ #print axioms landed_sequence
+ #print axioms initialized_landed_sequence
+ 
