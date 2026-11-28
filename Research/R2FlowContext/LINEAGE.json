@@ -1,0 +1,31 @@
+{
+  "parent": "7a8da4626b2655370708800016439f3220a39468",
+  "price": {
+    "source_sha256": "2b721bc94bde5140dff1d2099dc074db892d7df3d219654027732f33c6f3776e",
+    "recipe": "Prepare.lean with no mode; also retained as logs/prepare-price.lean",
+    "compiler_errors": 23
+  },
+  "three_writers": {
+    "source_sha256": "eef1d57907dfd6ea155bd21412841f24284f6de44dd3387a40bb7d3b7ca9a4b3",
+    "recipe": "logs/prepare-three.lean --fund-three, followed by logs/audit-before-axiom-subset.lean",
+    "supply_errors": 20,
+    "additional_audit_errors": 1
+  },
+  "six_expressions_first_audit": {
+    "source_sha256": "900308bbd3a3abf8038d7dcc0e97c985e4124c8bf73eb19f91f6c6f870341f5a",
+    "recipe": "Prepare.lean --fund-six with logs/audit-six.lean as the appended audit",
+    "compiler_errors": 17,
+    "clean_transported_fields": 5,
+    "guarded_suffix_arm_receives_clean_field_credit": false
+  },
+  "extended_audit_first": {
+    "source_sha256": "d1aaa5b6054362691293dd1f526b7f2aa12166b57cef9ff484b69db82825814f",
+    "recipe": "Prepare.lean --fund-six with logs/audit-first.lean as the appended audit",
+    "state": "REJECTED_AUDIT_COMMAND_MONAD_MISMATCH"
+  },
+  "audited": "416aa519de2d988a37364a05bf6768b03420d49b9781b352130a0987d57d1c6b",
+  "reader_erased": "8fe4c5fc76c96e93a2b06ae7cf4c34b55518f8a697d253f8c209ad547b46159c",
+  "shared_work": "Active retirement lane reads the same five flow transports and two close readers; count once.",
+  "separate_slot_probe_read": "655701fec7b60b38b0602a58cc9893af80789a0d",
+  "critical_retirements": 0
+}

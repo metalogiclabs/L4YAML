@@ -1,0 +1,34 @@
+{"uncredited_existing_refutation_terms": 3,
+ "transported_flow_value_fields": 5,
+ "transported_field_forbidden_references_checked": 4,
+ "state": "WARRANTED_LOCAL_FLOW_TRANSPORT; UNKNOWN_FULL_MIGRATION",
+ "sorry_free_flow_value_fields": 8,
+ "shared_suffix_field_receives_clean_credit": false,
+ "remaining_unique_flow_supply_sites":
+ ["generic fresh-document landing", "deferred dropClose fallback"],
+ "remaining_nonflow_errors": 15,
+ "remaining_full_source_errors": 17,
+ "reader_erasure_additional_errors": 1,
+ "public_context_premises_added": 0,
+ "production_pr_ready": false,
+ "parent_draft_sha256":
+ "d3589230b768b92f8fac3df21535b7aa199a25f0f5228a4b67c65cf05ebcc193",
+ "parent": "7a8da4626b2655370708800016439f3220a39468",
+ "new_initialized_examples_promoted": 0,
+ "net_global_retirement_credit": 0,
+ "internal_geometry_premise_added":
+ "Mono sc; both existing callers discharge it",
+ "initial_price_errors": 23,
+ "full_source_accepted": false,
+ "full_qualification": "NOT_RUN",
+ "failed_sources_reconstructed_exactly": 4,
+ "expanded_flow_value_fields": 13,
+ "erased_source_sha256":
+ "8fe4c5fc76c96e93a2b06ae7cf4c34b55518f8a697d253f8c209ad547b46159c",
+ "equality_transport_axioms": ["propext", "Quot.sound"],
+ "critical_retirements": 0,
+ "critical_positions_last_accepted": 7,
+ "constructor_fields_added": 0,
+ "audited_source_sha256":
+ "416aa519de2d988a37364a05bf6768b03420d49b9781b352130a0987d57d1c6b",
+ "actual_close_field_terms_checked": 2}

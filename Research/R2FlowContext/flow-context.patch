@@ -1,0 +1,175 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -7133 +7133 @@
+-    SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid
++    SSLComments sp_ne sp_mid → R2Mandatory.Full s0 sp_start sp_mid
+@@ -7183 +7183 @@
+-      SSLComments sp_ne sp_mid → SLYamlStream sp_start sp_mid) :
++      SSLComments sp_ne sp_mid → R2Mandatory.Full s0 sp_start sp_mid) :
+@@ -14176,0 +14177 @@
++    {h_mono : IndentStackMono.Mono sc}
+@@ -14257,0 +14259,6 @@
++  have flowContext {e : SurfPos} (h : R2Mandatory.Full sc sp_start e) :
++      R2Mandatory.Full s' sp_start e :=
++    (h.preprocess h_preprocess).of_eq h_pk' h_ind'
++  have flowBaseContext {e : SurfPos} (negative : sc.currentIndent < 0)
++      (stream : SLYamlStream sp_start e) : R2Mandatory.Full s' sp_start e :=
++    flowContext (R2Mandatory.Full.at_base h_mono negative stream)
+@@ -14271 +14278 @@
+-        SSLComments sp_ne sp_m → SLYamlStream sp_start sp_m) →
++        SSLComments sp_ne sp_m → R2Mandatory.Full s' sp_start sp_m) →
+@@ -14393 +14400 @@
+-      ((∀ sp_m, SSLComments sp_g sp_m → SuffixRun sp_start sp_m) ∨ True) →
++      ((sc.currentIndent < 0 ∧ ∀ sp_m, SSLComments sp_g sp_m → SuffixRun sp_start sp_m) ∨ True) →
+@@ -14426 +14433,2 @@
+-    intro sp_g h_trail h_gateM h_close h_nobreak h_sfx h_tail143 h_mapF176 h_mapFV201
++    intro sp_g h_trail h_gateM h_close h_nobreak h_sfxFull h_tail143 h_mapF176 h_mapFV201
++    have h_sfx : (∀ sp_m, SSLComments sp_g sp_m → SuffixRun sp_start sp_m) ∨ True := h_sfxFull.imp And.right id
+@@ -14443,2 +14451,2 @@
+-               match h_sfx with
+-               | Or.inl sfx => suffixFlowResumeSep (sfx sp_mid h_ssl)
++               match h_sfxFull with
++               | Or.inl ⟨negative, sfx⟩ => fun sp_ne sp_m content comments => flowBaseContext negative (suffixFlowResumeSep (sfx sp_mid h_ssl)
+@@ -14447 +14455 @@
+-                       (fun heq => col0_of_ssl_landing h_ssl (heq ▸ hcorr_prep) (preprocess_some_peek h_preprocess))))
++                       (fun heq => col0_of_ssl_landing h_ssl (heq ▸ hcorr_prep) (preprocess_some_peek h_preprocess)))) sp_ne sp_m content comments)
+@@ -14677 +14685 @@
+-  | noPending _ _ h_col h_armN h_nodoc h_noekN _ h_gateN =>
++  | noPending _ _ h_col h_armN h_nodoc h_noekN h_ntopN h_gateN =>
+@@ -14700,2 +14708,3 @@
+-             (mk none 0 _ ⟨fun _ _ => Or.inr trivial, (fun _ => nodocFlowResumeSep (h_nodoc h_scflow)
+-                 (h_sep.resolve_right (fun h => absurd h.2.2 (by omega)))),
++             (mk none 0 _ ⟨fun _ _ => Or.inr trivial, (fun _ sp_ne sp_m content comments => flowBaseContext (h_ntopN h_scflow)
++                 (nodocFlowResumeSep (h_nodoc h_scflow)
++                   (h_sep.resolve_right (fun h => absurd h.2.2 (by omega))) sp_ne sp_m content comments)),
+@@ -14742 +14751 @@
+-      (Or.inl (fun sp_m h_ssl =>
++      (Or.inl ⟨by assumption, fun sp_m h_ssl =>
+@@ -14746 +14755 @@
+-         GStar.nil _⟩))
++         GStar.nil _⟩⟩)
+@@ -14824 +14833 @@
+-               h_route (h_pay_p h_g) sp_m (flowInBlock_blockNode h_sep_run
++               flowContext (h_route (h_pay_p h_g) sp_m (flowInBlock_blockNode h_sep_run
+@@ -14826 +14835 @@
+-                   h_run.toProperties h_sep h_content) h_ssl)),
++                   h_run.toProperties h_sep h_content) h_ssl))),
+@@ -14943,2 +14952,2 @@
+-             h_docnode sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
+-               h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
++             flowBaseContext (by assumption) (h_docnode sp_m (SBlockNode.flowInBlock 0 .blockIn sp_scan sp_prep sp_ne sp_m
++               h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
+@@ -14957 +14966 @@
+-  | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
++  | pendingBlock _ _ _ n_old h_close h_entryFull h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
+@@ -14979 +14988 @@
+-               h_close sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
++               flowContext (h_entryFull sp_m (SBlockIndented.node n_old .blockIn sp_scan sp_m
+@@ -14981 +14990 @@
+-                   h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
++                   h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)) sp_m (SCompactSeqTail.nil n_old sp_m))),
+@@ -15094,2 +15103,2 @@
+-               h_close sp_m (SBlockNode.flowInBlock (n_old + 1) .blockOut sp_scan sp_prep sp_ne sp_m
+-                 h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl)),
++               flowContext (h_close sp_m (SBlockNode.flowInBlock (n_old + 1) .blockOut sp_scan sp_prep sp_ne sp_m
++                 h_sep (SFlowNode.content _ _ _ _ h_content) h_ssl))),
+@@ -20218 +20227 @@
+-        accum_flow_open_depth0 (h_maps := h_maps) sc sp_start sp_gram _ sp_scan sp_prep sp_open
++        accum_flow_open_depth0 (h_maps := h_maps) (h_mono := h_mono) sc sp_start sp_gram _ sp_scan sp_prep sp_open
+@@ -20278 +20287 @@
+-            accum_flow_open_depth0 (h_maps := h_maps) sc sp_start sp_gram _ sp_scan sp_prep sp_open
++            accum_flow_open_depth0 (h_maps := h_maps) (h_mono := h_mono) sc sp_start sp_gram _ sp_scan sp_prep sp_open
+@@ -20716 +20725 @@
+-                    (fun hnd hui sp_m h_ssl => resume.value
++                    (fun hnd hui sp_m h_ssl => (resume.value
+@@ -20721 +20730,3 @@
+-                      sp_tok sp_m (SFlowContent.flowSeq _ _ _ _ h_seq) h_ssl)
++                      sp_tok sp_m (SFlowContent.flowSeq _ _ _ _ h_seq) h_ssl).of_eq
++                      ((L4YAML.Proofs.PendingKeysStable.scanFlowSequenceEnd_preserves_pendingKeys s_ad).trans (h_pk_ad.trans h_pk_park))
++                      ((L4YAML.Proofs.EmitterScannability.scanFlowSequenceEnd_preserves_indents s_ad).trans (h_ind_ad.trans h_ind_park)))
+@@ -20951 +20962 @@
+-                        (fun hnd hui sp_m h_ssl => resume.value
++                        (fun hnd hui sp_m h_ssl => (resume.value
+@@ -20956 +20967,3 @@
+-                          sp_tok sp_m (SFlowContent.flowMap _ _ _ _ h_map) h_ssl)
++                          sp_tok sp_m (SFlowContent.flowMap _ _ _ _ h_map) h_ssl).of_eq
++                      ((L4YAML.Proofs.PendingKeysStable.scanFlowMappingEnd_preserves_pendingKeys s_ad).trans (h_pk_ad.trans h_pk_park))
++                      ((L4YAML.Proofs.EmitterScannability.scanFlowMappingEnd_preserves_indents s_ad).trans (h_ind_ad.trans h_ind_park)))
+@@ -43483,0 +43497,77 @@
++
++namespace R2FlowAudit
++
++def dependencies (env : Lean.Environment) (root : Lean.Name) : Std.HashSet Lean.Name := Id.run do
++  let mut seen : Std.HashSet Lean.Name := {}
++  let mut todo := [root]
++  while !todo.isEmpty do
++    let name := todo.head!
++    todo := todo.tail!
++    if seen.contains name then continue
++    seen := seen.insert name
++    if let some info := env.find? name then
++      todo := info.type.getUsedConstants.toList ++ todo
++      if let some value := info.value? (allowOpaque := true) then
++        todo := value.getUsedConstants.toList ++ todo
++  return seen
++
++def clean (term : Lean.Expr) : Lean.Elab.Command.CommandElabM Bool := do
++  let used := term.getUsedConstants
++  if used.contains `sorryAx then return false
++  for constant in used do
++    if (← Lean.collectAxioms constant).contains `sorryAx then return false
++  return true
++
++end R2FlowAudit
++
++run_cmd do
++  let env := (← Lean.getEnv).setExporting false
++  let producer := `L4YAML.Proofs.StreamAccum.accum_flow_open_depth0
++  let ctor := `L4YAML.Proofs.StreamAccum.FlowBaseRoutes.mk
++  let some info := env.find? producer | throwError "missing actual flow opener"
++  let some body := info.value? (allowOpaque := true) | throwError "missing actual flow body"
++  let some ci := env.find? ctor | throwError "missing actual flow routes constructor"
++  let some index := R2SequenceWriteAudit.fieldIndex `value ci.type 0
++    | throwError "missing actual value field"
++  let fields := R2SequenceWriteAudit.initializers ctor (R2SequenceWriteAudit.arity ci.type) index body
++  let mut clean : Nat := 0
++  let mut transported : Nat := 0
++  for term in fields do
++    let used := term.getUsedConstants
++    if ← R2FlowAudit.clean term then
++      clean := clean+1
++      if used.contains `L4YAML.Proofs.StreamAccum.R2Mandatory.Full.of_eq then
++        transported := transported+1
++        for constant in used do
++          let deps := R2FlowAudit.dependencies env constant
++          for forbidden in #[`sorryAx, `L4YAML.Surface.SLYamlStream.scannerDrop,
++              `L4YAML.Surface.SLYamlStream.implicitContinue,
++              `L4YAML.Proofs.StreamAccum.dropClose] do
++            if deps.contains forbidden then
++              throwError "transported field uses forbidden shortcut {forbidden} via {constant}"
++  unless fields.size == 13 && clean == 8 && transported == 5 do
++    throwError "actual writer inventory changed {fields.size}/{clean}/{transported}"
++  Lean.logInfo s!"FLOW-WRITER-AUDIT expanded_fields={fields.size} clean_fields={clean} transported_fields={transported} global_acceptance=false critical_retirements=0"
++  let some closeInfo := env.find? `L4YAML.Proofs.StreamAccum.accum_step_flow
++    | throwError "missing actual flow close reader"
++  let some closeBody := closeInfo.value? (allowOpaque := true) | throwError "missing flow close body"
++  unless closeBody.getUsedConstants.contains `L4YAML.Proofs.StreamAccum.R2Mandatory.Full.of_eq do
++    throwError "close readers lost real scanner transport"
++  let pendingCtor := `L4YAML.Proofs.StreamAccum.PendingNode.pendingContent
++  let some pendingInfo := env.find? pendingCtor | throwError "missing completed-content constructor"
++  let some closeIndex := R2SequenceWriteAudit.fieldIndex `h_closable pendingInfo.type 0
++    | throwError "missing actual close field"
++  let readers := R2SequenceWriteAudit.initializers pendingCtor
++    (R2SequenceWriteAudit.arity pendingInfo.type) closeIndex closeBody
++  let mut cleanReaders : Nat := 0
++  let mut transportedReaders : Nat := 0
++  for reader in readers do
++    if ← R2FlowAudit.clean reader then
++      cleanReaders := cleanReaders+1
++      if reader.getUsedConstants.contains `L4YAML.Proofs.StreamAccum.R2Mandatory.Full.of_eq then
++        transportedReaders := transportedReaders+1
++  Lean.logInfo s!"FLOW-CLOSE-FIELDS expanded={readers.size} clean={cleanReaders} transported={transportedReaders}"
++  let axs ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.R2Mandatory.Full.of_eq
++  unless !axs.isEmpty && axs.all (#[`propext,`Classical.choice,`Quot.sound].contains ·) do
++    throwError "flow transport axiom boundary {axs}"
++  Lean.logInfo s!"FLOW-CLOSE-AUDIT actual_reader=connected transport_axioms={repr axs} public_context_premises_added=0"
