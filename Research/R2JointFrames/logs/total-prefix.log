@@ -1,0 +1,31 @@
+verification/total-block/L4YAML/Proofs/Production/StreamAccum.lean:1110:31: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+verification/total-block/L4YAML/Proofs/Production/StreamAccum.lean:1143:30: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+verification/total-block/L4YAML/Proofs/Production/StreamAccum.lean:1144:30: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+verification/total-block/L4YAML/Proofs/Production/StreamAccum.lean:1146:30: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+verification/total-block/L4YAML/Proofs/Production/StreamAccum.lean:1306:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+verification/total-block/L4YAML/Proofs/Production/StreamAccum.lean:1319:30: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+verification/total-block/L4YAML/Proofs/Production/StreamAccum.lean:1322:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+ACCEPTED-PREFIX strong_fields=4 actual_flow_opener=checked axioms=3 sorryAx=absent later_failed_declarations=excluded
+'L4YAML.Proofs.StreamAccum.accum_flow_open_depth0' depends on axioms: [propext, Classical.choice, Quot.sound]
+TOTAL-PACK-PREFIX constructor_field=required actual_flow_opener=checked axioms=3 later_eight_demands=excluded

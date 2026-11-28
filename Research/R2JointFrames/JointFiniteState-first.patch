@@ -1,0 +1,13 @@
+--- a/Research/R2JointFrames/Concrete.lean
++++ b/Research/R2JointFrames/Concrete.lean
+@@ -113,8 +113,8 @@
+     (SIndent.succ 1 _ 0 _ (SIndent.succ 0 _ 1 _ (SIndent.zero nextDash)))
+     (GLit.mk _ 2 : GLit '-' nextDash nextSlot) (space_not_ns _ _) sibling_content
+ 
+-lemma sibling_slot_check : SlotCheck siblingState := by unfold SlotCheck; decide +kernel
+-lemma sibling_mono_check : MonoCheck siblingState := by unfold MonoCheck; decide +kernel
++lemma sibling_slot_check : SlotCheck siblingState := by decide +kernel
++lemma sibling_mono_check : MonoCheck siblingState := by decide +kernel
+ 
+ lemma actual_landed_family :
+     L4YAML.Proofs.R2SequenceContext.SequenceValues siblingState q0 2 nextSlot := by

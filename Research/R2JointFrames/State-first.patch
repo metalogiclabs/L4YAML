@@ -1,0 +1,83 @@
+--- a/Research/R2JointFrames/State.lean
++++ b/Research/R2JointFrames/State.lean
+@@ -25,9 +25,8 @@
+     have last : j - 1 + 1 = j := by omega
+     have le := mono.le_last (j - 1) jm i hi (by omega)
+     have lt := mono (j - 1) (by omega)
+-    have lt' : sc.indents[j - 1].column < sc.indents[j].column := by
+-      simpa only [last] using lt
+-    simpa only [Array.getElem_toList] using Int.lt_of_le_of_lt le lt'
++    rw [last] at lt
++    simpa only [Array.getElem_toList] using Int.lt_of_le_of_lt le lt
+   have decreasing : sc.indents.toList.reverse.Pairwise (fun a b => b.column < a.column) :=
+     List.pairwise_reverse.mpr increasing
+   apply Ordered.of_pairwise
+@@ -51,8 +50,8 @@
+ -- Kind ownership is explicit. The existing Sound.slots predicate supplies
+ -- size and nonnegative columns, but does not itself say marked levels are maps.
+ def MarkedMaps (sc : ScannerState) : Prop :=
+-  ∀ (i l : Nat), sc.pendingKeys[i]? = some (some l) →
+-    ∃ entry : IndentEntry, sc.indents[i]? = some entry ∧ entry.isSequence = false
++  ∀ i l, sc.pendingKeys[i]? = some (some l) →
++    ∃ entry, sc.indents[i]? = some entry ∧ entry.isSequence = false
+ 
+ lemma levels_cover_marks {sc : ScannerState} (slots : PendingKeySound.SlotsOk sc)
+     (maps : MarkedMaps sc) :
+@@ -66,8 +65,7 @@
+   have entryCol : entry.column = c := by
+     simpa [ScannerState.indentColumns, atEntry] using column
+   apply List.mem_filterMap.mpr
+-  have mem : entry ∈ sc.indents.toList := by simpa using Array.mem_of_getElem? atEntry
+-  refine ⟨entry, List.mem_reverse.mpr mem, ?_⟩
++  refine ⟨entry, List.mem_reverse.mpr (Array.mem_toList.mpr (Array.mem_of_getElem? atEntry)), ?_⟩
+   simp [entryCol, kind, show ¬c < 0 by omega]
+ 
+ lemma Context.entries {sc : ScannerState} {P : SurfPos → Prop} {e : SurfPos}
+@@ -75,47 +73,6 @@
+     (slots : PendingKeySound.SlotsOk sc) (maps : MarkedMaps sc) : EntryValues sc P e :=
+   Joint.entries h (levels_ordered mono) (levels_cover_marks slots maps)
+ 
+-def SlotCheck (sc : ScannerState) : Prop :=
+-  sc.pendingKeys.size = sc.indents.size ∧
+-  ∀ i : Fin sc.pendingKeys.size, sc.pendingKeys[i].isSome = true →
+-    (sc.indents[i.val]?).any (fun entry => decide (0 ≤ entry.column) && !entry.isSequence) = true
+-
+-lemma SlotCheck.sound {sc : ScannerState} (check : SlotCheck sc) :
+-    PendingKeySound.SlotsOk sc ∧ MarkedMaps sc := by
+-  have entries : ∀ (i l : Nat), sc.pendingKeys[i]? = some (some l) →
+-      ∃ entry : IndentEntry, sc.indents[i]? = some entry ∧
+-        0 ≤ entry.column ∧ entry.isSequence = false := by
+-    intro i l key
+-    obtain ⟨hi, atKey⟩ := Array.getElem?_eq_some_iff.mp key
+-    have live : (sc.pendingKeys[i]'hi).isSome = true := by rw [atKey]; rfl
+-    have checked := check.2 ⟨i,hi⟩ live
+-    cases atEntry : sc.indents[i]? with
+-    | none => simp [atEntry] at checked
+-    | some entry =>
+-      have parts : 0 ≤ entry.column ∧ entry.isSequence = false := by
+-        simpa [atEntry] using checked
+-      exact ⟨entry, rfl, parts⟩
+-  constructor
+-  · refine ⟨check.1, ?_⟩
+-    intro i l key
+-    obtain ⟨entry, atEntry, nonnegative, _⟩ := entries i l key
+-    exact ⟨entry.column, by simp [ScannerState.indentColumns, atEntry], nonnegative⟩
+-  · intro i l key
+-    obtain ⟨entry, atEntry, _, kind⟩ := entries i l key
+-    exact ⟨entry, atEntry, kind⟩
+-
+-def MonoCheck (sc : ScannerState) : Prop :=
+-  ∀ i : Fin sc.indents.size,
+-    (if h : i.val+1 < sc.indents.size then
+-      decide ((sc.indents[i.val]'i.isLt).column < (sc.indents[i.val+1]'h).column)
+-     else true) = true
+-
+-lemma MonoCheck.sound {sc : ScannerState} (check : MonoCheck sc) : Mono sc := by
+-  intro i hi
+-  have checked := check ⟨i,by omega⟩
+-  simp only [dif_pos hi] at checked
+-  exact of_decide_eq_true checked
+-
+ #print axioms levels_ordered
+ #print axioms Context.entries
+ 

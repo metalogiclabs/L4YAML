@@ -1,0 +1,31 @@
+Research/R2JointFrames/Concrete.lean:81:25: error: Tactic `subst` failed: invalid equality proof, it is not of the form (x = t) or (t = x)
+  f = FrameLevel.map 0 ∨ f ∈ []
+
+case back.inr
+f : FrameLevel
+marked : f.width ∈ RegisterWitness.markedCols innerState
+h✝ : f = FrameLevel.map 0 ∨ f ∈ []
+⊢ f.width ∈ RegisterWitness.markedCols sequenceState
+Research/R2JointFrames/Concrete.lean:80:46: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [sequenceLevels, List.mem_cons] at hf
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Research/R2JointFrames/Concrete.lean:97:20: error: Type mismatch: After simplification, term
+  hx
+ has type
+  x = 0
+but is expected to have type
+  x = 0 ∨ x = 4
+Research/R2JointFrames/Concrete.lean:111:5: error: unsolved goals
+⊢ [FrameLevel.map 0] = ?m.9
+Research/R2JointFrames/Concrete.lean:111:32: error: unsolved goals
+⊢ [FrameLevel.map 0] = ?m.9
+Research/R2JointFrames/Concrete.lean:109:71: error: unsolved goals
+⊢ List FrameLevel
+'R2JointConcrete.root_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.consumed_inner' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2JointConcrete.sibling_context' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2JointConcrete.initialized_complete' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

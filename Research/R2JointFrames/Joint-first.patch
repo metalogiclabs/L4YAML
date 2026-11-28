@@ -1,0 +1,142 @@
+--- a/Research/R2JointFrames/Joint.lean
++++ b/Research/R2JointFrames/Joint.lean
+@@ -60,9 +60,9 @@
+     | true => exact fun z tail => ih (h z tail)
+     | false =>
+       by_cases marked : k ∈ RegisterWitness.markedCols sc
+-      · simp only [Joint, ite_eq_left marked] at h ⊢
++      · simp only [Joint, if_pos marked] at h ⊢
+         exact h.map (fun z hz => ih hz)
+-      · simp only [Joint, ite_eq_right marked] at h ⊢
++      · simp only [Joint, if_neg marked] at h ⊢
+         exact fun z tail => ih (h z tail)
+ 
+ lemma Joint.restrict_marks {before after : ScannerState} {P : SurfPos → Prop}
+@@ -78,48 +78,15 @@
+     | false =>
+       by_cases marked : k ∈ RegisterWitness.markedCols after
+       · have old := back k marked
+-        simp only [Joint, ite_eq_left marked, ite_eq_left old] at h ⊢
++        simp only [Joint, if_pos marked, if_pos old] at h ⊢
+         exact h.map (fun z hz => ih hz)
+-      · simp only [Joint, ite_eq_right marked]
++      · simp only [Joint, if_neg marked]
+         by_cases old : k ∈ RegisterWitness.markedCols before
+-        · simp only [Joint, ite_eq_left old] at h
++        · simp only [Joint, if_pos old] at h
+           exact fun z tail => ih (h.1 z tail)
+-        · simp only [Joint, ite_eq_right old] at h
++        · simp only [Joint, if_neg old] at h
+           exact fun z tail => ih (h z tail)
+ 
+-lemma Joint.restrict_on {before after : ScannerState} {P : SurfPos → Prop}
+-    {fs : List FrameLevel} {e : SurfPos} (h : Joint before P fs e)
+-    (back : ∀ f ∈ fs, f.width ∈ RegisterWitness.markedCols after →
+-      f.width ∈ RegisterWitness.markedCols before) : Joint after P fs e := by
+-  induction fs generalizing e with
+-  | nil => exact h
+-  | cons top rest ih =>
+-    have lower := fun f hf => back f (List.mem_cons_of_mem top hf)
+-    rcases top with ⟨k, kind⟩
+-    cases kind with
+-    | true => exact fun z tail => ih (h z tail) lower
+-    | false =>
+-      by_cases marked : k ∈ RegisterWitness.markedCols after
+-      · have old := back _ List.mem_cons_self marked
+-        simp only [Joint, ite_eq_left marked, ite_eq_left old] at h ⊢
+-        exact h.map (fun z hz => ih hz lower)
+-      · simp only [Joint, ite_eq_right marked]
+-        by_cases old : k ∈ RegisterWitness.markedCols before
+-        · simp only [Joint, ite_eq_left old] at h
+-          exact fun z tail => ih (h.1 z tail) lower
+-        · simp only [Joint, ite_eq_right old] at h
+-          exact fun z tail => ih (h z tail) lower
+-
+-lemma Joint.question {sc : ScannerState} {P : SurfPos → Prop}
+-    {rest : List FrameLevel} {own : Nat} {q slot e : SurfPos}
+-    (marked : own ∈ RegisterWitness.markedCols sc) (literal : GLit '?' q slot)
+-    (route : ∀ v, SBlockMapEntry own q v →
+-      ∀ z, SCompactMapTail own v z → Joint sc P rest z)
+-    (key : SBlockIndented own .blockOut slot e) :
+-    Joint sc P (FrameLevel.map own :: rest) e := by
+-  simp only [Joint, ite_eq_left marked]
+-  exact entryStep_of_question literal route key
+-
+ lemma Joint.consume {before after : ScannerState} {P : SurfPos → Prop}
+     {rest : List FrameLevel} {own : Nat} {e i c v : SurfPos}
+     (h : Joint before P (FrameLevel.map own :: rest) e)
+@@ -129,8 +96,8 @@
+     (indent : SIndent own e i) (colon : GLit ':' i c)
+     (value : SBlockIndented own .blockOut c v) :
+     Joint after P (FrameLevel.map own :: rest) v := by
+-  simp only [Joint, ite_eq_left marked] at h
+-  simp only [Joint, ite_eq_right consumed]
++  simp only [Joint, if_pos marked] at h
++  simp only [Joint, if_neg consumed]
+   exact fun z tail => (h.2 i c indent colon v value z tail).restrict_marks back
+ 
+ lemma Joint.sibling_sequence {before after : ScannerState} {P : SurfPos → Prop}
+@@ -155,13 +122,13 @@
+     · by_cases eq : n = own
+       · subst n
+         by_cases marked : own ∈ RegisterWitness.markedCols sc
+-        · simpa only [ValuesBelow, ite_eq_left marked] using step
+-        · simpa only [ValuesBelow, ite_eq_right marked] using step.1 e (SCompactMapTail.nil own e)
++        · simpa only [ValuesBelow, if_pos marked] using step
++        · simpa only [ValuesBelow, if_neg marked] using step.1 e (SCompactMapTail.nil own e)
+       · have absent : n ∉ RegisterWitness.markedCols sc := by
+           intro marked
+           have := bound n (by omega) marked
+           omega
+-        simp only [ValuesBelow, ite_eq_right absent]
++        simp only [ValuesBelow, if_neg absent]
+         exact ih (fun x hx => bound x (by omega))
+ 
+ -- This direction closes unmarked collection tails only as a projection.
+@@ -177,7 +144,6 @@
+       simpa using covered x hx marked) h
+   | cons top rest ih =>
+     rcases top with ⟨k, kind⟩
+-    change (∀ g ∈ rest, g.width < k) ∧ Ordered rest at ordered
+     cases kind with
+     | true =>
+       apply ih h.pop ordered.2
+@@ -189,32 +155,32 @@
+     | false =>
+       by_cases marked : k ∈ RegisterWitness.markedCols sc
+       · by_cases lt : k < upper
+-        · simp only [Joint, ite_eq_left marked] at h
+-          apply ValuesBelow.from_bounded_step (own := k)
++        · simp only [Joint, if_pos marked] at h
++          apply ValuesBelow.from_bounded_step
+           · intro x hx mark
+             rcases List.mem_cons.mp (covered x hx mark) with eq | mem
+             · have width := congrArg FrameLevel.width eq
+               exact Nat.le_of_eq width
+             · exact Nat.le_of_lt (ordered.1 _ mem)
+-          · exact h.map (fun z hz => ih (upper := k) hz ordered.2 (by
++          · exact h.map (fun z hz => ih hz ordered.2 (by
+               intro x hx mark
+               rcases List.mem_cons.mp (covered x (by omega) mark) with eq | mem
+               · have width := congrArg FrameLevel.width eq
+-                change x = k at width
++                simp only [FrameLevel.width_map] at width
+                 omega
+               · exact mem))
+         · apply ih h.pop ordered.2
+           intro x hx mark
+           rcases List.mem_cons.mp (covered x hx mark) with eq | mem
+           · have width := congrArg FrameLevel.width eq
+-            change x = k at width
++            simp only [FrameLevel.width_map] at width
+             omega
+           · exact mem
+       · apply ih h.pop ordered.2
+         intro x hx mark
+         rcases List.mem_cons.mp (covered x hx mark) with eq | mem
+         · have width := congrArg FrameLevel.width eq
+-          change x = k at width
++          simp only [FrameLevel.width_map] at width
+           exact (marked (width ▸ mark)).elim
+         · exact mem
+ 

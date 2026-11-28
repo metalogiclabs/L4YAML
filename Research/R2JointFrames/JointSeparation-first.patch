@@ -1,0 +1,14 @@
+--- a/Research/R2JointFrames/Separation.lean
++++ b/Research/R2JointFrames/Separation.lean
+@@ -39,10 +39,7 @@
+   · intro context
+     change Joint state P (levels state) afterA at context
+     rw [frames] at context
+-    have impossible : afterB ≠ afterA := by
+-      intro eq
+-      have chars := congrArg SurfPos.chars eq
+-      cases chars
++    have impossible : afterB ≠ afterA := by decide +kernel
+     exact impossible (context afterB sibling)
+ 
+ lemma no_uniform_reconstruction :

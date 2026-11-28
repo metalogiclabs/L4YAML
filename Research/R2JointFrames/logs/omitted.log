@@ -1,0 +1,3 @@
+'R2JointOmitted.sibling_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointOmitted.initialized_complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointOmitted.actual_landed_family' depends on axioms: [propext, Classical.choice, Quot.sound]

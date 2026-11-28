@@ -1,0 +1,44 @@
+Research/R2JointFrames/State.lean:28:8: error: Tactic `rewrite` failed: motive is not type correct:
+  fun _a => sc.indents[j - 1].column < sc.indents[_a].column
+Error: Application type mismatch: The argument
+  a✝
+has type
+  ¬_a < sc.indents.size
+but is expected to have type
+  ¬j - 1 + 1 < sc.indents.size
+in the application
+  levels_ordered._proof_1_4 i j hi hj jm last a✝
+
+Explanation: The rewrite tactic rewrites an expression 'e' using an equality 'a = b' by the following process. First, it looks for all 'a' in 'e'. Second, it tries to abstract these occurrences of 'a' to create a function 'm := fun _a => ...', called the *motive*, with the property that 'm a' is definitionally equal to 'e'. Third, we observe that 'congrArg' implies that 'm a = m b', which can be used with lemmas such as 'Eq.mpr' to change the goal. However, if 'e' depends on specific properties of 'a', then the motive 'm' might not typecheck.
+
+Possible solutions: use rewrite's 'occs' configuration option to limit which occurrences are rewritten, or use 'simp' or 'conv' mode, which have strategies for certain kinds of dependencies (these tactics can handle proofs and 'Decidable' instances whose types depend on the rewritten term, and 'simp' can apply user-defined '@[congr]' theorems as well).
+
+sc : ScannerState
+mono : Mono sc
+i j : Nat
+hi : i < sc.indents.size
+hj : j < sc.indents.size
+hij : i < j
+jm : j - 1 < sc.indents.size
+last : j - 1 + 1 = j
+le : sc.indents[i].column ≤ sc.indents[j - 1].column
+lt : sc.indents[j - 1].column < sc.indents[j - 1 + 1].column
+⊢ sc.indents.toList[i].column < sc.indents.toList[j].column
+Research/R2JointFrames/State.lean:54:43: error(lean.invalidField): Invalid field notation: Type of
+  entry
+is not known; cannot resolve field `isSequence`
+
+Hint: Consider replacing the field projection with a call to one of the following:
+  • `YamlValue.isSequence`
+  • `IndentEntry.isSequence`
+  • `Indexed.IndentEntryIx.isSequence`
+Research/R2JointFrames/State.lean:61:35: error: Function expected at
+  maps
+but this term has type
+  MarkedMaps sc
+
+Note: Expected a function because this term is being applied to the argument
+  i
+Research/R2JointFrames/State.lean:61:9: error: Tactic `rcases` failed: `x✝ : ?m.64` is not an inductive datatype
+'R2JointFrames.levels_ordered' depends on axioms: [propext, sorryAx, Quot.sound]
+'R2JointFrames.Context.entries' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

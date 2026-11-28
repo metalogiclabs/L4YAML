@@ -1,0 +1,12 @@
+{
+  "research_parent": "688e405242ec4e878857691c522762038c314277",
+  "parallel_commit": "00c219915b3665c09f6011b61589b5a0fb4a2efd",
+  "parallel_tree": "0b43596f53a582e60af0b93ab7bd1d5e8b250edd",
+  "parallel_parent": "7b322959d8f8378d628237080d69390b697ec577",
+  "parallel_patch_blob": "77ad8406a24dbbd5b8c8a808f4e7fe78dff507bc",
+  "parallel_report_blob": "de0911c5b42fb232d235d517b77fb72e98f4d721",
+  "reconstructed_positive_sha256": "e2d86f8ce08ff7f9f1c8eaec461ef3f671f9ae191024cd07d427add0d6bae049",
+  "positive_bytes_match_parent_688": true,
+  "independent_compiler_replay": false,
+  "shared_twenty_to_eight_result_counted_once": true
+}

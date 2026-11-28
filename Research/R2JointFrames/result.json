@@ -1,0 +1,21 @@
+{"total_field_actual_writers": 7,
+ "state":
+ "WARRANTED_LOCAL_ALGEBRA_AND_INITIALIZED_CASES; CANDIDATE_TOTAL_FIELD; UNKNOWN_GLOBAL_MIGRATION",
+ "standalone_modules_checked": 10,
+ "redundant_field": "ABSENT_IN_REJECTED_DIAGNOSTIC; UNKNOWN_ACCEPTED_MIGRATION",
+ "production_pr_ready": false,
+ "isolated_prefix_accepted": true,
+ "initialized_proof_roots": 4,
+ "generic_flat_reconstruction":
+ "REJECTED_UNIFORMLY_IN_P; FIXED_STREAM_CASE_NOT_REFUTED",
+ "full_module_accepted": false,
+ "full_diagnostic_demands":
+ ["R2_NODE_KEYLESS_COLON_ANCESTORS",
+  "R2_NODE_QUESTION_ANCESTORS",
+  "R2_NODE_IMPLICIT_COLON_NO_TAIL",
+  "R2_NODE_IMPLICIT_COLON_ANCESTORS",
+  "R2_NODE_PROPS_COLON_NO_TAIL",
+  "R2_NODE_PROPS_COLON_ANCESTORS",
+  "R2_SEQUENCE_LANDED_LEFT_OF_SLOT",
+  "R2_SEQUENCE_LANDED_MISSING_SLOT"],
+ "critical_retirements": 0}

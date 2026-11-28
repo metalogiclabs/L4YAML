@@ -1,0 +1,41 @@
+--- a/Research/R2JointFrames/State.lean
++++ b/Research/R2JointFrames/State.lean
+@@ -86,15 +86,15 @@
+       ∃ entry : IndentEntry, sc.indents[i]? = some entry ∧
+         0 ≤ entry.column ∧ entry.isSequence = false := by
+     intro i l key
+-    obtain ⟨hi, atKey⟩ := Array.getElem?_eq_some_iff.mp key
+-    have live : (sc.pendingKeys[i]'hi).isSome = true := by rw [atKey]; rfl
+-    have checked := check.2 ⟨i,hi⟩ live
++    have index := Array.getElem?_eq_some_iff.mp key
++    have live : sc.pendingKeys[⟨i,index.1⟩].isSome = true := by simp [index.2]
++    have checked := check.2 ⟨i,index.1⟩ live
+     cases atEntry : sc.indents[i]? with
+     | none => simp [atEntry] at checked
+     | some entry =>
+       have parts : 0 ≤ entry.column ∧ entry.isSequence = false := by
+         simpa [atEntry] using checked
+-      exact ⟨entry, rfl, parts⟩
++      exact ⟨entry, atEntry, parts⟩
+   constructor
+   · refine ⟨check.1, ?_⟩
+     intro i l key
+@@ -104,18 +104,6 @@
+     obtain ⟨entry, atEntry, _, kind⟩ := entries i l key
+     exact ⟨entry, atEntry, kind⟩
+ 
+-def MonoCheck (sc : ScannerState) : Prop :=
+-  ∀ i : Fin sc.indents.size,
+-    (if h : i.val+1 < sc.indents.size then
+-      decide ((sc.indents[i.val]'i.isLt).column < (sc.indents[i.val+1]'h).column)
+-     else true) = true
+-
+-lemma MonoCheck.sound {sc : ScannerState} (check : MonoCheck sc) : Mono sc := by
+-  intro i hi
+-  have checked := check ⟨i,by omega⟩
+-  simp only [dif_pos hi] at checked
+-  exact of_decide_eq_true checked
+-
+ #print axioms levels_ordered
+ #print axioms Context.entries
+ 

@@ -1,0 +1,20 @@
+--- a/Research/R2JointFrames/RemovedAudit.inc.lean
++++ b/Research/R2JointFrames/RemovedAudit.inc.lean
+@@ -12,7 +12,7 @@
+     (`L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock,2),
+     (`L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent,1),
+     (`L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock,3)]
+-  let mut total : Nat := 0
++  let mut total := 0
+   for (producer, expected) in rows do
+     let some info := env.find? producer | throwError "missing actual producer"
+     let some body := info.value? (allowOpaque := true) | throwError "missing actual body"
+@@ -20,7 +20,7 @@
+       (R2ContinuationProductionAudit.arity ci.type) index body
+     unless fields.size == expected do throwError "actual constructor inventory {producer}: {fields.size}"
+     total := total + fields.size
+-  let mut readers : Nat := 0
++  let mut readers := 0
+   for (name, info) in env.constants.toList do
+     if name.getPrefix == `L4YAML.Proofs.StreamAccum then
+       if let some body := info.value? (allowOpaque := true) then

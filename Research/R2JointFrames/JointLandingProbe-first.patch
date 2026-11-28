@@ -1,0 +1,13 @@
+--- a/Research/R2JointFrames/LandingProbe.lean
++++ b/Research/R2JointFrames/LandingProbe.lean
+@@ -18,8 +18,8 @@
+ #eval do
+   let rows := landingProbeInputs.toArray.map fun (input,index) =>
+     let state := nthDash input index
+-    let actual : Option Lean.Json := state.map fun (s : ScannerState) => Lean.Json.mkObj [
+-      ("levels", Lean.Json.arr ((levels s).toArray.map fun (f : L4YAML.Proofs.IndentStackCover.FrameLevel) => Lean.Json.mkObj [
++    let actual := state.map fun s => Lean.Json.mkObj [
++      ("levels", Lean.Json.arr ((levels s).toArray.map fun f => Lean.Json.mkObj [
+         ("width", Lean.toJson f.width), ("is_sequence", Lean.toJson f.isSeq)])),
+       ("marks", Lean.toJson (RegisterWitness.markedCols s))]
+     Lean.Json.mkObj [("input", Lean.toJson input), ("dash_index", Lean.toJson index),

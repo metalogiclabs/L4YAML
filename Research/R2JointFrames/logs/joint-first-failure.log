@@ -1,0 +1,101 @@
+Research/R2JointFrames/Joint.lean:63:26: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2JointFrames/Joint.lean:65:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2JointFrames/Joint.lean:81:26: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2JointFrames/Joint.lean:81:41: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2JointFrames/Joint.lean:83:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2JointFrames/Joint.lean:85:28: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2JointFrames/Joint.lean:87:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2JointFrames/Joint.lean:99:20: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2JointFrames/Joint.lean:100:20: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2JointFrames/Joint.lean:125:35: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2JointFrames/Joint.lean:126:35: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2JointFrames/Joint.lean:131:32: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2JointFrames/Joint.lean:158:28: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2JointFrames/Joint.lean:167:53: error: omega could not prove the goal:
+a possible counterexample may satisfy the constraints
+  d ≥ 0
+  c ≥ 0
+  c - d ≥ 1
+  b ≥ 0
+  a ≥ 0
+  a - b ≥ 1
+  a - d ≤ 0
+where
+ a := ↑upper
+ b := ↑k
+ c := ↑{ width := k, isSeq := false }.width
+ d := ↑x
+Research/R2JointFrames/Joint.lean:170:16: error: omega could not prove the goal:
+a possible counterexample may satisfy the constraints
+  c ≥ 0
+  b ≥ 0
+  b - c ≥ 1
+  a ≥ 0
+  a - c ≥ 1
+where
+ a := ↑upper
+ b := ↑{ width := k, isSeq := false }.width
+ c := ↑x
+Research/R2JointFrames/Joint.lean:169:27: warning: This simp argument is unused:
+  FrameLevel.width_map
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only at width
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Research/R2JointFrames/Joint.lean:176:23: warning: This simp argument is unused:
+  FrameLevel.width_map
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only at width
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Research/R2JointFrames/Joint.lean:183:21: warning: This simp argument is unused:
+  FrameLevel.width_map
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only at width
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'R2JointFrames.Joint.consume' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Joint.sibling_sequence' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Joint.entries' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

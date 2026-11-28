@@ -1,0 +1,5 @@
+JOINT-INITIALIZED-AUDIT R2JointConcrete.initialized_complete: constants=6222 required=8 forbidden=6 missing=0 free_premises=0 axioms=#[propext, Classical.choice, Quot.sound]
+JOINT-INITIALIZED-AUDIT R2JointOmitted.initialized_complete: constants=6211 required=8 forbidden=6 missing=0 free_premises=0 axioms=#[propext, Classical.choice, Quot.sound]
+JOINT-INITIALIZED-AUDIT R2JointConcrete.actual_landed_family: constants=6450 required=8 forbidden=6 missing=0 free_premises=0 axioms=#[propext, Classical.choice, Quot.sound]
+JOINT-INITIALIZED-AUDIT R2JointOmitted.actual_landed_family: constants=6430 required=8 forbidden=6 missing=0 free_premises=0 axioms=#[propext, Classical.choice, Quot.sound]
+JOINT-BOUNDARY-AUDIT uniform_flat_reconstruction=refuted generic_P_only=true total_pack=checked critical_retirements=0

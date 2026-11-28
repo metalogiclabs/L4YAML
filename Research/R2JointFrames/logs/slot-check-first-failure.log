@@ -1,0 +1,36 @@
+Research/R2JointFrames/State.lean:90:31: error: Invalid `⟨...⟩` notation: The expected type of this term could not be determined
+Research/R2JointFrames/State.lean:90:16: error: failed to prove index is valid, possible solutions:
+  - Use `have`-expressions to prove the index is valid
+  - Use `a[i]!` notation instead, runtime check is performed, and 'Panic' error message is produced if index is not valid
+  - Use `a[i]?` notation instead, result is an `Option` type
+  - Use `a[i]'h` notation instead, where `h` is a proof that index is valid
+sc : ScannerState
+check : SlotCheck sc
+i l : Nat
+key : sc.pendingKeys[i]? = some (some l)
+index : ∃ h, sc.pendingKeys[i] = some l
+⊢ ?m.47 sc.pendingKeys sorry
+Research/R2JointFrames/State.lean:90:61: error: unsolved goals
+sc : ScannerState
+check : SlotCheck sc
+i l : Nat
+key : sc.pendingKeys[i]? = some (some l)
+index : ∃ h, sc.pendingKeys[i] = some l
+⊢ sorry () = true
+Research/R2JointFrames/State.lean:97:20: error: Application type mismatch: The argument
+  atEntry
+has type
+  sc.indents[i]? = some entry
+but is expected to have type
+  some entry = some entry
+in the application
+  And.intro atEntry
+Research/R2JointFrames/State.lean:90:70: warning: This simp argument is unused:
+  index.2
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'R2JointFrames.levels_ordered' depends on axioms: [propext, Quot.sound]
+'R2JointFrames.Context.entries' depends on axioms: [propext, Classical.choice, Quot.sound]

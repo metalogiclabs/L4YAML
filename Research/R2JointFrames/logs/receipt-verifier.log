@@ -1,0 +1,4 @@
+EXACT-DIAGNOSTIC Research/R2JointFrames/logs/total-block.log: retained=8 extra=0
+EXACT-DIAGNOSTIC Research/R2JointFrames/logs/total-audited.log: retained=8 extra=0
+EXACT-DIAGNOSTIC Research/R2JointFrames/logs/removed-audited.log: retained=8 extra=0
+JOINT-RECEIPT modules=10 initialized_roots=4 actual_writers=7 derived_readers=3 field=removed retained_demands=8 extra_errors=0 prefixes=accepted full_migration=unknown critical_retirements=0 pr_ready=false

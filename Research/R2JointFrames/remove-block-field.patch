@@ -1,0 +1,255 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1769,6 +1769,24 @@
+   SlotValues.compact_sequence (SequenceValues.slot payload) indent literal notNs back
+ 
+ end L4YAML.Proofs.R2SequenceContext
++section R2TotalSequencePack
++open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
++open L4YAML.Proofs.StreamAccum L4YAML.Proofs.R2ConsumptionClosure L4YAML.Proofs.R2SequenceContext
++namespace R2JointFrames
++
++-- Once the mandatory entry proof retains the family, this value-line face
++-- is total. There is no second supplier and no alternative to select.
++lemma total_sequence_pack {sc : ScannerState} {start slot : SurfPos} {n : Nat}
++    (family : SequenceValues sc start n slot) :
++    ∀ own ∈ RegisterWitness.markedCols sc,
++      ∀ e, SBlockIndented n .blockIn slot e →
++      ∀ z, SCompactSeqTail n e z → ExplValueLine start own z :=
++  fun _own marked e node z tail =>
++    (family e node z tail).valueLine marked (marked_lt_ceiling marked)
++
++end R2JointFrames
++end R2TotalSequencePack
++
+ 
+ open L4YAML.Proofs.R2SequenceContext
+ 
+@@ -3791,26 +3809,7 @@
+       -- it, `- a: |` and `- a: "p⏎  q"` read their values at the compact
+       -- index instead of falling to the escape.
+       (h_col : sp_scan.col = n + 1)
+-      -- Item 92: the park's VALUE-LINE pack, `h_close_entry`'s twin (a park's
+-      -- pack-twin mirrors its route field's domain, item 91's rule) — the
+-      -- awaited content plus the compact tail, then the frame's own
+-      -- `[190] s-indent(nv) ':' s-l+block-indented(nv, block-out)` value
+-      -- line.  Paid by the compact fill of an open `?`/explicit-`:` slot
+-      -- (`? - a⏎: - w`), by a sibling/nested/inline `-` from the previous
+-      -- park's own pack, ~~and punted by the landed producers (a landed `-`
+-      -- opens `[183]` under no frame; `?⏎- a⏎: - w`'s seq-spaces KEY is the
+-      -- `s-l+block-node` alternative, not this one, and stays deferred)~~ —
+-      -- and, since item 188, by the LANDED `-` off the same slot, through
+-      -- exactly that `s-l+block-node` alternative (`slotLandedSeq`).  The two
+-      -- alternatives of `[185]` are the two arms of one lemma, not a paid
+-      -- case and a deferred one.  What still punts is a landed `-` off a park
+-      -- with no slot at all, or one left of the frame's own index.
+-      (h_kslot : (∀ nv ∈ RegisterWitness.markedCols sc,
+-        ∀ sp_m : SurfPos, SBlockIndented n .blockIn sp_scan sp_m →
+-        ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+-        ∀ sp_i sp_c : SurfPos, SIndent nv sp_e sp_i → GLit ':' sp_i sp_c →
+-        ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++      -- The value-line view is derived from mandatory h_close_entry; no separate pack field.
+       -- Item 99 (LAST, same reason): `h_close_entry`'s RESUME twin — the
+       -- entry's content and the collection's remaining tail close the
+       -- sequence, and the still-open mapping levels BELOW it stand ready
+@@ -8249,7 +8248,7 @@
+     exact h_doc_route sp_mid
+       (GAlt.right sp_scan sp_mid
+         (GSeq.mk sp_scan sp_scan sp_mid (GEps.mk sp_scan) h_ssl))
+-  | pendingBlock _ _ _ n h_close _ _ _ _ _ _ _ _ _ _ _ _ h_next =>
++  | pendingBlock _ _ _ n h_close _ _ _ _ _ _ _ _ _ _ _ h_next =>
+     have h_ssl := SSLCommentsFrom_at_park h_corr (GStar.nil _)
+       (fun _ _ => (h_next h_noflow).gate) h_from h_ok
+     exact h_close sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl)
+@@ -15322,8 +15321,8 @@
+                (ntop_of_flowLevel_succ h_fl1)
+            (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
+      ⟨_, h_km0 (preprocess_saved_key_fresh h_armD.1 h_noflow_prep h_preprocess).1⟩, rfl⟩
+-  | pendingBlock _ _ _ n_old h_close h_close_entry_old h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
+-      h_kslotUp_old _ _ h_offer_b h_gateB =>
++  | pendingBlock _ _ _ n_old h_close h_close_entry_old h_floor_old h_sk_old h_col59 _ _ _ h_kslotUp_old _ _ h_offer_b h_gateB =>
++    have h_kslot_old := Or.inl (b := True) (R2JointFrames.total_sequence_pack (fun e node z tail => (h_close_entry_old e node z tail).2))
+     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
+     -- fits `flowInBlock n_old` and `  - [1]` composes.  The landing that
+     -- under-runs `s-indent(n_old)` on the OPEN itself splits by its own
+@@ -28032,9 +28031,7 @@
+              (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+              (park_col_of_indicator hcol_mid h_ind h_dash)
+-             -- Item 92: a landed `-` with nothing pending opens `[183]` under
+-             -- no `[187]` frame — there is no value line to pack.
+-             (Or.inl (fun _ hm => absurd (h_out.mem hm) List.not_mem_nil))
++             
+              -- **Item 256: the root's resume frames, PAID, at floor 0.**  The
+              -- seed's stack is EMPTY (`h_ntop`), so on a monotone stack no mapping
+              -- level stands at or right of column 0 (`covered_nil_of_ntop`); the
+@@ -28630,25 +28627,7 @@
+                     hcorr_prep h_preprocess h_dispatch)
+                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                  (park_col_of_compact h_col_vslot h_ind h_dash2)
+-                 -- Item 92: the slot's value-line pack becomes the compact
+-                 -- pending's own — the entry plus its tail complete the KEY as
+-                 -- `[195] ns-l-compact-sequence`, and the frame reads the `:`
+-                 -- line (`? - a⏎: - w`).
+-                 -- Item 405: the slot's own route heads the chain, the ancestors'
+-                 -- (`hkvUp`) follow it, and the DOMAIN is the slot's, unchanged by
+-                 -- a `-` (`h_mcstep_ne`); an undomained ancestor chain DECLINES.
+-                 (match hkvUp with
+-                  -- Item 521: `hkvUp` ranges over EVERY mark of `sc` (the slot's own route `kv` for the slot's mark).
+-                  | Or.inl kvU => Or.inl (RegisterWitness.MarkedColsIn.relay
+-                      (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by
+-                      rintro x hx
+-                      intro sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi
+-                      exact kvU x hx sp_e
+-                        (SBlockIndented.compactSeq nv .blockOut m sp_mid _ sp_e h_ind
+-                          (SCompactSeq.mk (nv + 1 + m) _ sp_scan' sp_m sp_e
+-                            h_dash2 h_gnot2 h_bi h_tail))
+-                        sp_i sp_c h_iv h_lit sp_v h_sbi)
+-                  | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++             
+                  -- ═══ **Item 257: the compact fill's resume frames, PAID, from
+                  -- the SLOT's own top.**  No break was crossed, so the stack this
+                  -- `-` pushes onto is the slot's, and `h_top_slot` bounds its top
+@@ -29270,38 +29249,7 @@
+              (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+              (park_col_of_indicator hcol_mid h_ind h_dash)
+-             -- Item 92: the old pending closed and the landed `-` opens a NEW
+-             -- `[183]` sequence under no frame.  When the closed pending was a
+-             -- `?` park this is `?⏎- a⏎: - w`'s seq-spaces KEY — the
+-             -- `s-l+block-node` alternative of `[185]`, not the compact one —
+-             -- ~~and its value line stays with the deferral (the kind's own
+-             -- residue; `h_vpack` here bakes the e-node key and cannot serve).~~
+-             -- ═══ **Item 188: the frame's key is what this `-` opens, and the
+-             -- SLOT is what serves it.**  `h_vpack` does bake the `e-node` key
+-             -- and item 92 was right about that field; the reading it named as
+-             -- deferred is not that field's, it is `h_vslot`'s — the OPEN
+-             -- `[185]` slot the `?` park carries, whose inner pack is the
+-             -- frame's `[190] s-indent(nv) ':' s-l+block-indented(nv,
+-             -- block-out)` value line.  `slotLandedSeq` fills the slot with
+-             -- the collection this `-` opens, at `seq-spaces`' one-column-left
+-             -- index, and the pack then rides on the new park as its own
+-             -- value-line twin — which is what the landed `:` spends at
+-             -- `accum_block_on_pendingBlock` (`?⏎-⏎: w`, `?⏎- a⏎: w`,
+-             -- `?⏎  - a⏎: w`, and through the sibling arm `?⏎- a⏎- b⏎: w`).
+-             -- A slot with no inner pack, or a landing LEFT of the frame,
+-             -- keeps the deferral. ═══
+-             (match h_vslot with
+-              | Or.inl ⟨nv, _, _, _, _, _, _, _, _, Or.inl kvU⟩ =>
+-                  if hnk : nv ≤ k then
+-                    Or.inl (RegisterWitness.MarkedColsIn.relay (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)) <| by
+-                      rintro x hx _ h_indented sp_e h_tail
+-                      exact kvU x hx sp_e (slotLandedSeq hnk h_ssl
+-                          (SBlockSeqEntries_of_compactTail h_ind h_dash h_gnot h_indented h_tail)))
+-                  -- Item 307/405: behind the slot, the resumed stack's slot route
+-                  -- (`h_resKslot`) is a singleton with no domain — DECLINED (ruling (a)).
+-                  else Or.inr trivial
+-              -- Item 405: no slot route, or an undomained ancestor chain — DECLINED.
+-              | _ => Or.inr trivial)
++             
+              -- Item 99: the resume frames — the entry and the tail close the
+              -- root sequence over the same closed prefix.
+              -- **Item 155: …and the level the closed park awaited a node for,
+@@ -30540,16 +30488,7 @@
+                  (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                  (park_col_of_indicator hcol_mid h_ind h_dash2)
+-                 -- Item 92: the sibling rides the pack with its own entry
+-                 -- consed onto the tail (`? - a⏎  - b⏎: - w`).
+-                 (match h_kslot with
+-                  | Or.inl kslot => Or.inl (RegisterWitness.MarkedColsIn.relay (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc))
+-                      fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+-                        kslot nv hmem sp_mid h_ssl sp_e
+-                          (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
+-                            h_ind h_dash2 h_gnot2 h_bi h_tail)
+-                          sp_i sp_c h_iv h_lit sp_v h_sbi)
+-                  | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++             
+                  -- **Item 256: the resume frames, RELAYED from this park's own
+                  -- field** at the unchanged index — the sibling conses its entry
+                  -- onto the collection's tail exactly as `h_kslot`'s relay above
+@@ -31164,19 +31103,7 @@
+                (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                (park_col_of_indicator hcol_mid h_ind h_dash2)
+-               -- Item 92: the previous entry closed empty and the sibling
+-               -- rides the pack with its own entry consed on (`? -⏎  -⏎: v`
+-               -- at the compact index).
+-               (match h_kslot with
+-                | Or.inl kslot => Or.inl (RegisterWitness.MarkedColsIn.relay (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc))
+-                    fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+-                      kslot nv hmem sp_mid h_node_old sp_e
+-                        (SCompactSeqTail.cons k sp_mid _ sp_scan' sp_m sp_e
+-                          h_ind h_dash2 h_gnot2 h_bi h_tail)
+-                        sp_i sp_c h_iv h_lit sp_v h_sbi)
+-                -- Item 318: the sibling `-` carries the park's alternative through `step_blockEntry`
+-                -- (the block lane's transport; item 319 pays the other dash and colon arms this way).
+-                | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++             
+              -- Item 370: the sibling `-` carries the park's own frames (item 369's
+              -- `h_closeF_old`) with its entry consed onto the tail, exactly as
+              -- `h_close_entry` above; the cover rides the same two steps the
+@@ -31275,19 +31202,7 @@
+                  (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+                  (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                  (park_col_of_indicator hcol_mid h_ind h_dash2)
+-                 -- Item 92: the inner collection is the outer entry's node, so
+-                 -- the pack rides at the outer tail's nil (`? -⏎    - a⏎: v`).
+-                 (match h_kslot with
+-                  | Or.inl kslot => Or.inl (RegisterWitness.MarkedColsIn.relay (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc))
+-                      fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+-                        kslot nv hmem sp_e
+-                          (SBlockIndented.node n .blockIn sp_scan sp_e
+-                            (nestedBlockSeq hlt h_ssl
+-                              (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2
+-                                h_bi h_tail)))
+-                          sp_e (SCompactSeqTail.nil n sp_e)
+-                          sp_i sp_c h_iv h_lit sp_v h_sbi)
+-                  | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++             
+                  -- ═══ **Item 258: the nested landing's resume frames, PAID, from
+                  -- the OLD park's top.**  A break was crossed here, but the bound
+                  -- survives it: `h_top_old` puts the old park's top at or left of
+@@ -31830,19 +31745,7 @@
+                   hcorr_prep h_preprocess h_dispatch)
+                (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+                (park_col_of_compact h_col_old h_ind h_dash2)
+-               -- Item 92: the inner compact collection is the outer entry's
+-               -- own node, so the pack rides at the outer tail's nil
+-               -- (`? - - a⏎: - w`).
+-               (match h_kslot with
+-                | Or.inl kslot => Or.inl (RegisterWitness.MarkedColsIn.relay (h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc))
+-                    fun nv hmem sp_m h_bi sp_e h_tail sp_i sp_c h_iv h_lit sp_v h_sbi =>
+-                      kslot nv hmem sp_e
+-                        (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc sp_e h_ind
+-                          (SCompactSeq.mk (n + 1 + m) sp_sc sp_scan' sp_m sp_e
+-                            h_dash2 h_gnot2 h_bi h_tail))
+-                        sp_e (SCompactSeqTail.nil n sp_e)
+-                        sp_i sp_c h_iv h_lit sp_v h_sbi)
+-                | Or.inr h_alt => Or.inr (PackAlt.step_blockEntry h_preprocess h_dispatch h_alt))
++             
+                -- ═══ **Item 258: the compact nested `-`'s resume frames, PAID,
+                -- from the park's OWN top.**  No break was crossed, so the stack
+                -- this `-` pushes onto is the park's, and `h_top_old` bounds its
+@@ -32564,8 +32467,8 @@
+       (h_closeFV198.imp (fun hall nv hm => let ⟨ks, hw, hcov, fV⟩ := hall nv hm; ⟨ks, hw, hcov, fV⟩) id)
+       -- Item 208: the park's own indent check, read at the block landing.
+       h_nic0B h_live290 h_runBC h_gateBC h_mcstep h_mcstep_ne h_cf h_lkt
+-  | pendingBlock _ _ _ n_old _h_close h_close_entry_old h_floor208 h_sk_old h_col_old h_kslot92
+-      h_closeF369 _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 _ h_nextB =>
++  | pendingBlock _ _ _ n_old _h_close h_close_entry_old h_floor208 h_sk_old h_col_old h_closeF369 _ h_seqF167 h_kslotUp190 h_closeFV198 h_top208 _ h_nextB =>
++    have h_kslot92 := Or.inl (b := True) (R2JointFrames.total_sequence_pack (fun e node z tail => (h_close_entry_old e node z tail).2))
+     exact accum_block_on_pendingBlock (h_closeF_old := h_closeF369) sc sp_start sp_block sp_scan s_prep s' c sp_prep
+       sp_scan' n_old h_stream_block h_close_pending h_close_entry_old h_kslot92
+       h_sk_old h_col_old hcorr_prep hcorr_result h_corr h_noflow h_nextB h_preprocess h_dispatch h_bare
+@@ -42092,7 +41995,8 @@
+                          (content_park_nic_any (preprocess_some_peek h_preprocess)
+                            h_flow_disp h_not_doc h_dispatch hcorr_result) (Or.inr trivial),
+                        hcorr_result⟩
+-  | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old h_kslot92 h_closeF99 _ h_seqF167 h_kslotUp190 h_closeFV198 h_park_top_old h_offer_b h_nextB =>
++  | pendingBlock _ _ _ n_old h_close_old h_close_entry_old h_floor_old h_sk_old h_col_old h_closeF99 _ h_seqF167 h_kslotUp190 h_closeFV198 h_park_top_old h_offer_b h_nextB =>
++    have h_kslot92 := Or.inl (b := True) (R2JointFrames.total_sequence_pack (fun e node z tail => (h_close_entry_old e node z tail).2))
+     -- Item 22 split this arm on the pending's own index because every content
+     -- reading was stated at 0; item 23 gave the nonzero side its own arm, and
+     -- item 179 retired the split: the indented arm's splitter answers at every

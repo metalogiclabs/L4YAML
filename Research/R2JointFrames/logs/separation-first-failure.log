@@ -1,0 +1,6 @@
+Research/R2JointFrames/Separation.lean:42:44: error: failed to synthesize
+  Decidable (afterB ≠ afterA)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+'R2JointSeparation.flat_without_joint' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2JointSeparation.no_uniform_reconstruction' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

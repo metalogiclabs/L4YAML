@@ -1,0 +1,14 @@
+Research/R2JointFrames/LandingProbe.lean:23:30: error(lean.invalidField): Invalid field notation: Type of
+  f
+is not known; cannot resolve field `width`
+
+Hint: Consider replacing the field projection with a call to one of the following:
+  • `IndentStackCover.FrameLevel.width`
+  • `Lean.Std.Format.format.width`
+  • `Lean.Meta.Tactic.BVDecide.Atom.width`
+  • `Lean.Meta.Tactic.BVDecide.ReifiedBVExpr.width`
+Research/R2JointFrames/LandingProbe.lean:23:68: error(lean.invalidField): Invalid field notation: Type of
+  f
+is not known; cannot resolve field `isSeq`
+
+Hint: Consider replacing the field projection `.isSeq` with a call to the function `IndentStackCover.FrameLevel.isSeq`.

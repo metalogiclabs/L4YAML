@@ -1,0 +1,5 @@
+'R2JointConcrete.root_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.consumed_inner' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.sibling_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.initialized_complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.actual_landed_family' depends on axioms: [propext, Classical.choice, Quot.sound]

@@ -1,0 +1,13 @@
+Research/R2JointFrames/Concrete.lean:116:56: error: failed to synthesize
+  Decidable (SlotCheck siblingState)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Research/R2JointFrames/Concrete.lean:117:56: error: failed to synthesize
+  Decidable (MonoCheck siblingState)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+'R2JointConcrete.root_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.consumed_inner' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.sibling_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.initialized_complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointConcrete.actual_landed_family' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

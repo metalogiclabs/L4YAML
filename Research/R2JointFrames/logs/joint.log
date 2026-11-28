@@ -1,0 +1,3 @@
+'R2JointFrames.Joint.consume' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Joint.sibling_sequence' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2JointFrames.Joint.entries' depends on axioms: [propext, Classical.choice, Quot.sound]
