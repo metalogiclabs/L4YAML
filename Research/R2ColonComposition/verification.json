@@ -1,0 +1,92 @@
+{
+  "state": "WARRANTED_BOUNDED_INITIALIZED_COMPOSITION; CANDIDATE_PRODUCTION_MIGRATION; UNKNOWN_FULL_INVARIANT",
+  "compiler": "Lean (version 4.36.0, x86_64-unknown-linux-gnu, commit 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9, Release)",
+  "parents": {
+    "continuation": "801aa32c222fa8590c91dff70950027232e19ace",
+    "ownership": "7f7357ad10be9ad3d04372422b32f2119004dd24"
+  },
+  "controls_exit": 0,
+  "generic_proofs_exit": 0,
+  "concrete_proofs_exit": 0,
+  "dependency_audit_exit": 0,
+  "audited_roots": [
+    {
+      "root": "R2ColonCompositionConcrete.actual_colon_payload",
+      "constants": 6746,
+      "missing": 0
+    },
+    {
+      "root": "R2ColonCompositionConcrete.actual_sibling_then_ancestor",
+      "constants": 6765,
+      "missing": 0
+    }
+  ],
+  "generic_and_concrete_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "initialized_nonempty_output_marks": [
+    0
+  ],
+  "preproof_deeper_output_marks": [
+    0,
+    2,
+    4
+  ],
+  "actual_non_nil_sibling_consumed": true,
+  "free_enclosing_route_premise": false,
+  "assumed_concrete_scanner_soundness": false,
+  "production_diagnostic_exit": 1,
+  "production_diagnostic_source_sha256": "cba9c99227e6c67853e79e4b3ecea1b4874e0ad1795e78508bbd50ecdaac78e2",
+  "ownership_only_diagnostic_labels": 22,
+  "composed_diagnostic_labels": 23,
+  "additional_errors": 0,
+  "removed_outgoing_labels": [
+    "R2_NODE_EXPLICIT_COLON_ANCESTORS",
+    "R2_SLOT_EXPLICIT_COLON_DOMAIN"
+  ],
+  "new_mandatory_supplier_labels": [
+    "R2_COLON_ENTRY_SUPPLIER_CLOSE",
+    "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_CONTENT",
+    "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_PENDING"
+  ],
+  "unchanged_labels": 20,
+  "actual_producer_elaborates_conditionally": true,
+  "producer_new_entry_step_parameter": true,
+  "all_three_actual_callers_fund_soundness": true,
+  "all_three_actual_callers_fund_entry_family": false,
+  "new_optional_alternatives": 0,
+  "new_declines": 0,
+  "new_true_escapes": 0,
+  "counts_are_changed_contract_not_debt_score": true,
+  "actual_producer_audits": true,
+  "raw_axiom_profiles": {
+    "COLON": {
+      "byte_equal": true,
+      "axiom_count": 5,
+      "raw_axioms_sha256": "e6cfa89ba5958d0d26da7e37fdba00491111ae39705738cba7bf0c247fad458d"
+    },
+    "COMPACT": {
+      "byte_equal": true,
+      "axiom_count": 7,
+      "raw_axioms_sha256": "aa7c1dbfb75ca64c008974e967eb5baa72230b99356e770f929882dc526f10bb"
+    },
+    "COMPLETION": {
+      "byte_equal": true,
+      "axiom_count": 48,
+      "raw_axioms_sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a"
+    }
+  },
+  "whole_variant_accepted": false,
+  "critical_positions_retired": 0,
+  "critical_roster_remeasured": false,
+  "patch_chain_steps_restored": 8,
+  "development_sources_restored": 8,
+  "production_source_to_restore_unchanged": true,
+  "hosted_workflow_started": false,
+  "native_qualification_repeated": false,
+  "production_ref_mutated": false,
+  "maintainer_message_sent": false,
+  "approval_or_merge_attempted": false
+}

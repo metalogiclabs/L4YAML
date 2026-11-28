@@ -1,0 +1,13 @@
+--- a/Research/R2CloseValueFamily/Verify.lean
++++ b/Research/R2CloseValueFamily/Verify.lean
+@@ -71,8 +71,8 @@
+   let replay ← readEvidence "Research/R2CloseValueFamily/logs/standalone-replay.log"
+   let modules := replay.splitOn "\n" |>.filter (·.startsWith "CHECKED ")
+   unless modules.length == 8 do throw (IO.userError "expected four new and four reused modules")
+-  let prefixLog ← readEvidence "Research/R2CloseValueFamily/logs/flow-prefix.log"
+-  unless (errors prefixLog).isEmpty && prefixLog.contains
++  let prefix ← readEvidence "Research/R2CloseValueFamily/logs/flow-prefix.log"
++  unless (errors prefix).isEmpty && prefix.contains
+       "ACCEPTED-PREFIX strong_fields=4 actual_flow_opener=checked axioms=3 sorryAx=absent later_failed_declarations=excluded" &&
+       (← IO.FS.readFile "Research/R2CloseValueFamily/logs/flow-prefix.exit").trimAscii.toString == "0" do
+     throw (IO.userError "isolated actual invariant and flow prefix did not accept")

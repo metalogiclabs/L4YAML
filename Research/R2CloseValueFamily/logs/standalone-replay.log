@@ -1,0 +1,8 @@
+CHECKED Research/R2ColonComposition/ColonValues
+CHECKED Research/R2ColonSupplier/Controls
+CHECKED Research/R2ColonSupplier/ConsumedSibling
+CHECKED Research/R2ColonSupplier/LiveOwner
+CHECKED Research/R2CloseValueFamily/Controls
+CHECKED Research/R2CloseValueFamily/PairRoute
+CHECKED Research/R2CloseValueFamily/Concrete
+CHECKED Research/R2CloseValueFamily/DependencyAudit

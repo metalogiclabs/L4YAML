@@ -1,0 +1,54 @@
+{
+  "parent": "8d4596f26cf430df50d0e3f1e0dce2ea1104f83d",
+  "composition_parent": "45db495873471857987ff1e0c71e826e991adc3a",
+  "parent_audited_sha256": "68d39a1f10546e129af9dc57cdfdf03232d8bf1271dcc63221f8c8512b2ba7e4",
+  "integrated_baseline_sha256": "6a9071b22de0f849337e0b6022d424e56332a232a696081eaac45e366cbf7afa",
+  "supplied_audited_sha256": "1ac1a6dabde77ffe99f7dc5767d042541204ca3b7be90b93c023914d57646982",
+  "negative_sha256": "72f5dd0515b51601e2fb8e74e850afa3616ac98ecb27ef275a35b684605c8efc",
+  "development": [
+    {
+      "phase": "integrated-baseline",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patch": "Research/R2ColonSupplier/lineage/integrated-baseline-from-final.patch.xz",
+      "sha256": "6a9071b22de0f849337e0b6022d424e56332a232a696081eaac45e366cbf7afa"
+    },
+    {
+      "phase": "parent-audited",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patch": "Research/R2ColonSupplier/lineage/parent-audited-from-final.patch.xz",
+      "sha256": "68d39a1f10546e129af9dc57cdfdf03232d8bf1271dcc63221f8c8512b2ba7e4"
+    },
+    {
+      "phase": "supplied-first",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patch": "Research/R2ColonSupplier/lineage/supplied-first-from-final.patch.xz",
+      "sha256": "06a2e162c8e81ff931e1cba5c718ce00375ccb46c468f199cc4add9aa44ff0d5"
+    },
+    {
+      "phase": "supplied-preaudit",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "patch": "Research/R2ColonSupplier/lineage/supplied-preaudit-from-final.patch.xz",
+      "sha256": "1aaf1dcfa99d7c719bed71e54879c87c47873778a2715536264e73273bada4cb"
+    },
+    {
+      "phase": "verifier-first",
+      "target": "Research/R2ColonSupplier/VerifyDiagnostics.lean",
+      "patch": "Research/R2ColonSupplier/lineage/verifier-first-from-final.patch.xz",
+      "sha256": "412b42d720378802f2c79e86c581fed04d2cf5a5b89f4cd09f6df8a95c4b7c12"
+    },
+    {
+      "phase": "controls-initializer",
+      "target": "Research/R2ColonSupplier/Controls.lean",
+      "patch": "Research/R2ColonSupplier/lineage/controls-initializer-from-final.patch.xz",
+      "sha256": "445b7b3c429ad9cbde3417aecf2616755a779c8aeb685eb788fefc40557dfc93"
+    },
+    {
+      "phase": "live-owner-tactic",
+      "target": "Research/R2ColonSupplier/LiveOwner.lean",
+      "patch": "Research/R2ColonSupplier/lineage/live-owner-tactic-from-final.patch.xz",
+      "sha256": "04c98693d8c125f90356ae6095c4d724e2c76fe1ef618859132d92794674ea90"
+    }
+  ],
+  "all_development_sources_exact": true,
+  "source_reconstruction_exact": true
+}

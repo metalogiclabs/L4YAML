@@ -1,0 +1,315 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1462,6 +1462,93 @@
+ 
+ 
+ end R2ColonComposition
++
++namespace R2ColonSupplier
++open L4YAML L4YAML.Scanner L4YAML.Proofs L4YAML.Proofs.StreamAccum
++open L4YAML.Proofs.R2ConsumptionClosure L4YAML.Proofs.R2CompactSlot
++open L4YAML.Proofs.PendingKeySound
++
++lemma live_register_marked {s : ScannerState} {own : Nat}
++    (sound : Sound s) (flow : s.flowLevel = 0)
++    (live : s.explicitKeyLine ≠ none) (column : s.explicitKeyCol = (own : Int)) :
++    own ∈ RegisterWitness.markedCols s := by
++  obtain ⟨line, hline⟩ := Option.ne_none_iff_exists.mp live
++  have innermost : PendingKeys.innermost s.indentColumns s.pendingKeys =
++      (some line, (own : Int)) := by
++    rw [← innermostPendingKey_eq, ← sound.reg flow, hline, column]
++  obtain ⟨i, _, marked, getColumn⟩ := innermost_some_mem _ _ _ _ innermost
++  obtain ⟨c, atColumn, nonnegative⟩ := sound.slots.2 i line marked
++  rw [atColumn] at getColumn
++  simp only [Option.getD_some] at getColumn
++  exact RegisterWitness.markedCols_mem.mpr ⟨i, line, c, marked, atColumn,
++    by rw [getColumn]; exact Int.toNat_natCast own⟩
++
++-- A real live register at the landing came from the actual before-state.
++lemma live_landing_marked {before prep : ScannerState} {own : Nat} {c : Char}
++    (preprocess : scanNextToken_preprocess before = .ok (some (prep,c)))
++    (sound : Sound before) (mono : IndentStackMono.Mono before)
++    (noflow : prep.inFlow = false)
++    (live : prep.explicitKeyLine ≠ none)
++    (column : prep.explicitKeyCol = (own : Int)) :
++    own ∈ RegisterWitness.markedCols before := by
++  have inPrep := live_register_marked (PendingKeySound.preprocess_sound preprocess sound mono)
++    ((inFlow_false_iff prep).1 noflow) live column
++  exact (RegisterWitness.preprocess_markedCols preprocess
++    (RegisterWitness.MarkedColsIn.self before)).mem inPrep
++
++-- This is exactly the existing colon source split, with no new scanner flag.
++def StampSource (prep : ScannerState) : Prop :=
++  let dispatch := if prep.allowDirectives then
++    { prep with allowDirectives := false, documentEverStarted := true } else prep
++  dispatch.explicitKeyLine = none ∨
++    (scanValueClearKey dispatch).simpleKey.possible = true ∨
++    (dispatch.col : Int) ≠ dispatch.explicitKeyCol
++
++lemma live_landing_of_no_stamp {before prep : ScannerState} {own : Nat}
++    (preprocess : scanNextToken_preprocess before = .ok (some (prep, ':')))
++    (sound : Sound before) (mono : IndentStackMono.Mono before)
++    (noflow : prep.inFlow = false) (atColumn : prep.col = own)
++    (source : ¬ StampSource prep) : own ∈ RegisterWitness.markedCols before := by
++  apply live_landing_marked preprocess sound mono noflow
++  · intro dead
++    apply source
++    left
++    split <;> exact dead
++  · have equal : (prep.col : Int) = prep.explicitKeyCol := by
++      apply Classical.byContradiction
++      intro ne
++      apply source
++      right; right
++      split <;> exact ne
++    rw [atColumn] at equal
++    exact equal.symm
++
++#print axioms live_register_marked
++#print axioms live_landing_marked
++#print axioms live_landing_of_no_stamp
++
++end R2ColonSupplier
++
++namespace R2ColonSupplier
++open L4YAML L4YAML.Scanner L4YAML.Proofs L4YAML.Proofs.StreamAccum
++open L4YAML.Proofs.R2ConsumptionClosure L4YAML.Proofs.R2CompactSlot
++
++-- The caller retains the whole entry family, then preprocessing restricts
++-- its scanner domain. The owner is taken from the actual live state.
++lemma entry_step_at_landing {before prep : ScannerState} {start e : SurfPos}
++    {own : Nat} {c : Char} (family : EntryValues before (SLYamlStream start) e)
++    (marked : own ∈ RegisterWitness.markedCols before)
++    (preprocess : scanNextToken_preprocess before = .ok (some (prep,c))) :
++    EntryStep (ValuesBelow prep (SLYamlStream start) own) own e := by
++  have step := family.at marked (marked_lt_ceiling marked)
++  exact step.map (fun z lower => ValuesBelow.restrict lower (fun x _ hx =>
++    (RegisterWitness.preprocess_markedCols preprocess
++      (RegisterWitness.MarkedColsIn.self before)).mem hx))
++
++#print axioms entry_step_at_landing
++
++end R2ColonSupplier
++
+ 
+ 
+ open L4YAML.Proofs.R2CompactSlot
+@@ -30731,28 +30818,25 @@
+         -- falls back to the generic close-and-reopen.
+         by_cases hc_colon : c = ':'
+         · subst hc_colon
+-          have h_explicit := fun (kslot : ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →
++          have h_explicit := fun (marked : k ∈ RegisterWitness.markedCols sc) (kslot : ∀ sp_m : SurfPos, SSLComments sp_gram sp_m →
+               ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+               ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+               ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+             colon_open_map_explicit
+             (h_sound_prep := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
+-            (h_entry := by trace_state; fail "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_CONTENT")
++            (h_entry := R2ColonSupplier.entry_step_at_landing (h_completedContext sp_mid h_ssl sp_mid (SCompactSeqTail.nil n sp_mid)) marked h_preprocess)
+             (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+               (h_pairAt := by
+                 intro h_noOwn a ha hlt mid i colon comments indent literal value content
+-                by_cases marked : k ∈ RegisterWitness.markedCols sc
+-                · have family := h_completedContext mid comments
+-                    mid (SCompactSeqTail.nil n mid)
+-                  exact EntryValues.pair family marked
+-                    ((h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem ha)
+-                    hlt indent literal content
+-                · trace_state; fail "R2_OTHER_BLOCK_CONTENT_PAIR_UNMARKED")
+-              sp_start sp_gram sp_mid _ k s_prep s'
++                have family := h_completedContext mid comments mid (SCompactSeqTail.nil n mid)
++                exact EntryValues.pair family marked
++                  ((h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem ha)
++                  hlt indent literal content)
++            sp_start sp_gram sp_mid _ k s_prep s'
+               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+               (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+                 kslot sp_m h_ssl_m sp_m (SCompactSeqTail.nil n sp_m)
+@@ -30817,36 +30901,19 @@
+             else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+               { s_prep with allowDirectives := false, documentEverStarted := true }
+             else s_prep).explicitKeyCol
+-          · rcases h_kslot with kslot | _
+-            · by_cases hknv : k ∈ RegisterWitness.markedCols sc
+-              · exact h_explicit (kslot k hknv)
++          · by_cases marked : k ∈ RegisterWitness.markedCols sc
++            · rcases h_kslot with kslot | _
++              · exact h_explicit marked (kslot k marked)
+               · rcases h_upSpend with hup | _
+-                · exact h_explicit hup
++                · exact h_explicit marked hup
+                 · exact h_gen (fun _ => h_src)
+-            · rcases h_upSpend with hup | _
+-              · exact h_explicit hup
+-              · exact h_gen (fun _ => h_src)
+-          · rcases h_kslot with kslot | _
+-            · by_cases hknv : k ∈ RegisterWitness.markedCols sc
+-              · exact h_explicit (kslot k hknv)
+-              · -- Item 185: the pack is OFF the landing's column.
+-                -- **Item 190: …so the frame ABOVE it is tried before deferring**
+-                -- (`?⏎  ? - a⏎: w` — the inner `?` at 2, the outer at 0).
+-                rcases h_upSpend with hup | ⟨nsU, hU⟩
+-                · exact h_explicit hup
+-                · -- Item 192: the premise is over the park's own frame AND the
+-                  -- chain above it — every frame this park is standing inside.
+-                  exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
+-                    (h_close_pending h_nd_land h_ui_land _ h_ssl)
+-                    (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
+-                    (nodir_of_block_dispatch h_dispatch) h_src
+-                    (explicit_at_indent_of_dispatch h_dispatch
+-                      (noflow_disp_of_noflow h_noflow) h_src)
+-                    (ns := RegisterWitness.markedCols sc ++ nsU)
+-                    (fun hm => (List.mem_append.mp hm).elim hknv hU)
+-                    (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result) (Or.inl (block_indicator_arm h_dispatch)) ⟨sp_scan', GStar.nil _, fun _ _ => (dispatchBlock_next_of_some h_noflow (preprocess_some_peek h_preprocess) h_dispatch).gate⟩
+-            · -- Item 185: the park carries NO pack.
+-              exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
++            · exact h_gen (fun _ => h_src)
++          · have marked : k ∈ RegisterWitness.markedCols sc :=
++              R2ColonSupplier.live_landing_of_no_stamp h_preprocess h_sound h_mono h_noflow
++                (by have hi := SIndent_col h_ind; rw [hcol_mid] at hi; have hc := hcorr_prep.col_eq; omega) h_src
++            rcases h_kslot with kslot | _
++            · exact h_explicit marked (kslot k marked)
++            · exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
+                 (h_close_pending h_nd_land h_ui_land _ h_ssl)
+                 (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
+                 (nodir_of_block_dispatch h_dispatch) h_src
+@@ -31553,7 +31620,7 @@
+       -- any other shape falls back to the generic close-and-reopen.
+       by_cases hc_colon : c = ':'
+       · subst hc_colon
+-        have h_explicit := fun (kslot : ∀ sp_m : SurfPos,
++        have h_explicit := fun (marked : k ∈ RegisterWitness.markedCols sc) (kslot : ∀ sp_m : SurfPos,
+             SBlockIndented n .blockIn sp_scan sp_m →
+             ∀ sp_e : SurfPos, SCompactSeqTail n sp_m sp_e →
+             ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+@@ -31561,21 +31628,17 @@
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+           colon_open_map_explicit
+             (h_sound_prep := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
+-            (h_entry := by trace_state; fail "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_PENDING")
++            (h_entry := R2ColonSupplier.entry_step_at_landing (h_sequenceContext sp_mid (SBlockIndented.empty n .blockIn sp_scan sp_mid h_ssl) sp_mid (SCompactSeqTail.nil n sp_mid)) marked h_preprocess)
+             (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+             (h_pairAt := by
+-              intro h_noOwn a ha hlt mid i colon comments indent literal value content
+-              by_cases marked : k ∈ RegisterWitness.markedCols sc
+-              · have family := h_sequenceContext mid
+-                  (SBlockIndented.empty n .blockIn sp_scan mid comments)
+-                  mid (SCompactSeqTail.nil n mid)
++                intro h_noOwn a ha hlt mid i colon comments indent literal value content
++                have family := h_sequenceContext mid (SBlockIndented.empty n .blockIn sp_scan mid comments) mid (SCompactSeqTail.nil n mid)
+                 exact EntryValues.pair family marked
+                   ((h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem ha)
+-                  hlt indent literal content
+-              · trace_state; fail "R2_OTHER_PENDING_BLOCK_PAIR")
++                  hlt indent literal content)
+             sp_start sp_scan sp_mid _ k s_prep s'
+             sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+             (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+@@ -31632,35 +31695,19 @@
+           else s_prep).col : Int) ≠ (if s_prep.allowDirectives then
+             { s_prep with allowDirectives := false, documentEverStarted := true }
+           else s_prep).explicitKeyCol
+-        · rcases h_kslot with kslot | _
+-          · by_cases hknv : k ∈ RegisterWitness.markedCols sc
+-            · exact h_explicit (kslot k hknv)
++        · by_cases marked : k ∈ RegisterWitness.markedCols sc
++          · rcases h_kslot with kslot | _
++            · exact h_explicit marked (kslot k marked)
+             · rcases h_upSpend with hup | _
+-              · exact h_explicit hup
++              · exact h_explicit marked hup
+               · exact h_gen (fun _ => h_src)
+-          · rcases h_upSpend with hup | _
+-            · exact h_explicit hup
+-            · exact h_gen (fun _ => h_src)
+-        · rcases h_kslot with kslot | _
+-          · by_cases hknv : k ∈ RegisterWitness.markedCols sc
+-            · exact h_explicit (kslot k hknv)
+-            · -- Item 185: the pack is OFF the landing's column.
+-              -- **Item 190: …so the frame ABOVE it is tried before deferring.**
+-              rcases h_upSpend with hup | ⟨nsU, hU⟩
+-              · exact h_explicit hup
+-              · -- Item 192: over the park's own frame and its chain, as on the
+-                -- content twin.
+-                exact block_dispatch_deferred_stamp_offcol sp_start sp_mid sp_scan' s'
+-                  (h_close_pending h_nd_land h_ui_land _ h_ssl)
+-                  (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
+-                  (nodir_of_block_dispatch h_dispatch) h_src
+-                  (explicit_at_indent_of_dispatch h_dispatch
+-                    (noflow_disp_of_noflow h_noflow) h_src)
+-                  (ns := RegisterWitness.markedCols sc ++ nsU)
+-                  (fun hm => (List.mem_append.mp hm).elim hknv hU)
+-                  (nic0_of_block_dispatch h_preprocess h_dispatch hcorr_result) (Or.inl (block_indicator_arm h_dispatch)) ⟨sp_scan', GStar.nil _, fun _ _ => (dispatchBlock_next_of_some h_noflow (preprocess_some_peek h_preprocess) h_dispatch).gate⟩
+-          · -- Item 185: the park carries NO pack.
+-            exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
++          · exact h_gen (fun _ => h_src)
++        · have marked : k ∈ RegisterWitness.markedCols sc :=
++            R2ColonSupplier.live_landing_of_no_stamp h_preprocess h_sound h_mono h_noflow
++              (by have hi := SIndent_col h_ind; rw [hcol_mid] at hi; have hc := hcorr_prep.col_eq; omega) h_src
++          rcases h_kslot with kslot | _
++          · exact h_explicit marked (kslot k marked)
++          · exact block_dispatch_deferred_stamp_nopack sp_start sp_mid sp_scan' s'
+               (h_close_pending h_nd_land h_ui_land _ h_ssl)
+               (arm_tight_of_block_dispatch h_preprocess h_dispatch hcorr_result) hcorr_result
+               (nodir_of_block_dispatch h_dispatch) h_src
+@@ -44108,3 +44155,52 @@
+   if axioms.contains `sorryAx then throwError "explicit colon contains sorryAx"
+   Lean.logInfo s!"RAW-COLON-AXIOMS {repr axioms}"
+   Lean.logInfo "COLON-PRODUCER-AUDIT composition=present ownership=spent backward_domain=spent entry_supplier=mandatory sound_supplier=mandatory sorryAx=absent"
++
++private def r2SupplierExpectedFunded : Bool := true
++
++namespace R2ColonSupplierProductionAudit
++
++partial def countConst (name : Lean.Name) (e : Lean.Expr) : Nat :=
++  match e with
++  | .const n _ => if n == name then 1 else 0
++  | .app f a => countConst name f + countConst name a
++  | .lam _ _ b _ => countConst name b
++  | .letE _ _ value body _ => countConst name value + countConst name body
++  | .mdata _ body | .proj _ _ body => countConst name body
++  | _ => 0
++
++end R2ColonSupplierProductionAudit
++
++run_cmd do
++  let env := (← Lean.getEnv).setExporting false
++  let ctor := `L4YAML.Proofs.StreamAccum.colon_open_map_explicit
++  let some target := env.find? ctor | throwError "missing actual colon producer"
++  let some index := R2ContinuationProductionAudit.fieldIndex `h_entry target.type 0
++    | throwError "missing exact entry-step parameter"
++  let arity := R2ContinuationProductionAudit.arity target.type
++  for root in [`L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent,
++      `L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock] do
++    let some info := env.find? root | throwError "missing actual sequence caller"
++    let some body := info.value? (allowOpaque := true) | throwError "missing actual caller body"
++    Lean.logInfo s!"SUPPLIER-TYPE-BEGIN {root}\n{repr info.type}\nSUPPLIER-TYPE-END {root}"
++    let terms := R2ContinuationProductionAudit.fieldTerms ctor arity index body
++    unless terms.size == 1 do throwError "unexpected actual colon applications {root}: {terms.size}"
++    if r2SupplierExpectedFunded then
++      for term in terms do
++        let names := term.getUsedConstants
++        unless names.contains `R2ColonSupplier.entry_step_at_landing do
++          throwError "actual caller does not supply entry family {root}"
++        if names.contains `sorryAx then throwError "actual supplier term contains sorryAx"
++        for name in names do
++          if (← Lean.collectAxioms name).contains `sorryAx then
++            throwError "supplier term references sorry-dependent {name}"
++      for required in [`R2ColonSupplier.live_landing_of_no_stamp,
++          `L4YAML.Proofs.R2ConsumptionClosure.EntryValues.pair] do
++        unless body.getUsedConstants.contains required do
++          throwError "actual caller does not spend {required}"
++    for name in [`L4YAML.Proofs.StreamAccum.block_dispatch_deferred,
++        `L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_offcol,
++        `L4YAML.Proofs.StreamAccum.block_dispatch_deferred_stamp_nopack,
++        `L4YAML.Proofs.StreamAccum.dropClose] do
++      Lean.logInfo s!"SUPPLIER-ESCAPE-REFERENCE {root} {name}: {R2ColonSupplierProductionAudit.countConst name body}"
++    Lean.logInfo s!"ACTUAL-COLON-SUPPLIER {root}: applications={terms.size} funded={r2SupplierExpectedFunded}"

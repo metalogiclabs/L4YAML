@@ -1,0 +1,12 @@
+protected def Except.toOption.{u, u_1} : {ε : Type u} → {α : Type u_1} → Except ε α → Option α :=
+fun {ε} {α} x =>
+  match x with
+  | Except.ok a => some a
+  | Except.error a => none
+@[reducible] def Except.isOk.{u, u_1} : {ε : Type u} → {α : Type u_1} → Except ε α → Bool :=
+fun {ε} {α} => Except.toBool
+@[implicit_reducible] def Option.getD.{u_1} : {α : Type u_1} → Option α → α → α :=
+fun {α} opt dflt =>
+  match opt with
+  | some x => x
+  | none => dflt

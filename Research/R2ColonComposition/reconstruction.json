@@ -1,0 +1,100 @@
+{
+  "base_commit": "9f1f7bc6",
+  "continuation_parent": "801aa32c222fa8590c91dff70950027232e19ace",
+  "ownership_parent": "7f7357ad10be9ad3d04372422b32f2119004dd24",
+  "steps": [
+    {
+      "patch": "Research/R2EntryPreservation/retention-original.patch",
+      "exit": 0,
+      "source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60"
+    },
+    {
+      "patch": "Research/R2EntryPreservation/retention-strict-delta.patch",
+      "exit": 0,
+      "source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa"
+    },
+    {
+      "patch": "Research/R2SurvivorDomain/retention-refinements.patch",
+      "exit": 0,
+      "source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500"
+    },
+    {
+      "patch": "Research/R2ConsumptionClosure/producer-domain.patch",
+      "exit": 0,
+      "source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943"
+    },
+    {
+      "patch": "Research/R2InvariantPayload/invariant-payload.patch",
+      "exit": 0,
+      "source_sha256": "34a785b2d813c429a948fd6cab467f10c92a63dbdb37a3e38d6fab07cb9d3345"
+    },
+    {
+      "patch": "Research/R2CompactSlot/compact-slot.patch",
+      "exit": 0,
+      "source_sha256": "819993c47d13b998e91e6c1c757499d83c63c69ff5a951cbced23dcfabf1e831"
+    },
+    {
+      "patch": "Research/R2ColonComposition/ownership-merge.patch",
+      "source_sha256": "4053579edac75eae347ddeb36b103f6e4a98f7e6eb5e4d0c7b2e146fc3867dba"
+    },
+    {
+      "patch": "Research/R2ColonComposition/colon-composition.patch",
+      "source_sha256": "cba9c99227e6c67853e79e4b3ecea1b4874e0ad1795e78508bbd50ecdaac78e2"
+    }
+  ],
+  "development_sources": [
+    {
+      "phase": "composition-first",
+      "restore_patch": "Research/R2ColonComposition/lineage/composition-first-from-final.patch.xz",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "source_sha256": "e1cf77890b023f6e2145ae9b1419c12e79b085e505593b5a6b71355324b0242d"
+    },
+    {
+      "phase": "concrete-first",
+      "restore_patch": "Research/R2ColonComposition/lineage/concrete-first-from-final.patch.xz",
+      "target": "Research/R2ColonComposition/Concrete.lean",
+      "source_sha256": "4a9184de79a2708402a38e3a82e0605d933e5899209a8e333b8b8d366a7a3bb0"
+    },
+    {
+      "phase": "concrete-fourth",
+      "restore_patch": "Research/R2ColonComposition/lineage/concrete-fourth-from-final.patch.xz",
+      "target": "Research/R2ColonComposition/Concrete.lean",
+      "source_sha256": "44e7e27c9be48feab9ba65e7d577da96a26ebed6bc1101837bad1c6d50e2a702"
+    },
+    {
+      "phase": "concrete-second",
+      "restore_patch": "Research/R2ColonComposition/lineage/concrete-second-from-final.patch.xz",
+      "target": "Research/R2ColonComposition/Concrete.lean",
+      "source_sha256": "fb9da609b41c750f9a671b0ad11a8798b493e3f4f3523e7f25475f1c8a4c6519"
+    },
+    {
+      "phase": "concrete-third",
+      "restore_patch": "Research/R2ColonComposition/lineage/concrete-third-from-final.patch.xz",
+      "target": "Research/R2ColonComposition/Concrete.lean",
+      "source_sha256": "7f779e315fe617272bf3c1d37afc953767960e5775747b827f4e7a56290e6168"
+    },
+    {
+      "phase": "ownership-baseline",
+      "restore_patch": "Research/R2ColonComposition/lineage/ownership-baseline-from-final.patch.xz",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "source_sha256": "4053579edac75eae347ddeb36b103f6e4a98f7e6eb5e4d0c7b2e146fc3867dba"
+    },
+    {
+      "phase": "ownership-partial",
+      "restore_patch": "Research/R2ColonComposition/lineage/ownership-partial-from-final.patch.xz",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "source_sha256": "c071f1d90d58aa59fff5e4458cb86eefd1250e2fae9e6774739268b13075e96d"
+    },
+    {
+      "phase": "ownership-reconciled",
+      "restore_patch": "Research/R2ColonComposition/lineage/ownership-reconciled-from-final.patch.xz",
+      "target": "L4YAML/Proofs/Production/StreamAccum.lean",
+      "source_sha256": "0160b4867494fbe59013b94a0e4eef1dd099c4984a007b7aa44265dfdd435141"
+    }
+  ],
+  "duplicate_log_aliases": {
+    "ownership-merged.log": "ownership-integration.log",
+    "ownership-merged-fixed.log": "ownership-integration.log"
+  },
+  "exact": true
+}

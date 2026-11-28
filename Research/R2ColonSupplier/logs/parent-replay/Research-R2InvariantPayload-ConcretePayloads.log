@@ -1,0 +1,7 @@
+'R2ConcretePayloads.ancestor_value_payload' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcretePayloads.actual_ancestor_frame' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcretePayloads.actual_ancestor_frame_cover' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcretePayloads.actual_question_context' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcretePayloads.actual_sibling_tail_consumed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcretePayloads.root_question_payload' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcretePayloads.root_value_payload' depends on axioms: [propext, Classical.choice, Quot.sound]

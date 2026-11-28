@@ -1,0 +1,3 @@
+Research/R2CloseValueFamily/Verify.lean:74:5: error: unexpected token 'prefix'; expected '(', ':=', 'rec', '|', identifier or term
+Research/R2CloseValueFamily/Verify.lean:74:12: error: unexpected token '←'; expected ':'
+Research/R2CloseValueFamily/Verify.lean:75:23: error: unexpected token ')'; expected ':'

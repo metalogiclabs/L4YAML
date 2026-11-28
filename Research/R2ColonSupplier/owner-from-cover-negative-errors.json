@@ -1,0 +1,102 @@
+[
+  {
+    "line": 21129,
+    "column": 617,
+    "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+  },
+  {
+    "line": 21362,
+    "column": 616,
+    "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+  },
+  {
+    "line": 25359,
+    "column": 33,
+    "label": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+  },
+  {
+    "line": 25639,
+    "column": 19,
+    "label": "R2_NODE_QUESTION_ANCESTORS"
+  },
+  {
+    "line": 26851,
+    "column": 35,
+    "label": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+  },
+  {
+    "line": 26852,
+    "column": 33,
+    "label": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+  },
+  {
+    "line": 27091,
+    "column": 35,
+    "label": "R2_NODE_PROPS_COLON_NO_TAIL"
+  },
+  {
+    "line": 27092,
+    "column": 33,
+    "label": "R2_NODE_PROPS_COLON_ANCESTORS"
+  },
+  {
+    "line": 29298,
+    "column": 32,
+    "label": "R2_SEQUENCE_LANDED_FAMILY"
+  },
+  {
+    "line": 29498,
+    "column": 40,
+    "label": "R2_COLON_ENTRY_SUPPLIER_CLOSE"
+  },
+  {
+    "line": 30911,
+    "column": 50,
+    "label": "R2_OWNER_FROM_COVER_NEGATIVE_CONTROL"
+  },
+  {
+    "line": 32201,
+    "column": 86,
+    "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+  },
+  {
+    "line": 32233,
+    "column": 84,
+    "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+  },
+  {
+    "line": 32311,
+    "column": 77,
+    "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+  },
+  {
+    "line": 32404,
+    "column": 37,
+    "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+  },
+  {
+    "line": 41339,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+  },
+  {
+    "line": 41424,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+  },
+  {
+    "line": 41710,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+  },
+  {
+    "line": 41838,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+  },
+  {
+    "line": 41958,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+  }
+]

@@ -1,0 +1,11 @@
+--- a/Research/R2CloseValueFamily/Concrete.lean
++++ b/Research/R2CloseValueFamily/Concrete.lean
+@@ -16,7 +16,7 @@
+ lemma initialized_whole_value :
+     R2UnmarkedOwner.AncestorValue (afterFirstColon source) q0 2 endB := by
+   apply R2UnmarkedOwner.AncestorValue.of_entries
+-    (initialized_slot endA (plainAKey 2 3 endA.chars))
++    (initialized_slot endA (plainAKey 2 3 endA.chars)).2
+     (by simp [innerMarks])
+     (by intro x hx; simp only [remainingMarks, innerMarks, List.mem_singleton,
+       List.mem_cons, List.not_mem_nil, or_false] at hx ⊢; omega)

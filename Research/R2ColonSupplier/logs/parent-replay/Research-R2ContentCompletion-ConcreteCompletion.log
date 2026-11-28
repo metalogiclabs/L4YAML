@@ -1,0 +1,2 @@
+'R2ConcreteCompletion.initialized_completed_family' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcreteCompletion.actual_completed_sibling_ancestor' depends on axioms: [propext, Classical.choice, Quot.sound]

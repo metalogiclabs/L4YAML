@@ -1,0 +1,7 @@
+EXACT-DIAGNOSTIC Research/R2CloseValueFamily/logs/final-audited.log: demands=8 extra=0
+PRODUCER-AXIOMS L4YAML.Proofs.StreamAccum.colon_open_map_explicit: printed_byte_identical=true
+PRODUCER-AXIOMS L4YAML.Proofs.StreamAccum.compact_open_map: printed_byte_identical=true
+PRODUCER-AXIOMS L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented: printed_byte_identical=true
+ACTUAL-COLON-READER-ERASURE retained=8 extra_type_mismatch=1
+ACTUAL-FLOW-PREFIX accepted=true strong_fields=4 whole_opener_axioms=3 global_migration=false
+WARRANT third_colon_supplier=funded retained_demands=8 extra_errors=0 new_field_terms=17 full_module=false critical_retirements=0

@@ -1,0 +1,9 @@
+Research/R2CloseValueFamily/Concrete.lean:21:59: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [remainingMarks, innerMarks, List.mem_cons, List.not_mem_nil, or_false] at hx ⊢
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'R2CloseConcrete.initialized_whole_value' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2CloseConcrete.initialized_sibling_then_ancestor' depends on axioms: [propext, Classical.choice, Quot.sound]

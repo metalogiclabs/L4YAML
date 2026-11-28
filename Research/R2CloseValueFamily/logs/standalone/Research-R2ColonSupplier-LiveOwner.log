@@ -1,0 +1,3 @@
+'R2ColonSupplier.live_register_marked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonSupplier.live_landing_marked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonSupplier.live_landing_of_no_stamp' depends on axioms: [propext, Classical.choice, Quot.sound]

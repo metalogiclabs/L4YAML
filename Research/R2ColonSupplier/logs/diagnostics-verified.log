@@ -1,0 +1,8 @@
+CALLER L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent: type_byte_equal=true supplied=1 escape_references_nonincreasing=true
+CALLER L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock: type_byte_equal=true supplied=1 escape_references_nonincreasing=true
+AXIOMS PRODUCER: byte_equal=true sorryAx=false
+AXIOMS COMPACT: byte_equal=true sorryAx=false
+AXIOMS SEQUENCE-COMPLETION: byte_equal=true sorryAx=false
+AXIOMS COLON: byte_equal=true sorryAx=false
+SUPPLIER-DIAGNOSTICS baseline=23 candidate=19 negative=20 removed=4 replacement_labels=0 extra_errors=0 unchanged_external_types=2
+BOUNDARY new_explicit_suppliers=2 existing_implicit_route_reused=true full_module=false critical_retirements=0

@@ -1,0 +1,9 @@
+'L4YAML.Proofs.R2ContentCompletion.SequenceValues.complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2ContentCompletion.NodeSequenceValues.complete' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'L4YAML.Proofs.R2ContentCompletion.NodeSequenceValues.restrict_state' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'L4YAML.Proofs.R2ContentCompletion.SequenceValues.nodes' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2ContentCompletion.CompletedValues.sibling' depends on axioms: [propext, Classical.choice, Quot.sound]

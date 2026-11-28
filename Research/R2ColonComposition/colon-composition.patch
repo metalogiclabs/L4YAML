@@ -1,0 +1,172 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1433,6 +1433,36 @@
+       (fun hm => Nat.le_of_lt (oldBound x hm))
+ 
+ end L4YAML.Proofs.R2CompactSlot
++
++namespace R2ColonComposition
++open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
++open L4YAML.Proofs.NodeProduction
++open L4YAML.Proofs.R2CompactSlot L4YAML.Proofs.R2InvariantPayload
++lemma colon_payload_of_step {before after : ScannerState}
++    {start keyEnd ind slot : SurfPos} {own : Nat}
++    (step : EntryStep (ValuesBelow before (SLYamlStream start) own) own keyEnd)
++    (back : ∀ x < own, x ∈ RegisterWitness.markedCols after →
++      x ∈ RegisterWitness.markedCols before)
++    (smaller : ∀ x ∈ RegisterWitness.markedCols after, x < own)
++    (indent : SIndent own keyEnd ind) (literal : GLit ':' ind slot) :
++    SlotValues after start own .blockOut slot ∧ NodeValues after start own slot := by
++  have retained : ∀ e, SBlockIndented own .blockOut slot e →
++      ∀ z, SCompactMapTail own e z → EntryValues after (SLYamlStream start) z := by
++    intro e content z tail
++    exact ValuesBelow.restrict (step.2 ind slot indent literal e content z tail) back
++      |>.truncate (ceiling_le_of_marks_lt smaller)
++  refine ⟨fun e content => retained e content e (SCompactMapTail.nil own e), ?_⟩
++  intro e node
++  have content := SBlockIndented.node own .blockOut slot e
++    (SBlockNode_blockIn_to_blockOut node)
++  refine ⟨retained e content e (SCompactMapTail.nil own e), ?_⟩
++  intro _
++  exact KeyFrames.mapLevel own [] e (by simp) (fun z tail =>
++    KeyFrames.bottom z (retained e content z tail))
++
++
++end R2ColonComposition
++
+ 
+ open L4YAML.Proofs.R2CompactSlot
+ 
+@@ -25675,7 +25705,9 @@
+       (∃ x ∈ RegisterWitness.markedCols s_prep, x ≠ nv))
+     (h_mono_out : IndentStackMono.Mono s')
+     (h_pairAt : nv ∉ RegisterWitness.markedCols s' → R2KeyPairAt s' sp_start sp_scan nv)
+-    (h_valueTop : ValueOwnership.TopUnmarked s') :
++    (h_valueTop : ValueOwnership.TopUnmarked s')
++    (h_sound_prep : PendingKeySound.Sound s_prep)
++    (h_entry : EntryStep (ValuesBelow s_prep (SLYamlStream sp_start) nv) nv sp_mid) :
+     ∃ sp_gram' sp_block' sp_flow' sp_scan',
+       SLYamlStream sp_start sp_gram' ∧
+       BlockStack sp_gram' sp_block' ∧
+@@ -25704,11 +25736,33 @@
+   have h_slot : ∀ sp_v, SBlockIndented nv .blockOut sp_scan' sp_v →
+       SLYamlStream sp_start sp_v :=
+     fun sp_v h_sbi => (hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit sp_v h_sbi).close
+-  have h_slotContext : SlotValues s' sp_start nv .blockOut sp_scan' := by
+-    by_cases empty : RegisterWitness.markedCols s' = []
+-    · intro e value
+-      exact EntryValues.of_no_marks empty (h_slot e value)
+-    · trace_state; fail "R2_SLOT_EXPLICIT_COLON_DOMAIN"
++  have soundDispatch : PendingKeySound.Sound (if s_prep.allowDirectives then
++      { s_prep with allowDirectives := false, documentEverStarted := true }
++      else s_prep) := by
++    split
++    · exact h_sound_prep.of_eq rfl rfl rfl rfl rfl rfl
++    · exact h_sound_prep
++  have outputSound := PendingKeySound.scanValue_sound
++    (dispatchBlock_colon_scanValue h_dispatch) soundDispatch
++  have noOwn : nv ∉ RegisterWitness.markedCols s' :=
++    ValueOwnership.no_mark_at_or_above_top h_valueTop outputSound.slots h_mono_out h_top_in
++  have smaller : ∀ x ∈ RegisterWitness.markedCols s', x < nv := by
++    intro x hx
++    have le := markedCols_le_of_top h_mono_out h_top_in x hx
++    have ne : x ≠ nv := fun eq => noOwn (eq ▸ hx)
++    omega
++  have oldDomain : RegisterWitness.MarkedColsIn
++      (if s_prep.allowDirectives then
++        { s_prep with allowDirectives := false, documentEverStarted := true }
++        else s_prep) (RegisterWitness.markedCols s_prep) :=
++    (RegisterWitness.MarkedColsIn.self s_prep).transport
++      (by split <;> rfl) (by split <;> rfl)
++  have back : ∀ x ∈ RegisterWitness.markedCols s', x ∈ RegisterWitness.markedCols s_prep :=
++    fun x hx => (RegisterWitness.scanValue_markedCols
++      (dispatchBlock_colon_scanValue h_dispatch) oldDomain soundDispatch.slots).mem hx
++  have payload := R2ColonComposition.colon_payload_of_step h_entry
++    (fun x _ hx => back x hx) smaller h_ind h_lit
++  have h_slotContext : SlotValues s' sp_start nv .blockOut sp_scan' := payload.1
+   exact ⟨sp_mid, sp_mid, sp_mid, sp_scan', h_stream_mid,
+          BlockStack.nil sp_mid, FlowStackB.nil sp_mid .sep,
+          PendingNode.pendingMapValue (h_next := fun _ => dispatchBlock_colon_next h_noflow_disp hpeek_disp h_dispatch) (h_offer := dispatchBlock_colon_offerPred h_dispatch) sp_start sp_mid sp_scan' nv
+@@ -25737,14 +25791,7 @@
+                     omega)
+                     sp_mid sp_ind sp_scan' h_ssl h_ind h_lit m
+                     (SBlockIndented.node nv .blockOut sp_scan' m
+-                      (SBlockNode_blockIn_to_blockOut h_node))), (by
+-                  by_cases empty : RegisterWitness.markedCols s' = []
+-                  · apply NodeValues.of_no_marks empty
+-                    intro e node z tail
+-                    exact ((hvp sp_mid sp_ind sp_scan' h_ssl h_ind h_lit e
+-                      (SBlockIndented.node nv .blockOut sp_scan' e
+-                        (SBlockNode_blockIn_to_blockOut node))).level_inv z tail).close
+-                  · trace_state; fail "R2_NODE_EXPLICIT_COLON_ANCESTORS")⟩
++                      (SBlockNode_blockIn_to_blockOut h_node))), payload.2⟩
+             else h_ref.elim (fun h => Or.inr (PackAlt.ofRefused h)) (fun _ => Or.inr trivial))
+              -- Item 371: the park's own frame, from the restated value-line pack —
+              -- after the explicit `:`'s value (a node, or nothing but comments)
+@@ -29230,7 +29277,10 @@
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v)
+             (pair : R2KeyPairAt sc sp_start sp_gram k) =>
+-          colon_open_map_explicit (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
++          colon_open_map_explicit
++            (h_sound_prep := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
++            (h_entry := by trace_state; fail "R2_COLON_ENTRY_SUPPLIER_CLOSE")
++            (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+@@ -30549,7 +30599,10 @@
+               ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+               ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+               ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-            colon_open_map_explicit (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
++            colon_open_map_explicit
++            (h_sound_prep := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
++            (h_entry := by trace_state; fail "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_CONTENT")
++            (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+@@ -31355,7 +31408,10 @@
+             ∀ sp_i sp_c : SurfPos, SIndent k sp_e sp_i → GLit ':' sp_i sp_c →
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+             ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v) =>
+-          colon_open_map_explicit (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
++          colon_open_map_explicit
++            (h_sound_prep := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
++            (h_entry := by trace_state; fail "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_PENDING")
++            (h_valueTop := ValueOwnership.after_colon h_sound h_mono h_preprocess h_noflow h_dispatch)
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+@@ -43711,3 +43767,30 @@
+   let axioms ← Lean.collectAxioms `L4YAML.Proofs.StreamAccum.compact_open_map
+   if axioms.contains `sorryAx then throwError "compact producer contains sorryAx"
+   Lean.logInfo "WIDE-SLOT-AUDIT stored=h_vslot compact_reader=present map_slot_reader=present new_map_slot_premise=absent compact_sorryAx=absent"
++
++run_cmd do
++  let env := (← Lean.getEnv).setExporting false
++  let root := `L4YAML.Proofs.StreamAccum.colon_open_map_explicit
++  let some producer := env.find? root | throwError "missing actual explicit-colon producer"
++  let some body := producer.value? (allowOpaque := true) | throwError "producer has no body"
++  for required in [`R2ColonComposition.colon_payload_of_step,
++      `L4YAML.Proofs.StreamAccum.ValueOwnership.no_mark_at_or_above_top,
++      `L4YAML.Proofs.PendingKeySound.scanValue_sound,
++      `L4YAML.Proofs.RegisterWitness.scanValue_markedCols] do
++    unless env.contains required do throwError "unknown expected dependency {required}"
++    unless body.getUsedConstants.contains required do
++      throwError "explicit colon does not spend {required}"
++  let mut cursor := producer.type
++  let mut entry := false
++  let mut prepSound := false
++  while let .forallE name domain rest _ := cursor do
++    if name == `h_entry then
++      entry := domain.getUsedConstants.contains `L4YAML.Proofs.R2ConsumptionClosure.EntryStep
++    if name == `h_sound_prep then
++      prepSound := domain.getUsedConstants.contains `L4YAML.Proofs.PendingKeySound.Sound
++    cursor := rest
++  unless entry && prepSound do throwError "producer interface does not expose exact supplied obligations"
++  let axioms ← Lean.collectAxioms root
++  if axioms.contains `sorryAx then throwError "explicit colon contains sorryAx"
++  Lean.logInfo s!"RAW-COLON-AXIOMS {repr axioms}"
++  Lean.logInfo "COLON-PRODUCER-AUDIT composition=present ownership=spent backward_domain=spent entry_supplier=mandatory sound_supplier=mandatory sorryAx=absent"

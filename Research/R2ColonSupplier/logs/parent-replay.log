@@ -1,0 +1,19 @@
+CHECKED Research/R2ContinuationContract/EntryRoutes
+CHECKED Research/R2ConsumptionClosure/EntryValues
+CHECKED Research/R2ConsumptionClosure/ConcreteSuppliers
+CHECKED Research/R2InvariantPayload/NodeValues
+CHECKED Research/R2InvariantPayload/SourceControls
+CHECKED Research/R2InvariantPayload/ConcretePayloads
+CHECKED Research/R2CompactSlot/SlotValues
+CHECKED Research/R2CompactSlot/Controls
+CHECKED Research/R2SequenceContext/SequenceValues
+CHECKED Research/R2SequenceContext/Controls
+CHECKED Research/R2SequenceContext/ConcreteContexts
+CHECKED Research/R2ContentCompletion/Controls
+CHECKED Research/R2ContentCompletion/CompletedValues
+CHECKED Research/R2ContentCompletion/ConcreteCompletion
+CHECKED Research/R2ContentCompletion/DependencyAudit
+CHECKED Research/R2ContinuationContract/Controls
+CHECKED Research/R2ContinuationContract/TwoAncestors
+CHECKED Research/R2ContinuationContract/DependencyAudit
+TWO-ANCESTOR-AUDIT constants=6253 required=14 forbidden=9 missing=0 free_premises=0 axioms=#[propext, Classical.choice, Quot.sound]

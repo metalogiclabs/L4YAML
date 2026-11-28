@@ -1,0 +1,358 @@
+{
+  "parents": [
+    "8d4596f26cf430df50d0e3f1e0dce2ea1104f83d",
+    "45db495873471857987ff1e0c71e826e991adc3a"
+  ],
+  "files": [
+    {
+      "path": "Research/R2ColonSupplier/ConsumedSibling.lean",
+      "bytes": 4983,
+      "sha256": "858b30939dbbeede79e27253c947c79b503262ee836a48929884e82a9569f8ad"
+    },
+    {
+      "path": "Research/R2ColonSupplier/Controls.lean",
+      "bytes": 2867,
+      "sha256": "243767d323a302e65d176b1961fc3bf4a54875e6167176e39933655fcefdf850"
+    },
+    {
+      "path": "Research/R2ColonSupplier/DependencyAudit.lean",
+      "bytes": 2767,
+      "sha256": "a5123789df8953f7fb4a9e36d02abe50db42f593f1c1e4aab32a60dc4557840d"
+    },
+    {
+      "path": "Research/R2ColonSupplier/LiveOwner.lean",
+      "bytes": 3025,
+      "sha256": "f31cdd71f40063e00eb4d1d1ac7f0cfe3e39ba973edf946e17db695309f96233"
+    },
+    {
+      "path": "Research/R2ColonSupplier/Predictions.md",
+      "bytes": 2144,
+      "sha256": "6baff384343f9f1b0df0793f3a10e98485dd84c986e171e847f2904b8541a120"
+    },
+    {
+      "path": "Research/R2ColonSupplier/ProductionAudit.inc.lean",
+      "bytes": 2705,
+      "sha256": "4b87a8919640d0f3f08f2560c551be91be5707d4c7875f8be7f62c3e93e88f23"
+    },
+    {
+      "path": "Research/R2ColonSupplier/REPORT.md",
+      "bytes": 8488,
+      "sha256": "fded7bba0041a2d1ec4372bb91d60cba1e0e55edd037e9f392b8ebfb6f28a195"
+    },
+    {
+      "path": "Research/R2ColonSupplier/SOURCES.sha256",
+      "bytes": 484,
+      "sha256": "5c5e45c4ad2af66dcfbb455715c610274d1dd071917b0fbabdc55ad215cabdf3"
+    },
+    {
+      "path": "Research/R2ColonSupplier/Supplier.lean",
+      "bytes": 1106,
+      "sha256": "5f14bb1d56f814e80fdce92bf95f665ea7abc6145bc7929ecb3fb99461f7b3d0"
+    },
+    {
+      "path": "Research/R2ColonSupplier/VerifyDiagnostics.lean",
+      "bytes": 4924,
+      "sha256": "597be91cceda8feb94ec55791cd5d7e96ccf898cca69f90d930a607888ce2e78"
+    },
+    {
+      "path": "Research/R2ColonSupplier/baseline-errors.json",
+      "bytes": 2136,
+      "sha256": "2d0d450859de65653aa78a4456c5cdf2c028812b8f4c2e91f2c2f0b559d55895"
+    },
+    {
+      "path": "Research/R2ColonSupplier/integration.patch",
+      "bytes": 39105,
+      "sha256": "246d95f0d976744cde326b946732ae7aa0ebe8a095dc412595abb08b9281a187"
+    },
+    {
+      "path": "Research/R2ColonSupplier/lineage/controls-initializer-from-final.patch.xz",
+      "bytes": 408,
+      "sha256": "96dc48e64f7b7698df54dc389612b25135159b92d46267ea7db7b9b1499f8804"
+    },
+    {
+      "path": "Research/R2ColonSupplier/lineage/integrated-baseline-from-final.patch.xz",
+      "bytes": 4276,
+      "sha256": "638f8f75c358833c4609b5baf8c985cc23e67f7b537ef50b2f57fd07f43be55d"
+    },
+    {
+      "path": "Research/R2ColonSupplier/lineage/live-owner-tactic-from-final.patch.xz",
+      "bytes": 284,
+      "sha256": "9716b2bc24483b4b6bf7fa4ca57158b1dd4cb7f73b80eeb53df67c3d4c6d2fb6"
+    },
+    {
+      "path": "Research/R2ColonSupplier/lineage/parent-audited-from-final.patch.xz",
+      "bytes": 11080,
+      "sha256": "dcdd2bfabb80adec62545a6e1e3bfd9962d9c28d20dff6dcd71325e48b1e104e"
+    },
+    {
+      "path": "Research/R2ColonSupplier/lineage/supplied-first-from-final.patch.xz",
+      "bytes": 1992,
+      "sha256": "fa05bd07a22a42123891eb0c6544d7b63d92eaf505145f40a56727580095d576"
+    },
+    {
+      "path": "Research/R2ColonSupplier/lineage/supplied-preaudit-from-final.patch.xz",
+      "bytes": 1288,
+      "sha256": "da840faa95433e5778ae80807fc16ce03951ff097f65ab195b7b4a7e3ad2c35e"
+    },
+    {
+      "path": "Research/R2ColonSupplier/lineage/verifier-first-from-final.patch.xz",
+      "bytes": 1424,
+      "sha256": "74f3d57ab3f0883333e24fc9b8dbdbee1830e9b8e95c8846777d04bbbaef82ae"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/consumed-sibling.log",
+      "bytes": 223,
+      "sha256": "56132af50a06c330948a8f17f45f5cc4f792c56c2fb9c9cda2aa88467ecd0558"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/controls.log",
+      "bytes": 151,
+      "sha256": "a31bc6103c324c4a35ebe3214291e4ccc07aeaae92601c2d2ee1afc366dbd6f2"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/dependency-audit.log",
+      "bytes": 628,
+      "sha256": "8d6aa9159e535911b22ca61abd8bf86bbea2f14bcd00d4f064991d40f273e213"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/development-controls-initializer.log",
+      "bytes": 444,
+      "sha256": "32d92d05977cc36723747a9f8d7fa92350230e857df7789029210af28ebeb3ec"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/development-live-owner.log",
+      "bytes": 1140,
+      "sha256": "367fcbfd5af708651da370ef18b64e16d092072ff9e287b15f31189b90f7034f"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/development-module-lookup.log",
+      "bytes": 186,
+      "sha256": "9931460b94dd0d5465a2ca074824cfe0a4922126750563096e86d9b22e77f3e4"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/development-supplied-first.log.xz",
+      "bytes": 12912,
+      "sha256": "71f71ddc6560ca70c24978d63d5db5c1b7229b5f5109320934deea568abd2aa5"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/development-verifier.log",
+      "bytes": 903,
+      "sha256": "515cf167e0f87aaf3c7df22326a3779850ac85e7b21ad06d9bf7f353ca1abe6f"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/diagnostics-verified.log",
+      "bytes": 706,
+      "sha256": "6bfdaac774fa60553651aea7d3b69d483248bf9bc828ba6d31a28a3fabca135b"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/frozen-verifier.log",
+      "bytes": 706,
+      "sha256": "6bfdaac774fa60553651aea7d3b69d483248bf9bc828ba6d31a28a3fabca135b"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/integrated-baseline-audited.log.xz",
+      "bytes": 24840,
+      "sha256": "0c7e8bff3505b9ef21f69f0f5616bbcef1097fa2d7273f3b2b4c87b34765f1ba"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/integrated-baseline.log.xz",
+      "bytes": 12468,
+      "sha256": "a18d9c295f028486f21386d1a8c7a9002f73e7413f51a8b71bb2db54c0b69d7b"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/live-owner.log",
+      "bytes": 297,
+      "sha256": "9f31bc8f74c51bf78db8403b33bb9b36f9d142726b53ee80c41a8e064af664df"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/owner-from-cover-negative.log.xz",
+      "bytes": 24588,
+      "sha256": "ceaec22c090ad3c4420936d4f798d40c62b50b676a390aa1e4bdd59d6eacf701"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2CompactSlot-Controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2CompactSlot-SlotValues.log",
+      "bytes": 229,
+      "sha256": "aece23e9fb58f5a4146e6288bcb0938806d1cfcae105451c8bfe0aef68668bb6"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ConsumptionClosure-ConcreteSuppliers.log",
+      "bytes": 310,
+      "sha256": "ffa034b0486a4bab339223c67edf15244d5a2c111cc1a6fe2852a9b572566bcd"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ConsumptionClosure-EntryValues.log",
+      "bytes": 1258,
+      "sha256": "1755b1357e55d176b73fbcb9096e6a4aa97916afa589617f6785e4e4f0234aa2"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContentCompletion-CompletedValues.log",
+      "bytes": 610,
+      "sha256": "b6bb4fed6f441b9a7df6cea9632613482c2edb3244c25ce337787aa4b33b5d9c"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContentCompletion-ConcreteCompletion.log",
+      "bytes": 227,
+      "sha256": "ef270d5f3502d126ff4a56992d65266a51e9a2ef5381cbabc1535f04eb90c822"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContentCompletion-Controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContentCompletion-DependencyAudit.log",
+      "bytes": 325,
+      "sha256": "5dc1d218e8f018aac57af06949ebbdb371979303e663fd25d023f00891095f70"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContinuationContract-Controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContinuationContract-DependencyAudit.log",
+      "bytes": 132,
+      "sha256": "d518ec1e0cbb6430e766fa7a9f40b501390dcc1437f6568a2633a21f065c097a"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContinuationContract-EntryRoutes.log",
+      "bytes": 75,
+      "sha256": "157f0c094d10263a971c05ec5e596c734c1f288e12a298f72772189038adb698"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2ContinuationContract-TwoAncestors.log",
+      "bytes": 240,
+      "sha256": "77530ccebc5b2f15a4f3fe4692cf0543ba1cd89ab1aaaa37483b9f994ccf1075"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2InvariantPayload-ConcretePayloads.log",
+      "bytes": 727,
+      "sha256": "bb123e20da9f9802d6bc6612f8d5f23e3afee7620fd70f8592223c73029ce2ad"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2InvariantPayload-NodeValues.log",
+      "bytes": 1073,
+      "sha256": "4cc14fd9f1f3cb4c45280724f377704ca774a3ae1a12e28a85f98097cf3e0152"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2InvariantPayload-SourceControls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2SequenceContext-ConcreteContexts.log",
+      "bytes": 255,
+      "sha256": "4978206ef7d202e9db0c5f6f720faea29a92f7ca667f24b81ff06c4a3a098622"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2SequenceContext-Controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay/Research-R2SequenceContext-SequenceValues.log",
+      "bytes": 468,
+      "sha256": "c05c3d9797a9ab20e3258b02b738cbf3fb72e4402b567b782a77757986b13648"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/parent-replay.log",
+      "bytes": 1035,
+      "sha256": "e310f1b3ed9fc69938e2f081fd874206b539ae82c87022dd7a8a595ef0b5d125"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/qualified-owner/Research-R2ColonComposition-ColonValues.log",
+      "bytes": 294,
+      "sha256": "5bdf77fdefcad2589f10391f74792efc6e779ddd0d67e4aeb85d6b44eaab95d0"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/qualified-owner/Research-R2ColonSupplier-ConsumedSibling.log",
+      "bytes": 223,
+      "sha256": "56132af50a06c330948a8f17f45f5cc4f792c56c2fb9c9cda2aa88467ecd0558"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/qualified-owner/Research-R2ColonSupplier-Controls.log",
+      "bytes": 151,
+      "sha256": "a31bc6103c324c4a35ebe3214291e4ccc07aeaae92601c2d2ee1afc366dbd6f2"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/qualified-owner/Research-R2ColonSupplier-DependencyAudit.log",
+      "bytes": 628,
+      "sha256": "8d6aa9159e535911b22ca61abd8bf86bbea2f14bcd00d4f064991d40f273e213"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/qualified-owner/Research-R2ColonSupplier-LiveOwner.log",
+      "bytes": 297,
+      "sha256": "9f31bc8f74c51bf78db8403b33bb9b36f9d142726b53ee80c41a8e064af664df"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/qualified-owner/Research-R2ColonSupplier-Supplier.log",
+      "bytes": 99,
+      "sha256": "4b4314eb2e34707c8bf2d08ccab60fef126d383b05bf1449aad7c01ba0c282b5"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/qualified-owner/Research-R2ValueOwnership-Ownership.log",
+      "bytes": 396,
+      "sha256": "9839c5e9a490f241a28fbbb5e1fbc09a1b2739a70faad525effd2d4f1dbe91a4"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/reconstruction-checked.log",
+      "bytes": 462,
+      "sha256": "81d0748fe1e3d156980e7e8835aab0344c0ca9255f0ccc695333975f91e6ef9e"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/supplied-audited.log.xz",
+      "bytes": 24124,
+      "sha256": "b2cd88dc3572465b087de4d36f71dd72c46f09b0cac88f6d3308a1dcb36440d1"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/supplied-preaudit.log.xz",
+      "bytes": 11740,
+      "sha256": "e4af58dc67ddca51801bee8f987b5e2d56e093eb67a41518083fdaeed929ae7a"
+    },
+    {
+      "path": "Research/R2ColonSupplier/logs/supplier-helper.log",
+      "bytes": 99,
+      "sha256": "4b4314eb2e34707c8bf2d08ccab60fef126d383b05bf1449aad7c01ba0c282b5"
+    },
+    {
+      "path": "Research/R2ColonSupplier/owner-from-cover-negative-errors.json",
+      "bytes": 1843,
+      "sha256": "f481f0cb64d574b7733ce30f94cd2f2aea5adccfcc1e0ad1563010072c90f4e8"
+    },
+    {
+      "path": "Research/R2ColonSupplier/owner-from-cover-negative.patch",
+      "bytes": 779,
+      "sha256": "16193e00a74c579e05af952ff8d2103d3491ce09445740406a8a29fc5075e19f"
+    },
+    {
+      "path": "Research/R2ColonSupplier/reconstruct.sh",
+      "bytes": 1732,
+      "sha256": "e2e5ff14d22ecf69a8a4a03f08fe93e318f0451a8a8004b3bc4fd943cc0c2871"
+    },
+    {
+      "path": "Research/R2ColonSupplier/reconstruction.json",
+      "bytes": 2578,
+      "sha256": "55fb009b8d61662c347464e635b8c8d3df2f8811987db116a804ad7baa111425"
+    },
+    {
+      "path": "Research/R2ColonSupplier/supplied-audited-errors.json",
+      "bytes": 1745,
+      "sha256": "f9145a36021be5c7734576084f9f4d828ee495ce6171d0ecc7e4bfb7bfa71489"
+    },
+    {
+      "path": "Research/R2ColonSupplier/supplied-callers.patch",
+      "bytes": 18865,
+      "sha256": "06089310e56c6086a9ce41279d1b2b32b6efea67439c02e724286f9e44d4a658"
+    },
+    {
+      "path": "Research/R2ColonSupplier/verification.json",
+      "bytes": 4399,
+      "sha256": "c9227888e19f695402e834a2f9518db87bdbe725b4880d75bc058ed26c1c2c7f"
+    }
+  ]
+}

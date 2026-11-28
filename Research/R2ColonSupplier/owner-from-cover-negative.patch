@@ -1,0 +1,13 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -30907,7 +30907,9 @@
+               · rcases h_upSpend with hup | _
+                 · exact h_explicit marked hup
+                 · exact h_gen (fun _ => h_src)
+-            · exact h_gen (fun _ => h_src)
++            · rcases h_upSpend with hup | _
++              · exact h_explicit (by trace_state; fail "R2_OWNER_FROM_COVER_NEGATIVE_CONTROL") hup
++              · exact h_gen (fun _ => h_src)
+           · have marked : k ∈ RegisterWitness.markedCols sc :=
+               R2ColonSupplier.live_landing_of_no_stamp h_preprocess h_sound h_mono h_noflow
+                 (by have hi := SIndent_col h_ind; rw [hcol_mid] at hi; have hc := hcorr_prep.col_eq; omega) h_src

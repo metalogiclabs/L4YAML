@@ -1,0 +1,134 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1242,6 +1242,27 @@
+   (h.2 v (SCompactMapTail.nil own v)).valueLine marked lt
+ 
+ end R2UnmarkedOwner
++section R2CloseFamilyImports
++set_option autoImplicit false
++open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
++open L4YAML.Proofs.StreamAccum
++
++namespace R2CloseValueFamily
++
++-- The old paired ancestor obligation is a reader of the retained whole
++-- value, with the consumed owner's arbitrary mapping tail still available.
++lemma pairAt_of_route {sc : ScannerState} {start gram : SurfPos} {own : Nat}
++    (route : ∀ m i c, SSLComments gram m → SIndent own m i → GLit ':' i c →
++      ∀ v, SBlockIndented own .blockOut c v → R2UnmarkedOwner.AncestorValue sc start own v) :
++    ∀ a ∈ RegisterWitness.markedCols sc, a < own →
++      ∀ m i c, SSLComments gram m → SIndent own m i → GLit ':' i c →
++      ∀ v, SBlockIndented own .blockOut c v → ExplValueLine start a v :=
++  fun a marked lower m i c comments indent literal v value =>
++    (route m i c comments indent literal v value).pair marked lower
++
++end R2CloseValueFamily
++end R2CloseFamilyImports
++
+ open R2UnmarkedOwner
+ 
+ 
+@@ -2920,7 +2941,7 @@
+           SSLComments sp_gram sp_mid → SIndent nv sp_mid sp_i →
+           GLit ':' sp_i sp_c →
+           ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-          ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
++          AncestorValue sc sp_start nv sp_v) ∧
+           (∀ own ∈ ns, R2KeyPairAt sc sp_start sp_gram own)) ∨ PackAlt sc)
+       -- **Item 77 — the park's own arm** (LAST, so the patterns naming the older
+       -- fields still bind them).  A landed `:` measures its floor against the
+@@ -3171,7 +3192,7 @@
+         ∀ sp_m : SurfPos, SBlockNode n .blockIn sp_node sp_m →
+         ∀ sp_i sp_c : SurfPos, SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAlt sc)
++        AncestorValue sc sp_start nv sp_v) ∨ PackAlt sc)
+       -- **Item 114 — the park's own resume faces** (LAST, same reason).  The
+       -- run stands where a node is awaited, and until now `h_route` was the
+       -- only way OUT: the node closed the whole stream, so everything the
+@@ -7509,7 +7530,7 @@
+   vslot : (∀ nv ∈ RegisterWitness.markedCols s0, ∀ sp_end, SFlowContent n .flowOut sp_br sp_end →
+     ∀ sp_mid sp_i sp_c, SSLComments sp_end sp_mid → SIndent nv sp_mid sp_i →
+       GLit ':' sp_i sp_c → ∀ sp_v, SBlockIndented nv .blockOut sp_c sp_v →
+-      ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∨ PackAltG g
++      AncestorValue s0 sp_start nv sp_v) ∨ PackAltG g
+ 
+ /-- The routes an enclosing construct that hosts no mapping entry hands a
+     depth-0 frame: the node reading alone. -/
+@@ -28269,7 +28290,7 @@
+       ∀ sp_m sp_i sp_c : SurfPos,
+         SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
++        AncestorValue sc sp_start nv sp_v) ∧
+         (c = ':' → ∀ own ∈ ns, R2KeyPairAt sc sp_start sp_gram own)) ∨ PackAlt sc)
+     -- Item 58: the slot travels with the park's own simple-key coordinate.
+     -- Only a `?`/`:` scan opens this slot, and both re-arm fresh saves, so a
+@@ -29432,7 +29453,7 @@
+         have h_explicit := fun (hvp : ∀ sp_m sp_i sp_c : SurfPos,
+             SSLComments sp_gram sp_m → SIndent k sp_m sp_i → GLit ':' sp_i sp_c →
+             ∀ sp_v : SurfPos, SBlockIndented k .blockOut sp_c sp_v →
+-            ResumeFrames (SLYamlStream sp_start) [FrameLevel.map k] sp_v)
++            AncestorValue sc sp_start k sp_v)
+             (pair : R2KeyPairAt sc sp_start sp_gram k) =>
+           colon_open_map_explicit
+             (h_sound_prep := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono)
+@@ -29441,7 +29462,9 @@
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+             (h_pairAt := fun _ a hm hn => pair a (h_markBack a hm (by simp)) hn)
+             sp_start sp_gram sp_mid _ k s_prep s'
+-            sp_scan' h_stream_new (fun mid i c comments indent literal v value => ⟨hvp mid i c comments indent literal v value, by trace_state; fail "R2_COLON_CLOSE_WHOLE_VALUE"⟩) h_ssl hcol_mid h_ind hcorr_prep hcorr_result
++            sp_scan' h_stream_new (fun mid i c comments indent literal v value =>
++              (hvp mid i c comments indent literal v value).restrict_state
++                (fun x hx => h_markBack x hx (by simp))) h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+             -- Item 76: the explicit VALUE line measures on the same datum the
+             -- keyless opener does — `h_vpack` carries no flag, and the
+             -- landing supplies one for every park off a line start.
+@@ -30078,7 +30101,7 @@
+       ∀ sp_m sp_i sp_c : SurfPos,
+         SSLComments sp_gram sp_m → SIndent nv sp_m sp_i → GLit ':' sp_i sp_c →
+         ∀ sp_v : SurfPos, SBlockIndented nv .blockOut sp_c sp_v →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_v) ∧
++        AncestorValue sc sp_start nv sp_v) ∧
+         (∀ own ∈ ns, R2KeyPairAt sc sp_start sp_gram own)) ∨ PackAlt sc)
+     (hcorr_prep : ScannerSurfCorr s_prep sp_prep)
+     (hcorr_result : ScannerSurfCorr s' sp_scan')
+@@ -39468,10 +39491,9 @@
+              (match h_context with
+               | Or.inl context => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                   (fun own hown sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+-                    ValuesBelow.valueLine (context sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl)).1
++                    AncestorValue.of_entries (context sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl)).1
+                       (marks_step_content h_preprocess h_dispatch own hown)
+-                      (marked_lt_ceiling (marks_step_content h_preprocess h_dispatch own hown))
+-                      sp_i sp_c h_iv h_lit sp_v h_sbi),
++                      (fun x hx => marks_step_content h_preprocess h_dispatch x hx) h_iv h_lit h_sbi),
+                   fun own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                     EntryValues.pair (context sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gram sp_mid h_sep_all (h_flow_all (n + 1)) h_ssl)).1
+                       (marks_step_content h_preprocess h_dispatch own hown)
+@@ -39655,10 +39677,9 @@
+              (match h_context with
+               | Or.inl context => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                   (fun own hown sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+-                    ValuesBelow.valueLine (context sp_mid (h_nodeAt sp_mid h_ssl)).1
++                    AncestorValue.of_entries (context sp_mid (h_nodeAt sp_mid h_ssl)).1
+                       (marks_step_content h_preprocess h_dispatch own hown)
+-                      (marked_lt_ceiling (marks_step_content h_preprocess h_dispatch own hown))
+-                      sp_i sp_c h_iv h_lit sp_v h_sbi),
++                      (fun x hx => marks_step_content h_preprocess h_dispatch x hx) h_iv h_lit h_sbi),
+                   fun own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                     EntryValues.pair (context sp_mid (h_nodeAt sp_mid h_ssl)).1
+                       (marks_step_content h_preprocess h_dispatch own hown)
+@@ -39752,10 +39773,9 @@
+              (match h_context with
+               | Or.inl context => Or.inl ⟨RegisterWitness.markedCols s', RegisterWitness.MarkedColsIn.self s',
+                   (fun own hown sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+-                    ValuesBelow.valueLine (context sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl)).1
++                    AncestorValue.of_entries (context sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl)).1
+                       (marks_step_content h_preprocess h_dispatch own hown)
+-                      (marked_lt_ceiling (marks_step_content h_preprocess h_dispatch own hown))
+-                      sp_i sp_c h_iv h_lit sp_v h_sbi),
++                      (fun x hx => marks_step_content h_preprocess h_dispatch x hx) h_iv h_lit h_sbi),
+                   fun own hown a ha hn sp_mid sp_i sp_c h_ssl h_iv h_lit sp_v h_sbi =>
+                     EntryValues.pair (context sp_mid (SBlockNode.flowInBlock (n + 1) .blockIn sp_scan sp_prep sp_gramf sp_mid h_sep_all h_node_f h_ssl)).1
+                       (marks_step_content h_preprocess h_dispatch own hown)

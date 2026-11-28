@@ -1,0 +1,12 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -29475,8 +29475,7 @@
+             (h_pairAt := fun _ a hm hn => pair a (h_markBack a hm (by simp)) hn)
+             sp_start sp_gram sp_mid _ k s_prep s'
+             sp_scan' h_stream_new (fun mid i c comments indent literal v value =>
+-              (hvp mid i c comments indent literal v value).restrict_state
+-                (fun x hx => h_markBack x hx (by simp))) h_ssl hcol_mid h_ind hcorr_prep hcorr_result
++              (hvp mid i c comments indent literal v value).1) h_ssl hcol_mid h_ind hcorr_prep hcorr_result
+             -- Item 76: the explicit VALUE line measures on the same datum the
+             -- keyless opener does — `h_vpack` carries no flag, and the
+             -- landing supplies one for every park off a line start.

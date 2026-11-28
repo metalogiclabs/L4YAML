@@ -1,0 +1,26 @@
+Research/R2ColonSupplier/LiveOwner.lean:56:7: error: unknown tactic
+Research/R2ColonSupplier/LiveOwner.lean:55:59: error: unsolved goals
+before prep : ScannerState
+own : Nat
+preprocess : scanNextToken_preprocess before = Except.ok (some (prep, ':'))
+sound : Sound before
+mono : IndentStackMono.Mono before
+noflow : prep.inFlow = false
+atColumn : prep.col = own
+source : ¬StampSource prep
+⊢ ↑prep.col = prep.explicitKeyCol
+Research/R2ColonSupplier/LiveOwner.lean:55:2: error: unsolved goals
+case column
+before prep : ScannerState
+own : Nat
+preprocess : scanNextToken_preprocess before = Except.ok (some (prep, ':'))
+sound : Sound before
+mono : IndentStackMono.Mono before
+noflow : prep.inFlow = false
+atColumn : prep.col = own
+source : ¬StampSource prep
+equal : ↑prep.col = prep.explicitKeyCol
+⊢ prep.explicitKeyCol = ↑own
+'R2ColonSupplier.live_register_marked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonSupplier.live_landing_marked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonSupplier.live_landing_of_no_stamp' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
