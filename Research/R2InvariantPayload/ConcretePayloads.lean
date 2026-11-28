@@ -1,5 +1,6 @@
 import Research.R2InvariantPayload.SourceControls
 import Research.R2InvariantPayload.NodeValues
+import Research.R2ContinuationContract.EntryRoutes
 
 set_option autoImplicit false
 set_option maxRecDepth 100000
@@ -90,15 +91,15 @@ lemma ancestor_value_payload : NodeValues (afterFirstColon input6) q0_6 6 value6
         v entry z tail).close
   have rootKey := fun (e : SurfPos) (h : SBlockIndented 0 .blockOut k0_6 e) =>
     entryStep_of_question (GLit.mk _ 0 : GLit '?' q0_6 k0_6) root h
-  have entry1 := compactEntryRoute rootKey
+  have entry1 := R2ContinuationPrimitives.compactEntryRoute rootKey
     (SIndent.succ 0 _ 1 q1_6 (SIndent.zero q1_6) : SIndent 1 k0_6 q1_6)
   have key1 := fun (e : SurfPos) (h : SBlockIndented 2 .blockOut k1_6 e) =>
     entryStep_of_question (GLit.mk _ 2 : GLit '?' q1_6 k1_6) entry1 h
-  have entry2 := compactEntryRoute key1
+  have entry2 := R2ContinuationPrimitives.compactEntryRoute key1
     (SIndent.succ 0 _ 3 q2_6 (SIndent.zero q2_6) : SIndent 1 k1_6 q2_6)
   have key2 := fun (e : SurfPos) (h : SBlockIndented 4 .blockOut k2_6 e) =>
     entryStep_of_question (GLit.mk _ 4 : GLit '?' q2_6 k2_6) entry2 h
-  have entry3 := compactEntryRoute key2
+  have entry3 := R2ContinuationPrimitives.compactEntryRoute key2
     (SIndent.succ 0 _ 5 q3_6 (SIndent.zero q3_6) : SIndent 1 k2_6 q3_6)
   have key3 := entryStep_of_question (GLit.mk _ 6 : GLit '?' q3_6 k3_6) entry3
     (plainAKey 6 7 line6)

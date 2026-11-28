@@ -1,0 +1,38 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -37841,7 +37841,7 @@
+     (h_close_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp → SLYamlStream sp_start sp)
+     (h_close_entry_old : ∀ (sp : SurfPos), SBlockIndented n .blockIn sp_scan sp →
+       ∀ (sp_end : SurfPos), SCompactSeqTail n sp sp_end →
+-        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
++        SLYamlStream sp_start sp_end)
+     -- Item 92: the park's value-line pack, transported onto whatever this
+     -- content step parks — the entry's node rides in exactly as it does for
+     -- `h_close_entry_old` (`? - a⏎: - w`, `? - &a x⏎: - w`).
+@@ -37941,11 +37941,11 @@
+       FlowStackB sp_start 0 0 none s' 0 #[] #[] .sep sp_block' sp_flow' ∧
+       PendingNode s' false sp_start sp_flow' sp_scan' ∧
+       ScannerSurfCorr s' sp_scan' := by
+-  have h_sequenceContext : SequenceValues sc sp_start n sp_scan :=
+-    fun e node z tail => (h_close_entry_old e node z tail).2
+-  have h_close_entry_old : ∀ e, SBlockIndented n .blockIn sp_scan e →
+-      ∀ z, SCompactSeqTail n e z → SLYamlStream sp_start z :=
+-    fun e node z tail => (h_close_entry_old e node z tail).1
++  have h_sequenceContext : SequenceValues sc sp_start n sp_scan := by
++    intro e node z tail
++    have completed_stream := h_close_entry_old e node z tail
++    trace_state
++    fail "R2_ABLATION_ORDINARY_COMPLETION_FAMILY"
+   -- Item 365: the park chain's K7 fact at the content step is a projection of the PARK's
+   -- own state `sc` (Rule 8: no carrier) — dead register when no slot is marked, the
+   -- named `nested-?` decline when an enclosing `?` holds one (K8c-b, the composition).
+@@ -41682,7 +41682,8 @@
+     -- been its cases since items 24/26, and the root entry is the `n = 0`
+     -- instance — faces included.
+     exact accum_content_on_pendingBlock_indented (h_dead := h_dead) (h_sound := h_sound) (h_fl0 := h_fl0) (h_next := h_nextB (noflow_of_fl0 h_fl0)) (h_src := slotGateAt_of_offerPred h_offer_b h_base h_preprocess) sc sp_start sp_block sp_scan n_old
+-      s_prep s' c sp_prep sp_scan' h_stream_block h_close_old h_close_entry_old h_kslot92
++      s_prep s' c sp_prep sp_scan' h_stream_block h_close_old
++      (fun e node z tail => (h_close_entry_old e node z tail).1) h_kslot92
+       h_closeF99 h_seqF167 h_floor_old h_park_top_old h_col_old h_sk_old
+       hcorr_prep hcorr_result h_corr h_preprocess h_not_doc h_flow_disp h_dispatch
+       h_base h_mono

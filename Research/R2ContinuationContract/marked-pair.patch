@@ -1,0 +1,29 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -30479,7 +30479,15 @@
+             (h_mono_out := IndentStackMono.dispatchBlockIndicators_mono h_dispatch
+               ((IndentStackMono.preprocess_mono h_preprocess h_mono).of_indents_eq (by split <;> rfl))
+               ((IndentStackBase.preprocess_base h_preprocess h_base).of_indents_eq (by split <;> rfl)))
+-              (h_pairAt := by intro h_noOwn; first | assumption | (trace_state; fail "R2_OTHER_BLOCK_CONTENT_PAIR"))
++              (h_pairAt := by
++                intro h_noOwn a ha hlt mid i colon comments indent literal value content
++                by_cases marked : k ∈ RegisterWitness.markedCols sc
++                · have family := h_completedContext mid comments
++                    mid (SCompactSeqTail.nil n mid)
++                  exact EntryValues.pair family marked
++                    ((h_mcstep_ne (by decide) _ (RegisterWitness.MarkedColsIn.self sc)).mem ha)
++                    hlt indent literal content
++                · trace_state; fail "R2_OTHER_BLOCK_CONTENT_PAIR_UNMARKED")
+               sp_start sp_gram sp_mid _ k s_prep s'
+               sp_scan' (h_close_pending h_nd_land h_ui_land _ h_ssl)
+               (fun sp_m sp_i sp_c h_ssl_m h_iv h_lit sp_v h_sbi =>
+@@ -43740,7 +43748,8 @@
+       [`L4YAML.Proofs.R2ContentCompletion.NodeSequenceValues.complete,
+        `L4YAML.Proofs.R2ContentCompletion.NodeSequenceValues.restrict_state]),
+     (`L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent,
+-      [`L4YAML.Proofs.R2ContentCompletion.CompletedValues.sibling])]
++      [`L4YAML.Proofs.R2ContentCompletion.CompletedValues.sibling,
++       `L4YAML.Proofs.R2ConsumptionClosure.EntryValues.pair])]
+   for (name, readers) in rows do
+     let some ci := env.find? name | throwError "missing actual reader"
+     let some body := ci.value? (allowOpaque := true) | throwError "missing actual reader body"
