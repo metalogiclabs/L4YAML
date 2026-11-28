@@ -1,0 +1,3 @@
+'R2ValueOwnership.last_mark_register' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ValueOwnership.prepared_last_mark' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ValueOwnership.scanValue_top_unmarked' depends on axioms: [propext, Classical.choice, Quot.sound]
