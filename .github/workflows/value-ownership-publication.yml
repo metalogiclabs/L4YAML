@@ -1,0 +1,73 @@
+name: Publish checked colon ownership source
+on:
+  push:
+    branches: [test/value-park-ownership]
+permissions:
+  contents: write
+concurrency:
+  group: value-park-ownership-publication
+  cancel-in-progress: false
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OWNER: 1383fa62e838576fb9c712b4af89b5e381aaaab4
+      TEST_SOURCE: ad12628f7927a1be1abca9653f669dfbe0424d5b
+      TEST_TREE: e95078c78c80f12b52802fa35d2caeca00498559
+      SOURCE: bea84871310b2b00518629638607bd46f7a2ebba
+      TREE: d51baacfe26343122a74632026042b74f0734ce2
+      ARCHIVE_SHA256: 652def304e98b3a927a2cbcc701da567330b7dfcc449c5ae55d79bafa5aa9a6b
+      BRANCH: fix/value-park-ownership
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore exact checked source and original authorship
+        run: |
+          set -Eeuo pipefail
+          evidence_dir="$GITHUB_WORKSPACE/Research/R2ValueOwnership"
+          mkdir -p "$GITHUB_WORKSPACE/receipt"
+          base64 --decode "$evidence_dir/evidence.tar.gz.base64" > "$GITHUB_WORKSPACE/receipt/evidence.tar.gz"
+          echo "$ARCHIVE_SHA256  $GITHUB_WORKSPACE/receipt/evidence.tar.gz" | sha256sum -c -
+          mkdir "$GITHUB_WORKSPACE/receipt/evidence"
+          tar -xzf "$GITHUB_WORKSPACE/receipt/evidence.tar.gz" -C "$GITHUB_WORKSPACE/receipt/evidence"
+          (cd "$GITHUB_WORKSPACE/receipt/evidence" && sha256sum -c MANIFEST.sha256)
+          git fetch --no-tags origin "$OWNER"
+          git worktree add --detach "$RUNNER_TEMP/value-ownership-source" "$OWNER"
+          cd "$RUNNER_TEMP/value-ownership-source"
+          git apply --check "$evidence_dir/publication-tests.patch"
+          git apply --index "$evidence_dir/publication-tests.patch"
+          test "$(git write-tree)" = "$TEST_TREE"
+          test "$(git hash-object -t commit -w "$evidence_dir/publication-tests.commit")" = "$TEST_SOURCE"
+          git reset --hard "$TEST_SOURCE"
+          git apply --check "$evidence_dir/publication-proof.patch"
+          git apply --index "$evidence_dir/publication-proof.patch"
+          test "$(git write-tree)" = "$TREE"
+          test "$(git hash-object -t commit -w "$evidence_dir/publication-proof.commit")" = "$SOURCE"
+          git reset --hard "$SOURCE"
+          test "$(git rev-parse HEAD)" = "$SOURCE"
+          test "$(git rev-parse HEAD^{tree})" = "$TREE"
+          git diff --check "$OWNER" "$SOURCE"
+          git diff --exit-code "$OWNER" "$SOURCE" -- lean-toolchain lake-manifest.json doc .github/workflows L4YAML/Scanner L4YAML/Parser L4YAML/Surface L4YAML/Schema
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git ls-tree -r HEAD > "$GITHUB_WORKSPACE/receipt/source-tree.txt"
+          git show -s --format=fuller "$TEST_SOURCE" "$SOURCE" > "$GITHUB_WORKSPACE/receipt/authorship.txt"
+          git diff --stat "$OWNER" HEAD > "$GITHUB_WORKSPACE/receipt/changes.txt"
+      - name: Publish the exact source branch
+        run: |
+          set -Eeuo pipefail
+          cd "$RUNNER_TEMP/value-ownership-source"
+          live_owner="$(git ls-remote https://github.com/nasa-jpl/L4YAML.git refs/heads/fix-a-grammar-completeness | cut -f1)"
+          test "$live_owner" = "$OWNER"
+          live_head="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)"
+          if test -n "$live_head"; then test "$live_head" = "$SOURCE"; fi
+          git push origin "$SOURCE:refs/heads/$BRANCH"
+          test "$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)" = "$SOURCE"
+          printf 'PUBLISHED SOURCE=%s TREE=%s OWNER=%s; local qualification retained; no native replay, merge or approval\n' "$SOURCE" "$TREE" "$OWNER" | tee "$GITHUB_WORKSPACE/receipt/outcome.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: value-ownership-publication-receipt
+          path: receipt/
+          if-no-files-found: error
