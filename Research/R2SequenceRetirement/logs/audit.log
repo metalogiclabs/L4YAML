@@ -1,0 +1,16 @@
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.root_sequence_supplier dependencies=1496 axioms=[propext,
+ Classical.choice,
+ Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.sequence_value_pack dependencies=584 axioms=[propext, Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.completed_sequence_value_pack dependencies=584 axioms=[propext,
+ Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.content_value_pack dependencies=930 axioms=[propext,
+ Classical.choice,
+ Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.Full.content dependencies=1546 axioms=[propext,
+ Classical.choice,
+ Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.Full.sequence_step dependencies=1505 axioms=[propext,
+ Classical.choice,
+ Quot.sound]
+RETIREMENT-AUDIT roots=6 forbidden=4 root_context_premises=0 critical_retirement_claim=none

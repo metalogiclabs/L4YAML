@@ -1,0 +1,7 @@
+'R2SequenceRetirement.Geometry.root_pushes_sequence' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2SequenceRetirement.Geometry.indentless_sibling_is_mapping_top' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'R2SequenceRetirement.Geometry.decorated_sibling_is_mapping_top' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]

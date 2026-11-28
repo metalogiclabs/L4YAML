@@ -1,0 +1,8 @@
+/tmp/r2-sequence-retirement-1b/final-replay/ReaderErasure.lean:20:4: error: Application type mismatch: The argument
+  Full.close (complete e node z tail)
+has type
+  SLYamlStream start z
+but is expected to have type
+  Full sc start z
+in the application
+  Full.value_line (Full.close (complete e node z tail))

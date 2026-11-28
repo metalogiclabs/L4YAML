@@ -1,0 +1,18 @@
+{"writer_boundary": "experimental stronger internal completion contract",
+ "state":
+ "WARRANTED_COMPONENTS_AND_SELECTED_WRITERS; GLOBAL_MIGRATION_REJECTED",
+ "standard_axiom_dependency_roots": 6,
+ "selected_writer_terms_without_sorry_dependencies": 6,
+ "root_supplier_semantic_context_premises": 0,
+ "repository_qualification": "NOT_RUN",
+ "reader_erasure_errors": 1,
+ "production_source_mutations": 0,
+ "parser_acceptance_controls": 4,
+ "last_accepted_critical_positions": 7,
+ "initialized_geometry_kernel_facts": 7,
+ "full_migration_accepts": false,
+ "fresh_candidate_census": false,
+ "critical_retirements": 0,
+ "changed_contract_diagnostic_errors_not_debt_score": 17,
+ "actual_sequence_source_sites": 7,
+ "accepted_standalone_modules": 3}

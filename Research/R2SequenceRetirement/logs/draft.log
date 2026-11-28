@@ -1,0 +1,179 @@
+L4YAML/Proofs/Production/StreamAccum.lean:14176:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:20716:47: error: Type mismatch
+  resume.value
+    (FlowBaseAnchor.gate_of_close h_panch_ad (scanFlowSequenceEnd_tokens s_ad) rfl
+      (EmitterScannability.scanFlowSequenceEnd_preserves_indents s_ad) ?m.4285 hnd hui)
+    sp_tok sp_m (SFlowContent.flowSeq nn YamlContext.flowOut sp_br✝ sp_tok h_seq) h_ssl
+has type
+  SLYamlStream sp_start sp_m
+but is expected to have type
+  R2Mandatory.Full (scanFlowSequenceEnd s_ad) sp_start sp_m
+L4YAML/Proofs/Production/StreamAccum.lean:20951:51: error: Type mismatch
+  resume.value
+    (FlowBaseAnchor.gate_of_close h_panch_ad (scanFlowMappingEnd_tokens s_ad) rfl
+      (EmitterScannability.scanFlowMappingEnd_preserves_indents s_ad) ?m.6850 hnd hui)
+    sp_tok sp_m (SFlowContent.flowMap nn YamlContext.flowOut sp_br✝ sp_tok h_map) h_ssl
+has type
+  SLYamlStream sp_start sp_m
+but is expected to have type
+  R2Mandatory.Full (scanFlowMappingEnd s_ad) sp_start sp_m
+L4YAML/Proofs/Production/StreamAccum.lean:24901:13: error: Type mismatch
+  h_routeE sp_v (SBlockMapEntry.emptyKeyNode k sp_ind sp_scan' sp_v h_lit h_node)
+has type
+  SLYamlStream sp_start sp_v
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_v
+L4YAML/Proofs/Production/StreamAccum.lean:25234:13: error: Type mismatch
+  h_route51 sp_k
+    (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_k h_lit
+      (SBlockIndented.node k YamlContext.blockOut sp_scan' sp_k h_node))
+has type
+  SLYamlStream sp_start sp_k
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_k
+L4YAML/Proofs/Production/StreamAccum.lean:25266:15: error: Type mismatch
+  h_route51 sp_v (SBlockMapEntry.explicitEmpty k sp_ind sp_scan' sp_v h_lit h_sbi)
+has type
+  SLYamlStream sp_start sp_v
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_v
+L4YAML/Proofs/Production/StreamAccum.lean:25501:13: error: Type mismatch
+  h_slot sp_v (SBlockIndented.node nv YamlContext.blockOut sp_scan' sp_v h_node)
+has type
+  SLYamlStream sp_start sp_v
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_v
+L4YAML/Proofs/Production/StreamAccum.lean:25509:74: error: Application type mismatch: The argument
+  h_slot
+has type
+  ∀ (sp_v : SurfPos), SBlockIndented nv YamlContext.blockOut sp_scan' sp_v → SLYamlStream sp_start sp_v
+but is expected to have type
+  ∀ (sp_v : SurfPos), SBlockIndented nv YamlContext.blockOut sp_scan' sp_v → R2Mandatory.Full s' sp_start sp_v
+in the application
+  ⟨park_col_of_indicator hcol_mid h_ind h_lit, h_slot⟩
+L4YAML/Proofs/Production/StreamAccum.lean:25890:13: error: Type mismatch
+  h_close_old sp_v
+    (SBlockIndented.compactMap n ctx m sp_entry sp_ind sp_v h_ind
+      (SCompactMap.mk (n + 1 + m) sp_ind sp_v sp_v (h_entry_of sp_v h_node) (SCompactMapTail.nil (n + 1 + m) sp_v)))
+has type
+  SLYamlStream sp_start sp_v
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_v
+L4YAML/Proofs/Production/StreamAccum.lean:26312:13: error: Type mismatch
+  h_route sp_v (SBlockMapEntry.implicitKeyNode k sp_key sp_ws sp_scan' sp_v h_ik h_lit h_node)
+has type
+  SLYamlStream sp_start sp_v
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_v
+L4YAML/Proofs/Production/StreamAccum.lean:26540:13: error: Type mismatch
+  h_route sp_v (SBlockMapEntry.implicitKeyNode k sp_p sp_prep sp_scan' sp_v h_ik h_lit h_node)
+has type
+  SLYamlStream sp_start sp_v
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_v
+L4YAML/Proofs/Production/StreamAccum.lean:27478:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:28781:13: error: Application type mismatch: The argument
+  h_entryTail
+has type
+  ∀ (sp_final : SurfPos),
+    SBlockIndented k YamlContext.blockIn sp_scan' sp_final →
+      ∀ (sp_end : SurfPos), SCompactSeqTail k sp_final sp_end → SLYamlStream sp_start sp_end
+but is expected to have type
+  ∀ (sp_mid : SurfPos),
+    SBlockIndented k YamlContext.blockIn sp_scan' sp_mid →
+      ∀ (sp_end : SurfPos), SCompactSeqTail k sp_mid sp_end → R2Mandatory.Full s' sp_start sp_end
+in the application
+  PendingNode.pendingBlock sp_start sp_mid sp_scan' k
+    (fun sp_final h_indented => h_entryTail sp_final h_indented sp_final (SCompactSeqTail.nil k sp_final)) h_entryTail
+L4YAML/Proofs/Production/StreamAccum.lean:29111:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:29336:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:36608:28: error: Type mismatch
+  h_route h_nd
+has type
+  ∀ (sp_m : SurfPos), SBlockNode 0 YamlContext.blockIn sp_anchor sp_m → SLYamlStream sp_start sp_m
+but is expected to have type
+  ∀ (sp_m : SurfPos), SBlockNode 0 YamlContext.blockIn sp_anchor sp_m → R2Mandatory.Full s' sp_start sp_m
+L4YAML/Proofs/Production/StreamAccum.lean:36646:28: error: Type mismatch
+  h_route h_nd
+has type
+  ∀ (sp_m : SurfPos), SBlockNode 0 YamlContext.blockIn sp_anchor sp_m → SLYamlStream sp_start sp_m
+but is expected to have type
+  ∀ (sp_m : SurfPos), SBlockNode 0 YamlContext.blockIn sp_anchor sp_m → R2Mandatory.Full s' sp_start sp_m
+L4YAML/Proofs/Production/StreamAccum.lean:36921:21: error: Type mismatch
+  routeP sp_mid
+    (flowInBlock_blockNode h_sepP
+      (SFlowNode.propsContent 0 YamlContext.flowOut sp_pp sp_rp sp_prep sp_gram h_propsP h_sepB h_fc) h_ssl)
+has type
+  SLYamlStream sp_start sp_mid
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_mid
+L4YAML/Proofs/Production/StreamAccum.lean:36926:21: error: Type mismatch
+  h_route h_nd sp_mid (flowInBlock_blockNode h_sep h_flow h_ssl)
+has type
+  SLYamlStream sp_start sp_mid
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_mid
+L4YAML/Proofs/Production/StreamAccum.lean:36965:21: error: Type mismatch
+  routeP sp_mid
+    (Or.elim (h_absorb95 sp_mid h_ssl)
+      (fun h_lit =>
+        literal_blockNode h_sepP
+          (GOpt.some sp_pp sp_prep (GSeq.mk sp_pp sp_rp sp_prep (props_linesLift h_propsP) h_sepB)) h_lit)
+      fun h_fld =>
+      folded_blockNode h_sepP (GOpt.some sp_pp sp_prep (GSeq.mk sp_pp sp_rp sp_prep (props_linesLift h_propsP) h_sepB))
+        h_fld)
+has type
+  SLYamlStream sp_start sp_mid
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_mid
+L4YAML/Proofs/Production/StreamAccum.lean:36974:21: error: Type mismatch
+  h_route h_nd sp_mid
+    (Or.elim (h_absorb95 sp_mid h_ssl) (fun h_lit => literal_blockNode h_sep (GOpt.none sp_prep) h_lit) fun h_fld =>
+      folded_blockNode h_sep (GOpt.none sp_prep) h_fld)
+has type
+  SLYamlStream sp_start sp_mid
+but is expected to have type
+  R2Mandatory.Full s' sp_start sp_mid
+L4YAML/Proofs/Production/StreamAccum.lean:37644:5: warning: Variable name `h_close_old` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_close_old
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:37695:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:38667:5: warning: Variable name `h_maps` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_maps
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+MANDATORY-WRITER L4YAML.Proofs.StreamAccum.accum_block_on_noPending source_sites=1 selected_source_sites=1 expanded_checked=1 required_rule=L4YAML.Proofs.StreamAccum.R2Mandatory.root_sequence_supplier sorry_terms=0
+MANDATORY-WRITER L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock source_sites=2 selected_source_sites=1 expanded_checked=1 required_rule=L4YAML.Proofs.StreamAccum.R2Mandatory.Full.sequence_step sorry_terms=0
+MANDATORY-WRITER L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent source_sites=1 selected_source_sites=1 expanded_checked=2 required_rule=L4YAML.Proofs.StreamAccum.R2Mandatory.Full.sequence_step sorry_terms=0
+MANDATORY-WRITER L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock source_sites=3 selected_source_sites=3 expanded_checked=3 required_rule=L4YAML.Proofs.StreamAccum.R2Mandatory.Full.sequence_step sorry_terms=0
+MANDATORY-WRITER-AUDIT inventory=7 checked=6 expanded_checked=7 context_contract=experimental global_acceptance=not_claimed critical_retirement=0

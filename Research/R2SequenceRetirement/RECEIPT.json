@@ -1,0 +1,24 @@
+{
+  "author": "Heath Sanchez",
+  "date": "2026-11-28",
+  "accepted_parent": "ee5739cc5ce5646752a683c94b12cf0b3895cda1",
+  "accepted_parent_tree": "73358e601b20db9afeb356706b9a776379e75c6b",
+  "owner_head_read": "1383fa62e838576fb9c712b4af89b5e381aaaab4",
+  "baseline_source_sha256": "f1eece1acca9f124666aa8fcc8fe5b591c316df35b292b32ed28af491a25772a",
+  "accepted_ownership_source_sha256": "65c2f05e2daaf72480d6b974043145e5fb3327840b40cff794297eaf3c8aefda",
+  "candidate_source_sha256": "d3589230b768b92f8fac3df21535b7aa199a25f0f5228a4b67c65cf05ebcc193",
+  "decoded_patch_sha256": "c7fb6a16988472b8f6faf1a110768673d84cd7b281033ed03b8b006e2fff6254",
+  "toolchain": "Lean (version 4.36.0, x86_64-unknown-linux-gnu, commit 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9, Release)",
+  "boundary": "Standalone proofs accept. Stronger-contract complete migration rejects. No critical retirement.",
+  "reconciled_support": [
+    "b26c9bfd3e07b54f5b9bf74a7f3f4397e543cf7a",
+    "1697816daf0400e849de6411b29c7523bbf993dd",
+    "a9e0a4d753d7602b13eed49724ae686c4decbee5"
+  ],
+  "shared_root_sequence_discoveries_counted_again": 0,
+  "parallel_support_composition": "NOT_RUN",
+  "actual_source_sites": 7,
+  "selected_source_sites": 6,
+  "selected_expanded_initializers": 7,
+  "global_critical_retirements": 0
+}

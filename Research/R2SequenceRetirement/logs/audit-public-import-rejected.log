@@ -1,0 +1,13 @@
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.root_sequence_supplier dependencies=1078 axioms=[propext,
+ Classical.choice,
+ Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.sequence_value_pack dependencies=370 axioms=[propext, Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.completed_sequence_value_pack dependencies=370 axioms=[propext,
+ Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.content_value_pack dependencies=749 axioms=[propext,
+ Classical.choice,
+ Quot.sound]
+RETIREMENT-DEPENDENCIES root=R2SequenceRetirement.Full.content dependencies=1390 axioms=[propext,
+ Classical.choice,
+ Quot.sound]
+Research/R2SequenceRetirement/Audit.lean:22:0: error: root supplier misses required dependency: R2SequenceRetirement.scan_sequence_at_base

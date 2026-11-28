@@ -1,0 +1,22 @@
+module
+public import Research.R2SequenceRetirement.MandatoryContext
+
+@[expose] public section ReaderErasure
+set_option autoImplicit false
+open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
+open L4YAML.Proofs.StreamAccum R2SequenceRetirement
+
+-- Intentional negative control: the mandatory answer is projected to the
+-- old finished-stream face before the marked-value reader receives it.
+lemma erased_sequence_value_pack {sc : ScannerState} {start slot : SurfPos} {n : Nat}
+    (complete : ∀ e, SBlockIndented n .blockIn slot e →
+      ∀ z, SCompactSeqTail n e z → Full sc start z)
+    (sound : PendingKeySound.Sound sc) (maps : R2MapOwnership.Maps sc) :
+    ∀ nv ∈ RegisterWitness.markedCols sc,
+    ∀ e, SBlockIndented n .blockIn slot e →
+    ∀ z, SCompactSeqTail n e z → ExplValueLine start nv z := by
+  intro nv marked e node z tail
+  exact Full.value_line (sc := sc) (start := start) (e := z)
+    ((complete e node z tail).close) sound.slots maps nv marked
+
+end ReaderErasure

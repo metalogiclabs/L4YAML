@@ -1,0 +1,6 @@
+'R2SequenceRetirement.Full.content' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2SequenceRetirement.Full.sequence_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2SequenceRetirement.root_sequence_supplier' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2SequenceRetirement.sequence_value_pack' depends on axioms: [propext, Quot.sound]
+'R2SequenceRetirement.completed_sequence_value_pack' depends on axioms: [propext, Quot.sound]
+'R2SequenceRetirement.content_value_pack' depends on axioms: [propext, Classical.choice, Quot.sound]
