@@ -1,0 +1,614 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -1726,0 +1727,436 @@
++
++namespace R2JointFrames
++def levels (sc : ScannerState) : List FrameLevel :=
++  sc.indents.toList.reverse.filterMap fun e =>
++    if e.column < 0 then none
++    else some (if e.isSequence then FrameLevel.seq e.column.toNat else FrameLevel.map e.column.toNat)
++
++-- Marked maps await both an omitted and an explicit value. Unmarked maps
++-- and sequences await their own sibling tails. These layers stay interleaved.
++def Joint (sc : ScannerState) (P : SurfPos → Prop) : List FrameLevel → SurfPos → Prop
++  | [], e => P e
++  | ⟨k, true⟩ :: rest, e => ∀ z, SCompactSeqTail k e z → Joint sc P rest z
++  | ⟨k, false⟩ :: rest, e =>
++      if k ∈ RegisterWitness.markedCols sc then EntryStep (Joint sc P rest) k e
++      else ∀ z, SCompactMapTail k e z → Joint sc P rest z
++
++def Context (sc : ScannerState) (P : SurfPos → Prop) (e : SurfPos) : Prop :=
++  Joint sc P (levels sc) e
++
++def Ordered : List FrameLevel → Prop
++  | [] => True
++  | f :: rest => (∀ g ∈ rest, g.width < f.width) ∧ Ordered rest
++
++lemma Joint.pop {sc : ScannerState} {P : SurfPos → Prop} {f : FrameLevel}
++    {rest : List FrameLevel} {e : SurfPos} (h : Joint sc P (f :: rest) e) :
++    Joint sc P rest e := by
++  rcases f with ⟨k, kind⟩
++  cases kind with
++  | true => exact h e (SCompactSeqTail.nil k e)
++  | false =>
++    by_cases marked : k ∈ RegisterWitness.markedCols sc
++    · exact (show EntryStep (Joint sc P rest) k e from by simpa [Joint, marked] using h).1 e
++        (SCompactMapTail.nil k e)
++    · exact (show ∀ z, SCompactMapTail k e z → Joint sc P rest z from by simpa [Joint, marked] using h)
++        e (SCompactMapTail.nil k e)
++
++lemma Joint.close {sc : ScannerState} {P : SurfPos → Prop} {fs : List FrameLevel}
++    {e : SurfPos} (h : Joint sc P fs e) : P e := by
++  induction fs with
++  | nil => exact h
++  | cons f rest ih => exact ih h.pop
++
++lemma Joint.drop {sc : ScannerState} {P : SurfPos → Prop} {pre rest : List FrameLevel}
++    {e : SurfPos} (h : Joint sc P (pre ++ rest) e) : Joint sc P rest e := by
++  induction pre with
++  | nil => exact h
++  | cons f pre ih => exact ih h.pop
++
++lemma Joint.map {sc : ScannerState} {P Q : SurfPos → Prop} {fs : List FrameLevel}
++    {e : SurfPos} (h : Joint sc P fs e) (f : ∀ z, P z → Q z) : Joint sc Q fs e := by
++  induction fs generalizing e with
++  | nil => exact f e h
++  | cons top rest ih =>
++    rcases top with ⟨k, kind⟩
++    cases kind with
++    | true => exact fun z tail => ih (h z tail)
++    | false =>
++      by_cases marked : k ∈ RegisterWitness.markedCols sc
++      · simp only [Joint, ite_eq_left marked] at h ⊢
++        exact h.map (fun z hz => ih hz)
++      · simp only [Joint, ite_eq_right marked] at h ⊢
++        exact fun z tail => ih (h z tail)
++
++lemma Joint.restrict_marks {before after : ScannerState} {P : SurfPos → Prop}
++    {fs : List FrameLevel} {e : SurfPos} (h : Joint before P fs e)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    Joint after P fs e := by
++  induction fs generalizing e with
++  | nil => exact h
++  | cons top rest ih =>
++    rcases top with ⟨k, kind⟩
++    cases kind with
++    | true => exact fun z tail => ih (h z tail)
++    | false =>
++      by_cases marked : k ∈ RegisterWitness.markedCols after
++      · have old := back k marked
++        simp only [Joint, ite_eq_left marked, ite_eq_left old] at h ⊢
++        exact h.map (fun z hz => ih hz)
++      · simp only [Joint, ite_eq_right marked]
++        by_cases old : k ∈ RegisterWitness.markedCols before
++        · simp only [Joint, ite_eq_left old] at h
++          exact fun z tail => ih (h.1 z tail)
++        · simp only [Joint, ite_eq_right old] at h
++          exact fun z tail => ih (h z tail)
++
++lemma Joint.restrict_on {before after : ScannerState} {P : SurfPos → Prop}
++    {fs : List FrameLevel} {e : SurfPos} (h : Joint before P fs e)
++    (back : ∀ f ∈ fs, f.width ∈ RegisterWitness.markedCols after →
++      f.width ∈ RegisterWitness.markedCols before) : Joint after P fs e := by
++  induction fs generalizing e with
++  | nil => exact h
++  | cons top rest ih =>
++    have lower := fun f hf => back f (List.mem_cons_of_mem top hf)
++    rcases top with ⟨k, kind⟩
++    cases kind with
++    | true => exact fun z tail => ih (h z tail) lower
++    | false =>
++      by_cases marked : k ∈ RegisterWitness.markedCols after
++      · have old := back _ List.mem_cons_self marked
++        simp only [Joint, ite_eq_left marked, ite_eq_left old] at h ⊢
++        exact h.map (fun z hz => ih hz lower)
++      · simp only [Joint, ite_eq_right marked]
++        by_cases old : k ∈ RegisterWitness.markedCols before
++        · simp only [Joint, ite_eq_left old] at h
++          exact fun z tail => ih (h.1 z tail) lower
++        · simp only [Joint, ite_eq_right old] at h
++          exact fun z tail => ih (h z tail) lower
++
++lemma Joint.question {sc : ScannerState} {P : SurfPos → Prop}
++    {rest : List FrameLevel} {own : Nat} {q slot e : SurfPos}
++    (marked : own ∈ RegisterWitness.markedCols sc) (literal : GLit '?' q slot)
++    (route : ∀ v, SBlockMapEntry own q v →
++      ∀ z, SCompactMapTail own v z → Joint sc P rest z)
++    (key : SBlockIndented own .blockOut slot e) :
++    Joint sc P (FrameLevel.map own :: rest) e := by
++  simp only [Joint, ite_eq_left marked]
++  exact entryStep_of_question literal route key
++
++lemma Joint.consume {before after : ScannerState} {P : SurfPos → Prop}
++    {rest : List FrameLevel} {own : Nat} {e i c v : SurfPos}
++    (h : Joint before P (FrameLevel.map own :: rest) e)
++    (marked : own ∈ RegisterWitness.markedCols before)
++    (consumed : own ∉ RegisterWitness.markedCols after)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before)
++    (indent : SIndent own e i) (colon : GLit ':' i c)
++    (value : SBlockIndented own .blockOut c v) :
++    Joint after P (FrameLevel.map own :: rest) v := by
++  simp only [Joint, ite_eq_left marked] at h
++  simp only [Joint, ite_eq_right consumed]
++  exact fun z tail => (h.2 i c indent colon v value z tail).restrict_marks back
++
++lemma Joint.sibling_sequence {before after : ScannerState} {P : SurfPos → Prop}
++    {rest : List FrameLevel} {k : Nat} {land dash next e : SurfPos}
++    (h : Joint before P (FrameLevel.seq k :: rest) land)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before)
++    (indent : SIndent k land dash) (literal : GLit '-' dash next)
++    (notNs : GNot SNsChar next) (node : SBlockIndented k .blockIn next e) :
++    Joint after P (FrameLevel.seq k :: rest) e := by
++  intro z tail
++  exact (h z (SCompactSeqTail.cons k land dash next e z indent literal notNs node tail)).restrict_marks back
++
++lemma ValuesBelow.from_bounded_step {sc : ScannerState} {P : SurfPos → Prop}
++    {own upper : Nat} {e : SurfPos}
++    (bound : ∀ x < upper, x ∈ RegisterWitness.markedCols sc → x ≤ own)
++    (step : EntryStep (ValuesBelow sc P own) own e) : ValuesBelow sc P upper e := by
++  induction upper with
++  | zero => exact (step.1 e (SCompactMapTail.nil own e)).truncate (Nat.zero_le _)
++  | succ n ih =>
++    by_cases lt : n < own
++    · exact (step.1 e (SCompactMapTail.nil own e)).truncate (by omega)
++    · by_cases eq : n = own
++      · subst n
++        by_cases marked : own ∈ RegisterWitness.markedCols sc
++        · simpa only [ValuesBelow, ite_eq_left marked] using step
++        · simpa only [ValuesBelow, ite_eq_right marked] using step.1 e (SCompactMapTail.nil own e)
++      · have absent : n ∉ RegisterWitness.markedCols sc := by
++          intro marked
++          have := bound n (by omega) marked
++          omega
++        simp only [ValuesBelow, ite_eq_right absent]
++        exact ih (fun x hx => bound x (by omega))
++
++-- This direction closes unmarked collection tails only as a projection.
++-- The joint context itself continues to retain every such tail.
++lemma Joint.values_below {sc : ScannerState} {P : SurfPos → Prop}
++    {fs : List FrameLevel} {upper : Nat} {e : SurfPos}
++    (h : Joint sc P fs e) (ordered : Ordered fs)
++    (covered : ∀ x < upper, x ∈ RegisterWitness.markedCols sc → FrameLevel.map x ∈ fs) :
++    ValuesBelow sc P upper e := by
++  induction fs generalizing upper e with
++  | nil =>
++    exact ValuesBelow.of_no_lower_marks (fun x hx marked => by
++      simpa using covered x hx marked) h
++  | cons top rest ih =>
++    rcases top with ⟨k, kind⟩
++    change (∀ g ∈ rest, g.width < k) ∧ Ordered rest at ordered
++    cases kind with
++    | true =>
++      apply ih h.pop ordered.2
++      intro x hx marked
++      rcases List.mem_cons.mp (covered x hx marked) with eq | mem
++      · have bad := congrArg FrameLevel.isSeq eq
++        contradiction
++      · exact mem
++    | false =>
++      by_cases marked : k ∈ RegisterWitness.markedCols sc
++      · by_cases lt : k < upper
++        · simp only [Joint, ite_eq_left marked] at h
++          apply ValuesBelow.from_bounded_step (own := k)
++          · intro x hx mark
++            rcases List.mem_cons.mp (covered x hx mark) with eq | mem
++            · have width := congrArg FrameLevel.width eq
++              exact Nat.le_of_eq width
++            · exact Nat.le_of_lt (ordered.1 _ mem)
++          · exact h.map (fun z hz => ih (upper := k) hz ordered.2 (by
++              intro x hx mark
++              rcases List.mem_cons.mp (covered x (by omega) mark) with eq | mem
++              · have width := congrArg FrameLevel.width eq
++                change x = k at width
++                omega
++              · exact mem))
++        · apply ih h.pop ordered.2
++          intro x hx mark
++          rcases List.mem_cons.mp (covered x hx mark) with eq | mem
++          · have width := congrArg FrameLevel.width eq
++            change x = k at width
++            omega
++          · exact mem
++      · apply ih h.pop ordered.2
++        intro x hx mark
++        rcases List.mem_cons.mp (covered x hx mark) with eq | mem
++        · have width := congrArg FrameLevel.width eq
++          change x = k at width
++          exact (marked (width ▸ mark)).elim
++        · exact mem
++
++lemma Joint.entries {sc : ScannerState} {P : SurfPos → Prop}
++    {fs : List FrameLevel} {e : SurfPos} (h : Joint sc P fs e)
++    (ordered : Ordered fs)
++    (covered : ∀ x ∈ RegisterWitness.markedCols sc, FrameLevel.map x ∈ fs) :
++    EntryValues sc P e :=
++  h.values_below ordered (fun x _ => covered x)
++
++#print axioms Joint.consume
++#print axioms Joint.sibling_sequence
++#print axioms Joint.entries
++
++end R2JointFrames
++
++
++section R2MandatoryContextImports
++open L4YAML.Proofs.PendingKeySound L4YAML.Proofs.PendingKeysStable
++open L4YAML.Proofs.PreprocessIndentStable L4YAML.Proofs.NodeProduction
++namespace R2ActualJointStep
++open R2JointFrames
++
++def frame (e : IndentEntry) : Option FrameLevel :=
++  if e.column < 0 then none
++  else some (if e.isSequence then FrameLevel.seq e.column.toNat else FrameLevel.map e.column.toNat)
++
++lemma levels_indents {s t : ScannerState} (h : t.indents = s.indents) : levels t = levels s := by
++  unfold levels
++  rw [h]
++
++lemma levels_push {s t : ScannerState} {e : IndentEntry}
++    (h : t.indents = s.indents.push e) : levels t = (frame e).toList ++ levels s := by
++  change t.indents.toList.reverse.filterMap frame =
++    (frame e).toList ++ s.indents.toList.reverse.filterMap frame
++  rw [h, Array.toList_push, List.reverse_append, List.filterMap_append]
++  simp only [List.reverse_cons, List.reverse_nil, List.nil_append,
++    List.filterMap_cons, List.filterMap_nil]
++  cases hf : frame e <;> rfl
++
++-- Actual unwinding deletes an initial segment of the mixed top-first levels.
++-- This is stronger than membership preservation and costs no scanner invariant.
++lemma unwind_prefix (s : ScannerState) (col : Int) (fuel : Nat) :
++    ∃ pre, levels s = pre ++ levels (unwindIndentsLoop s col fuel) := by
++  induction fuel generalizing s with
++  | zero => exact ⟨[], by simp [unwindIndentsLoop]⟩
++  | succ fuel ih =>
++    unfold unwindIndentsLoop
++    split
++    · rename_i guard
++      have parts : s.currentIndent > col ∧ s.indents.size > 1 := by simpa using guard
++      have gt := parts.2
++      let popped : ScannerState := { s.emit .blockEnd with
++        indents := (s.emit .blockEnd).indents.pop,
++        pendingKeys := (s.emit .blockEnd).pendingKeys.pop }
++      obtain ⟨pre, old⟩ := ih popped
++      have pushed : s.indents = popped.indents.push s.indents.back! :=
++        Array.eq_push_pop_back!_of_size_ne_zero (by omega)
++      have shape := levels_push pushed
++      refine ⟨(frame s.indents.back!).toList ++ pre, ?_⟩
++      rw [shape, old, List.append_assoc]
++    · exact ⟨[], rfl⟩
++
++lemma stale_indents (s : ScannerState) : (closeStaleExplicitKey s).indents = s.indents := by
++  rcases L4YAML.Proofs.CloseStaleExplicitKey.closeStaleExplicitKey_cases s with eq | ⟨_, _, eq⟩
++  · rw [eq]
++  · rw [eq]; rfl
++
++lemma preprocess_prefix {s t : ScannerState} {c : Char}
++    (step : scanNextToken_preprocess s = .ok (some (t,c))) :
++    ∃ pre, levels s = pre ++ levels t := by
++  unfold scanNextToken_preprocess at step
++  simp only [bind, pure, Pure.pure, Except.pure, Except.bind] at step
++  split at step
++  · contradiction
++  · rename_i skipped skip
++    have same : levels skipped = levels s :=
++      levels_indents (skipToContent_preserves_indents s skipped skip)
++    split at step
++    · simp at step
++    · split at step
++      · split at step
++        · contradiction
++        · split at step
++          · simp at step
++          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at step
++            obtain ⟨rfl,rfl⟩ := step
++            obtain ⟨pre, shape⟩ := unwind_prefix skipped (skipped.col : Int) skipped.indents.size
++            refine ⟨pre, ?_⟩
++            rw [← same, shape]
++            congr 1
++            apply levels_indents
++            rw [stale_indents, saveSimpleKey_preserves_indents]
++            rfl
++      · split at step
++        · contradiction
++        · split at step
++          · simp at step
++          · simp only [Except.ok.injEq, Option.some.injEq, Prod.mk.injEq] at step
++            obtain ⟨rfl,rfl⟩ := step
++            refine ⟨[], ?_⟩
++            simp only [List.nil_append]
++            rw [← same]
++            symm
++            apply levels_indents
++            rw [stale_indents, saveSimpleKey_preserves_indents]
++
++lemma context_preprocess {s t : ScannerState} {c : Char} {P : SurfPos → Prop} {e : SurfPos}
++    (step : scanNextToken_preprocess s = .ok (some (t,c)))
++    (context : Context s P e) : Context t P e := by
++  obtain ⟨pre, shape⟩ := preprocess_prefix step
++  change Joint s P (levels s) e at context
++  rw [shape] at context
++  exact context.drop.restrict_marks
++    (fun _ marked => (RegisterWitness.preprocess_markedCols step
++      (RegisterWitness.MarkedColsIn.self s)).mem marked)
++
++lemma context_transport {s t : ScannerState} {P : SurfPos → Prop} {e : SurfPos}
++    (context : Context s P e) (keys : t.pendingKeys = s.pendingKeys)
++    (indents : t.indents = s.indents) : Context t P e := by
++  change Joint t P (levels t) e
++  rw [levels_indents indents]
++  exact context.restrict_marks
++    (fun _ marked => ((RegisterWitness.MarkedColsIn.self s).transport keys indents).mem marked)
++
++-- This is the scanner's existing flag update between preprocessing and block
++-- dispatch. It introduces no new state or independently stored snapshot.
++def dispatchState (prep : ScannerState) : ScannerState :=
++  if prep.allowDirectives then {prep with allowDirectives := false, documentEverStarted := true}
++  else prep
++
++lemma context_dispatch {s : ScannerState} {P : SurfPos → Prop} {e : SurfPos}
++    (context : Context s P e) : Context (dispatchState s) P e := by
++  unfold dispatchState
++  split
++  · exact context_transport context rfl rfl
++  · exact context
++
++
++end R2ActualJointStep
++open R2JointFrames R2ActualJointStep
++namespace R2MandatoryContext
++def Sequence (s : ScannerState) (P : SurfPos → Prop) (n : Nat) (slot : SurfPos) : Prop :=
++  ∀ e, SBlockIndented n .blockIn slot e → ∀ z, SCompactSeqTail n e z → Context s P z
++lemma sequence_push {s t : ScannerState} (step : scanBlockEntry s = .ok t)
++    (flow : s.inFlow = false) (pushed : s.currentIndent < (s.col : Int)) :
++    levels t = FrameLevel.seq s.col :: levels s := by
++  have shape := scanBlockEntry_indents flow step
++  rw [pushSequenceIndent, ite_eq_left pushed] at shape
++  change t.indents = s.indents.push {column := (s.col : Int), isSequence := true} at shape
++  have result := levels_push shape
++  simpa [frame, show ¬(s.col : Int) < 0 by omega] using result
++
++lemma levels_empty {s : ScannerState} (mono : IndentStackMono.Mono s)
++    (negative : s.currentIndent < 0) : levels s = [] := by
++  apply List.filterMap_eq_nil_iff.mpr
++  intro entry mem
++  have before := mono.le_currentIndent entry
++    (by simpa only [List.mem_reverse, Array.mem_toList_iff] using mem)
++  have less : entry.column < 0 := by omega
++  simp only [ite_eq_left less]
++
++
++-- This lives before the accumulation invariant in the proposed source. The
++-- existing StreamAccum append lemma is declared later and cannot be imported
++-- back into its own module.
++lemma sequence_tail_append {k : Nat} : ∀ {s m t : SurfPos},
++    SCompactSeqTail k s m → SCompactSeqTail k m t → SCompactSeqTail k s t
++  | _, _, _, .nil _ _, second => second
++  | _, _, _, .cons _ s a b e _ indent literal notNs node first, second =>
++      .cons k s a b e _ indent literal notNs node (sequence_tail_append first second)
++
++-- A single actual scanner adapter handles both pushing a new sequence level
++-- and keeping the existing level (including an indentless sequence). The old
++-- mandatory route is composed before the new scanner layout is projected.
++lemma sequence_step {s prep t : ScannerState} {P : SurfPos → Prop}
++    {next : SurfPos} {k : Nat}
++    (preprocess : scanNextToken_preprocess s = .ok (some (prep,'-')))
++    (step : scanBlockEntry (dispatchState prep) = .ok t)
++    (flow : (dispatchState prep).inFlow = false)
++    (sound : Sound s) (mono : IndentStackMono.Mono s)
++    (column : (dispatchState prep).col = k)
++    (route : Sequence s P k next) : Sequence t P k next := by
++  have prepSound := PendingKeySound.preprocess_sound preprocess sound mono
++  have slots : SlotsOk (dispatchState prep) := by
++    unfold dispatchState
++    split
++    · exact prepSound.slots.of_eq rfl rfl
++    · exact prepSound.slots
++  have back := RegisterWitness.scanBlockEntry_markedCols flow step
++    (RegisterWitness.MarkedColsIn.self (dispatchState prep)) slots
++  by_cases pushed : (dispatchState prep).currentIndent < ((dispatchState prep).col : Int)
++  · have shape := sequence_push step flow pushed
++    rw [column] at shape
++    intro e node z tail
++    change Joint t P (levels t) z
++    rw [shape]
++    intro finish future
++    exact (context_dispatch (context_preprocess preprocess
++      (route e node finish (sequence_tail_append tail future)))).restrict_marks
++        (fun _ h => back.mem h)
++  · have indents : t.indents = (dispatchState prep).indents := by
++      rw [scanBlockEntry_indents flow step, pushSequenceIndent, ite_eq_right pushed]
++    intro e node z tail
++    change Joint t P (levels t) z
++    rw [levels_indents indents]
++    exact (context_dispatch (context_preprocess preprocess (route e node z tail))).restrict_marks
++      (fun _ h => back.mem h)
++
++lemma pair_completion {s : ScannerState} {start next : SurfPos} {k : Nat}
++    (old : ∀ e, SBlockIndented k .blockIn next e →
++      ∀ z, SCompactSeqTail k e z → SLYamlStream start z ∧
++        L4YAML.Proofs.R2ConsumptionClosure.EntryValues s (SLYamlStream start) z)
++    (whole : Sequence s (SLYamlStream start) k next) :
++    ∀ e, SBlockIndented k .blockIn next e → ∀ z, SCompactSeqTail k e z →
++      SLYamlStream start z ∧
++        (L4YAML.Proofs.R2ConsumptionClosure.EntryValues s (SLYamlStream start) z ∧
++         Context s (SLYamlStream start) z) :=
++  fun e node z tail => ⟨(old e node z tail).1,(old e node z tail).2,whole e node z tail⟩
++
++
++end R2MandatoryContext
++end R2MandatoryContextImports
+@@ -3781 +4217,3 @@
+-          SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
++          SLYamlStream sp_start sp_end ∧
++          (EntryValues sc (SLYamlStream sp_start) sp_end ∧
++           R2JointFrames.Context sc (SLYamlStream sp_start) sp_end))
+@@ -15401 +15839 @@
+-                        sp_m (SCompactSeqTail.nil n_old sp_m)).2
++                        sp_m (SCompactSeqTail.nil n_old sp_m)).2.1
+@@ -28033 +28471 @@
+-             (fun e node z tail => ⟨h_rootTail e node z tail,
++             (R2MandatoryContext.pair_completion (fun e node z tail => ⟨h_rootTail e node z tail,
+@@ -28036,0 +28475,10 @@
++(by
++      apply R2MandatoryContext.sequence_step h_preprocess
++        (dispatchBlockIndicators_dash_scan h_dispatch).2
++        (dispatchBlockIndicators_dash_scan h_dispatch).1 h_sound h_mono
++        (by have hcol := hcorr_prep.col_eq; have hi := SIndent_col h_ind;
++            unfold R2ActualJointStep.dispatchState; split <;> change s_prep.col = _ <;> omega)
++      intro e node z tail
++      change R2JointFrames.Joint sc (SLYamlStream sp_start) (R2JointFrames.levels sc) z
++      rw [R2MandatoryContext.levels_empty h_mono (h_ntop h_scflow)]
++      exact h_rootTail e node z tail))
+@@ -28629 +29077 @@
+-                 (fun e node z tail => ⟨((fun sp_final (h_bi : SBlockIndented (nv + 1 + m) .blockIn sp_scan' sp_final) =>
++                 (R2MandatoryContext.pair_completion (fun e node z tail => ⟨((fun sp_final (h_bi : SBlockIndented (nv + 1 + m) .blockIn sp_scan' sp_final) =>
+@@ -28634,0 +29083 @@
++(by trace_state; fail "R2_WHOLE_COMPACT_VALUE_SLOT"))
+@@ -29263 +29712 @@
+-             (fun e node z tail => ⟨(h_entryTail) e node z tail, by
++             (R2MandatoryContext.pair_completion (fun e node z tail => ⟨(h_entryTail) e node z tail, by
+@@ -29275,0 +29725 @@
++(by trace_state; fail "R2_WHOLE_LANDED_SEQUENCE"))
+@@ -30544 +30994 @@
+-                 (fun e node z tail =>
++                 (R2MandatoryContext.pair_completion (fun e node z tail =>
+@@ -30549,0 +31000 @@
++(by trace_state; fail "R2_WHOLE_COMPLETED_SEQUENCE"))
+@@ -30973 +31424,2 @@
+-        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
++        SLYamlStream sp_start sp_end ∧ (EntryValues sc (SLYamlStream sp_start) sp_end ∧
++          R2JointFrames.Context sc (SLYamlStream sp_start) sp_end))
+@@ -31096,0 +31549,2 @@
++  have h_wholeSequenceContext : R2MandatoryContext.Sequence sc (SLYamlStream sp_start) n sp_scan :=
++    fun e node z tail => (h_close_entry_old e node z tail).2.2
+@@ -31098 +31552 @@
+-    fun e node z tail => (h_close_entry_old e node z tail).2
++    fun e node z tail => (h_close_entry_old e node z tail).2.1
+@@ -31171 +31625 @@
+-               (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
++               (R2MandatoryContext.pair_completion (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+@@ -31174,0 +31629,9 @@
++(by
++      apply R2MandatoryContext.sequence_step h_preprocess
++        (dispatchBlockIndicators_dash_scan h_dispatch).2
++        (dispatchBlockIndicators_dash_scan h_dispatch).1 h_sound h_mono
++        (by have hcol := hcorr_prep.col_eq; have hi := SIndent_col h_ind;
++            unfold R2ActualJointStep.dispatchState; split <;> change s_prep.col = _ <;> omega)
++      intro e node z tail
++      exact h_wholeSequenceContext sp_mid h_node_old z
++        (SCompactSeqTail.cons k sp_mid _ sp_scan' e z h_ind h_dash2 h_gnot2 node tail)))
+@@ -31281 +31744 @@
+-                 (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
++                 (R2MandatoryContext.pair_completion (fun e node z tail => ⟨((fun sp_final (h_indented : SBlockIndented k .blockIn sp_scan' sp_final) =>
+@@ -31285,0 +31749,11 @@
++(by
++      apply R2MandatoryContext.sequence_step h_preprocess
++        (dispatchBlockIndicators_dash_scan h_dispatch).2
++        (dispatchBlockIndicators_dash_scan h_dispatch).1 h_sound h_mono
++        (by have hcol := hcorr_prep.col_eq; have hi := SIndent_col h_ind;
++            unfold R2ActualJointStep.dispatchState; split <;> change s_prep.col = _ <;> omega)
++      intro e node z tail
++      exact h_wholeSequenceContext z
++        (SBlockIndented.node n .blockIn sp_scan z
++          (nestedBlockSeq hlt h_ssl (SBlockSeqEntries_of_compactTail h_ind h_dash2 h_gnot2 node tail)))
++        z (SCompactSeqTail.nil n z)))
+@@ -31834 +32308 @@
+-               (fun e node z tail => ⟨((fun sp_final (h_bi : SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_final) =>
++               (R2MandatoryContext.pair_completion (fun e node z tail => ⟨((fun sp_final (h_bi : SBlockIndented (n + 1 + m) .blockIn sp_scan' sp_final) =>
+@@ -31839,0 +32314,11 @@
++(by
++      apply R2MandatoryContext.sequence_step h_preprocess
++        (dispatchBlockIndicators_dash_scan h_dispatch).2
++        (dispatchBlockIndicators_dash_scan h_dispatch).1 h_sound h_mono
++        (by have hcol := hcorr_prep.col_eq; have hi := SIndent_col h_ind;
++            unfold R2ActualJointStep.dispatchState; split <;> change s_prep.col = _ <;> omega)
++      intro e node z tail
++      exact h_wholeSequenceContext z
++        (SBlockIndented.compactSeq n .blockIn m sp_mid sp_sc z h_ind
++          (SCompactSeq.mk (n+1+m) sp_sc sp_scan' e z h_dash2 h_gnot2 node tail))
++        z (SCompactSeqTail.nil n z)))
+@@ -38248 +38733,2 @@
+-        SLYamlStream sp_start sp_end ∧ EntryValues sc (SLYamlStream sp_start) sp_end)
++        SLYamlStream sp_start sp_end ∧ (EntryValues sc (SLYamlStream sp_start) sp_end ∧
++          R2JointFrames.Context sc (SLYamlStream sp_start) sp_end))
+@@ -38359,0 +38846,2 @@
++  have h_wholeSequenceContext : R2MandatoryContext.Sequence sc (SLYamlStream sp_start) n sp_scan :=
++    fun e node z tail => (h_close_entry_old e node z tail).2.2
+@@ -38361 +38849 @@
+-    fun e node z tail => (h_close_entry_old e node z tail).2
++    fun e node z tail => (h_close_entry_old e node z tail).2.1
+@@ -44203,0 +44692,74 @@
++
++namespace R2MandatoryProductionAudit
++
++def arity : Lean.Expr → Nat
++  | .forallE _ _ body _ => 1 + arity body
++  | _ => 0
++
++def fieldIndex (field : Lean.Name) : Lean.Expr → Nat → Option Nat
++  | .forallE name _ body _, n => if name == field then some n else fieldIndex field body (n+1)
++  | _, _ => none
++
++-- Instantiate local definitions before checking actual constructor arguments.
++partial def arguments (callee : Lean.Name) (count index : Nat) (e : Lean.Expr) : Array Lean.Expr := Id.run do
++  if e.getAppFn.isConstOf callee && e.getAppNumArgs == count then
++    return #[e.getAppArgs[index]!]
++  match e with
++  | .app f a => return arguments callee count index f ++ arguments callee count index a
++  | .lam _ _ body _ => return arguments callee count index body
++  | .letE _ _ value body _ => return arguments callee count index (body.instantiate1 value)
++  | .mdata _ body | .proj _ _ body => return arguments callee count index body
++  | _ => return #[]
++
++def clean (term : Lean.Expr) : Lean.Elab.Command.CommandElabM Bool := do
++  for name in term.getUsedConstants do
++    if name == `sorryAx || (← Lean.collectAxioms name).contains `sorryAx then return false
++  pure true
++
++end R2MandatoryProductionAudit
++
++run_cmd do
++  let env := (← Lean.getEnv).setExporting false
++  let ctor := `L4YAML.Proofs.StreamAccum.PendingNode.pendingBlock
++  let some ci := env.find? ctor | throwError "actual pendingBlock absent"
++  let some index := R2MandatoryProductionAudit.fieldIndex `h_close_entry ci.type 0
++    | throwError "mandatory completion absent"
++  let mut cursor := ci.type
++  let mut whole := false
++  while let .forallE field domain body _ := cursor do
++    if field == `h_close_entry then
++      whole := domain.getUsedConstants.contains `R2JointFrames.Context
++    cursor := body
++  unless whole do throwError "actual mandatory field lost Context"
++  let producers := #[
++    `L4YAML.Proofs.StreamAccum.accum_block_on_noPending,
++    `L4YAML.Proofs.StreamAccum.accum_block_on_closeThenBlock,
++    `L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent,
++    `L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock]
++  let mut all := 0
++  let mut supplied := 0
++  for producer in producers do
++    let some info := env.find? producer | throwError "actual producer absent {producer}"
++    let some body := info.value? (allowOpaque := true) | throwError "actual body absent {producer}"
++    let terms := R2MandatoryProductionAudit.arguments ctor (R2MandatoryProductionAudit.arity ci.type) index body
++    unless terms.size > 0 do throwError "actual writer absent {producer}"
++    let mut paid := 0
++    for term in terms do
++      if ← R2MandatoryProductionAudit.clean term then
++        unless term.getUsedConstants.contains `R2MandatoryContext.sequence_step do
++          throwError "clean field did not spend actual scanner adapter {producer}"
++        paid := paid + 1
++    all := all + terms.size
++    supplied := supplied + paid
++    Lean.logInfo s!"MANDATORY-WRITERS {producer} actual={terms.size} supplied={paid} residual={terms.size-paid}"
++  for producer in [`L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock,
++      `L4YAML.Proofs.StreamAccum.accum_content_on_pendingBlock_indented] do
++    let some info := env.find? producer | throwError "consumer absent"
++    let mut consumerCursor := info.type
++    while let .forallE name _ body _ := consumerCursor do
++      if name == `h_wholeSequenceContext then throwError "new external context premise"
++      consumerCursor := body
++  let axioms ← Lean.collectAxioms `R2MandatoryContext.sequence_step
++  unless axioms.size == 3 && axioms.all (#[`propext,`Classical.choice,`Quot.sound].contains ·) do
++    throwError "actual adapter axiom boundary changed {axioms}"
++  Lean.logInfo s!"MANDATORY-CONTEXT-AUDIT actual_writers={all} supplied={supplied} residual={all-supplied} constructor_fields_added=0 external_context_premises_added=0 critical_retirements=0 full_module_accepted=false"
