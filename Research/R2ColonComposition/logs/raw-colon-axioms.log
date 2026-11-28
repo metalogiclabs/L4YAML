@@ -1,0 +1,3 @@
+RAW-COLON-AXIOMS #[`propext, `Classical.choice, `Quot.sound,
+  Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkNum `_private.L4YAML.Proofs.Production.StreamAccum 0) "L4YAML") "Proofs") "StreamAccum") "dispatchBlockValue_full_prod") "_native") "native_decide") "ax_1_2",
+  Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkStr (Lean.Name.mkNum `_private.L4YAML.Proofs.Production.StreamAccum 0) "L4YAML") "Proofs") "StreamAccum") "dispatchBlockValue_full_prod") "_native") "native_decide") "ax_1_3"]

@@ -1,0 +1,2 @@
+'R2ColonComposition.colon_payload' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonComposition.scanValue_payload' depends on axioms: [propext, Classical.choice, Quot.sound]

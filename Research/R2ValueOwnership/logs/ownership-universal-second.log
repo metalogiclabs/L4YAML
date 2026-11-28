@@ -1,0 +1,16 @@
+Research/R2ValueOwnership/Ownership.lean:67:71: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2ValueOwnership/Ownership.lean:79:4: error: omega could not prove the goal:
+No usable constraints found. You may need to unfold definitions so `omega` can see linear arithmetic facts about `Nat` and `Int`, which may also involve multiplication, division, and modular remainder by constants.
+Research/R2ValueOwnership/Ownership.lean:138:25: warning: This simp argument is unused:
+  ite_false
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [survives] at marked
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'R2ValueOwnership.last_mark_register' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ValueOwnership.prepared_last_mark' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ValueOwnership.scanValue_top_unmarked' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

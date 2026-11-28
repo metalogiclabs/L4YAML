@@ -1,0 +1,223 @@
+{
+  "parents": {
+    "continuation": "801aa32c222fa8590c91dff70950027232e19ace",
+    "ownership": "7f7357ad10be9ad3d04372422b32f2119004dd24"
+  },
+  "files": [
+    {
+      "path": "Research/R2ColonComposition/AxiomBaseline.lean",
+      "bytes": 484,
+      "sha256": "95a8b5efec60de973126135c30154fb1b18fdfa8dd638f9cd86548f4988b94b3"
+    },
+    {
+      "path": "Research/R2ColonComposition/ColonValues.lean",
+      "bytes": 3865,
+      "sha256": "c8102ef0e2462bed5ba5df248bc18595d7c1dd81d1fb50a3f3eb333afccadf53"
+    },
+    {
+      "path": "Research/R2ColonComposition/Concrete.lean",
+      "bytes": 4752,
+      "sha256": "9bb1f600da1e6386f0a00cfd1cee6a28b18fde37d5f0678a3265273fecfc91bd"
+    },
+    {
+      "path": "Research/R2ColonComposition/Controls.lean",
+      "bytes": 2082,
+      "sha256": "9dafbf616151a177f1ad164a2f0340e79602575a60080f4b5c35314cb69cc374"
+    },
+    {
+      "path": "Research/R2ColonComposition/DependencyAudit.lean",
+      "bytes": 2966,
+      "sha256": "d99c414611b8c467bd0e03ebff8e56ad683e29e3f4d3e4506e86360339ca5c35"
+    },
+    {
+      "path": "Research/R2ColonComposition/Predictions.md",
+      "bytes": 2015,
+      "sha256": "cdd37b8e3cbab9d8ffcb03bb1a14bd55938251bf374c5de8661d9f10e63aa25a"
+    },
+    {
+      "path": "Research/R2ColonComposition/ProducerAudit.inc.lean",
+      "bytes": 1609,
+      "sha256": "a0edab86c4fa3d093a4f70283ee75762697363e8a785fe2ce2b7ad9829351609"
+    },
+    {
+      "path": "Research/R2ColonComposition/REPORT.md",
+      "bytes": 8362,
+      "sha256": "565964e9bc05097d5a8b696b576f97892c737ec5689112302efc5853850cf047"
+    },
+    {
+      "path": "Research/R2ColonComposition/colon-composition.patch",
+      "bytes": 10692,
+      "sha256": "b8dc8d062b714d7547ac2a8bbcafdf4981a7055c2817680349e7b75db9f5dd2d"
+    },
+    {
+      "path": "Research/R2ColonComposition/diagnostic-errors.json",
+      "bytes": 2178,
+      "sha256": "cea30569df59268d3794d5e0240ffae9f2ea8478bd72d163b29ca685e766c25e"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/AdversarialInstantiation.lean.rej.xz",
+      "bytes": 1872,
+      "sha256": "dbbd3caf7dd5015d2b9f5c80f470cac974ef562939da4231046a79a6cbeced92"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/StreamAccum.lean.rej.xz",
+      "bytes": 1712,
+      "sha256": "a696b1fe0748cb71da3df63ea2911ea3898c7a7b0020387526d1cdd25368f353"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/composition-first-from-final.patch.xz",
+      "bytes": 324,
+      "sha256": "e89579851cfb521a00ae7559822fa0018cc39b826fd5564278bab4894154f6d3"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/concrete-first-from-final.patch.xz",
+      "bytes": 1788,
+      "sha256": "4e61aedb81c9311dcaf70f8882878d2f2a91f224257daa1ba3ea8036ac97f6af"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/concrete-fourth-from-final.patch.xz",
+      "bytes": 328,
+      "sha256": "e88c556e4f7c04ac8db5681223cf4f48533aa5b423d4fac49778a087a621f49d"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/concrete-second-from-final.patch.xz",
+      "bytes": 1484,
+      "sha256": "fd2bda813e01a2de753fcd7e57c309a987d40bf9831917b4e17a068b4dc0a898"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/concrete-third-from-final.patch.xz",
+      "bytes": 436,
+      "sha256": "7baed3e5060a2360906dc39b174ad2041ea079586bdc65cc5ffd08319b9372c8"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/ownership-baseline-from-final.patch.xz",
+      "bytes": 2980,
+      "sha256": "04a3963b771f77217bc853e219430770b37588aba72d19b19a7c108dae5b17c5"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/ownership-partial-from-final.patch.xz",
+      "bytes": 3976,
+      "sha256": "7cbb490e1e38c46126f15886add7af11a92e5a4b889618c5a055e635069d828f"
+    },
+    {
+      "path": "Research/R2ColonComposition/lineage/ownership-reconciled-from-final.patch.xz",
+      "bytes": 3384,
+      "sha256": "fd9aa6c8801fde5040ce493a832517debd1f51703dfaebceef085c423d02eaf8"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/accepted-axioms.log.xz",
+      "bytes": 708,
+      "sha256": "93bc2ffc823652486d2544b1e06ae95dd46ae97f31d6e2b6ce8c89d8d3d7562c"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/colon-values-final.log",
+      "bytes": 294,
+      "sha256": "5bdf77fdefcad2589f10391f74792efc6e779ddd0d67e4aeb85d6b44eaab95d0"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/colon-values.log",
+      "bytes": 192,
+      "sha256": "4a9a8fae5451418ffb4880fa7fae5d8c655e21110e5bba4d48e26b8566edbc75"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/composition-final.log.xz",
+      "bytes": 12140,
+      "sha256": "8379bf082c44e9e0ff26ba05c18bfe61288e0767cf01e09d61d1f3f01186692f"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/composition-first.log.xz",
+      "bytes": 12484,
+      "sha256": "6c387eead940169db25c94acaeef7bdb6a94ff42c8278237836d3dcb6958a822"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/concrete-checked.log",
+      "bytes": 329,
+      "sha256": "8e8b0776fb506950c57b1c1fca10e1fbc1d3e7e52a7f3ea13fecee52c871effc"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/concrete-final.log",
+      "bytes": 525,
+      "sha256": "4bf534a6053b4554acda63bbbab5408e25666def5ca5d37ef51cdbc7360c455d"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/concrete-first.log.xz",
+      "bytes": 1608,
+      "sha256": "62297efd9d2c672d5c68694e5a8f37ff90d8765ee2f17eb8a087a6c2b08a8da0"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/concrete-second.log",
+      "bytes": 1914,
+      "sha256": "f26974ee474b19ea29665bcf971ead397ae800b24215da55e5c3a89be57ec652"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/concrete-third.log",
+      "bytes": 821,
+      "sha256": "eb7882e3325909c135173dc72d5216433d18740383e23fd5b41559e2631119be"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/controls.log",
+      "bytes": 52,
+      "sha256": "6f1c69eedb1a4dd944a4a7a03e3e5d3bc46d606d8f9a42a56197c914e4afc43c"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/dependency-audit.log",
+      "bytes": 348,
+      "sha256": "559291f7878de718bd18ffdd2a4da97be1081fc4d3e773869c281bb9aa672d79"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/except-probe.log",
+      "bytes": 494,
+      "sha256": "8d1ae3c3493cf535627f229b7d474068ea585c26020751a03e7264111345a116"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/ownership-baseline.log.xz",
+      "bytes": 11684,
+      "sha256": "dd3fc12fdcbd176f0f9c2348a06d3e8d515870f2f78b4beeace3eeffa5fb725c"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/ownership-controls.log",
+      "bytes": 42,
+      "sha256": "046d9a3074b39baae3fc273ad3950f4a8127f06864cc3fe1853d75094c01aa6b"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/ownership-integration.log.xz",
+      "bytes": 12200,
+      "sha256": "80638e521c78aae59829292d0c463d9f8d7b4184ba70a84b926d189ca7de0b62"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/ownership-reconciled.log.xz",
+      "bytes": 10536,
+      "sha256": "550ffb239256e55c5a110783924b3ad05d62fb9e0a268dfb8ab8659ac6b9779b"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/raw-colon-axioms.log",
+      "bytes": 645,
+      "sha256": "2249bd0afb89855f5abb42ae6e039f150a6b7e2918d15d10a8564154f31a00dd"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/raw-compact-axioms.log",
+      "bytes": 1227,
+      "sha256": "e1d0dcdcb108106a4d0154cf587e428936f290da48229557f8c6f09fc4cfb0a7"
+    },
+    {
+      "path": "Research/R2ColonComposition/logs/scan-observation.log.xz",
+      "bytes": 628,
+      "sha256": "02d1984a9686c9723a9a8d5777a4ed53851b8be6eddaf7128c7e6b6d8a046d13"
+    },
+    {
+      "path": "Research/R2ColonComposition/ownership-merge.patch",
+      "bytes": 31808,
+      "sha256": "bfa25b11f98594523025ae654a2434d8e14076c5875aa19b8dcf3dc1a4412910"
+    },
+    {
+      "path": "Research/R2ColonComposition/reconstruction.json",
+      "bytes": 4257,
+      "sha256": "d075d73efaf8fcf957e9998d6edd23087258256ad648a0cbecc1adc923cd9b99"
+    },
+    {
+      "path": "Research/R2ColonComposition/verification.json",
+      "bytes": 2995,
+      "sha256": "4ad157aa9ccefd4ec99c98f7c55d1fe2555f432c87271cff842ce5d74bcfb8c8"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+Research/R2ValueOwnership/DispatchOwnership.lean:21:33: error: Type mismatch
+  soundPrep
+has type
+  Sound prep
+but is expected to have type
+  Sound
+    { input := prep.input, inputEnd := prep.inputEnd, offset := prep.offset, line := prep.line, col := prep.col,
+      indents := prep.indents, pendingKeys := prep.pendingKeys, flowLevel := prep.flowLevel, tokens := prep.tokens,
+      simpleKey := prep.simpleKey, simpleKeyStack := prep.simpleKeyStack, simpleKeyAllowed := prep.simpleKeyAllowed,
+      needIndentCheck := prep.needIndentCheck, allowDirectives := false, seenYamlDirective := prep.seenYamlDirective,
+      directivesPresent := prep.directivesPresent, documentEverStarted := true, flowStack := prep.flowStack,
+      explicitKeyLine := prep.explicitKeyLine, implicitValueLine := prep.implicitValueLine,
+      docStartLine := prep.docStartLine, explicitKeyCol := prep.explicitKeyCol,
+      explicitKeyStack := prep.explicitKeyStack, comments := prep.comments, definedAnchors := prep.definedAnchors }
+'R2ValueOwnership.after_colon' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

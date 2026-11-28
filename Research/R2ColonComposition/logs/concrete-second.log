@@ -1,0 +1,38 @@
+Research/R2ColonComposition/Concrete.lean:26:66: error: Tactic `rfl` failed: The left-hand side
+  scanValue dispatch
+is not definitionally equal to the right-hand side
+  Except.ok (afterFirstColon source)
+
+⊢ scanValue dispatch = Except.ok (afterFirstColon source)
+Research/R2ColonComposition/Concrete.lean:68:8: error: Tactic `rfl` failed: The left-hand side
+  scanValue dispatch
+is not definitionally equal to the right-hand side
+  Except.ok (afterFirstColon source)
+
+⊢ scanValue dispatch = Except.ok (afterFirstColon source)
+Research/R2ColonComposition/Concrete.lean:76:58: error: unexpected identifier; expected ')', ',' or ':'
+Research/R2ColonComposition/Concrete.lean:76:4: error: Type mismatch
+  letterNode 3 3 'b' endB.chars ?m.11
+has type
+  ¬isIndicatorProp 'b' →
+    SBlockNode 3 YamlContext.blockIn { chars := ' ' :: 'b' :: '\n' :: endB.chars, col := 3 }
+      { chars := endB.chars, col := 0 }
+but is expected to have type
+  SBlockNode 3 YamlContext.blockIn valueB endB
+Research/R2ColonComposition/Concrete.lean:76:35: error: unsolved goals
+⊢ match YamlContext.flowOut with
+  | YamlContext.flowOut => isNsChar 'b'
+  | YamlContext.blockKey => isNsChar 'b'
+  | YamlContext.blockOut => isNsChar 'b'
+  | YamlContext.blockIn => isNsChar 'b'
+  | YamlContext.flowIn => isNsChar 'b' ∧ ¬isFlowIndicatorProp 'b'
+  | YamlContext.flowKey => isNsChar 'b' ∧ ¬isFlowIndicatorProp 'b'
+Research/R2ColonComposition/Concrete.lean:74:64: error: unsolved goals
+node : SBlockNode 3 YamlContext.blockIn valueB endB
+⊢ SLYamlStream q0 { chars := [], col := 0 }
+'R2ColonCompositionConcrete.dispatch_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonCompositionConcrete.actual_colon_payload' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ColonCompositionConcrete.actual_sibling_then_ancestor' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]

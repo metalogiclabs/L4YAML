@@ -1,0 +1,3 @@
+'R2ColonCompositionConcrete.dispatch_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonCompositionConcrete.actual_colon_payload' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonCompositionConcrete.actual_sibling_then_ancestor' depends on axioms: [propext, Classical.choice, Quot.sound]

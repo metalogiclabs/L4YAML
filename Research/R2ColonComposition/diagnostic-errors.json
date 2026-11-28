@@ -1,0 +1,117 @@
+[
+  {
+    "line": 20933,
+    "column": 617,
+    "message": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+  },
+  {
+    "line": 21166,
+    "column": 616,
+    "message": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+  },
+  {
+    "line": 25163,
+    "column": 33,
+    "message": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+  },
+  {
+    "line": 25443,
+    "column": 19,
+    "message": "R2_NODE_QUESTION_ANCESTORS"
+  },
+  {
+    "line": 26655,
+    "column": 35,
+    "message": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+  },
+  {
+    "line": 26656,
+    "column": 33,
+    "message": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+  },
+  {
+    "line": 26895,
+    "column": 35,
+    "message": "R2_NODE_PROPS_COLON_NO_TAIL"
+  },
+  {
+    "line": 26896,
+    "column": 33,
+    "message": "R2_NODE_PROPS_COLON_ANCESTORS"
+  },
+  {
+    "line": 29282,
+    "column": 40,
+    "message": "R2_COLON_ENTRY_SUPPLIER_CLOSE"
+  },
+  {
+    "line": 30609,
+    "column": 80,
+    "message": "R2_OTHER_BLOCK_CONTENT_PAIR"
+  },
+  {
+    "line": 30604,
+    "column": 40,
+    "message": "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_CONTENT"
+  },
+  {
+    "line": 31418,
+    "column": 78,
+    "message": "R2_OTHER_PENDING_BLOCK_PAIR"
+  },
+  {
+    "line": 31413,
+    "column": 40,
+    "message": "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_PENDING"
+  },
+  {
+    "line": 31712,
+    "column": 48,
+    "message": "R2_SLOT_PENDING_BLOCK_SUPPLIER"
+  },
+  {
+    "line": 31992,
+    "column": 86,
+    "message": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+  },
+  {
+    "line": 32024,
+    "column": 84,
+    "message": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+  },
+  {
+    "line": 32102,
+    "column": 77,
+    "message": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+  },
+  {
+    "line": 32195,
+    "column": 37,
+    "message": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+  },
+  {
+    "line": 41093,
+    "column": 94,
+    "message": "R2_RETAIN_PROPS_KEY_1_PAIR"
+  },
+  {
+    "line": 41178,
+    "column": 94,
+    "message": "R2_RETAIN_PROPS_KEY_2_PAIR"
+  },
+  {
+    "line": 41464,
+    "column": 94,
+    "message": "R2_RETAIN_PROPS_KEY_3_PAIR"
+  },
+  {
+    "line": 41592,
+    "column": 94,
+    "message": "R2_RETAIN_PROPS_KEY_4_PAIR"
+  },
+  {
+    "line": 41712,
+    "column": 94,
+    "message": "R2_RETAIN_PROPS_KEY_5_PAIR"
+  }
+]
