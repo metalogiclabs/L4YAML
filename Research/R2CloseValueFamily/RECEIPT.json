@@ -1,0 +1,322 @@
+{
+  "author": "Heath Sanchez",
+  "date": "2026-11-28",
+  "source_parent": "7b322959d8f8378d628237080d69390b697ec577",
+  "parallel_fixed_interface_result": "a45d8941a4b86f078fd67c91fcf00faa3277f97f",
+  "qualified_compatibility_head": "bea84871310b2b00518629638607bd46f7a2ebba",
+  "lean": {
+    "version": "4.36.0",
+    "commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9"
+  },
+  "verification_boundary": "20 to 8 intentionally unfinished compiler locations; 31 actual field writes and 2 actual branch calls; 4 standalone modules; zero critical retirements",
+  "logical_logs": [
+    {
+      "path": "Research/R2CloseValueFamily/logs/initial-price.log",
+      "transport": "Research/R2CloseValueFamily/logs/initial-price.log.xz.b64",
+      "sha256": "6cdb2b421b8558826ab09f0252b3cbca5074080a4ede9402979e000a194a08f5"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/funded-draft.log",
+      "transport": "Research/R2CloseValueFamily/logs/funded-draft.log.xz.b64",
+      "sha256": "0e19cc80711759824b19994c48a2e905636882ccd2f1b7bf4a337286f9063a2f"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/repaired-v1.log",
+      "transport": "Research/R2CloseValueFamily/logs/repaired-v1.log.xz.b64",
+      "sha256": "1305ac79e1bf40330eb8afb3acf327efbcc7cb14566be3c24cd424fcb044cea5"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/audited-v1.log",
+      "transport": "Research/R2CloseValueFamily/logs/audited-v1.log.xz.b64",
+      "sha256": "c0bc37be581ab78e849b7cf95d0c099202e3cd4bb1cba22f9349a00a8e31dc7a"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/audited-final.log",
+      "transport": "Research/R2CloseValueFamily/logs/audited-final.log.xz.b64",
+      "sha256": "28b99647c73a720971431ee05d80b049fe4c2e01bc0acba644e002f1532ac004"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/erased-reader.log",
+      "transport": "Research/R2CloseValueFamily/logs/erased-reader.log.xz.b64",
+      "sha256": "5a89f4f19622856c880e761e565c7b6998fb1c9f5100016d8f47e73338feda5f"
+    }
+  ],
+  "files": [
+    {
+      "path": "Research/R2CloseValueFamily/Concrete.lean",
+      "bytes": 6862,
+      "sha256": "ad0f0cc27b7c2f40a79a065516245eabbd886e290a6d180fa9d6ebbd55ce6de6",
+      "git_blob": "e3681276a45c961447c3def4af0aa4fa05eea274"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/Controls.lean",
+      "bytes": 1250,
+      "sha256": "861ad84caf955056e211ec1c017e682f18fed6b2407ae03689ac0bf46d8d58d6",
+      "git_blob": "2d89ae8aa0843a2ab292c208835f798c5db63177"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/DependencyAudit.lean",
+      "bytes": 1764,
+      "sha256": "59bd3ba1cf3a8bcbe18e5fa9dc6c4bc8aab0178a9566abe49cb9e12f585a0b30",
+      "git_blob": "f331f6ef9bff4fea2fa182b6c84a8a1be7eb0ac0"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/PairRoute.lean",
+      "bytes": 1948,
+      "sha256": "172f8e46380b4622640c5ab7370dd1867b0561ff26525af607e191a36d3b0527",
+      "git_blob": "bf0ea823973fdcd7239ac9d0860ad088c418ed2e"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/Predictions.md",
+      "bytes": 2625,
+      "sha256": "7c37515c9a9baa6c173f5a24a56b04c5ab0c8c808f95504067c095303431ab76",
+      "git_blob": "d2c1125021ae92558121daeb1280e71bbb3828d2"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/ProductionAudit.inc.lean",
+      "bytes": 4561,
+      "sha256": "0d1c0a04907121ff7abc5ba0626192a9fef96e24e36f1f07757dfe6e58c6a765",
+      "git_blob": "32ad0bec5805f02d76d0d6f5c28f89820b79ceac"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/REPORT.md",
+      "bytes": 9055,
+      "sha256": "7db14cc35fdb298cc37fc06414c50a489a7543307245496174f20f985cb04716",
+      "git_blob": "de0911c5b42fb232d235d517b77fb72e98f4d721"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/SOURCES.sha256",
+      "bytes": 735,
+      "sha256": "64aa884c8848ab5a521cd0142f290cf413bb07bd4dfdd8e6aa704adeae760a5f",
+      "git_blob": "af75b598c4373e7a485ffddb2a50af3cfe879e89"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/Verify.lean",
+      "bytes": 6127,
+      "sha256": "bfa758c825d9f977dd7b8c2219f941dcb47fa19dc33bd564f7a3f636986d630b",
+      "git_blob": "7a842365dcf0be3de11d39e52dedfa7943f6a10c"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/close-family.patch",
+      "bytes": 56293,
+      "sha256": "729eae889430bccf585733d34b0afb876a19a6080d3b5f3595ae62bc7c5e6686",
+      "git_blob": "77ad8406a24dbbd5b8c8a808f4e7fe78dff507bc"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/erased-reader.patch",
+      "bytes": 849,
+      "sha256": "1cc2381758e6e0e1543391cb7e3346f8a60172038830ac407956d1fa5dbb2321",
+      "git_blob": "ca170ffbec5d24f541823ec9151c4a20e15eb7ec"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/lineage/audited-v1-from-final.patch",
+      "bytes": 1725,
+      "sha256": "c156e414cf39391c5764f26dda5637f710fa306bef1c9ebb037863e904c32520",
+      "git_blob": "19cb608cd84ce22ad40437495b564373a872294b"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/lineage/concrete-missing-imports-from-final.patch",
+      "bytes": 801,
+      "sha256": "924214c7833c42b7f7151a28e52f1201435b482ff3bccea6e5c69e673bb2b95b",
+      "git_blob": "126c2ae98d9db6d2114b36bb78bba7643fe8567b"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/lineage/concrete-namespace-from-final.patch",
+      "bytes": 453,
+      "sha256": "4ca1fd22298d7305eac3b03092f55ec75c7af721f88885209784a69eea6c7290",
+      "git_blob": "f459ad36f6baefbf2d709ad5996445e6c18df85f"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/lineage/funded-draft-from-positive.patch",
+      "bytes": 3464,
+      "sha256": "bf648510e69bc83f2750df607cb12e2c6c4e5afaa8fbd510ed83ff6693af34e7",
+      "git_blob": "f723363718b8d712de96dd189c1facfc0cba6758"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/lineage/initial-from-positive.patch",
+      "bytes": 48392,
+      "sha256": "747fbd67aaadabbdec3a4fe62a90a1eacaa801673ee4629435c17ef81de31e9f",
+      "git_blob": "06a1292a055fb51f5efa199f56b1e5988d375da2"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/Concrete.log",
+      "bytes": 111,
+      "sha256": "260bc2aa9bfb19b8158ef6d5c660231a80a9c62e60130a06ed1746a0f02e6c19",
+      "git_blob": "204af1bb85687a92b0007b569567dcff17b219a7"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/Controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/DependencyAudit.log",
+      "bytes": 130,
+      "sha256": "ebdbd4293d95fee7e821de39ff9fc13bb3ecb3791974f4260200e7b85ff8a0a3",
+      "git_blob": "de6e145a36076f13fbef574d8504f9de435d7566"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/PairRoute.log",
+      "bytes": 186,
+      "sha256": "64fd14b381bd7c20505bfe7858b2cb0341f703c4748dd33c684a1afc39ee2546",
+      "git_blob": "d008e8ca2b49e5f9b09bd5358c08ce12361cd1bb"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/audited-final.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "git_blob": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/audited-final.log.xz.b64",
+      "bytes": 9172,
+      "sha256": "226b4e6dc529c103ce1af9dac0e860a6048c3c7d6856f96d9a48ce9e9dfb3344",
+      "git_blob": "32d647319a8816940379bd4c35e2680f920b15b5"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/audited-v1.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "git_blob": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/audited-v1.log.xz.b64",
+      "bytes": 9200,
+      "sha256": "0eab2bf296cd0e3e807835d42c59fa6d1713ce73880703fce0db40db938b89ec",
+      "git_blob": "b5394cd1061e6c47235b91d1bca2cfc8e2c862bc"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/concrete-missing-imports.log",
+      "bytes": 4228,
+      "sha256": "115ef1eab50d7fdbae25daca2482a721590ac92c630a3563b37c60afd79e3afc",
+      "git_blob": "6a3fae419fcedc993bf007a411fe4c6ab34a7407"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/concrete-namespace.log",
+      "bytes": 281,
+      "sha256": "87195c8079b0961eb29f37fd17223f0934d25b7ada210c0696834a1af1998661",
+      "git_blob": "adcde6445b52e4435ceae0529600b2b8e8159480"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/erased-reader.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "git_blob": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/erased-reader.log.xz.b64",
+      "bytes": 8616,
+      "sha256": "0ccbc6d1dd42a080763275b3024f30b10cdd487a6ac352813f22b573ce798043",
+      "git_blob": "0954f98a6f5277ee46fac167529ecf5ae48b2d2f"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/fresh-proof-replay.log",
+      "bytes": 76,
+      "sha256": "28d0dd4eaef4383a16704334228394c3c8f241a2e4d4d93da36a93e5c15d0ea0",
+      "git_blob": "49b2b444423722d6e1146ee21924004b01ecb703"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/funded-audited.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/funded-draft.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "git_blob": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/funded-draft.log.xz.b64",
+      "bytes": 8592,
+      "sha256": "79251ee589c76afba9a15c9bd1f4f5c0e4ece47cdfe7ab15a0804ce378ac41c6",
+      "git_blob": "38ffa08a3edf0e0b71619d3eda9d52bc53bffbba"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/initial-price.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "git_blob": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/initial-price.log.xz.b64",
+      "bytes": 17082,
+      "sha256": "f4c1fb46dd5d538235cd00d05a2118530c4b88ba82d51c8ee3f26bccb3df1a76",
+      "git_blob": "3c8af18b3cf07f30b30745b3521aa9245c6bc6b6"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/pair-route.log",
+      "bytes": 186,
+      "sha256": "64fd14b381bd7c20505bfe7858b2cb0341f703c4748dd33c684a1afc39ee2546",
+      "git_blob": "d008e8ca2b49e5f9b09bd5358c08ce12361cd1bb"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/parent-reconstruction.log",
+      "bytes": 696,
+      "sha256": "da5aac2d09bf4238adcbef62c94ac613abf2747b5ab7f1058838f28f9635bed5",
+      "git_blob": "c834681d18be2cc3eb248bd25dd3a80bb6000190"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/reconstruction.log",
+      "bytes": 1059,
+      "sha256": "00c34902e61fcdd296f13d269271453d5075d453159e0b868a6211fd8ff2659c",
+      "git_blob": "4c2a9313911505a71fddc7747bb6fdfc4ef93f91"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/repaired-v1.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "git_blob": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/repaired-v1.log.xz.b64",
+      "bytes": 8503,
+      "sha256": "e395531ae9d94d81042abfde85f38f1938efbd48af2ad95585856380ec7f59a2",
+      "git_blob": "7a058e780ddce4a7dc8032b129eb7ea41138c7e8"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/standalone-replay.log",
+      "bytes": 76,
+      "sha256": "28d0dd4eaef4383a16704334228394c3c8f241a2e4d4d93da36a93e5c15d0ea0",
+      "git_blob": "49b2b444423722d6e1146ee21924004b01ecb703"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/verification.log",
+      "bytes": 666,
+      "sha256": "cdc216c76e1944a67bfc61b6dfc7f0921d3eade5516ddc3c8a183127ee07cb88",
+      "git_blob": "a96824f6c1efb3dd3afd6bcf0734bc0c7ee498cc"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/logs/verifier-typecheck.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/reconstruct.sh",
+      "bytes": 2100,
+      "sha256": "d87a7ff60387dcfc65dfbe2337ff4df30ce1664d2b6ca3164f9a3841ab515a5d",
+      "git_blob": "a1569392955d6e49bcd2b22cd705f49806d6e198"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/replay-proofs.sh",
+      "bytes": 1021,
+      "sha256": "546bf6b3fb2a8fd2629effaaa627273ba5be81b47350423aa4e304a29f095bd6",
+      "git_blob": "1bae601b0fca1672224291b25900d41adcb09a28"
+    },
+    {
+      "path": "Research/R2CloseValueFamily/result.json",
+      "bytes": 1038,
+      "sha256": "4220b69eb664f8dbf74a2921a8911a6e93381561b5beb493411b2138b91441d4",
+      "git_blob": "f6c821b5f94e5c00610850683f6b4a782a9ba98a"
+    }
+  ]
+}

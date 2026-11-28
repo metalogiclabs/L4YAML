@@ -1,0 +1,7 @@
+EXACT-DIAGNOSTIC Research/R2UnmarkedOwner/logs/integrated-diagnostic.log demands=20 extra=0
+EXACT-DIAGNOSTIC Research/R2CloseValueFamily/logs/repaired-v1.log demands=8 extra=0
+EXACT-DIAGNOSTIC Research/R2CloseValueFamily/logs/audited-final.log demands=8 extra=0
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.colon_open_map_explicit byte_identical=true
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.compact_open_map byte_identical=true
+INHERITED-AXIOMS L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented byte_identical=true
+WARRANT parent=20 remaining=8 funded_labels=12 replacement_labels=0 reader_erasure_extra=1 full_module=false critical_retirements=0

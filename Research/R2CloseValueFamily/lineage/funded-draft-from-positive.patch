@@ -1,0 +1,46 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -15322,7 +15322,7 @@
+                (ntop_of_flowLevel_succ h_fl1)
+            (noPending_gate_of_inFlow (inFlow_of_flowLevel_eq h_fl1)), hcorr_open, fun _ => ⟨.white (GStar.nil _) h_sync h_colon h_opencol (fun _ => h_gate_open) (fun _ _ _ _ => ⟨closeFree_of_leadFree h_free_open, fun _ => h_free_open⟩) (fun h => absurd h h_q_open), h_real, h_ad⟩,
+      ⟨_, h_km0 (preprocess_saved_key_fresh h_armD.1 h_noflow_prep h_preprocess).1⟩, rfl⟩
+-  | pendingBlock _ _ _ n_old h_close h_close_entry_old h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
++  | pendingBlock _ _ _ n_old h_close _ h_floor_old h_sk_old h_col59 h_kslot_old _ _ _
+       h_kslotUp_old _ _ h_offer_b h_gateB =>
+     -- Item 46: the stack opens at the ENTRY's index, so the resume's node
+     -- fits `flowInBlock n_old` and `  - [1]` composes.  The landing that
+@@ -15440,11 +15440,7 @@
+         · rcases h_explUp_mv with ⟨q, ns, literal, domain, route, context⟩ | _
+           · exact Or.inl context
+           · exact Or.inr alt
+-    have h_explUp_mv : (∃ (sp_q : SurfPos) (ns : List Nat), GLit '?' sp_q sp_scan ∧ RegisterWitness.MarkedColsIn sc (n_old :: ns) ∧
+-        ∀ nv ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry n_old sp_q sp_v →
+-        ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
+-        ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ NotQuestionPark sc ∨ PackAlt sc := h_explUp_mv.imp_left (fun ⟨q, ns, literal, domain, route, context⟩ =>
++    have h_explUp_mv := h_explUp_mv.imp_left (fun ⟨q, ns, literal, domain, route, context⟩ =>
+       ⟨q, ns, literal, domain, route⟩)
+     have h_expl : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
+         (∀ sp_v : SurfPos, SBlockMapEntry n_old sp_q sp_v →
+@@ -32355,11 +32351,7 @@
+         · rcases h_explUp190 with ⟨q, ns, literal, domain, route, context⟩ | _
+           · exact Or.inl context
+           · exact Or.inr alt
+-    have h_explUp190 : (∃ (sp_q : SurfPos) (ns : List Nat), GLit '?' sp_q sp_scan ∧ RegisterWitness.MarkedColsIn sc (nmv :: ns) ∧
+-        ∀ nv ∈ ns, ∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
+-        ∀ sp_i sp_c : SurfPos, SIndent nv sp_v sp_i → GLit ':' sp_i sp_c →
+-        ∀ sp_w : SurfPos, SBlockIndented nv .blockOut sp_c sp_w →
+-        ResumeFrames (SLYamlStream sp_start) [FrameLevel.map nv] sp_w) ∨ NotQuestionPark sc ∨ PackAlt sc := h_explUp190.imp_left (fun ⟨q, ns, literal, domain, route, context⟩ =>
++    have h_explUp190 := h_explUp190.imp_left (fun ⟨q, ns, literal, domain, route, context⟩ =>
+       ⟨q, ns, literal, domain, route⟩)
+     have h_expl51 : (∃ sp_q : SurfPos, GLit '?' sp_q sp_scan ∧
+         (∀ sp_v : SurfPos, SBlockMapEntry nmv sp_q sp_v →
+@@ -44052,7 +44044,7 @@
+   while let .forallE name domain body _ := cursor do
+     if domain.getUsedConstants.contains nodeName then stored := stored.push name
+     cursor := body
+-  unless stored == #[`h_expl, `h_kslot, `h_explUp] do
++  unless stored == #[`h_expl, `h_kslot] do
+     throwError "wrong stored context fields {stored}"
+   let producerName := `L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented
+   let some producer := env.find? producerName | throwError "missing actual producer"

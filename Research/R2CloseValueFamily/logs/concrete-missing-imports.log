@@ -1,0 +1,83 @@
+Research/R2CloseValueFamily/Concrete.lean:35:48: error(lean.unknownIdentifier): Unknown identifier `scalarState`
+
+Note: It is not possible to treat `scalarState` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+Research/R2CloseValueFamily/Concrete.lean:36:11: error(lean.unknownIdentifier): Unknown identifier `scalarState`
+
+Note: It is not possible to treat `scalarState` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+Research/R2CloseValueFamily/Concrete.lean:37:11: error(lean.unknownIdentifier): Unknown identifier `scalarState`
+
+Note: It is not possible to treat `scalarState` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+Research/R2CloseValueFamily/Concrete.lean:70:51: error(lean.unknownIdentifier): Unknown identifier `scalarState`
+
+Note: It is not possible to treat `scalarState` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+Research/R2CloseValueFamily/Concrete.lean:73:41: error(lean.unknownIdentifier): Unknown identifier `scalarState`
+
+Note: It is not possible to treat `scalarState` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+Research/R2CloseValueFamily/Concrete.lean:74:53: error(lean.unknownIdentifier): Unknown identifier `scalarState`
+
+Note: It is not possible to treat `scalarState` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+Research/R2CloseValueFamily/Concrete.lean:79:29: error(lean.unknownIdentifier): Unknown identifier `scalarState`
+Research/R2CloseValueFamily/Concrete.lean:79:72: error(lean.unknownIdentifier): Unknown constant `L4YAML.Proofs.R2ConsumptionClosure.EntryValues.restrict_state`
+Research/R2CloseValueFamily/Concrete.lean:102:41: error: unsolved goals
+ns : List Nat
+domain : RegisterWitness.MarkedColsIn sorry ns
+routes :
+  ∀ (own : Nat),
+    own ∈ ns →
+      ∀ (m i c : SurfPos),
+        SSLComments gram m →
+          SIndent own m i →
+            GLit ':' i c →
+              ∀ (v : SurfPos),
+                SBlockIndented own YamlContext.blockOut c v → R2UnmarkedOwner.AncestorValue sorry q0 own v
+_pairs :
+  ∀ (own : Nat),
+    own ∈ ns →
+      ∀ (a : Nat),
+        a ∈ RegisterWitness.markedCols sorry →
+          a < own →
+            ∀ (m i c : SurfPos),
+              SSLComments gram m →
+                SIndent own m i →
+                  GLit ':' i c → ∀ (v : SurfPos), SBlockIndented own YamlContext.blockOut c v → ExplValueLine q0 a v
+⊢ 2 ∈ RegisterWitness.markedCols (sorry ())
+Research/R2CloseValueFamily/Concrete.lean:111:47: error: unsolved goals
+ns : List Nat
+domain : RegisterWitness.MarkedColsIn sorry ns
+routes :
+  ∀ (own : Nat),
+    own ∈ ns →
+      ∀ (m i c : SurfPos),
+        SSLComments gram m →
+          SIndent own m i →
+            GLit ':' i c →
+              ∀ (v : SurfPos),
+                SBlockIndented own YamlContext.blockOut c v → R2UnmarkedOwner.AncestorValue sorry q0 own v
+_pairs :
+  ∀ (own : Nat),
+    own ∈ ns →
+      ∀ (a : Nat),
+        a ∈ RegisterWitness.markedCols sorry →
+          a < own →
+            ∀ (m i c : SurfPos),
+              SSLComments gram m →
+                SIndent own m i →
+                  GLit ':' i c → ∀ (v : SurfPos), SBlockIndented own YamlContext.blockOut c v → ExplValueLine q0 a v
+retained : R2UnmarkedOwner.AncestorValue sorry q0 2 endB
+lower : ValuesBelow sorry (SLYamlStream q0) 2 siblingEnd
+⊢ 0 ∈ RegisterWitness.markedCols (sorry ())
+Research/R2CloseValueFamily/Concrete.lean:102:50: warning: This simp argument is unused:
+  scalarMarks
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Research/R2CloseValueFamily/Concrete.lean:111:56: warning: This simp argument is unused:
+  scalarMarks
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'R2CloseConcrete.actual_pack_sibling_then_ancestor' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

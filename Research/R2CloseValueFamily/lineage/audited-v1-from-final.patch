@@ -1,0 +1,29 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -44330,7 +44330,7 @@
+   | .mdata _ body | .proj _ _ body => return closedArguments callee count index body
+   | _ => return #[]
+ 
+-def checkTerm (label : String) (term : Lean.Expr) : Lean.Elab.Command.CommandElabM Unit := do
++def checkTerm (label : String) (term : Lean.Expr) : Lean.CoreM Unit := do
+   let used := term.getUsedConstants
+   if used.contains `sorryAx then throwError "{label}: direct sorryAx"
+   for name in used do
+@@ -44381,12 +44381,11 @@
+     | throwError "missing third caller"
+   let some body := caller.value? (allowOpaque := true) | throwError "missing third caller body"
+   let terms := R2CloseProductionAudit.closedArguments colon count index body
+-  unless terms.size == 2 do throwError "third colon reader inventory {terms.size}"
+-  for term in terms do
+-    R2CloseProductionAudit.checkTerm "third colon caller whole value" term
+-    unless term.getUsedConstants.contains `R2UnmarkedOwner.AncestorValue.restrict_state do
+-      throwError "third caller does not spend actual whole value"
+-  Lean.logInfo s!"CLOSE-FAMILY-AUDIT field_writers={total} actual_colon_calls=2 sorry_terms=0 local_definitions=substituted"
++  unless terms.size == 1 do throwError "third colon reader inventory {terms.size}"
++  R2CloseProductionAudit.checkTerm "third colon caller whole value" terms[0]!
++  unless terms[0]!.getUsedConstants.contains `R2UnmarkedOwner.AncestorValue.restrict_state do
++    throwError "third caller does not spend actual whole value"
++  Lean.logInfo s!"CLOSE-FAMILY-AUDIT field_writers={total} actual_colon_calls=1 sorry_terms=0 local_definitions=substituted"
+ 
+ run_cmd do
+   for producer in [

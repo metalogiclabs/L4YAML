@@ -1,0 +1,1 @@
+CLOSE-PROOF-AUDIT constants=6261 required=9 forbidden=4 missing=0 free_premises=0 axioms=#[propext, Classical.choice, Quot.sound]

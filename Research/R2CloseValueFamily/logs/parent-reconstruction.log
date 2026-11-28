@@ -1,0 +1,12 @@
+verification/sources/sequence-parent.lean: OK
+verification/sources/completion-draft.lean: OK
+verification/sources/marked-pair.lean: OK
+verification/sources/audited-positive.lean: OK
+verification/sources/erased-family.lean: OK
+verification/unmarked-reconstruction/sources/paired.lean: OK
+verification/unmarked-reconstruction/sources/paired-audited.lean: OK
+verification/unmarked-reconstruction/sources/composed.lean: OK
+verification/unmarked-reconstruction/sources/composed-audited.lean: OK
+verification/unmarked-reconstruction/sources/integrated.lean: OK
+verification/unmarked-reconstruction/sources/integrated-audited.lean: OK
+verification/unmarked-reconstruction/sources/erased-reader.lean: OK

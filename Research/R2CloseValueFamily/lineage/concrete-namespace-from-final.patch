@@ -1,0 +1,10 @@
+--- a/Research/R2CloseValueFamily/Concrete.lean
++++ b/Research/R2CloseValueFamily/Concrete.lean
+@@ -9,7 +9,6 @@
+ open L4YAML L4YAML.Scanner L4YAML.Surface L4YAML.Proofs
+ open L4YAML.Proofs.StreamAccum L4YAML.Proofs.NodeProduction
+ open L4YAML.Proofs.R2ConsumptionClosure L4YAML.Proofs.R2CompactSlot
+-open L4YAML.Proofs.R2SequenceContext
+ open L4YAML.CharPredicates R2ConcreteSuppliers R2CompactControls R2CompletionControls
+ 
+ namespace R2CloseConcrete
