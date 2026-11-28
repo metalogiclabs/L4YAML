@@ -1,0 +1,16 @@
+Research/R2InvariantPayload/NodeValues.lean:31:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+Research/R2InvariantPayload/NodeValues.lean:44:30: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2InvariantPayload/NodeValues.lean:47:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+'L4YAML.Proofs.R2InvariantPayload.NodeValues.of_question' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2InvariantPayload.NodeValues.of_no_marks' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2InvariantPayload.NodeValues.framed_ancestor' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2InvariantPayload.own_frame_cover' depends on axioms: [propext, Quot.sound]

@@ -1,0 +1,512 @@
+L4YAML/Proofs/Production/StreamAccum.lean:1923:80: error: unexpected token 'namespace'; expected 'lemma'
+L4YAML/Proofs/Production/StreamAccum.lean:19831:5: warning: Variable name `h_mono` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h_mono
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+L4YAML/Proofs/Production/StreamAccum.lean:25822:4: error: Type mismatch
+  colon_open_map sp_start sp_land sp_ind k s_prep s' sp_scan' h_stream_land hcol_land h_ind hcorr_prep hcorr_result
+    (indicator_floor_colon_at_col_of_save hcol_ind hcorr_prep h_noflow_disp h_save h_preprocess h_dispatch) hpeek
+    h_noflow_disp h_nic_disp h_dispatch (h_src rfl) h_sfx_land h_nodoc_land h_mk_land h_res_land h_ref_land
+    (Or.imp And.left id (h_cov_in ':' (Or.inl rfl) h_preprocess h_dispatch)) h_pr_land
+    (Or.imp (fun h nv hm => h nv hm fun hq => absurd hq (of_decide_eq_true (id (Eq.refl true)))) id h_resV_land)
+    (PackAlt.step_value h_preprocess h_dispatch (noflow_of_noflow_disp h_noflow_disp))
+    (Or.imp
+      (fun x =>
+        match x with
+        | Exists.intro ns ⟨left, ⟨hne, ch⟩⟩ => Exists.intro ns ⟨hne (of_decide_eq_true (id (Eq.refl true))), ch⟩)
+      id h_explUp_chainD)
+    (indicator_top_kv_at_col (Or.inl rfl) hcol_ind hcorr_prep h_save h_noflow_disp h_top_prep h_dispatch)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:28014:14: error: Type mismatch
+  h_fill fun x => h_src
+has type
+  (c = ':' → ValueOwnership.TopUnmarked s') →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:28028:12: error: Type mismatch
+  h_fill fun h => absurd (Eq.trans (Eq.symm hc_q) h) (of_decide_eq_true (id (Eq.refl true)))
+has type
+  (c = ':' → ValueOwnership.TopUnmarked s') →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:28672:14: error: Type mismatch
+  h_explicit (hvp k hknv)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:28680:14: error: Type mismatch
+  h_explicit (hvp k hknv)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:28858:6: error: Type mismatch
+  colon_open_map_props sp_start sp_block sp_p sp_scan k sc s_prep s' sp_prep sp_scan' h_route
+    (Or.casesOn h_resF_pk
+      (fun h =>
+        Exists.casesOn h fun ks h =>
+          And.casesOn h fun h_lt right =>
+            And.casesOn right fun h_cov r =>
+              Or.inl
+                (Exists.intro ks
+                  ⟨h_lt,
+                    ⟨Or.imp
+                        (fun x =>
+                          match x with
+                          | Exists.intro lo ⟨hb, hc⟩ =>
+                            Exists.intro lo ⟨hb, IndentStackCover.preprocess_cover h_preprocess hc⟩)
+                        id h_cov,
+                      r⟩⟩))
+      fun h => Or.inr h)
+    (have hmemBack := fun nv' hm =>
+      have h_sp := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono;
+      have h_p := RegisterWitness.preprocess_markedCols h_preprocess (RegisterWitness.MarkedColsIn.self sc);
+      if h : s_prep.allowDirectives = true then
+        RegisterWitness.MarkedColsIn.mem
+          (RegisterWitness.dispatchBlockIndicators_markedCols_of_ne
+            (Eq.mp
+              (congrFun' (congrArg Eq (congrFun' (congrArg scanNextToken_dispatchBlockIndicators (ite_eq_left h)) ':'))
+                (Except.ok (some s')))
+              h_dispatch)
+            (of_decide_eq_true (id (Eq.refl true))) (RegisterWitness.MarkedColsIn.transport h_p rfl rfl)
+            (PendingKeySound.Sound.of_eq h_sp rfl rfl rfl rfl rfl rfl).slots)
+          hm
+      else
+        RegisterWitness.MarkedColsIn.mem
+          (RegisterWitness.dispatchBlockIndicators_markedCols_of_ne
+            (Eq.mp
+              (congrFun' (congrArg Eq (congrFun' (congrArg scanNextToken_dispatchBlockIndicators (ite_eq_right h)) ':'))
+                (Except.ok (some s')))
+              h_dispatch)
+            (of_decide_eq_true (id (Eq.refl true))) h_p h_sp.slots)
+          hm;
+    Or.casesOn h_resFV_pk
+      (fun hall =>
+        Or.inl fun nv' hm =>
+          match hall nv' (hmemBack nv' hm) with
+          | Exists.intro ks ⟨h_lt, ⟨h_cov, r⟩⟩ =>
+            Exists.intro ks
+              ⟨h_lt,
+                ⟨Or.imp
+                    (fun x =>
+                      match x with
+                      | Exists.intro lo ⟨hb, hc⟩ =>
+                        Exists.intro lo ⟨hb, IndentStackCover.preprocess_cover h_preprocess hc⟩)
+                    id h_cov,
+                  r⟩⟩)
+      fun h => Or.inr h)
+    h_props h_ws h_poss h_kcol h_inh
+    (Eq.mpr (id (congrArg (fun _a => _a.pos.line = s_prep.line) h_inh))
+      (Eq.mpr (id (congrArg (fun _a => sc.simpleKey.pos.line = _a) h_line_pp)) h_skline))
+    (Eq.mpr (id (congrArg (fun _a => _a.pos.offset ≠ s_prep.offset) h_inh))
+      (have this := h_kbc.left h_poss;
+      fun a => colon_fires_props_key._proof_1_7 sc s_prep k h_off_ge this a))
+    h_noflow h_preprocess h_stream_block hcorr_prep hcorr_result (preprocess_some_peek h_preprocess)
+    (noflow_disp_of_noflow h_noflow) (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+    h_dispatch
+    (Or.imp
+      (fun x =>
+        match x with
+        | Exists.intro ns ⟨hdom, routes⟩ =>
+          Exists.intro ns ⟨RegisterWitness.MarkedColsIn.step_value h_sound h_mono h_preprocess h_dispatch hdom, routes⟩)
+      id h_kslot_pk)
+    h_cf h_lkt
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:29090:10: error: Type mismatch
+  colon_open_map_implicit sp_start sp_block sp_key sp_gram sp_prep k s_prep s' sp_scan' h_stream_block
+    (Or.resolve_right h_route fun h_seq =>
+      seqTopKey_refuted_at_colon h_dispatch (noflow_disp_of_noflow h_noflow)
+        (Eq.mpr (id (congrArg (fun _a => _a.possible = true) (allowDirectives_update_simpleKey s_prep)))
+          (Eq.mpr (id (congrArg (fun _a => _a.possible = true) h_inh)) h_poss))
+        (if h : s_prep.allowDirectives = true then
+          Eq.mpr
+            (id
+              (congr
+                (congrArg Ne
+                  (congrArg YamlPos.offset
+                    (congrArg SimpleKeyState.pos (congrArg ScannerState.simpleKey (ite_eq_left h)))))
+                (congrArg ScannerState.offset (ite_eq_left h))))
+            (id
+              (Eq.mpr (id (congrArg (fun _a => _a.pos.offset ≠ s_prep.offset) h_inh))
+                (have this := h_kbc.left h_poss;
+                fun a => colon_fires_implicit_key._proof_1_4 sc sp_scan s_prep k h_off_ge this a)))
+        else
+          Eq.mpr
+            (id
+              (congr
+                (congrArg Ne
+                  (congrArg YamlPos.offset
+                    (congrArg SimpleKeyState.pos (congrArg ScannerState.simpleKey (ite_eq_right h)))))
+                (congrArg ScannerState.offset (ite_eq_right h))))
+            (Eq.mpr (id (congrArg (fun _a => _a.pos.offset ≠ s_prep.offset) h_inh))
+              (have this := h_kbc.left h_poss;
+              fun a => colon_fires_implicit_key._proof_1_4 sc sp_scan s_prep k h_off_ge this a)))
+        (Eq.mpr
+          (id
+            (congrArg
+              (fun _a =>
+                _a.pos.line =
+                  (if s_prep.allowDirectives = true then
+                      { input := s_prep.input, inputEnd := s_prep.inputEnd, offset := s_prep.offset,
+                        line := s_prep.line, col := s_prep.col, indents := s_prep.indents,
+                        pendingKeys := s_prep.pendingKeys, flowLevel := s_prep.flowLevel, tokens := s_prep.tokens,
+                        simpleKey := s_prep.simpleKey, simpleKeyStack := s_prep.simpleKeyStack,
+                        simpleKeyAllowed := s_prep.simpleKeyAllowed, needIndentCheck := s_prep.needIndentCheck,
+                        allowDirectives := false, seenYamlDirective := s_prep.seenYamlDirective,
+                        directivesPresent := s_prep.directivesPresent, documentEverStarted := true,
+                        flowStack := s_prep.flowStack, explicitKeyLine := s_prep.explicitKeyLine,
+                        implicitValueLine := s_prep.implicitValueLine, docStartLine := s_prep.docStartLine,
+                        explicitKeyCol := s_prep.explicitKeyCol, explicitKeyStack := s_prep.explicitKeyStack,
+                        comments := s_prep.comments, definedAnchors := s_prep.definedAnchors }
+                    else s_prep).line)
+              (allowDirectives_update_simpleKey s_prep)))
+          (Eq.mpr (id (congrArg (fun _a => s_prep.simpleKey.pos.line = _a) (allowDirectives_update_line s_prep)))
+            (Eq.mpr (id (congrArg (fun _a => _a.pos.line = s_prep.line) h_inh))
+              (Eq.mpr (id (congrArg (fun _a => sc.simpleKey.pos.line = _a) h_line_pp)) h_kline))))
+        (SeqTopKey.of_eq
+          (Eq.mpr (id (congrArg (fun _a => _a = sc.indents) (allowDirectives_update_indents s_prep)))
+            (h_mid.right.right.left h_st.left))
+          (Eq.mpr
+            (id (congrArg (fun _a => _a.pos.col = sc.simpleKey.pos.col) (allowDirectives_update_simpleKey s_prep)))
+            (Eq.mpr (id (congrArg (fun _a => _a.pos.col = sc.simpleKey.pos.col) h_inh)) (Eq.refl sc.simpleKey.pos.col)))
+          h_seq))
+    (Or.casesOn h_rfr_pk
+      (fun h =>
+        Exists.casesOn h fun ks h =>
+          And.casesOn h fun h_lt right =>
+            And.casesOn right fun h_cov r =>
+              Or.inl
+                (Exists.intro ks
+                  ⟨h_lt,
+                    ⟨Or.imp
+                        (fun x =>
+                          match x with
+                          | Exists.intro lo ⟨hb, hc⟩ =>
+                            Exists.intro lo ⟨hb, IndentStackCover.preprocess_cover h_preprocess hc⟩)
+                        id h_cov,
+                      r⟩⟩))
+      fun h => Or.inr h)
+    (have hmemBack := fun nv' hm =>
+      have h_sp := PendingKeySound.preprocess_sound h_preprocess h_sound h_mono;
+      have h_p := RegisterWitness.preprocess_markedCols h_preprocess (RegisterWitness.MarkedColsIn.self sc);
+      if h : s_prep.allowDirectives = true then
+        RegisterWitness.MarkedColsIn.mem
+          (RegisterWitness.dispatchBlockIndicators_markedCols_of_ne
+            (Eq.mp
+              (congrFun' (congrArg Eq (congrFun' (congrArg scanNextToken_dispatchBlockIndicators (ite_eq_left h)) ':'))
+                (Except.ok (some s')))
+              h_dispatch)
+            (of_decide_eq_true (id (Eq.refl true))) (RegisterWitness.MarkedColsIn.transport h_p rfl rfl)
+            (PendingKeySound.Sound.of_eq h_sp rfl rfl rfl rfl rfl rfl).slots)
+          hm
+      else
+        RegisterWitness.MarkedColsIn.mem
+          (RegisterWitness.dispatchBlockIndicators_markedCols_of_ne
+            (Eq.mp
+              (congrFun' (congrArg Eq (congrFun' (congrArg scanNextToken_dispatchBlockIndicators (ite_eq_right h)) ':'))
+                (Except.ok (some s')))
+              h_dispatch)
+            (of_decide_eq_true (id (Eq.refl true))) h_p h_sp.slots)
+          hm;
+    Or.casesOn h_rfrV_pk
+      (fun hall =>
+        Or.inl fun nv' hm =>
+          match hall nv' (hmemBack nv' hm) with
+          | Exists.intro ks ⟨h_lt, ⟨h_cov, r⟩⟩ =>
+            Exists.intro ks
+              ⟨h_lt,
+                ⟨Or.imp
+                    (fun x =>
+                      match x with
+                      | Exists.intro lo ⟨hb, hc⟩ =>
+                        Exists.intro lo ⟨hb, IndentStackCover.preprocess_cover h_preprocess hc⟩)
+                    id h_cov,
+                  r⟩⟩)
+      fun h => Or.inr h)
+    h_ol (gstar_sswhite_append h_tws h_ws) hcorr_prep hcorr_result (preprocess_some_peek h_preprocess)
+    (noflow_disp_of_noflow h_noflow) (nic_false_of_indicator_noflow h_preprocess (noflow_disp_of_noflow h_noflow))
+    h_dispatch
+    (implicit_key_floor h_poss h_kcol h_inh
+      (Eq.mpr (id (congrArg (fun _a => _a.pos.line = s_prep.line) h_inh))
+        (Eq.mpr (id (congrArg (fun _a => sc.simpleKey.pos.line = _a) h_line_pp)) h_kline))
+      (Eq.mpr (id (congrArg (fun _a => _a.pos.offset ≠ s_prep.offset) h_inh))
+        (have this := h_kbc.left h_poss;
+        fun a => colon_fires_implicit_key._proof_1_4 sc sp_scan s_prep k h_off_ge this a))
+      h_noflow h_preprocess h_dispatch)
+    (Eq.mpr (id (congrArg (fun _a => _a.possible = true) h_inh)) h_poss)
+    (Eq.mpr (id (congrArg (fun _a => _a.pos.line = s_prep.line) h_inh))
+      (Eq.mpr (id (congrArg (fun _a => sc.simpleKey.pos.line = _a) h_line_pp)) h_kline))
+    (Eq.mpr (id (congrArg (fun _a => _a.pos.offset ≠ s_prep.offset) h_inh))
+      (have this := h_kbc.left h_poss;
+      fun a => colon_fires_implicit_key._proof_1_4 sc sp_scan s_prep k h_off_ge this a))
+    (Eq.mpr (id (congrArg (fun _a => _a.pos.col = k) h_inh)) h_kcol) h_rseq_pk
+    (PackAlt.step_value h_preprocess h_dispatch h_noflow)
+    (Or.imp
+      (fun x =>
+        match x with
+        | Exists.intro ns ⟨hdom, routes⟩ =>
+          Exists.intro ns ⟨RegisterWitness.MarkedColsIn.step_value h_sound h_mono h_preprocess h_dispatch hdom, routes⟩)
+      id h_kslot_pk)
+    (implicit_colon_top_le h_lkt h_cf h_preprocess (Eq.mpr (id (congrArg (fun _a => _a.possible = true) h_inh)) h_poss)
+      (Eq.mpr (id (congrArg (fun _a => _a.pos.line = s_prep.line) h_inh))
+        (Eq.mpr (id (congrArg (fun _a => sc.simpleKey.pos.line = _a) h_line_pp)) h_kline))
+      (Eq.mpr (id (congrArg (fun _a => _a.pos.offset ≠ s_prep.offset) h_inh))
+        (have this := h_kbc.left h_poss;
+        fun a => colon_fires_implicit_key._proof_1_4 sc sp_scan s_prep k h_off_ge this a))
+      (Eq.mpr (id (congrArg (fun _a => _a.pos.col = k) h_inh)) h_kcol) h_noflow h_dispatch)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:29995:16: error: Type mismatch
+  h_explicit (kslot k hknv)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan'' ∧ ScannerSurfCorr s' sp_scan''
+L4YAML/Proofs/Production/StreamAccum.lean:29997:18: error: Type mismatch
+  h_explicit hup
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan'' ∧ ScannerSurfCorr s' sp_scan''
+L4YAML/Proofs/Production/StreamAccum.lean:30000:16: error: Type mismatch
+  h_explicit hup
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan'' ∧ ScannerSurfCorr s' sp_scan''
+L4YAML/Proofs/Production/StreamAccum.lean:30004:16: error: Type mismatch
+  h_explicit (kslot k hknv)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan'' ∧ ScannerSurfCorr s' sp_scan''
+L4YAML/Proofs/Production/StreamAccum.lean:30009:18: error: Type mismatch
+  h_explicit hup
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan'',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan'' ∧ ScannerSurfCorr s' sp_scan''
+L4YAML/Proofs/Production/StreamAccum.lean:30787:14: error: Type mismatch
+  h_explicit (kslot k hknv)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:30789:16: error: Type mismatch
+  h_explicit hup
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:30792:14: error: Type mismatch
+  h_explicit hup
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:30796:14: error: Type mismatch
+  h_explicit (kslot k hknv)
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:30800:16: error: Type mismatch
+  h_explicit hup
+has type
+  ValueOwnership.TopUnmarked s' →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:31037:12: error: Type mismatch
+  h_fill fun x => h_src
+has type
+  (c = ':' → ValueOwnership.TopUnmarked s') →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+L4YAML/Proofs/Production/StreamAccum.lean:31048:10: error: Type mismatch
+  h_fill fun h => absurd (Eq.trans (Eq.symm hc_q) h) (of_decide_eq_true (id (Eq.refl true)))
+has type
+  (c = ':' → ValueOwnership.TopUnmarked s') →
+    ∃ sp_gram' sp_block' sp_flow' sp_scan',
+      SLYamlStream sp_start sp_gram' ∧
+        BlockStack sp_gram' sp_block' ∧
+          FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+            PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'
+but is expected to have type
+  ∃ sp_gram' sp_block' sp_flow' sp_scan',
+    SLYamlStream sp_start sp_gram' ∧
+      BlockStack sp_gram' sp_block' ∧
+        FlowStackB sp_start 0 0 none s' 0 #[] #[] FrameTail.sep sp_block' sp_flow' ∧
+          PendingNode s' false sp_start sp_flow' sp_scan' ∧ ScannerSurfCorr s' sp_scan'

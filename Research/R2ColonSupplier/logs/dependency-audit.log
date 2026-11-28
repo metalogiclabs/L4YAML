@@ -1,0 +1,4 @@
+SUPPLIER-AUDIT R2ColonSupplier.live_landing_of_no_stamp: constants=4693 missing=0 required=2 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+SUPPLIER-AUDIT R2ColonSupplier.entry_step_at_landing: constants=4238 missing=0 required=2 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+SUPPLIER-AUDIT R2ConsumedSibling.cover_does_not_imply_owner: constants=5820 missing=0 required=1 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+SUPPLIER-AUDIT R2ConsumedSibling.actual_consumed_sibling_then_ancestor: constants=6210 missing=0 required=5 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]

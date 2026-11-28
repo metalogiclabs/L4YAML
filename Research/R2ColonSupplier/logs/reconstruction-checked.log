@@ -1,0 +1,9 @@
+verification/sources/sequence-parent.lean: OK
+verification/sources/completion-draft.lean: OK
+verification/sources/marked-pair.lean: OK
+verification/sources/audited-positive.lean: OK
+verification/sources/erased-family.lean: OK
+verification/colon-supplier-sources/integrated.lean: OK
+verification/colon-supplier-sources/integrated-audited.lean: OK
+verification/colon-supplier-sources/supplied-audited.lean: OK
+verification/colon-supplier-sources/negative.lean: OK

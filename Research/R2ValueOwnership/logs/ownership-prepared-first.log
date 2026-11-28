@@ -1,0 +1,45 @@
+Research/R2ValueOwnership/Ownership.lean:61:57: error(lean.unknownIdentifier): Unknown constant `Bool.true_eq_true`
+Research/R2ValueOwnership/Ownership.lean:65:70: error: unsolved goals
+s : ScannerState
+l : Nat
+hs : Sound s
+hfl : s.inFlow = false
+marked : (scanValuePrepare s).pendingKeys.back? = some (some l)
+slots : SlotsOk (scanValuePrepare s)
+inner : (scanValuePrepare s).innermostPendingKey = s.innermostPendingKey
+flow : (scanValuePrepare s).flowLevel = s.flowLevel
+line : (scanValuePrepare s).explicitKeyLine = s.explicitKeyLine
+col : (scanValuePrepare s).explicitKeyCol = s.explicitKeyCol
+right✝ : (scanValuePrepare s).explicitKeyStack = s.explicitKeyStack
+reg : RegOk (scanValuePrepare s)
+prepflow : (scanValuePrepare s).flowLevel = 0
+hl : s.explicitKeyLine = some l
+hc : s.explicitKeyCol = (scanValuePrepare s).currentIndent
+key : s.simpleKey.possible = true
+le : ¬↑s.simpleKey.pos.col > s.currentIndent
+mark :
+  { input := s.input, inputEnd := s.inputEnd, offset := s.offset, line := s.line, col := s.col, indents := s.indents,
+          pendingKeys := s.pendingKeys, flowLevel := s.flowLevel,
+          tokens :=
+            s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) { pos := s.simpleKey.pos, val := YamlToken.key },
+          simpleKeyStack := s.simpleKeyStack, simpleKeyAllowed := s.simpleKeyAllowed,
+          needIndentCheck := s.needIndentCheck, allowDirectives := s.allowDirectives,
+          seenYamlDirective := s.seenYamlDirective, directivesPresent := s.directivesPresent,
+          documentEverStarted := s.documentEverStarted, flowStack := s.flowStack, explicitKeyLine := s.explicitKeyLine,
+          implicitValueLine := s.implicitValueLine, docStartLine := s.docStartLine, explicitKeyCol := s.explicitKeyCol,
+          explicitKeyStack := s.explicitKeyStack, comments := s.comments,
+          definedAnchors := s.definedAnchors }.pendingKeys.back? =
+    some (some l)
+⊢ { input := s.input, inputEnd := s.inputEnd, offset := s.offset, line := s.line, col := s.col, indents := s.indents,
+        pendingKeys := s.pendingKeys, flowLevel := s.flowLevel,
+        tokens := s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) { pos := s.simpleKey.pos, val := YamlToken.key },
+        simpleKeyStack := s.simpleKeyStack, simpleKeyAllowed := s.simpleKeyAllowed,
+        needIndentCheck := s.needIndentCheck, allowDirectives := s.allowDirectives,
+        seenYamlDirective := s.seenYamlDirective, directivesPresent := s.directivesPresent,
+        documentEverStarted := s.documentEverStarted, flowStack := s.flowStack, explicitKeyLine := s.explicitKeyLine,
+        implicitValueLine := s.implicitValueLine, docStartLine := s.docStartLine, explicitKeyCol := s.explicitKeyCol,
+        explicitKeyStack := s.explicitKeyStack, comments := s.comments,
+        definedAnchors := s.definedAnchors }.currentIndent =
+    s.currentIndent
+'R2ValueOwnership.last_mark_register' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ValueOwnership.prepared_last_mark' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

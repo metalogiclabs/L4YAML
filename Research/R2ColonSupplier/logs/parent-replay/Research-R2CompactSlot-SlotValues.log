@@ -1,0 +1,2 @@
+'L4YAML.Proofs.R2CompactSlot.SlotValues.of_question' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2CompactSlot.SlotValues.compact_question' depends on axioms: [propext, Classical.choice, Quot.sound]

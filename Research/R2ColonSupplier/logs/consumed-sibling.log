@@ -1,0 +1,2 @@
+'R2ConsumedSibling.cover_does_not_imply_owner' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConsumedSibling.actual_consumed_sibling_then_ancestor' depends on axioms: [propext, Classical.choice, Quot.sound]

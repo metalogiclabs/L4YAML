@@ -1,0 +1,125 @@
+{
+  "state": "WARRANTED_BOUNDED_ACTUAL_SUPPLIERS; UNKNOWN_FULL_MIGRATION",
+  "parents": [
+    "8d4596f26cf430df50d0e3f1e0dce2ea1104f83d",
+    "45db495873471857987ff1e0c71e826e991adc3a"
+  ],
+  "compiler": "Lean (version 4.36.0, x86_64-unknown-linux-gnu, commit 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9, Release)",
+  "baseline_errors": 23,
+  "candidate_errors": 19,
+  "negative_control_errors": 20,
+  "additional_errors": 0,
+  "removed_labels": [
+    "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_CONTENT",
+    "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_PENDING",
+    "R2_OTHER_BLOCK_CONTENT_PAIR_UNMARKED",
+    "R2_OTHER_PENDING_BLOCK_PAIR"
+  ],
+  "replacement_labels": [],
+  "production_diagnostic_exit": 1,
+  "whole_module_passed": false,
+  "new_actual_caller_suppliers": 2,
+  "new_external_continuation_parameters": 0,
+  "caller_types": {
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent": {
+      "byte_identical": true,
+      "sha256": "e8771335fc87f13978b478862c307753dc035a83140c0806071b3cd244c0f335"
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock": {
+      "byte_identical": true,
+      "sha256": "cba3fa1c3daaed7d46015681e7535bb6d3fc60065699c7f0e835f19df2f40259"
+    }
+  },
+  "proof_route_selection_changed": true,
+  "unmarked_stamping_candidates_use_existing_generic_route": true,
+  "existing_generic_route_newly_proved": false,
+  "escape_reference_comparison": {
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent/block_dispatch_deferred": {
+      "before": 0,
+      "after": 0
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent/block_dispatch_deferred_stamp_offcol": {
+      "before": 1,
+      "after": 0
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent/block_dispatch_deferred_stamp_nopack": {
+      "before": 1,
+      "after": 1
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlockContent/dropClose": {
+      "before": 0,
+      "after": 0
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock/block_dispatch_deferred": {
+      "before": 0,
+      "after": 0
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock/block_dispatch_deferred_stamp_offcol": {
+      "before": 1,
+      "after": 0
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock/block_dispatch_deferred_stamp_nopack": {
+      "before": 1,
+      "after": 1
+    },
+    "L4YAML.Proofs.StreamAccum.accum_block_on_pendingBlock/dropClose": {
+      "before": 0,
+      "after": 0
+    }
+  },
+  "global_fallback_census_claimed": false,
+  "actual_supplier_argument_audits": 2,
+  "raw_axiom_profiles": {
+    "PRODUCER": {
+      "byte_identical": true,
+      "axioms": 48,
+      "sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a"
+    },
+    "COMPACT": {
+      "byte_identical": true,
+      "axioms": 7,
+      "sha256": "aa7c1dbfb75ca64c008974e967eb5baa72230b99356e770f929882dc526f10bb"
+    },
+    "SEQUENCE-COMPLETION": {
+      "byte_identical": true,
+      "axioms": 48,
+      "sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a"
+    },
+    "COLON": {
+      "byte_identical": true,
+      "axioms": 5,
+      "sha256": "e6cfa89ba5958d0d26da7e37fdba00491111ae39705738cba7bf0c247fad458d"
+    }
+  },
+  "control_source_budget_combinations": 104,
+  "observed_block_value_events": 40,
+  "control_failures": 0,
+  "controls_initializer_corrected": true,
+  "audited_dependency_constants": [
+    4693,
+    4238,
+    5820,
+    6210
+  ],
+  "missing_dependency_references": 0,
+  "standalone_proof_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "initialized_empty_key_sibling_then_ancestor_to_eof": true,
+  "free_enclosing_route_premise": false,
+  "invariant_arm_reachability_from_scanner_counts_claimed": false,
+  "parent_research_modules_replayed": 18,
+  "new_and_reused_standalone_modules_on_qualified_owner": 7,
+  "qualified_owner_source": "bea84871310b2b00518629638607bd46f7a2ebba",
+  "qualified_owner_production_source_sha256": "695b4080d6086b1d8d78c9459c5c12d9850947be3811cba45fbedd12fd1ad62f",
+  "exact_owner_production_migration_claimed": false,
+  "retained_development_sources": 7,
+  "development_restoration_exact": true,
+  "critical_positions_retired": 0,
+  "critical_roster_remeasured": false,
+  "production_or_runtime_ref_mutated": false,
+  "native_workflow_or_bindings_rerun": false,
+  "approval_merge_or_maintainer_message": false
+}

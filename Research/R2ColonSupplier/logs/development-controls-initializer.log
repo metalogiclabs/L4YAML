@@ -1,0 +1,9 @@
+#[]
+#[(true, 1, [], [])]
+Research/R2ColonSupplier/Controls.lean:55:0: error: Expression
+  (rows "? ? a\n  : b\n  : c\n: d\n" 200).toList == [(false, 2, [0, 2], [0]), (true, 2, [0], [0]), (false, 0, [0], [])]
+did not evaluate to `true`
+Research/R2ColonSupplier/Controls.lean:57:0: error: Expression
+  (rows "? : x\n: y\n" 200).toList == [(true, 2, [0], [0]), (false, 0, [0], [])]
+did not evaluate to `true`
+("COLON-OWNER-CONTROLS", 104, 19, [])

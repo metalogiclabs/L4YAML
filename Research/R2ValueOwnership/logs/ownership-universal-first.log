@@ -1,0 +1,108 @@
+Research/R2ValueOwnership/Ownership.lean:65:70: error: unsolved goals
+s : ScannerState
+l : Nat
+hs : Sound s
+hfl : s.inFlow = false
+marked : (scanValuePrepare s).pendingKeys.back? = some (some l)
+slots : SlotsOk (scanValuePrepare s)
+inner : (scanValuePrepare s).innermostPendingKey = s.innermostPendingKey
+flow : (scanValuePrepare s).flowLevel = s.flowLevel
+line : (scanValuePrepare s).explicitKeyLine = s.explicitKeyLine
+col : (scanValuePrepare s).explicitKeyCol = s.explicitKeyCol
+right✝ : (scanValuePrepare s).explicitKeyStack = s.explicitKeyStack
+reg : RegOk (scanValuePrepare s)
+prepflow : (scanValuePrepare s).flowLevel = 0
+hl : s.explicitKeyLine = some l
+hc : s.explicitKeyCol = (scanValuePrepare s).currentIndent
+key : s.simpleKey.possible = true
+le : ¬↑s.simpleKey.pos.col > s.currentIndent
+mark :
+  { input := s.input, inputEnd := s.inputEnd, offset := s.offset, line := s.line, col := s.col, indents := s.indents,
+          pendingKeys := s.pendingKeys, flowLevel := s.flowLevel,
+          tokens :=
+            s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) { pos := s.simpleKey.pos, val := YamlToken.key },
+          simpleKeyStack := s.simpleKeyStack, simpleKeyAllowed := s.simpleKeyAllowed,
+          needIndentCheck := s.needIndentCheck, allowDirectives := s.allowDirectives,
+          seenYamlDirective := s.seenYamlDirective, directivesPresent := s.directivesPresent,
+          documentEverStarted := s.documentEverStarted, flowStack := s.flowStack, explicitKeyLine := s.explicitKeyLine,
+          implicitValueLine := s.implicitValueLine, docStartLine := s.docStartLine, explicitKeyCol := s.explicitKeyCol,
+          explicitKeyStack := s.explicitKeyStack, comments := s.comments,
+          definedAnchors := s.definedAnchors }.pendingKeys.back? =
+    some (some l)
+⊢ (match
+      (if
+              (match s.indents.back? with
+                | some e => e.column
+                | none => -1) <
+                ↑s.simpleKey.pos.col then
+            { input := s.input, inputEnd := s.inputEnd, offset := s.offset, line := s.line, col := s.col,
+              indents := s.indents.push { column := ↑s.simpleKey.pos.col, isSequence := false },
+              pendingKeys := s.pendingKeys.push none, flowLevel := s.flowLevel,
+              tokens :=
+                (s.tokens.setIfInBounds s.simpleKey.tokenIndex
+                      { pos := s.simpleKey.pos, val := YamlToken.blockMappingStart }).setIfInBounds
+                  (s.simpleKey.tokenIndex + 1) { pos := s.simpleKey.pos, val := YamlToken.key },
+              simpleKeyStack := s.simpleKeyStack, simpleKeyAllowed := s.simpleKeyAllowed,
+              needIndentCheck := s.needIndentCheck, allowDirectives := s.allowDirectives,
+              seenYamlDirective := s.seenYamlDirective, directivesPresent := s.directivesPresent,
+              documentEverStarted := s.documentEverStarted, flowStack := s.flowStack,
+              explicitKeyLine := s.explicitKeyLine, implicitValueLine := s.implicitValueLine,
+              docStartLine := s.docStartLine, explicitKeyCol := s.explicitKeyCol,
+              explicitKeyStack := s.explicitKeyStack, comments := s.comments, definedAnchors := s.definedAnchors }
+          else
+            { input := s.input, inputEnd := s.inputEnd, offset := s.offset, line := s.line, col := s.col,
+              indents := s.indents, pendingKeys := s.pendingKeys, flowLevel := s.flowLevel,
+              tokens :=
+                s.tokens.setIfInBounds (s.simpleKey.tokenIndex + 1) { pos := s.simpleKey.pos, val := YamlToken.key },
+              simpleKeyStack := s.simpleKeyStack, simpleKeyAllowed := s.simpleKeyAllowed,
+              needIndentCheck := s.needIndentCheck, allowDirectives := s.allowDirectives,
+              seenYamlDirective := s.seenYamlDirective, directivesPresent := s.directivesPresent,
+              documentEverStarted := s.documentEverStarted, flowStack := s.flowStack,
+              explicitKeyLine := s.explicitKeyLine, implicitValueLine := s.implicitValueLine,
+              docStartLine := s.docStartLine, explicitKeyCol := s.explicitKeyCol,
+              explicitKeyStack := s.explicitKeyStack, comments := s.comments,
+              definedAnchors := s.definedAnchors }).indents.back? with
+    | some e => e.column
+    | none => -1) =
+    match s.indents.back? with
+    | some e => e.column
+    | none => -1
+Research/R2ValueOwnership/Ownership.lean:66:40: warning: This simp argument is unused:
+  le
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [scanValuePrepare, key, hfl, ScannerState.currentIndent]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Research/R2ValueOwnership/Ownership.lean:74:45: error: Function expected at
+  Array.back?_eq_getElem?
+but this term has type
+  Array.back? ?m.39 = ?m.39[Array.size ?m.39 - 1]?
+
+Note: Expected a function because this term is being applied to the argument
+  s.pendingKeys
+Research/R2ValueOwnership/Ownership.lean:100:15: error(lean.unknownIdentifier): Unknown constant `Int.not_lt_of_le`
+Research/R2ValueOwnership/Ownership.lean:108:8: error: omega could not prove the goal:
+a possible counterexample may satisfy the constraints
+  c ≥ 0
+  b ≥ 0
+  b - c ≤ -1
+  a ≥ 0
+where
+ a := ↑s.flowLevel
+ b := (scanValuePrepare (scanValueClearKey s)).currentIndent
+ c := ↑(scanValueClearKey s).simpleKey.pos.col
+Research/R2ValueOwnership/Ownership.lean:112:8: error(lean.unknownIdentifier): Unknown identifier `advance_preserves_pendingKeys`
+Research/R2ValueOwnership/Ownership.lean:127:9: error: Invalid projection: Type of
+  if s.inFlow = true then ?m.350 else if ?m.352 then ?m.356 else ?m.357
+is not known; cannot resolve projection `1`
+Research/R2ValueOwnership/Ownership.lean:102:24: warning: This simp argument is unused:
+  ite_false
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [key] at gt
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'R2ValueOwnership.last_mark_register' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ValueOwnership.prepared_last_mark' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ValueOwnership.scanValue_top_unmarked' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

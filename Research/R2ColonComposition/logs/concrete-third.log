@@ -1,0 +1,18 @@
+Research/R2ColonComposition/Concrete.lean:31:12: error: unsolved goals
+case error
+e : ScanError
+result : scanValue dispatch = Except.error e
+success : (Except.error e).isOk = true
+⊢ Except.error e = Except.ok valueOut
+Research/R2ColonComposition/Concrete.lean:32:11: error: unsolved goals
+case ok
+success : (scanValue dispatch).isOk = true
+out : ScannerState
+result : scanValue dispatch = Except.ok out
+⊢ out = (Except.ok out).toOption.getD (ScannerState.mk' source)
+'R2ColonCompositionConcrete.dispatch_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ColonCompositionConcrete.actual_colon_payload' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'R2ColonCompositionConcrete.actual_sibling_then_ancestor' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]

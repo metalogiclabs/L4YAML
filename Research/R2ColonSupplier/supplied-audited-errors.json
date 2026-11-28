@@ -1,0 +1,97 @@
+[
+  {
+    "line": 21129,
+    "column": 617,
+    "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+  },
+  {
+    "line": 21362,
+    "column": 616,
+    "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+  },
+  {
+    "line": 25359,
+    "column": 33,
+    "label": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+  },
+  {
+    "line": 25639,
+    "column": 19,
+    "label": "R2_NODE_QUESTION_ANCESTORS"
+  },
+  {
+    "line": 26851,
+    "column": 35,
+    "label": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+  },
+  {
+    "line": 26852,
+    "column": 33,
+    "label": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+  },
+  {
+    "line": 27091,
+    "column": 35,
+    "label": "R2_NODE_PROPS_COLON_NO_TAIL"
+  },
+  {
+    "line": 27092,
+    "column": 33,
+    "label": "R2_NODE_PROPS_COLON_ANCESTORS"
+  },
+  {
+    "line": 29298,
+    "column": 32,
+    "label": "R2_SEQUENCE_LANDED_FAMILY"
+  },
+  {
+    "line": 29498,
+    "column": 40,
+    "label": "R2_COLON_ENTRY_SUPPLIER_CLOSE"
+  },
+  {
+    "line": 32199,
+    "column": 86,
+    "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+  },
+  {
+    "line": 32231,
+    "column": 84,
+    "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+  },
+  {
+    "line": 32309,
+    "column": 77,
+    "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+  },
+  {
+    "line": 32402,
+    "column": 37,
+    "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+  },
+  {
+    "line": 41337,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+  },
+  {
+    "line": 41422,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+  },
+  {
+    "line": 41708,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+  },
+  {
+    "line": 41836,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+  },
+  {
+    "line": 41956,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+  }
+]

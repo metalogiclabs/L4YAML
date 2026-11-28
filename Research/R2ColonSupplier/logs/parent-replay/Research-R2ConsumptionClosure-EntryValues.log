@@ -1,0 +1,20 @@
+Research/R2ConsumptionClosure/EntryValues.lean:82:31: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2ConsumptionClosure/EntryValues.lean:115:30: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2ConsumptionClosure/EntryValues.lean:116:30: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵p̵o̵s̵i̲t̲e̲_̲e̲q̲_̲l̲e̲f̲t̲
+Research/R2ConsumptionClosure/EntryValues.lean:118:30: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+
+Hint: Replace the deprecated name:
+  i̵f̵_̵n̵e̵g̵i̲t̲e̲_̲e̲q̲_̲r̲i̲g̲h̲t̲
+'L4YAML.Proofs.R2ConsumptionClosure.EntryValues.pair' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2ConsumptionClosure.EntryValues.consume' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2ConsumptionClosure.entryStep_of_question' does not depend on any axioms
+'L4YAML.Proofs.R2ConsumptionClosure.colon_value_domain' depends on axioms: [propext, Quot.sound]

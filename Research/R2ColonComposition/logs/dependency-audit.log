@@ -1,0 +1,2 @@
+COLON-COMPOSITION-AUDIT R2ColonCompositionConcrete.actual_colon_payload: constants=6746 missing=0 required=10 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+COLON-COMPOSITION-AUDIT R2ColonCompositionConcrete.actual_sibling_then_ancestor: constants=6765 missing=0 required=10 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]

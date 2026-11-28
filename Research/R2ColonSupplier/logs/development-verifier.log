@@ -1,0 +1,9 @@
+Research/R2ColonSupplier/VerifyDiagnostics.lean:16:13: error(lean.invalidField): Invalid field `containsSubstr`: The environment does not contain `String.containsSubstr`, so it is not possible to project the field `containsSubstr` from an expression
+  line
+of type `String`
+Research/R2ColonSupplier/VerifyDiagnostics.lean:43:5: error: unexpected token 'prefix'; expected '(', ':=', 'rec', '|', identifier or term
+Research/R2ColonSupplier/VerifyDiagnostics.lean:43:12: error: unexpected token ':='; expected ':'
+Research/R2ColonSupplier/VerifyDiagnostics.lean:44:54: error: unexpected token '++'; expected ':'
+Research/R2ColonSupplier/VerifyDiagnostics.lean:57:33: error: unexpected token '++'; expected ':'
+Research/R2ColonSupplier/VerifyDiagnostics.lean:58:34: error: unexpected token '++'; expected ':'
+Research/R2ColonSupplier/VerifyDiagnostics.lean:59:33: error: unexpected token '++'; expected ':'

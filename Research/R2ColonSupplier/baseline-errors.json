@@ -1,0 +1,117 @@
+[
+  {
+    "line": 21042,
+    "column": 617,
+    "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+  },
+  {
+    "line": 21275,
+    "column": 616,
+    "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+  },
+  {
+    "line": 25272,
+    "column": 33,
+    "label": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+  },
+  {
+    "line": 25552,
+    "column": 19,
+    "label": "R2_NODE_QUESTION_ANCESTORS"
+  },
+  {
+    "line": 26764,
+    "column": 35,
+    "label": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+  },
+  {
+    "line": 26765,
+    "column": 33,
+    "label": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+  },
+  {
+    "line": 27004,
+    "column": 35,
+    "label": "R2_NODE_PROPS_COLON_NO_TAIL"
+  },
+  {
+    "line": 27005,
+    "column": 33,
+    "label": "R2_NODE_PROPS_COLON_ANCESTORS"
+  },
+  {
+    "line": 29211,
+    "column": 32,
+    "label": "R2_SEQUENCE_LANDED_FAMILY"
+  },
+  {
+    "line": 29411,
+    "column": 40,
+    "label": "R2_COLON_ENTRY_SUPPLIER_CLOSE"
+  },
+  {
+    "line": 30754,
+    "column": 31,
+    "label": "R2_OTHER_BLOCK_CONTENT_PAIR_UNMARKED"
+  },
+  {
+    "line": 30741,
+    "column": 40,
+    "label": "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_CONTENT"
+  },
+  {
+    "line": 31578,
+    "column": 29,
+    "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+  },
+  {
+    "line": 31564,
+    "column": 40,
+    "label": "R2_COLON_ENTRY_SUPPLIER_SEQUENCE_PENDING"
+  },
+  {
+    "line": 32152,
+    "column": 86,
+    "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+  },
+  {
+    "line": 32184,
+    "column": 84,
+    "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+  },
+  {
+    "line": 32262,
+    "column": 77,
+    "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+  },
+  {
+    "line": 32355,
+    "column": 37,
+    "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+  },
+  {
+    "line": 41290,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+  },
+  {
+    "line": 41375,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+  },
+  {
+    "line": 41661,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+  },
+  {
+    "line": 41789,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+  },
+  {
+    "line": 41909,
+    "column": 94,
+    "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+  }
+]
