@@ -1,0 +1,141 @@
+{
+  "parent_commit": "352304ba765995356d9b8e3e701fd09285e80e3e",
+  "scope": "Research/R2InvariantPayload only; no production repair",
+  "files": [
+    {
+      "path": "Research/R2InvariantPayload/ConcretePayloads.lean",
+      "bytes": 7761,
+      "sha256": "0461201db963492c74f4cdcdc80b9d2f2a5503b9602f32a5bda0ee6eed4fa002"
+    },
+    {
+      "path": "Research/R2InvariantPayload/NodeValues.lean",
+      "bytes": 5208,
+      "sha256": "d87d8b9d6183704728e79d0a04e312fb1ee29b165cf424bc1b91a39866650b69"
+    },
+    {
+      "path": "Research/R2InvariantPayload/PayloadAudit.lean",
+      "bytes": 3369,
+      "sha256": "dc01a263709698cbad4385eac0f92d2bcb1a2c0d0df1b2fb0ab2802b109c1cf2"
+    },
+    {
+      "path": "Research/R2InvariantPayload/Predictions.md",
+      "bytes": 2055,
+      "sha256": "f9e59cf5deee25e8b9ea5246840e3366a85874f80e5229d5905d7226cc250fe8"
+    },
+    {
+      "path": "Research/R2InvariantPayload/REPORT.md",
+      "bytes": 9545,
+      "sha256": "ecffe79ed35a2f048ec075b892fb76d4dba2d690152be49714543ad46d40f22a"
+    },
+    {
+      "path": "Research/R2InvariantPayload/SourceControls.lean",
+      "bytes": 1693,
+      "sha256": "47f6b740c0c7e2795fc831acee47ce8b76747241cf5c62a95f74b54983e7d997"
+    },
+    {
+      "path": "Research/R2InvariantPayload/StoredAuditPrecheck.lean",
+      "bytes": 2052,
+      "sha256": "263a74a5dad013a93608cf5bb5371496ec4846a8ff9974eb9e9c9b6056594fe7"
+    },
+    {
+      "path": "Research/R2InvariantPayload/invariant-payload.patch",
+      "bytes": 44284,
+      "sha256": "a58d3a2106e261c77c1a4ceb7603c1a3909552d2a815e319ed6a6166fabf9f7e"
+    },
+    {
+      "path": "Research/R2InvariantPayload/invariant-result.json",
+      "bytes": 3580,
+      "sha256": "1fb758e6e39ce2a8b90026ba0fa52c9e93094bca0ffeb59190df6fc0a67ea22d"
+    },
+    {
+      "path": "Research/R2InvariantPayload/lineage/audit-shadow-error-from-final.patch.xz",
+      "bytes": 524,
+      "sha256": "80f044bda1d667c813b8f16a09a008029158f03f7235f7286dd79dc62d01c86f"
+    },
+    {
+      "path": "Research/R2InvariantPayload/lineage/before-consumption-audit-from-final.patch.xz",
+      "bytes": 960,
+      "sha256": "a0ffe3ecbe84c59e44cfdddffbd7e508943c714c51ddd02d851f8462cec0f1f8"
+    },
+    {
+      "path": "Research/R2InvariantPayload/lineage/before-frame-spend-from-final.patch.xz",
+      "bytes": 2708,
+      "sha256": "0dca63069083b9ab2d84d81fed3457e11324b8571f7855b67fe19b6b2c6839bc"
+    },
+    {
+      "path": "Research/R2InvariantPayload/lineage/first-header-error-from-final.patch.xz",
+      "bytes": 3880,
+      "sha256": "da0ce85a80eb7d43fab90e90e788322635310a7d0f381c6b5b70167265773be5"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/after-frame-spend.log.xz",
+      "bytes": 12684,
+      "sha256": "18555225ab4e73fbb7230da33b51a87dc879a2e22ec1f5f59b5a2ba9ce9a66d5"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/before-frame-spend.log.xz",
+      "bytes": 12584,
+      "sha256": "8d9ef02bfa7c8c4fb8aecf491e75e19a3120d35b372fa9752fba432b5e2d1728"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/concrete-payloads.log",
+      "bytes": 727,
+      "sha256": "bb123e20da9f9802d6bc6612f8d5f23e3afee7620fd70f8592223c73029ce2ad"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/development-audit-shadow.log.xz",
+      "bytes": 11568,
+      "sha256": "f40db69f009883bc60a5e3148e76f59324a86f888b3225682c99fede1cecff39"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/development-header.log.xz",
+      "bytes": 11352,
+      "sha256": "7301b0f28688e185f6ef23f1a156b98e69b036b3856b0927358e5e8e167bcb6f"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/development-small.log.xz",
+      "bytes": 1020,
+      "sha256": "8323b0d9db0f468da6dfb86aec9a44932bd0e4b2864724ef760a27e68b4a1a4a"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/invariant-final.log.xz",
+      "bytes": 11620,
+      "sha256": "e9ada67b3499fe86808b176ea85aa7d275818fba7865ad9169ee39720fc5a6db"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/legacy-control.log",
+      "bytes": 97,
+      "sha256": "15ed7f22aa7c450bc78258fc1ec0a7ff1475eb668febc4d855a26f95baff1924"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/node-values.log",
+      "bytes": 1073,
+      "sha256": "4cc14fd9f1f3cb4c45280724f377704ca774a3ae1a12e28a85f98097cf3e0152"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/payload-audit.log",
+      "bytes": 583,
+      "sha256": "efcafb670d910c99320d857cec0134acadde43c4768554e24f6c5d131bc02268"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/producer-raw-axioms.log",
+      "bytes": 13575,
+      "sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a"
+    },
+    {
+      "path": "Research/R2InvariantPayload/logs/source-controls.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Research/R2InvariantPayload/reconstruction.json",
+      "bytes": 1973,
+      "sha256": "7b815fd4983d6d3c477dfbd38c6c717966be2883942f8eee6e591a28baf1f4f8"
+    },
+    {
+      "path": "Research/R2InvariantPayload/verification.json",
+      "bytes": 3972,
+      "sha256": "56f1b2e5e6d0f63531b42bb4443c6a003578fe2dd35a835cf4f556074180ab79"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "exact": true,
+  "base_commit": "9f1f7bc6",
+  "steps": [
+    {
+      "patch": "Research/R2EntryPreservation/retention-original.patch",
+      "exit": 0,
+      "source_sha256": "e4573690e2cdeaa6fa9e0af96c2f82fe0ff0b0ca778dc0e63a2e2d698a18eb60"
+    },
+    {
+      "patch": "Research/R2EntryPreservation/retention-strict-delta.patch",
+      "exit": 0,
+      "source_sha256": "1a482089f93091d8d2daafbcdec875c2f64ade131e343ddfe8b11c37186dcbaa"
+    },
+    {
+      "patch": "Research/R2SurvivorDomain/retention-refinements.patch",
+      "exit": 0,
+      "source_sha256": "578f4fb5803a3ac74d6ff40265db3bd78fec577bd5dad7c53b977f758de76500"
+    },
+    {
+      "patch": "Research/R2ConsumptionClosure/producer-domain.patch",
+      "exit": 0,
+      "source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943"
+    },
+    {
+      "patch": "Research/R2InvariantPayload/invariant-payload.patch",
+      "exit": 0,
+      "source_sha256": "34a785b2d813c429a948fd6cab467f10c92a63dbdb37a3e38d6fab07cb9d3345"
+    }
+  ],
+  "development_phases_verified": [
+    {
+      "phase": "first-header-error",
+      "source_sha256": "f418d12084b0a286e0b0664e8408efc017c4bf89740c855a34bc39b79a37a42d",
+      "reverse_from_final_patch": "lineage/first-header-error-from-final.patch.xz"
+    },
+    {
+      "phase": "before-frame-spend",
+      "source_sha256": "a9b8290e225ccd805c3f4357753866e4a16659044277d7e41f94608bb407a5bb",
+      "reverse_from_final_patch": "lineage/before-frame-spend-from-final.patch.xz"
+    },
+    {
+      "phase": "before-consumption-audit",
+      "source_sha256": "f2393c04525dc720724da8aa22e3825dfe44a45756db8c6a20ac682130748fcf",
+      "reverse_from_final_patch": "lineage/before-consumption-audit-from-final.patch.xz"
+    },
+    {
+      "phase": "audit-shadow-error",
+      "source_sha256": "0ae0c1543b0bc617729b7724c752349932b02d3a5c87d299d1076cb890b347e7",
+      "reverse_from_final_patch": "lineage/audit-shadow-error-from-final.patch.xz"
+    }
+  ]
+}

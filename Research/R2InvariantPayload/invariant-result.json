@@ -1,0 +1,139 @@
+{
+  "state": "WARRANTED_BOUNDED_STORED_CONTEXT_CONSUMPTION; UNKNOWN_FULL_INVARIANT",
+  "exit": 1,
+  "source_sha256": "34a785b2d813c429a948fd6cab467f10c92a63dbdb37a3e38d6fab07cb9d3345",
+  "prior_source_sha256": "08ea2422212322c45f1b27750f30e1ad88598bc61cafc81d40e38daa2db14943",
+  "log_sha256": "ec164cc00154a8c7eae4e982f25f510bb6262179abe6e1e57858184b538e2918",
+  "labelled_demands": 21,
+  "additional_type_errors": 0,
+  "retained_old_demands": 13,
+  "new_constructor_demands": 8,
+  "demand_counts_are_changed_contract_not_debt_score": true,
+  "removed_external_caller_demand": "R2_VALUE_COMPLETION_ENTRY_VALUES",
+  "stored_constructor_fields": [
+    "h_expl",
+    "h_kslot"
+  ],
+  "actual_producer": "L4YAML.Proofs.StreamAccum.accum_content_on_pendingMapValue_indented",
+  "actual_caller": "L4YAML.Proofs.StreamAccum.accum_content_pending",
+  "producer_direct_new_readers": [
+    "L4YAML.Proofs.R2InvariantPayload.NodeValues.framed_ancestor",
+    "L4YAML.Proofs.R2InvariantPayload.own_frame_cover"
+  ],
+  "old_external_h_entries_absent": true,
+  "existing_h_top_forwarded_from_pending_value": true,
+  "raw_axioms_byte_identical": true,
+  "raw_axioms_sha256": "2ff7fe79deaca52cf869907334227bbd85475a8a64a3a96bbae2cc78b85da46a",
+  "raw_axioms_count": 48,
+  "producer_contains_sorryAx": false,
+  "whole_variant_accepted": false,
+  "critical_positions_retired": 0,
+  "critical_roster_remeasured_on_failed_variant": false,
+  "errors": [
+    {
+      "line": 20597,
+      "column": 617,
+      "label": "R2_RETAIN_FLOW_SEQUENCE_CLOSE_PAIR"
+    },
+    {
+      "line": 20830,
+      "column": 616,
+      "label": "R2_RETAIN_FLOW_MAPPING_CLOSE_PAIR"
+    },
+    {
+      "line": 24803,
+      "column": 33,
+      "label": "R2_NODE_KEYLESS_COLON_ANCESTORS"
+    },
+    {
+      "line": 25081,
+      "column": 19,
+      "label": "R2_NODE_QUESTION_ANCESTORS"
+    },
+    {
+      "line": 25407,
+      "column": 33,
+      "label": "R2_NODE_EXPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 25797,
+      "column": 30,
+      "label": "R2_NODE_COMPACT_QUESTION_ANCESTORS"
+    },
+    {
+      "line": 26245,
+      "column": 35,
+      "label": "R2_NODE_IMPLICIT_COLON_NO_TAIL"
+    },
+    {
+      "line": 26246,
+      "column": 33,
+      "label": "R2_NODE_IMPLICIT_COLON_ANCESTORS"
+    },
+    {
+      "line": 26484,
+      "column": 35,
+      "label": "R2_NODE_PROPS_COLON_NO_TAIL"
+    },
+    {
+      "line": 26485,
+      "column": 33,
+      "label": "R2_NODE_PROPS_COLON_ANCESTORS"
+    },
+    {
+      "line": 30161,
+      "column": 80,
+      "label": "R2_OTHER_BLOCK_CONTENT_PAIR"
+    },
+    {
+      "line": 30967,
+      "column": 78,
+      "label": "R2_OTHER_PENDING_BLOCK_PAIR"
+    },
+    {
+      "line": 31541,
+      "column": 86,
+      "label": "R2_RETAIN_PROPS_EMPTY_COLON_PAIR"
+    },
+    {
+      "line": 31573,
+      "column": 84,
+      "label": "R2_RETAIN_PROPS_EMPTY_INDICATOR_PAIR"
+    },
+    {
+      "line": 31651,
+      "column": 77,
+      "label": "R2_RETAIN_PENDING_VALUE_EMPTY_PAIR"
+    },
+    {
+      "line": 31744,
+      "column": 37,
+      "label": "R2_RETAIN_PENDING_ENTRY_UNION_PAIR"
+    },
+    {
+      "line": 40641,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_1_PAIR"
+    },
+    {
+      "line": 40726,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_2_PAIR"
+    },
+    {
+      "line": 41012,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_3_PAIR"
+    },
+    {
+      "line": 41140,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_4_PAIR"
+    },
+    {
+      "line": 41260,
+      "column": 94,
+      "label": "R2_RETAIN_PROPS_KEY_5_PAIR"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "toolchain": "Lean 4.36.0",
+  "toolchain_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "parent_commit": "352304ba765995356d9b8e3e701fd09285e80e3e",
+  "research_branch": "test/r2-invariant-payload",
+  "unchanged_accepted_source_sha256": "f1eece1acca9f124666aa8fcc8fe5b591c316df35b292b32ed28af491a25772a",
+  "standalone_lean_exit_codes": {
+    "NodeValues": 0,
+    "SourceControls": 0,
+    "ConcretePayloads": 0,
+    "PayloadAudit": 0,
+    "StoredAuditPrecheck": 0
+  },
+  "dependency_audits": [
+    {
+      "root": "actual_question_context",
+      "constants": 6134,
+      "required": 3
+    },
+    {
+      "root": "actual_sibling_tail_consumed",
+      "constants": 6164,
+      "required": 3
+    },
+    {
+      "root": "actual_ancestor_frame",
+      "constants": 6163,
+      "required": 3
+    },
+    {
+      "root": "actual_ancestor_frame_cover",
+      "constants": 5813,
+      "required": 2
+    }
+  ],
+  "standalone_allowed_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "development": {
+    "header_error": {
+      "exit": 1,
+      "labelled_demands": 19,
+      "additional_interface_errors": 2
+    },
+    "clean_before_frame_spend": {
+      "exit": 1,
+      "labelled_demands": 21,
+      "additional_errors": 0
+    },
+    "after_frame_spend": {
+      "exit": 1,
+      "labelled_demands": 21,
+      "additional_errors": 0
+    },
+    "audit_variable_shadow_error": {
+      "exit": 1,
+      "labelled_demands": 21,
+      "additional_meta_error": 1
+    },
+    "concrete_mono_decide_error": "decide +kernel needed +revert for local index-bound proof; corrected and checked",
+    "wrong_checkout_profile": "interrupted after import; no diagnostic result claimed",
+    "unguarded_metadata_precheck": "debug only; replaced by asserting legacy negative control; never migration evidence",
+    "compact_key_control": "conditional payload replaced by plain key with explicit inhabited node witness; no refutation"
+  },
+  "compressed_artifacts": [
+    {
+      "path": "logs/invariant-final.log.xz",
+      "uncompressed_sha256": "ec164cc00154a8c7eae4e982f25f510bb6262179abe6e1e57858184b538e2918",
+      "uncompressed_bytes": 442814
+    },
+    {
+      "path": "logs/development-header.log.xz",
+      "uncompressed_sha256": "be5bb93fad6eb4e83ad3eecb24a462cd5cc39b6f1dc81495cfbd3b2c784d8b1e",
+      "uncompressed_bytes": 393994
+    },
+    {
+      "path": "logs/before-frame-spend.log.xz",
+      "uncompressed_sha256": "b21d224fc076895523806f536551f19664141c45f094cb09b9a56c778f40118f",
+      "uncompressed_bytes": 448307
+    },
+    {
+      "path": "logs/after-frame-spend.log.xz",
+      "uncompressed_sha256": "1f21511552a70038f93474e32b661a8729d39c6a56b8b3fd484626e5e39ca077",
+      "uncompressed_bytes": 449717
+    },
+    {
+      "path": "logs/development-audit-shadow.log.xz",
+      "uncompressed_sha256": "6a9421596ce1d55e9c7e1d031a74c359c8222c1b2eede4f1361fd07cca672a53",
+      "uncompressed_bytes": 442781
+    },
+    {
+      "path": "logs/development-small.log.xz",
+      "uncompressed_sha256": "7b61eb84ec8c9503d3fe62f59c4eca216fc1da391169667abcb53d17812d2059",
+      "uncompressed_bytes": 4173
+    },
+    {
+      "path": "lineage/first-header-error-from-final.patch.xz",
+      "uncompressed_sha256": "20b17889f1dcf77d281c56b8cabbe664150df2f3be5902163d6b9c2ea5f987fa",
+      "uncompressed_bytes": 13949
+    },
+    {
+      "path": "lineage/before-frame-spend-from-final.patch.xz",
+      "uncompressed_sha256": "52b0c0e5d78deaf79bfa19d5f889b63fd39149d66ff332bb2ba3bfa4f2a7dbdb",
+      "uncompressed_bytes": 6999
+    },
+    {
+      "path": "lineage/before-consumption-audit-from-final.patch.xz",
+      "uncompressed_sha256": "2890a2fb7c20d88c75f78acfd29dcc471b967572c27623276f0670791255f8ca",
+      "uncompressed_bytes": 2360
+    },
+    {
+      "path": "lineage/audit-shadow-error-from-final.patch.xz",
+      "uncompressed_sha256": "376baccb9ab6461e854192e9668dd577f375a92042a9a1b88fa84ef62c3b8c7d",
+      "uncompressed_bytes": 931
+    }
+  ]
+}

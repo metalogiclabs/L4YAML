@@ -1,0 +1,4 @@
+PAYLOAD-AUDIT R2ConcretePayloads.actual_question_context: constants=6134 required=3 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+PAYLOAD-AUDIT R2ConcretePayloads.actual_sibling_tail_consumed: constants=6164 required=3 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+PAYLOAD-AUDIT R2ConcretePayloads.actual_ancestor_frame: constants=6163 required=3 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+PAYLOAD-AUDIT R2ConcretePayloads.actual_ancestor_frame_cover: constants=5813 required=2 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
