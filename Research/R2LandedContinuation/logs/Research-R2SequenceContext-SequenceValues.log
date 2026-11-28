@@ -1,0 +1,4 @@
+'L4YAML.Proofs.R2SequenceContext.SequenceValues.sibling' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2SequenceContext.SequenceValues.nested' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2SequenceContext.SequenceValues.compact' depends on axioms: [propext, Classical.choice, Quot.sound]
+'L4YAML.Proofs.R2SequenceContext.SlotValues.compact_sequence' depends on axioms: [propext, Classical.choice, Quot.sound]

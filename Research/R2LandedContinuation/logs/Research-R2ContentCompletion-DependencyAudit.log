@@ -1,0 +1,2 @@
+COMPLETION-PROOF-AUDIT R2ConcreteCompletion.initialized_completed_family: constants=6189 required=6 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]
+COMPLETION-PROOF-AUDIT R2ConcreteCompletion.actual_completed_sibling_ancestor: constants=6211 required=6 forbidden=0 axioms=#[propext, Classical.choice, Quot.sound]

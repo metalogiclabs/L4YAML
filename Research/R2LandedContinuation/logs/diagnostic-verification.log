@@ -1,0 +1,4 @@
+LANDED-PRODUCER informative_arm=typed missing_slot=UNKNOWN left_of_slot=UNKNOWN labelled_errors=23 extra_errors=0
+INHERITED-PROFILES mapping_value=true compact=true ordinary_completion=true byte_identical=true
+ERASURE actual_producer=failed_at_stream_projection standalone_reader=failed_at_stream_slot controls=2/2
+WARRANT landed_family=true initialized_two_ancestors=true nonempty_current_tail=true full_migration=UNKNOWN critical_retirements=0

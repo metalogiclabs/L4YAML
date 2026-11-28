@@ -1,0 +1,11 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -28968,7 +28968,7 @@
+                      ⟨nv, anchor, stream, top, nic, sk, same, col, wide, chain⟩ | residue
+                    · by_cases bound : nv ≤ k
+                      · exact (L4YAML.Proofs.R2LandedContinuation.SlotValues.landed_sequence
+-                         (fun endPos content => (wide endPos content).2) bound h_ssl
++                         (fun endPos content => (wide endPos content).1) bound h_ssl
+                          h_ind h_dash h_gnot
+                          (fun x hx => (h_mcstep_ne (by decide) _
+                            (RegisterWitness.MarkedColsIn.self sc)).mem hx)) e node z tail

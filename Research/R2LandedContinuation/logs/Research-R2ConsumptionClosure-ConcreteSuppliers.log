@@ -1,0 +1,3 @@
+'R2ConcreteSuppliers.actual_value_domain6' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcreteSuppliers.actual_6_2_0_consumption' depends on axioms: [propext, Classical.choice, Quot.sound]
+'R2ConcreteSuppliers.actual_value_domain4' depends on axioms: [propext, Classical.choice, Quot.sound]

@@ -1,0 +1,257 @@
+{
+  "toolchain": "Lean 4.36.0 611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "cold_modules": [
+    {
+      "module": "Research.R2CompactSlot.Controls",
+      "source_sha256": "3e090dc25e375b8fd207ae84d83c758f025c957c228a42864ac200c16c383662",
+      "olean_sha256": "8bd80da69280ef84adb6c47867065456371aa3df60072df1a594000288d4dd78"
+    },
+    {
+      "module": "Research.R2CompactSlot.SlotValues",
+      "source_sha256": "b821d8550ee447b8381081ec2ab4b2a5f93c26ab4237151fb1b95f8d57f31eed",
+      "olean_sha256": "b5ca23cf39f916620b37f27122e194c6fd855ab6f6609671c4f2a2b2195abf1f"
+    },
+    {
+      "module": "Research.R2ConsumptionClosure.ConcreteSuppliers",
+      "source_sha256": "a3af22b27e21c7203e1026c8f2bdd5af81085a6f2546904416a2ddc3ead24db2",
+      "olean_sha256": "0689ff8bf5fc444f3e2975fca7e3ae52b2098572816a01f9dd708eb217ad3ac1"
+    },
+    {
+      "module": "Research.R2ConsumptionClosure.EntryValues",
+      "source_sha256": "ac467a6b558f9726647216a95857308959815f65fe21f0cf4b4824f022cc582e",
+      "olean_sha256": "51ccc76a41b5f76a70dec3ba11adf90bfbfef591b1946541a7544dbaaa60938b"
+    },
+    {
+      "module": "Research.R2ContentCompletion.CompletedValues",
+      "source_sha256": "f55e61c58d0c6b51de7a7e9b9c327f1e9310feafce8dc794a758cc1fffa12795",
+      "olean_sha256": "f2d249787a1b7dc95856af6a526c8c357713e06b95e0f18bf0b98b144b4f08c2"
+    },
+    {
+      "module": "Research.R2ContentCompletion.ConcreteCompletion",
+      "source_sha256": "fe53d2ebc669d41f7dbe11ea0317991cfe42cb2933738fc4a4f0c10a2a858204",
+      "olean_sha256": "fe2ef1665d11660b9f7aee57066d3c35187d701f9658c362c86596006308d957"
+    },
+    {
+      "module": "Research.R2ContentCompletion.Controls",
+      "source_sha256": "8afcb69bf68a889158584f06533cab04cf6e08852801289f8bdb0696f089ca79",
+      "olean_sha256": "25ec2ee2e12d819f0b5120dd5b1180b669c8a4a2597a541db0d0f624c8783157"
+    },
+    {
+      "module": "Research.R2ContentCompletion.DependencyAudit",
+      "source_sha256": "3c36143b88196daaf7cf32fb8149ebcd1949412dfbd4210d86182c300283c96d",
+      "olean_sha256": "0c8a77425b129db7da1186740db58340e536e64d786d8fad758c9f8c84fa1d8f"
+    },
+    {
+      "module": "Research.R2ContinuationContract.Controls",
+      "source_sha256": "3540be325dc7820d8a223b011aff1ed29018fbe9caa9da4ad7be20fb5f833e55",
+      "olean_sha256": "8959d77293d7297c694050528866e91a423f12f4801ea33f8cc3a8b773025b54"
+    },
+    {
+      "module": "Research.R2ContinuationContract.DependencyAudit",
+      "source_sha256": "7a06402f0d3fc45e050bdbf24093734ddd1f8dee1c348bf9fe3f734b8109d9c1",
+      "olean_sha256": "5e6364722d34a0365acb4b0ed17fa488bc611c92c8d61131ee4a68941073d6af"
+    },
+    {
+      "module": "Research.R2ContinuationContract.EntryRoutes",
+      "source_sha256": "4ebe2dbff09786f44b972f9ca13e8d1e0c1f907a6911f145d6493b3493f41ad7",
+      "olean_sha256": "0e4255399d7374105e437bd4ee53e15e703e58fbfecfcc424302f1365dc92c1b"
+    },
+    {
+      "module": "Research.R2ContinuationContract.TwoAncestors",
+      "source_sha256": "91b1a46e483d76b4d2cb1172f88bee53057415d0de7b0fa40be306a07e62c64e",
+      "olean_sha256": "6222e827e16f52052d339ce53a2a61f65944e13a32e50504cd7715705c6ab4ed"
+    },
+    {
+      "module": "Research.R2InvariantPayload.ConcretePayloads",
+      "source_sha256": "e55952512d1a485a822b63c84f22e62b2122f9d1bd92da67b3c4ba9c96e1e207",
+      "olean_sha256": "f60d3b70e5386899fee7c5edf906667c06aced9f5de544ab58e5790904c70391"
+    },
+    {
+      "module": "Research.R2InvariantPayload.NodeValues",
+      "source_sha256": "d87d8b9d6183704728e79d0a04e312fb1ee29b165cf424bc1b91a39866650b69",
+      "olean_sha256": "30a7d550bf1f929b5a11cdff54fe3fb7f4dffba0df9d114e3dd1dd26767771b2"
+    },
+    {
+      "module": "Research.R2InvariantPayload.SourceControls",
+      "source_sha256": "47f6b740c0c7e2795fc831acee47ce8b76747241cf5c62a95f74b54983e7d997",
+      "olean_sha256": "16e7ed3198dd94c5fadec63ee97da72fa5b4f871fb196271a74d60d17f65b0d2"
+    },
+    {
+      "module": "Research.R2LandedContinuation.Controls",
+      "source_sha256": "d58ba83114b901599155e4f724eca7c3114b8f08ddda48dbab1f54477c13d744",
+      "olean_sha256": "6536a51752d3df18a35171d68eb2dce764c3809072fc1971dfcb88ee01a8c0a9"
+    },
+    {
+      "module": "Research.R2LandedContinuation.DependencyAudit",
+      "source_sha256": "555245c471efbb743116dd1bdce4686a1085ae69a18e569328ad812517838db5",
+      "olean_sha256": "53e63c1e3f7dc1e06df56b6e2fad650e8f042dc7bbe39ba2ea59b6c7e5e1230a"
+    },
+    {
+      "module": "Research.R2LandedContinuation.LandedValues",
+      "source_sha256": "8271cf1055f17f477758b7eef9746e1a92c650617d5d040549cca11f931bee15",
+      "olean_sha256": "62394b059e75263d9dcf20679bf3a6500be8669621995fab9b03658dd41bb89a"
+    },
+    {
+      "module": "Research.R2LandedContinuation.TwoAncestors",
+      "source_sha256": "8d55f6a0c7dbd639faa2311d90d3c714a93f380ce8f3e4131326b4e7de2ef970",
+      "olean_sha256": "eb7702ad40d6dab8721996e395c6f714fadb2c98d64ded1b0000ea97fff556e9"
+    },
+    {
+      "module": "Research.R2SequenceContext.ConcreteContexts",
+      "source_sha256": "ed5864388484ad41ae80b505ba5d1ffc0a1fc64cd5968dcde723b646c43f9b44",
+      "olean_sha256": "ebb5d25b85beccbaf084c332ff0018384a32ad26d46e8f8f559e1e90dd707ff5"
+    },
+    {
+      "module": "Research.R2SequenceContext.Controls",
+      "source_sha256": "5cc2fb976c29f85ae5b6611d4081609e27ec63d8f67a68481f90e18a68bba4d8",
+      "olean_sha256": "7de1034ad8f17c2d41c6a72accf3f85772f282a2c08e9db322acc82916002197"
+    },
+    {
+      "module": "Research.R2SequenceContext.SequenceValues",
+      "source_sha256": "5e4def5ee419195d93bc6089dc2436d8b8bfdd0311bc369f6018e5ea13d8af49",
+      "olean_sha256": "0df05608d565c5e6e60d9766c4fd98866a80a7a71d8bf1fa8caf61a3794d3bb1"
+    }
+  ],
+  "qualified_owner_modules": [
+    {
+      "module": "Research.R2CompactSlot.Controls",
+      "source_sha256": "3e090dc25e375b8fd207ae84d83c758f025c957c228a42864ac200c16c383662",
+      "olean_sha256": "8bd80da69280ef84adb6c47867065456371aa3df60072df1a594000288d4dd78",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2CompactSlot.SlotValues",
+      "source_sha256": "b821d8550ee447b8381081ec2ab4b2a5f93c26ab4237151fb1b95f8d57f31eed",
+      "olean_sha256": "b5ca23cf39f916620b37f27122e194c6fd855ab6f6609671c4f2a2b2195abf1f",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ConsumptionClosure.ConcreteSuppliers",
+      "source_sha256": "a3af22b27e21c7203e1026c8f2bdd5af81085a6f2546904416a2ddc3ead24db2",
+      "olean_sha256": "0689ff8bf5fc444f3e2975fca7e3ae52b2098572816a01f9dd708eb217ad3ac1",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ConsumptionClosure.EntryValues",
+      "source_sha256": "ac467a6b558f9726647216a95857308959815f65fe21f0cf4b4824f022cc582e",
+      "olean_sha256": "51ccc76a41b5f76a70dec3ba11adf90bfbfef591b1946541a7544dbaaa60938b",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContentCompletion.CompletedValues",
+      "source_sha256": "f55e61c58d0c6b51de7a7e9b9c327f1e9310feafce8dc794a758cc1fffa12795",
+      "olean_sha256": "f2d249787a1b7dc95856af6a526c8c357713e06b95e0f18bf0b98b144b4f08c2",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContentCompletion.ConcreteCompletion",
+      "source_sha256": "fe53d2ebc669d41f7dbe11ea0317991cfe42cb2933738fc4a4f0c10a2a858204",
+      "olean_sha256": "fe2ef1665d11660b9f7aee57066d3c35187d701f9658c362c86596006308d957",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContentCompletion.Controls",
+      "source_sha256": "8afcb69bf68a889158584f06533cab04cf6e08852801289f8bdb0696f089ca79",
+      "olean_sha256": "25ec2ee2e12d819f0b5120dd5b1180b669c8a4a2597a541db0d0f624c8783157",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContentCompletion.DependencyAudit",
+      "source_sha256": "3c36143b88196daaf7cf32fb8149ebcd1949412dfbd4210d86182c300283c96d",
+      "olean_sha256": "0c8a77425b129db7da1186740db58340e536e64d786d8fad758c9f8c84fa1d8f",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContinuationContract.Controls",
+      "source_sha256": "3540be325dc7820d8a223b011aff1ed29018fbe9caa9da4ad7be20fb5f833e55",
+      "olean_sha256": "8959d77293d7297c694050528866e91a423f12f4801ea33f8cc3a8b773025b54",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContinuationContract.DependencyAudit",
+      "source_sha256": "7a06402f0d3fc45e050bdbf24093734ddd1f8dee1c348bf9fe3f734b8109d9c1",
+      "olean_sha256": "5e6364722d34a0365acb4b0ed17fa488bc611c92c8d61131ee4a68941073d6af",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContinuationContract.EntryRoutes",
+      "source_sha256": "4ebe2dbff09786f44b972f9ca13e8d1e0c1f907a6911f145d6493b3493f41ad7",
+      "olean_sha256": "0e4255399d7374105e437bd4ee53e15e703e58fbfecfcc424302f1365dc92c1b",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2ContinuationContract.TwoAncestors",
+      "source_sha256": "91b1a46e483d76b4d2cb1172f88bee53057415d0de7b0fa40be306a07e62c64e",
+      "olean_sha256": "6222e827e16f52052d339ce53a2a61f65944e13a32e50504cd7715705c6ab4ed",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2InvariantPayload.ConcretePayloads",
+      "source_sha256": "e55952512d1a485a822b63c84f22e62b2122f9d1bd92da67b3c4ba9c96e1e207",
+      "olean_sha256": "f60d3b70e5386899fee7c5edf906667c06aced9f5de544ab58e5790904c70391",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2InvariantPayload.NodeValues",
+      "source_sha256": "d87d8b9d6183704728e79d0a04e312fb1ee29b165cf424bc1b91a39866650b69",
+      "olean_sha256": "30a7d550bf1f929b5a11cdff54fe3fb7f4dffba0df9d114e3dd1dd26767771b2",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2InvariantPayload.SourceControls",
+      "source_sha256": "47f6b740c0c7e2795fc831acee47ce8b76747241cf5c62a95f74b54983e7d997",
+      "olean_sha256": "16e7ed3198dd94c5fadec63ee97da72fa5b4f871fb196271a74d60d17f65b0d2",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2LandedContinuation.Controls",
+      "source_sha256": "d58ba83114b901599155e4f724eca7c3114b8f08ddda48dbab1f54477c13d744",
+      "olean_sha256": "6536a51752d3df18a35171d68eb2dce764c3809072fc1971dfcb88ee01a8c0a9",
+      "reused_parent": false
+    },
+    {
+      "module": "Research.R2LandedContinuation.DependencyAudit",
+      "source_sha256": "555245c471efbb743116dd1bdce4686a1085ae69a18e569328ad812517838db5",
+      "olean_sha256": "53e63c1e3f7dc1e06df56b6e2fad650e8f042dc7bbe39ba2ea59b6c7e5e1230a",
+      "reused_parent": false
+    },
+    {
+      "module": "Research.R2LandedContinuation.LandedValues",
+      "source_sha256": "8271cf1055f17f477758b7eef9746e1a92c650617d5d040549cca11f931bee15",
+      "olean_sha256": "62394b059e75263d9dcf20679bf3a6500be8669621995fab9b03658dd41bb89a",
+      "reused_parent": false
+    },
+    {
+      "module": "Research.R2LandedContinuation.QualifiedOwnerAudit",
+      "source_sha256": "8a24d618e070ee964d0f68417c0f5a579ff16ce42013b6169750d000bd23e08f",
+      "olean_sha256": "2f86d10ee03208517e445c801676be3bcfeb0960b8f9dea3b573930ab6139669",
+      "reused_parent": false
+    },
+    {
+      "module": "Research.R2LandedContinuation.TwoAncestors",
+      "source_sha256": "8d55f6a0c7dbd639faa2311d90d3c714a93f380ce8f3e4131326b4e7de2ef970",
+      "olean_sha256": "eb7702ad40d6dab8721996e395c6f714fadb2c98d64ded1b0000ea97fff556e9",
+      "reused_parent": false
+    },
+    {
+      "module": "Research.R2SequenceContext.ConcreteContexts",
+      "source_sha256": "ed5864388484ad41ae80b505ba5d1ffc0a1fc64cd5968dcde723b646c43f9b44",
+      "olean_sha256": "ebb5d25b85beccbaf084c332ff0018384a32ad26d46e8f8f559e1e90dd707ff5",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2SequenceContext.Controls",
+      "source_sha256": "5cc2fb976c29f85ae5b6611d4081609e27ec63d8f67a68481f90e18a68bba4d8",
+      "olean_sha256": "7de1034ad8f17c2d41c6a72accf3f85772f282a2c08e9db322acc82916002197",
+      "reused_parent": true
+    },
+    {
+      "module": "Research.R2SequenceContext.SequenceValues",
+      "source_sha256": "5e4def5ee419195d93bc6089dc2436d8b8bfdd0311bc369f6018e5ea13d8af49",
+      "olean_sha256": "0df05608d565c5e6e60d9766c4fd98866a80a7a71d8bf1fa8caf61a3794d3bb1",
+      "reused_parent": true
+    }
+  ],
+  "qualified_owner_commit": "bea84871310b2b00518629638607bd46f7a2ebba",
+  "qualified_owner_source_sha256": "695b4080d6086b1d8d78c9459c5c12d9850947be3811cba45fbedd12fd1ad62f"
+}

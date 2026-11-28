@@ -1,0 +1,41 @@
+--- a/L4YAML/Proofs/Production/StreamAccum.lean
++++ b/L4YAML/Proofs/Production/StreamAccum.lean
+@@ -22666,6 +22666,20 @@
+           simp only [seqSpaces]; omega
+         rw [h]; exact h_entries))
+ 
++lemma _root_.L4YAML.Proofs.R2LandedContinuation.SlotValues.landed_sequence {before after : ScannerState}
++    {start slot land dash next : SurfPos} {nv k : Nat}
++    (payload : SlotValues before start nv .blockOut slot) (bound : nv ≤ k)
++    (comments : SSLComments slot land) (indent : SIndent k land dash)
++    (literal : GLit '-' dash next) (notNs : GNot SNsChar next)
++    (back : ∀ x ∈ RegisterWitness.markedCols after, x ∈ RegisterWitness.markedCols before) :
++    SequenceValues after start k next := by
++  intro e node z tail
++  exact EntryValues.restrict_state (payload z
++    (slotLandedSeq bound comments
++      (SBlockSeqEntries_of_compactTail indent literal notNs node tail))) back
++
++
++
+ /-- **`[185]`'s `seq-spaces` at the MAPPING's own column** (item 388): a block sequence whose
+     `-` stands at the enclosing mapping's column is that mapping's VALUE — `[187]`'s
+     `s-l+block-node(n, block-out)` with `seq-spaces(n + 1, block-out) = n`.  `nestedBlockSeq`'s
+@@ -28950,7 +28964,16 @@
+              (fun e node z tail => ⟨(h_entryTail) e node z tail, by
+                  by_cases empty : RegisterWitness.markedCols s' = []
+                  · exact EntryValues.of_no_marks empty ((h_entryTail) e node z tail)
+-                 · trace_state; fail "R2_SEQUENCE_LANDED_FAMILY"⟩)
++                 · rcases h_vslot_saved with
++                     ⟨nv, anchor, stream, top, nic, sk, same, col, wide, chain⟩ | residue
++                   · by_cases bound : nv ≤ k
++                     · exact (L4YAML.Proofs.R2LandedContinuation.SlotValues.landed_sequence
++                         (fun endPos content => (wide endPos content).2) bound h_ssl
++                         h_ind h_dash h_gnot
++                         (fun x hx => (h_mcstep_ne (by decide) _
++                           (RegisterWitness.MarkedColsIn.self sc)).mem hx)) e node z tail
++                     · trace_state; fail "R2_SEQUENCE_LANDED_LEFT_OF_SLOT"
++                   · trace_state; fail "R2_SEQUENCE_LANDED_MISSING_SLOT"⟩)
+              (indicator_floor_dash hcol_mid h_ind hcorr_prep h_preprocess h_dispatch)
+              (dispatchBlockEntry_simpleKeyAllowed h_dispatch)
+              (park_col_of_indicator hcol_mid h_ind h_dash)

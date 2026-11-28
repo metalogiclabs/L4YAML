@@ -1,0 +1,8 @@
+Research/R2LandedContinuation/ErasedReader.lean:18:35: error: Application type mismatch: The argument
+  payload
+has type
+  ∀ (e : SurfPos), SBlockIndented nv YamlContext.blockOut slot e → SLYamlStream start e
+but is expected to have type
+  R2CompactSlot.SlotValues ?m.12 start ?m.19 YamlContext.blockOut ?m.15
+in the application
+  SlotValues.landed_sequence payload
